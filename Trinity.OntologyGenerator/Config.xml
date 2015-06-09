@@ -1,0 +1,19 @@
+﻿<GeneratorConfiguration>
+
+  <Namespace/>
+
+
+
+  <!--http://www.w3.org/2002/07/owl#-->
+  <Ontology>
+    <Uri>http://www.w3.org/2002/07/owl#</Uri>
+    <MetadataUri/>
+    <WebSource>
+      <FileUrl>http://www.w3.org/2002/07/owl.n3</FileUrl>
+    </WebSource>
+    <Prefix>owl</Prefix>
+  </Ontology>
+
+
+</GeneratorConfiguration>
+
