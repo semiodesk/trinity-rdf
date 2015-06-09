@@ -1,0 +1,202 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{0D10D2AD-CA61-46E3-88C8-0AB8318647BA}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Semiodesk.Trinity</RootNamespace>
+    <AssemblyName>Semiodesk.Trinity</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\Build\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <GenerateSerializationAssemblies>On</GenerateSerializationAssemblies>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\..\Build\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release_Bootstrap|AnyCPU'">
+    <OutputPath>..\..\Build\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release_Bootstrap|x86'">
+    <OutputPath>bin\x86\Release_Bootstrap\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release_Ontologies|AnyCPU'">
+    <OutputPath>..\..\Build\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release_Ontologies|x86'">
+    <OutputPath>bin\x86\Release_Ontologies\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="dotNetRDF, Version=1.0.8.3533, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\dotNetRDF.1.0.8.3533\lib\net40\dotNetRDF.dll</HintPath>
+    </Reference>
+    <Reference Include="dotNetRDF.Data.Virtuoso, Version=1.0.8.3533, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\dotNetRDF.Data.Virtuoso.1.0.8.3533\lib\net40\dotNetRDF.Data.Virtuoso.dll</HintPath>
+    </Reference>
+    <Reference Include="HtmlAgilityPack, Version=1.4.9.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\HtmlAgilityPack.1.4.9\lib\Net40\HtmlAgilityPack.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net40\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenLink.Data.Virtuoso, Version=6.2.3128.1, Culture=neutral, PublicKeyToken=6654f6917d07cb95, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\dotNetRDF.Data.Virtuoso.1.0.8.3533\lib\net40\OpenLink.Data.Virtuoso.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="VDS.Common, Version=1.5.0.0, Culture=neutral, PublicKeyToken=ab5f4eb908061bf0, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\VDS.Common.1.5.0\lib\net40-client\VDS.Common.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Collections\AsyncVirtualizingCollection.cs" />
+    <Compile Include="Collections\AsyncVirtualizingResourceCollection.cs" />
+    <Compile Include="Collections\AsyncVirtualizingSparqlCollection.cs" />
+    <Compile Include="Collections\SparqlQueryItemsProvider.cs" />
+    <Compile Include="Collections\VirtualizingSparqlCollection.cs" />
+    <Compile Include="Collections\IItemsProvider.cs" />
+    <Compile Include="Collections\ResourceQueryItemsProvider.cs" />
+    <Compile Include="Collections\VirtualizingResourceCollection.cs" />
+    <Compile Include="Collections\VirtualizingCollection.cs" />
+    <Compile Include="Exceptions.cs" />
+    <Compile Include="IResourceQueryResult.cs" />
+    <Compile Include="ITransactional.cs" />
+    <Compile Include="Model\IModelGroup.cs" />
+    <Compile Include="Model\ModelGroup.cs" />
+    <Compile Include="Query\BindingSet.cs" />
+    <Compile Include="Class.cs" />
+    <Compile Include="Model\IModel.cs" />
+    <Compile Include="Query\FilterOperation.cs" />
+    <Compile Include="Query\InvalidQueryException.cs" />
+    <Compile Include="MappingDiscovery.cs" />
+    <Compile Include="Model\Model.cs" />
+    <Compile Include="Model\ModelChangedEventArgs.cs" />
+    <Compile Include="Model\ModelManager.cs" />
+    <Compile Include="NamespaceManager.cs" />
+    <Compile Include="Ontology.cs" />
+    <Compile Include="OntologyDiscovery.cs" />
+    <Compile Include="Property.cs" />
+    <Compile Include="IResource.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="PropertyMapping.cs" />
+    <Compile Include="PropertyValue.cs" />
+    <Compile Include="Query\ISparqlQueryResult.cs" />
+    <Compile Include="Query\ResourceProvider.cs" />
+    <Compile Include="Query\ResourceQuery.cs" />
+    <Compile Include="Query\ResourceQueryResult.cs" />
+    <Compile Include="Query\SortCriterion.cs" />
+    <Compile Include="Query\SortDirection.cs" />
+    <Compile Include="Query\StatementPattern.cs" />
+    <Compile Include="StoreProvider.cs" />
+    <Compile Include="Stores.cs" />
+    <Compile Include="Stores\dotNetRDF\dotNetRDFQueryResult.cs" />
+    <Compile Include="Stores\dotNetRDF\dotNetRDFStore.cs" />
+    <Compile Include="Stores\dotNetRDF\dotNetRDFStoreProvider.cs" />
+    <Compile Include="Stores\IStore.cs" />
+    <Compile Include="Stores\ITransaction.cs" />
+    <Compile Include="Stores\SparqlEndpoint\SparqlEndpointStoreProvider.cs" />
+    <Compile Include="Stores\SparqlEndpoint\SparqlEndpointQueryResult.cs" />
+    <Compile Include="Stores\SparqlEndpoint\SparqlEndpointStorage.cs" />
+    <Compile Include="Stores\Virtuoso\VirtuosoStoreProvider.cs" />
+    <Compile Include="Stores\Virtuoso\VirtuosoTransaction.cs" />
+    <Compile Include="Resource.cs" />
+    <Compile Include="ResourceCache.cs" />
+    <Compile Include="Query\SparqlQuery.cs" />
+    <Compile Include="Stores\Virtuoso\VirtuosoSparqlQueryResult.cs" />
+    <Compile Include="Query\SparqlSerializer.cs" />
+    <Compile Include="Stores\Virtuoso\VirtuosoStore.cs" />
+    <Compile Include="Query\SparqlUpdate.cs" />
+    <Compile Include="UriRef.cs" />
+    <Compile Include="XsdTypeMapper.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

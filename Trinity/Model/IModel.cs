@@ -1,0 +1,276 @@
+﻿/*
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+Copyright (c) Semiodesk GmbH 2015
+
+Authors:
+Moritz Eberl <moritz@semiodesk.com>
+Sebastian Faubel <sebastian@semiodesk.com>
+*/
+
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.IO;
+
+
+namespace Semiodesk.Trinity
+{
+
+    /// <summary>
+    /// An interface for classes which provide functionality to manage a set of resources.
+    /// </summary>
+    public interface IModel
+    {
+        #region Properties
+
+        UriRef Uri { get; }
+
+        bool IsEmpty { get; }
+
+        /// <summary>
+        /// Set this to true if the refresh function of resources should be called automatically if it has been changed in another application.
+        /// </summary>
+        bool RefreshChangedResources { get; set; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Adds an existing resource to the model and its backing RDF store. The resulting resource supports the use of the Commit() method.
+        /// </summary>
+        /// <param name="resource">The resource to be added to the model.</param>
+        /// <param name="transaction">Transaction associated with the action.</param>
+        /// <returns>The resource which is now connected to the current model.</returns>
+        IResource AddResource(IResource resource, ITransaction transaction = null);
+
+        /// <summary>
+        /// Adds an existing resource to the model and its backing RDF store. The resulting resource supports the use of the Commit() method.
+        /// </summary>
+        /// <param name="resource">The resource to be added to the model.</param>
+        /// <param name="transaction">Transaction associated with the action.</param>
+        /// <returns>The resource which is now connected to the current model.</returns>
+        T AddResource<T>(T resource, ITransaction transaction = null) where T : Resource;
+
+        /// <summary>
+        /// Creates a new resource in the model and its backing RDF store.
+        /// </summary>
+        /// <param name="format">The format string from which a globally unique identifier URI should be generated from.</param>
+        /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
+        /// <returns>The newly created resource.</returns>
+        /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
+        IResource CreateResource(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null);
+
+        /// <summary>
+        /// Creates a new resource in the model and its backing RDF store.
+        /// </summary>
+        /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <returns>The newly created resource.</returns>
+        /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
+        IResource CreateResource(Uri uri, ITransaction transaction = null);
+
+        /// <summary>
+        /// Creates a new resource in the model and its backing RDF store. Provides a resource object of the given type.
+        /// </summary>
+        /// <typeparam name="T">Type of the resource object. Must be derived from Resource.</typeparam>
+        /// <param name="format">The format string from which a globally unique identifier URI should be generated from.</param>
+        /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
+        /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
+        T CreateResource<T>(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null) where T : Resource;
+
+        /// <summary>
+        /// Creates a new resource in the model and its backing RDF store. Provides a resource object of the given type.
+        /// </summary>
+        /// <typeparam name="T">Type of the resource object. Must be derived from Resource.</typeparam>
+        /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
+        /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
+        T CreateResource<T>(Uri uri, ITransaction transaction = null) where T : Resource;
+
+        /// <summary>
+        /// Creates a new resource in the model and its backing RDF store. Provides a resource object of the given type.
+        /// </summary>
+        /// <typeparam name="t">Type of the resource object. Must be derived from Resource.</typeparam>
+        /// <param name="format">The format of the resulting uri.</param>
+        /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
+        /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
+        object CreateResource(Type t, string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null);
+
+        /// <summary>
+        /// Creates a new resource in the model and its backing RDF store. Provides a resource object of the given type.
+        /// This method can be used to create a resource of a type which was asserted at runtime.
+        /// </summary>
+        /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <param name="t">Type of the resource object. Must be derived from Resource. </param>
+        /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
+        /// <exception cref="Exception">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
+        object CreateResource(Uri uri, Type t, ITransaction transaction = null);
+
+        /// <summary>
+        /// Removes the given resource from the model and its backing RDF store. Note that there is no verification
+        /// that the given resource and its stored represenation have identical properties.
+        /// </summary>
+        /// <param name="uri">A Uniform Resource Identifier.</param>
+        void DeleteResource(Uri uri, ITransaction transaction = null);
+
+        /// <summary>
+        /// Removes the given resource from the model and its backing RDF store. Note that there is no verification
+        /// that the given resource and its stored represenation have identical properties.
+        /// </summary>
+        /// <param name="resource">Resource that is to be removed from the model.</param>
+        void DeleteResource(IResource resource, ITransaction transaction = null);
+
+        /// <summary>
+        /// Indicates wheter a given resource is part of the model.
+        /// </summary>
+        /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <returns>True if the resource is part of the model, False if not.</returns>
+        bool ContainsResource(Uri uri, ITransaction transaction = null);
+
+        /// <summary>
+        /// Indicates wheter a given resource is part of the model.
+        /// </summary>
+        /// <param name="resource">Resource that should be looked up in the model.</param>
+        /// <returns>True if the resource is part of the model, False if not.</returns>
+        bool ContainsResource(IResource resource, ITransaction transaction = null);
+
+        /// <summary>
+        /// Execute a SPARQL query against the model.
+        /// </summary>
+        /// <param name="query">A SparqlQuery object.</param>
+        /// <returns>A SPARQL query result object.</returns>
+        ISparqlQueryResult ExecuteQuery(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
+
+        /// <summary>
+        /// Execute a ResourceQuery against the model.
+        /// </summary>
+        /// <param name="query">A ResourceQuery object.</param>
+        /// <returns>A SPARQL query result object.</returns>
+        IResourceQueryResult ExecuteQuery(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
+
+        /// <summary>
+        /// Execute a SparqlUpdate against the model.
+        /// </summary>
+        /// <param name="query">A sparql update object.</param>
+        void ExecuteUpdate(SparqlUpdate update, ITransaction transaction = null);
+
+        /// <summary>
+        /// Retrieves a resource from the model.
+        /// </summary>
+        /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <returns>A resource with all asserted properties.</returns>
+        IResource GetResource(Uri uri, ITransaction transaction = null);
+
+        /// <summary>
+        /// Retrieves a resource from the model. Provides a resource object of the given type.
+        /// </summary>
+        /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <returns>A resource with all asserted properties.</returns>
+        T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource;
+
+        /// <summary>
+        /// Retrieves a resource from the model. Provides a resource object of the given type.
+        /// </summary>
+        /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <param name="t">The type the resource should have.</param>
+        /// <returns>A resource with all asserted properties.</returns>
+        object GetResource(Uri uri, Type type, ITransaction transaction = null);
+
+        /// <summary>
+        /// Executes a SPARQL query and provides an enumeration of matching resources.
+        /// </summary>
+        /// <returns>An enumeration of resources that match the given query.</returns>
+        IEnumerable<Resource> GetResources(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
+
+        /// <summary>
+        /// Executes a resource query and provides an enumeration of matching resources.
+        /// </summary>
+        /// <returns>An enumeration of resources that match the given query.</returns>
+        IEnumerable<Resource> GetResources(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
+
+        /// <summary>
+        /// Executes a SPARQL query and provides an enumeration of matching resources.
+        /// </summary>
+        /// <returns>An enumeration of resources that match the given query.</returns>
+        IEnumerable<T> GetResources<T>(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource;
+
+        /// <summary>
+        /// Executes a resource query and provides an enumeration of matching resources.
+        /// </summary>
+        /// <returns>An enumeration of resources that match the given query.</returns>
+        IEnumerable<T> GetResources<T>(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource;
+
+        /// <summary>
+        /// Returns a enumeration of all resources that match the given type.
+        /// </summary>
+        /// <returns>An enumeration of resources that match the given query.</returns>
+        IEnumerable<T> GetResources<T>(bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource;
+        
+        /// <summary>
+        /// Executes a SPARQL query and provides an enumeration of matching resources.
+        /// </summary>
+        /// <returns>An enumeration of resources that match the given query.</returns>
+        IEnumerable<BindingSet> GetBindings(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
+
+        /// <summary>
+        /// Imports the contents of a model located by the given URL. The method supports
+        /// importing files and other models stored in the local RDF store. 
+        /// </summary>
+        /// <param name="url">A uniform resource locator.</param>
+        /// <returns>True if the contents of the model were imported, False if not.</returns>
+        bool Read(Uri url, RdfSerializationFormat format);
+
+        /// <summary>
+        /// Serializes the contents of the model and provides a memory stream.
+        /// </summary>
+        /// <param name="format">The serialization format.</param>
+        /// <returns>A serialization of the models contents.</returns>
+        void Write(Stream fs, RdfSerializationFormat format);
+
+        /// <summary>
+        /// Updates a resource with it's current state in the model.
+        /// </summary>
+        /// <param name="resource"></param>
+        /// <param name="transaction"></param>
+        void UpdateResource(Resource resource, ITransaction transaction = null);
+
+        /// <summary>
+        /// Removes all elements from the model.
+        /// </summary>
+        void Clear();
+
+        /// <summary>
+        /// Starts a transaction which can be used to group more queries together to be executed as one.
+        /// </summary>
+        /// <param name="isolationLevel">Isolation level used to lock the database.</param>
+        /// <returns>A handle to the transaction.</returns>
+        ITransaction BeginTransaction(IsolationLevel isolationLevel);
+        
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Enumerates all supported RDF serialization formats.
+    /// </summary>
+    public enum RdfSerializationFormat { RdfXml, N3, NTriples, Trig };
+
+
+}
