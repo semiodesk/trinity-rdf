@@ -1,0 +1,27 @@
+﻿<DeploymentConfiguration>
+
+  <!--http://www.w3.org/1999/02/22-rdf-syntax-ns#-->
+  <Ontology Uri="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <WebSource Location="http://www.w3.org/1999/02/22-rdf-syntax-ns.rdf" />
+  </Ontology>
+
+  <!--http://www.w3.org/2000/01/rdf-schema#-->
+  <Ontology Uri="http://www.w3.org/2000/01/rdf-schema#">
+    <FileSource Location="rdf-schema.rdf" />
+  </Ontology>
+
+  <!--http://www.w3.org/2002/07/owl#-->
+  <Ontology Uri ="http://www.w3.org/2002/07/owl#">
+    <WebSource Location ="http://www.w3.org/2002/07/owl.n3" />
+  </Ontology>
+
+  <VirtuosoSpecific>
+    <RuleSet  Uri="urn:semiodesk/ruleset">
+      <Graph>http://www.w3.org/1999/02/22-rdf-syntax-ns#</Graph>
+      <Graph>http://www.w3.org/2000/01/rdf-schema#</Graph>
+      <Graph>http://www.w3.org/2002/07/owl#</Graph>
+    </RuleSet>
+  </VirtuosoSpecific>
+
+</DeploymentConfiguration>
+
