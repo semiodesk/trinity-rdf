@@ -180,10 +180,13 @@ namespace Semiodesk.Trinity.Tests
     class ResourceBindingTest
     {
         Uri contactListUri = new Uri("semio:test:contactList");
+        IStore _store;
 
         [SetUp]
         public void SetUp()
         {
+            _store = Stores.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
+
             if (ResourceMappingTest.RegisteredOntology == false)
             {
                 OntologyDiscovery.AddAssembly(Assembly.GetExecutingAssembly());
@@ -195,19 +198,17 @@ namespace Semiodesk.Trinity.Tests
 
         IModel GetModel()
         {
-            ModelManager modelManager = ModelManager.Instance;
-            modelManager.Connect();
 
             Uri testModelUri = new Uri("http://localhost:8899/model/TestModel");
 
             IModel model;
-            if (modelManager.ContainsModel(testModelUri))
+            if (_store.ContainsModel(testModelUri))
             {
-                model = modelManager.GetModel(testModelUri);
+                model = _store.GetModel(testModelUri);
             }
             else
             {
-                model = modelManager.CreateModel(testModelUri);
+                model = _store.CreateModel(testModelUri);
             }
 
             return model;

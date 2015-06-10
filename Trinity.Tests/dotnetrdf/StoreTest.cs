@@ -30,7 +30,7 @@ namespace dotNetRDFStore.Test
         {
             Uri testModel = new Uri("ex:Test");
 
-            IModel m = Store.AddModel(testModel);
+            IModel m = Store.CreateModel(testModel);
 
             Assert.IsNotNull(m);
         }
@@ -42,7 +42,7 @@ namespace dotNetRDFStore.Test
 
             Assert.IsFalse(Store.ContainsModel(testModel));
 
-            IModel m = Store.AddModel(testModel);
+            IModel m = Store.CreateModel(testModel);
 
             var res = m.CreateResource(new Uri("ex:test:resource"));
             
@@ -60,7 +60,7 @@ namespace dotNetRDFStore.Test
 
             Assert.IsFalse(Store.ContainsModel(testModel));
 
-            IModel m = Store.AddModel(testModel);
+            IModel m = Store.CreateModel(testModel);
 
             var res = m.CreateResource(new Uri("ex:test:resource"));
 
@@ -82,7 +82,7 @@ namespace dotNetRDFStore.Test
 
             Assert.IsFalse(Store.ContainsModel(testModel));
 
-            IModel m = Store.AddModel(testModel);
+            IModel m = Store.CreateModel(testModel);
 
             var res = m.CreateResource(new Uri("ex:test:resource"));
 

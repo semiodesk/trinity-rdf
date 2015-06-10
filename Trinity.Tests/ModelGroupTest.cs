@@ -12,34 +12,37 @@ namespace Semiodesk.Trinity.Tests
     {
         private IModel _model = null;
         private IModel _model2 = null;
-        private ModelManager ModelManager;
+        private IStore _store;
 
         [SetUp]
         public void SetUp()
         {
-            ModelManager = ModelManager.Instance;
-            ModelManager.Connect();
+           _store = Stores.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
 
-            try
+           Uri modelUri1 = new Uri("http://example.org/TestModel");
+
+            if( _store.ContainsModel(modelUri1) )
             {
                 // Default uri scheme
-                _model = ModelManager.GetModel(new Uri("http://example.org/TestModel"));
+                _model = _store.GetModel(modelUri1);
                 _model.Clear();
             }
-            catch (Exception)
+            else
             {
-                _model = ModelManager.CreateModel(new Uri("http://example.org/TestModel"));
+                _model = _store.CreateModel(modelUri1);
             }
 
-            try
+            Uri modelUri = new Uri("http://example.org/TestModel2");
+
+            if( _store.ContainsModel(modelUri))
             {
                 // Urn scheme
-                _model2 = ModelManager.GetModel(new Uri("http://example.org/TestModel2"));
+                _model2 = _store.GetModel(modelUri);
                 _model2.Clear();
             }
-            catch (Exception)
+            else
             {
-                _model2 = ModelManager.CreateModel(new Uri("http://example.org/TestModel2"));
+                _model2 = _store.CreateModel(modelUri);
             }
         }
 
@@ -48,7 +51,7 @@ namespace Semiodesk.Trinity.Tests
         {
             _model.Clear();
             _model2.Clear();
-            ModelManager.Disconnect();
+            _store.Dispose();
         }
 
         [Test]
@@ -56,7 +59,7 @@ namespace Semiodesk.Trinity.Tests
         {
             Uri resourceUri = new Uri("http://example.com/testResource");
 
-            IModelGroup g = ModelManager.CreateModelGroup(_model.Uri, _model2.Uri);
+            IModelGroup g = _store.CreateModelGroup(_model.Uri, _model2.Uri);
             bool res = g.ContainsResource(resourceUri);
             Assert.IsFalse(res);
 
@@ -85,7 +88,7 @@ namespace Semiodesk.Trinity.Tests
         {
             Uri resourceUri = new Uri("http://example.com/testResource");
 
-            IModelGroup g = ModelManager.CreateModelGroup(_model.Uri, _model2.Uri);
+            IModelGroup g = _store.CreateModelGroup(_model.Uri, _model2.Uri);
             
             Assert.Throws(typeof(ArgumentException), new TestDelegate( () => g.GetResource(resourceUri)));
             
@@ -106,7 +109,7 @@ namespace Semiodesk.Trinity.Tests
         {
             Uri resourceUri = new Uri("http://example.com/testResource");
 
-            IModelGroup g = ModelManager.CreateModelGroup(_model.Uri, _model2.Uri);
+            IModelGroup g = _store.CreateModelGroup(_model.Uri, _model2.Uri);
 
             Contact resource = _model.CreateResource<Contact>(resourceUri);
             resource.Fullname = "Hans Peter";
@@ -125,7 +128,7 @@ namespace Semiodesk.Trinity.Tests
         {
             MappingDiscovery.RegisterCallingAssembly();
             IModel model = _model;
-            IModelGroup modelGroup = ModelManager.CreateModelGroup(_model.Uri, _model2.Uri);
+            IModelGroup modelGroup = _store.CreateModelGroup(_model.Uri, _model2.Uri);
             model.Clear();
 
             Uri testRes1 = new Uri("semio:test:testInstance");

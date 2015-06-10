@@ -54,7 +54,7 @@ namespace Semiodesk.Trinity.Store
             int port;
             if (!configurationDictionary.ContainsKey(portKey) ||!int.TryParse(configurationDictionary[portKey], out port))
             {
-                #if !DEBUG
+                #if !DEBUG 
                 port = 1112;
                 #else
                 port = 1111;

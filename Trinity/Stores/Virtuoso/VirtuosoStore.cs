@@ -512,6 +512,16 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
+        public IModelGroup CreateModelGroup(params Uri[] models)
+        {
+            List<IModel> modelList = new List<IModel>();
+            foreach (var x in models)
+            {
+                modelList.Add(GetModel(x));
+            }
+
+            return new ModelGroup(this, modelList);
+        }
         #endregion
 
         #region Event Handlers

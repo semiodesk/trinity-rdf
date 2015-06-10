@@ -18,12 +18,13 @@ namespace Semiodesk.Trinity.Tests
 
         private NamespaceManager _namespaceManager = new NamespaceManager();
 
-        public SparqlUpdateTest()
+        [SetUp]
+        public void SetUp()
         {
             _store = Stores.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
 
             Uri modelUri = new Uri("ex:TestModel");
-            if( _store.ContainsModel(modelUri))
+            if (_store.ContainsModel(modelUri))
             {
                 _model = _store.GetModel(modelUri);
             }

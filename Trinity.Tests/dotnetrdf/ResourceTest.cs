@@ -21,7 +21,7 @@ namespace dotNetRDFStore.Test
 
 
             Uri testModel = new Uri("ex:Test");
-            Model = Store.AddModel(testModel);
+            Model = Store.CreateModel(testModel);
         }
 
         [TearDown]

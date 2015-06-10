@@ -44,9 +44,9 @@ namespace Semiodesk.Trinity.OntologyGenerator
         #region Members
 
         /// <summary>
-        /// A reference to the globale ModelManager.
+        /// A reference to the store
         /// </summary>
-        private ModelManager _modelManager;
+        private IStore _store;
 
         /// <summary>
         /// Holds a list of all registered ontology models.
@@ -97,8 +97,8 @@ namespace Semiodesk.Trinity.OntologyGenerator
             Console.WriteLine(string.Format("Starting OntologyGenerator in {0}", Directory.GetCurrentDirectory()));
             Console.WriteLine();
 
-            _modelManager = ModelManager.Instance;
-            _modelManager.Connect("provider=dotnetrdf");
+
+            _store = Stores.CreateStore("provider=dotnetrdf");
 
             Initialize();
         }
@@ -119,8 +119,8 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 format = RdfSerializationFormat.RdfXml;
             try
             {
-                if(! _modelManager.ContainsModel(graphUri) )
-                    _modelManager.Import(graphUri, location, format);
+                if (!_store.ContainsModel(graphUri))
+                    _store.Read(graphUri, location, format);
             }
             catch (Exception e)
             {
@@ -132,12 +132,12 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
         public bool AddOntology(Uri graphUri, Uri metadataUri, string prefix)
         {
-            if (graphUri != null && _modelManager.ContainsModel(graphUri) )
+            if (graphUri != null && _store.ContainsModel(graphUri))
             {
-                IModel graphModel = _modelManager.GetModel(graphUri);
+                IModel graphModel = _store.GetModel(graphUri);
                 IModel metaModel = null;
-                if (metadataUri != null && _modelManager.ContainsModel(metadataUri))
-                    metaModel = _modelManager.GetModel(metadataUri);
+                if (metadataUri != null && _store.ContainsModel(metadataUri))
+                    metaModel = _store.GetModel(metadataUri);
 
                 _models.Add(new Tuple<IModel, IModel, string, string>(graphModel, metaModel, prefix, graphUri.AbsoluteUri));
                 return true;

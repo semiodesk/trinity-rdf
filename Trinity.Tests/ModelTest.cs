@@ -357,10 +357,6 @@ namespace Semiodesk.Trinity.Tests
             var x = _model.GetResource(uriResource);
             Assert.AreEqual(typeof(PersonContact), x.GetType());
 
-
-            
-
-            
         }
 
         [Test]
@@ -384,8 +380,11 @@ namespace Semiodesk.Trinity.Tests
         {
             _model.Clear();
 
+            FileInfo fi = new FileInfo("Models\\test-ntriples.nt");
+            UriRef fileUri = fi.ToUriRef();
+
             Assert.IsTrue(_model.IsEmpty);
-            Assert.IsTrue(_model.Read(new Uri("file:Models/test-ntriples.nt", UriKind.Relative), RdfSerializationFormat.NTriples));
+            Assert.IsTrue(_model.Read(fileUri, RdfSerializationFormat.NTriples));
             Assert.IsFalse(_model.IsEmpty);
 
             _model.Clear();
@@ -396,9 +395,12 @@ namespace Semiodesk.Trinity.Tests
 
             _model.Clear();
 
+            fi = new FileInfo("Models\\test-tmo.trig");
+            fileUri = fi.ToUriRef();
+
             Assert.IsTrue(_model.IsEmpty);
-            Assert.IsTrue(_model.Read(new Uri("file:Models/test-tmo.trig", UriKind.Relative), RdfSerializationFormat.RdfXml));
-            Assert.IsFalse(_model.IsEmpty);
+            Assert.Throws(typeof(ArgumentException), () => { _model.Read(fileUri, RdfSerializationFormat.Trig); });
+            
         }
 
     }
