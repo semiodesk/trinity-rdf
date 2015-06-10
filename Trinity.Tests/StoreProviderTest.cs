@@ -39,11 +39,7 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void VirtuosoConfigurationStringTest()
         {
-            IStore anObject = Stores.CreateStore("provider=virtuoso");
-            Assert.IsNotNull(anObject);
-            anObject.Dispose();
-
-            anObject = Stores.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
+            IStore anObject = Stores.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
             Assert.IsNotNull(anObject);
             anObject.Dispose();
         }

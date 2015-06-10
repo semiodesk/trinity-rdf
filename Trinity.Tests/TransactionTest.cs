@@ -37,7 +37,7 @@ namespace Semiodesk.Trinity.Test
             {
                 Store.RemoveModel(transactionModel);
             }
-            IModel m = Store.AddModel(transactionModel);
+            IModel m = Store.CreateModel(transactionModel);
 
             
 

@@ -37,7 +37,7 @@ namespace Semiodesk.Trinity.OntologyDeployment
     {
         #region Fields
         private DirectoryInfo _sourceDirectory;
-        ModelManager _manager;
+        IStore _store;
         #endregion
 
         #region Constructors
@@ -45,8 +45,8 @@ namespace Semiodesk.Trinity.OntologyDeployment
         public OntologyUpdater(string connectionString, DirectoryInfo sourceDir)
         {
             _sourceDirectory = sourceDir;
-            _manager = ModelManager.Instance;
-            _manager.Connect(connectionString);
+
+            _store = Stores.CreateStore(connectionString);
         }
 
         #endregion
@@ -55,9 +55,9 @@ namespace Semiodesk.Trinity.OntologyDeployment
 
         protected void RemoveGraph(Uri graphUri)
         {
-            if (_manager.ContainsModel(graphUri))
+            if (_store.ContainsModel(graphUri))
             {
-                _manager.DeleteModel(graphUri);
+                _store.RemoveModel(graphUri);
             }
         }
 
@@ -69,13 +69,13 @@ namespace Semiodesk.Trinity.OntologyDeployment
 
                 RdfSerializationFormat format = GetSerializationFormatFromUri(path);
 
-                _manager.Import(onto.Uri, path, format);
+                _store.Read(onto.Uri, path, format);
             }
         }
 
         public void UpdateStorageSpecifics(IStorageSpecific storageSpecific)
         {
-            storageSpecific.Update(_manager.GetStore());
+            storageSpecific.Update(_store);
         }
 
         protected Uri GetPathFromSource(Source source)

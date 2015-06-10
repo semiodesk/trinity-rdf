@@ -141,7 +141,7 @@ namespace Semiodesk.Trinity
     {
         public static UriRef ToUriRef(this FileSystemInfo fileInfo)
         {
-            return new UriRef(new Uri(fileInfo.ToString()).AbsoluteUri);
+            return new UriRef(new Uri(fileInfo.FullName).AbsoluteUri);
         }
     }
 }

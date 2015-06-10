@@ -603,7 +603,7 @@ namespace Semiodesk.Trinity
         public bool Read(Uri url, RdfSerializationFormat format)
         {
             if (format == RdfSerializationFormat.Trig)
-                throw new ArgumentException("Quadruple serialization formats are not supported by this method. Use ModelManager.Import() instead.");
+                throw new ArgumentException("Quadruple serialization formats are not supported by this method. Use IStore.Read() instead.");
 
             return (_store.Read(Uri, url, format) != null);
         }

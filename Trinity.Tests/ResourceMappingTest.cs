@@ -1002,7 +1002,7 @@ namespace Semiodesk.Trinity.Tests
             
             
             model.Clear();
-            ModelManager.Instance.DeleteModel(model);
+            _store.RemoveModel(model);
         }
 
         [Test]

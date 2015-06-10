@@ -25,9 +25,14 @@ namespace Semiodesk.Trinity.Tests
 
         #region Constructors
 
-        public ResourceQueryTest()
-        {
 
+        #endregion
+
+        #region Methods
+
+        [SetUp]
+        public void SetUp()
+        {
             _store = Stores.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
 
 
@@ -47,15 +52,7 @@ namespace Semiodesk.Trinity.Tests
             {
                 throw new Exception(string.Format("Error: Unable to create model <{0}>.", uri));
             }
-        }
 
-        #endregion
-
-        #region Methods
-
-        [SetUp]
-        public void SetUp()
-        {
             if (_model.IsEmpty)
             {
                 IResource q = null;

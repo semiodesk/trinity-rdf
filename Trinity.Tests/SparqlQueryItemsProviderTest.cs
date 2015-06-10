@@ -13,13 +13,15 @@ namespace Semiodesk.Trinity.Tests
 
         protected NamespaceManager NamespaceManager = new NamespaceManager();
 
-        public SparqlQueryItemsProviderTest()
+
+        [SetUp]
+        public void SetUp()
         {
             _store = Stores.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
 
             Uri modelUri = new Uri("http://example.org/TestModel");
 
-            if( _store.ContainsModel(modelUri) )
+            if (_store.ContainsModel(modelUri))
             {
                 Model = _store.GetModel(modelUri);
             }
@@ -39,12 +41,6 @@ namespace Semiodesk.Trinity.Tests
             NamespaceManager.AddNamespace("nco", "http://www.semanticdesktop.org/ontologies/2007/03/22/nco#");
             NamespaceManager.AddNamespace("sfo", sfo.GetNamespace());
             NamespaceManager.AddNamespace(nfo.GetPrefix(), nfo.GetNamespace());
-
-        }
-
-        [SetUp]
-        public void SetUp()
-        {
             MappingDiscovery.RegisterAllCurrentAssemblies();
 
             Model.Clear();

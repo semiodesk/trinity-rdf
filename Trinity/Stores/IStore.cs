@@ -99,8 +99,6 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         ISparqlQueryResult ExecuteQuery(SparqlQuery query, ITransaction transaction = null);
 
-        //ISparqlQueryResult ExecuteQuery(string queryString, ITransaction transaction = null);
-
         /// <summary>
         /// Executes a query on the store which does not expect a result.
         /// </summary>
@@ -108,8 +106,19 @@ namespace Semiodesk.Trinity
         /// <param name="transaction"></param>
         void ExecuteNonQuery(SparqlUpdate update, ITransaction transaction = null);
 
+        /// <summary>
+        /// Starts a transaction. The resulting transaction handle can be used to chain operations together.
+        /// </summary>
+        /// <param name="isolationLevel"></param>
+        /// <returns></returns>
         ITransaction BeginTransaction(IsolationLevel isolationLevel);
-        
+
+        /// <summary>
+        /// Creates a model group which allows for queries to be made on multiple models at once.
+        /// </summary>
+        /// <param name="models"></param>
+        /// <returns></returns>
+        IModelGroup CreateModelGroup(params Uri[] models);
         
         Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format);
 
