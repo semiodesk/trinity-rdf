@@ -1,8 +1,9 @@
-
-
 ========
 Overview
 ========
+
+
+.. image:: http://static.semiodesk.com/images/semiodesk_logo.png
 
 
 Features
