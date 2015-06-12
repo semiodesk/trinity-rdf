@@ -22,7 +22,11 @@ Features
 
 Dependencies
 ============
+The Semiodesk.Trinity API has dependencies to 
 
+* `dotNetRDF`_ 
+
+* `OpenLink.Data.Virtuoso`_
 
 
 
@@ -58,3 +62,5 @@ References
 .. _`Semiodesk`: http://www.semiodesk.com
 .. _`contact us`: mailto:hello@semiodesk.com
 .. _`Unity3D`: https://unity3d.com/
+.. _`dotNetRDF`: http://dotnetrdf.org/
+.. _`OpenLink.Data.Virtuoso`: https://github.com/openlink/virtuoso-opensource
