@@ -21,13 +21,6 @@ Semantic Object Mapping
 -----------------------
 Similar to the OR-mapping technique for relational databases, we provide a way to map RDFS/OWL classes to C# classes.
 This makes creating new resources and and adding properties a breeze. 
-For example, the following code snippet shows how easy it is to create a new contact resource and commit it to the RDF model.
-
-.. code:: c#	
-  Contact c = model.CreateResource<Contact>(); // create new resource with GUID
-  c.Birthday = new DateTime(1985, 6, 17);
-  c.Fullname = "John Doe";
-  c.Commit();
 
 Additional to the convenience it brings, the mapping also lets you utilize the type inheritance of RDF in your C# classes.
 Suppose you have PersonContact and CompanyContact resources in your model, both are derived from the Contact class.
@@ -46,20 +39,6 @@ A different tool deploys the ontologies to your triple store. If you are working
 Query API
 ---------
 Writing inline queries can easily result in errors. Native data types need to be serialized manually by the developer each time. With Trinitys Native Language Query system this work is done by the API.
-.. code:: c#	
-  ResourceQuery contact = new ResourceQuery(nco.PersonContact);
-  contact.Where(nco.birthDate).LessThan(new DateTime(1990, 1, 1));
- 
-  ResourceQuery group = new ResourceQuery(nco.ContactGroup);
-  group.Where(nco.contactGroupName, "Family");
- 
-  contact.Where(nco.belongsToGroup, group);
- 
-  IResourceQueryResult result = model.ExecuteQuery(contact);
-  foreach (Resource r in result.GetResources())
-  {
-    Console.WriteLine(r.Uri);
-  }
 
 Data Virtualization
 -------------------
@@ -99,7 +78,6 @@ Installation
 ============
 The easiest way to start using the Trinity API is to add it to your project trough NuGet.
 
-.. code:: powershell
   PM> Install-Package Semiodesk.Trinity
 
 Getting Started
