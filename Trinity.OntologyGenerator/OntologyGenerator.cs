@@ -115,8 +115,11 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 format = RdfSerializationFormat.Trig;
             else if (ontologyFile.Extension == ".n3")
                 format = RdfSerializationFormat.N3;
-            else 
+            else if (ontologyFile.Extension == ".ttl")
+                format = RdfSerializationFormat.Turtle;
+            else
                 format = RdfSerializationFormat.RdfXml;
+
             try
             {
                 if (!_store.ContainsModel(graphUri))
@@ -317,7 +320,20 @@ namespace Semiodesk.Trinity.OntologyGenerator
             }
             comment = string.Format("{0}\r\n    ///<see cref=\"{1}\"/>", comment, resource.Uri.OriginalString);
 
-            if (resource.HasProperty(rdf.type, rdf.Property) || resource.HasProperty(rdf.type, owl.DatatypeProperty) || resource.HasProperty(rdf.type, owl.ObjectProperty) || resource.HasProperty(rdf.type, owl.SymmetricProperty) || resource.HasProperty(rdf.type, owl.TransitiveProperty))
+            if (resource.HasProperty(rdf.type, rdf.Property) ||
+                resource.HasProperty(rdf.type, owl.DatatypeProperty) || 
+                resource.HasProperty(rdf.type, owl.ObjectProperty) || 
+                resource.HasProperty(rdf.type, owl.AnnotationProperty) || 
+                resource.HasProperty(rdf.type, owl.AsymmetricProperty) ||
+                resource.HasProperty(rdf.type, owl.DeprecatedProperty) ||
+                resource.HasProperty(rdf.type, owl.FunctionalProperty) ||
+                resource.HasProperty(rdf.type, owl.InverseFunctionalProperty) ||
+                resource.HasProperty(rdf.type, owl.IrreflexiveProperty) ||
+                resource.HasProperty(rdf.type, owl.ReflexiveProperty) ||
+                resource.HasProperty(rdf.type, owl.SymmetricProperty) || 
+                resource.HasProperty(rdf.type, owl.TransitiveProperty) ||
+                resource.HasProperty(rdf.type, owl.OntologyProperty)
+                )
             {
                 type = "Property";
             }

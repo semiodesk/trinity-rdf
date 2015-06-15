@@ -176,6 +176,8 @@ namespace Semiodesk.Trinity.Store
                 case RdfSerializationFormat.NTriples:
                     return new NTriplesParser();
 
+                case RdfSerializationFormat.Turtle:
+                    return new TurtleParser();
                 default:
                 case RdfSerializationFormat.RdfXml:
                     return new RdfXmlParser();
@@ -185,7 +187,7 @@ namespace Semiodesk.Trinity.Store
 
         public Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format)
         {
-            IGraph graph = new Graph();
+            IGraph graph = null;
             if (url.AbsoluteUri.StartsWith("file:"))
             {
                 string path;
@@ -205,6 +207,7 @@ namespace Semiodesk.Trinity.Store
                         _store.LoadFromFile(path, new TriGParser());
                     }else
                     {
+                        graph = new Graph();
                         graph.LoadFromFile(path, GetParser(format) );
                         graph.BaseUri = graphUri;
                     }
@@ -213,6 +216,7 @@ namespace Semiodesk.Trinity.Store
             }
             else if (url.Scheme == "http")
             {
+                graph = new Graph();
                 UriLoader.Load(graph, url);
                 graph.BaseUri = graphUri;
             }

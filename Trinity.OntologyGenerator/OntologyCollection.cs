@@ -50,50 +50,10 @@ namespace Semiodesk.Trinity.OntologyGenerator
         }
     }
 
-    public abstract class Source
-    {
-
-    }
-
-    public class WebSource : Source
-    {
-
-        [XmlIgnore]
-        public UriRef FileUrl
-        {
-            get
-            {
-                return new UriRef(fileUrl);
-            }
-            set
-            {
-                fileUrl = value.OriginalString;
-            }
-        }
-
-        [XmlElement(ElementName = "FileUrl")]
-        public string fileUrl
-        {
-            get;
-            set;
-        }
-    }
-
-    public class FileSource : Source
-    {
-        [XmlElement]
-        public string Path
-        {
-            get;
-            set;
-        }
-    }
-
-
     public class Ontology
     {
 
-        [XmlElement("Prefix")]
+        [XmlAttribute("Prefix")]
         public string Prefix { get; set; }
 
         [XmlElement("WebSource", Type = typeof(WebSource))]
@@ -115,7 +75,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
             }
         }
 
-        [XmlElement(ElementName = "Uri")]
+        [XmlAttribute("Uri")]
         public string uriString { get; set; }
 
         [XmlElement("MetadataWebSource", Type = typeof(WebSource))]
@@ -138,7 +98,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
             }
         }
 
-        [XmlElement(ElementName = "MetadataUri")]
+        [XmlAttribute("MetadataUri")]
         public string metadataUriString { get; set; }
 
         public override string ToString()
@@ -154,5 +114,47 @@ namespace Semiodesk.Trinity.OntologyGenerator
             return base.GetHashCode();
         }
     }
+
+    public abstract class Source
+    {
+
+    }
+
+    public class WebSource : Source
+    {
+
+        [XmlIgnore]
+        public UriRef FileUrl
+        {
+            get
+            {
+                return new UriRef(fileUrl);
+            }
+            set
+            {
+                fileUrl = value.OriginalString;
+            }
+        }
+
+        [XmlAttribute("Location")]
+        public string fileUrl
+        {
+            get;
+            set;
+        }
+    }
+
+    public class FileSource : Source
+    {
+        [XmlAttribute("Location")]
+        public string Path
+        {
+            get;
+            set;
+        }
+    }
+
+
+   
 
 }
