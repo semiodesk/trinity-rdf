@@ -270,7 +270,7 @@ namespace Semiodesk.Trinity
     /// <summary>
     /// Enumerates all supported RDF serialization formats.
     /// </summary>
-    public enum RdfSerializationFormat { RdfXml, N3, NTriples, Trig };
+    public enum RdfSerializationFormat { RdfXml, N3, NTriples, Trig, Turtle };
 
 
 }
