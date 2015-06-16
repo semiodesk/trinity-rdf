@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>Semiodesk.Trinity.Ontologies</id>
+	<version>0.9.0</version>
+    <authors>Semiodesk</authors>
+    <owners>Semiodesk</owners>
+	<licenseUrl>https://bitbucket.org/semiodesk/semiodesk.trinity/wiki/License</licenseUrl>
+    <projectUrl>https://bitbucket.org/semiodesk/semiodesk.trinity</projectUrl>
+    <iconUrl>http://static.semiodesk.com/images/trinity_logo.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>This package is part of the Semiodesk.Trinity API. It allows for the creation of C# representation of ontologies as well as the mapping of RDF classes to C# classes.</description>
+    <releaseNotes>Initial release.</releaseNotes>
+    <copyright>Copyright 2015 Semiodesk</copyright>
+    <tags>RDF SPARQL Database Semantic Object Mapping</tags>
+    <dependencies>
+      <dependency id="Semiodesk.Trinity" version="0.9.0" />
+    </dependencies>
+  </metadata>
+</package>

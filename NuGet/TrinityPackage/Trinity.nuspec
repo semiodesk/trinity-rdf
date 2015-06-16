@@ -1,11 +1,12 @@
 <?xml version="1.0"?>
-<package >
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
     <id>Semiodesk.Trinity</id>
 	<version>0.9.0</version>
     <authors>Semiodesk</authors>
     <owners>Semiodesk</owners>
-    <projectUrl>http://www.semiodesk.com/</projectUrl>
+	<licenseUrl>https://bitbucket.org/semiodesk/semiodesk.trinity/wiki/License</licenseUrl>
+    <projectUrl>https://bitbucket.org/semiodesk/semiodesk.trinity</projectUrl>
     <iconUrl>http://static.semiodesk.com/images/trinity_logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Semiodesk.Trinity is a high-level C# API for querying and manipulating RDF triplestores. Semiodesk.Trinity offers a Object-Mapping mechanism which also supports all the features that makes RDF great, for example being schema-less and inferencing.</description>
