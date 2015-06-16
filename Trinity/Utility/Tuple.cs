@@ -97,7 +97,7 @@ namespace Semiodesk.Trinity.Utility
             Item1 = item1;
             Item2 = item2;
             Item3 = item3;
-            item4 = item4;
+            Item4 = item4;
         }
 
         public override bool Equals(object obj)
