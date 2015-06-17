@@ -8,7 +8,7 @@
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Semiodesk.Trinity.OntologyDeployment</RootNamespace>
-    <AssemblyName>Trinity.OntologyDeployment</AssemblyName>
+    <AssemblyName>OntologyDeployment</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />

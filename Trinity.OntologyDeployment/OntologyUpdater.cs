@@ -42,11 +42,11 @@ namespace Semiodesk.Trinity.OntologyDeployment
 
         #region Constructors
 
-        public OntologyUpdater(string connectionString, DirectoryInfo sourceDir)
+        public OntologyUpdater(IStore store, DirectoryInfo sourceDir)
         {
             _sourceDirectory = sourceDir;
 
-            _store = Stores.CreateStore(connectionString);
+            _store = store;
         }
 
         #endregion
