@@ -80,6 +80,11 @@ namespace Semiodesk.Trinity.OntologyDeployment
                 o.Parse(_args);
                 if (_config == null)
                     showHelp = true;
+                else if (string.IsNullOrEmpty(_connectionString))
+                {
+                    Debug("No connection string given. Nothing to do!");
+                    return 0;
+                }
                 else
                 {
                     DirectoryInfo currentDir = null;
@@ -89,11 +94,17 @@ namespace Semiodesk.Trinity.OntologyDeployment
                     }
                     else
                     {
-                        currentDir = new DirectoryInfo(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location));
+                        currentDir = _config.ConfigFile.Directory;
                     }
 
-                    
-                    OntologyUpdater update = new OntologyUpdater(_connectionString, currentDir);
+                    IStore store = Stores.CreateStore(_connectionString);
+                    if (store == null)
+                    {
+                        Debug(string.Format("Could not create store with connectionstring '{0}'", _connectionString));
+                        return -1;
+                    }
+
+                    OntologyUpdater update = new OntologyUpdater(store, currentDir);
                     update.UpdateOntologies(_config.OntologyCollection);
 
                     if (_config.VirtuosoSpecific != null)
@@ -154,6 +165,7 @@ namespace Semiodesk.Trinity.OntologyDeployment
                     XmlSerializer serializer = new XmlSerializer(typeof(Configuration));
 
                     _config = (Configuration)serializer.Deserialize(reader);
+                    _config.ConfigFile = configFile;
                     reader.Close();
                 }
 

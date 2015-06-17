@@ -63,4 +63,4 @@ using System.Runtime.InteropServices;
 
 
 [assembly: InternalsVisibleTo(assemblyName: "Trinity.Test")]
-[assembly: InternalsVisibleTo(assemblyName: "Trinity.OntologyDeployment")]
+[assembly: InternalsVisibleTo(assemblyName: "OntologyDeployment")]

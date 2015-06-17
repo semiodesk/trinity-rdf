@@ -26,6 +26,7 @@ Sebastian Faubel <sebastian@semiodesk.com>
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -50,6 +51,9 @@ namespace Semiodesk.Trinity.OntologyDeployment
         {
             OntologyCollection = new List<Ontology>();
         }
+
+        [XmlIgnore]
+        public FileInfo ConfigFile { get; set; }
     }
 
     public class Ontology
