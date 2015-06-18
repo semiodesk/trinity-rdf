@@ -181,37 +181,53 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
     private IEnumerable<Instruction> GetReturnOnEqualsInstructions(ILProcessor processor, FieldReference backingField, Instruction cont, Instruction ret)
     {
-      // Get a reference to the equality operator for the field type.
-      TypeReference type = backingField.FieldType;
+        // Get a reference to the equality operator for the field type.
+        TypeReference type = backingField.FieldType;
 
-      MethodReference equals = type.TryGetMethodReference(Assembly, "op_Equality", type, type);
+        MethodReference equals = null;
 
-      if (equals == null && !type.IsValueType) yield break;
+        if (type.IsValueType)
+        {
+            equals = type.TryGetMethodReference(Assembly, "op_Equality", type, type);
+        }
+        else
+        {
+            equals = type.TryGetMethodReference(Assembly, "Equals", type, type);
 
-      // We need to initialize the local variables.
-      processor.Body.Variables.Add(new VariableDefinition(MainModule.Import(typeof(bool))));
-      processor.Body.InitLocals = true;
+            if (equals == null)
+            {
+                MethodDefinition equalsDefinition = Assembly.GetSystemObjectEqualsMethodReference();
 
-      yield return processor.Create(OpCodes.Nop);
-      yield return processor.Create(OpCodes.Ldarg_0);
-      yield return processor.Create(OpCodes.Ldfld, backingField);
-      yield return processor.Create(OpCodes.Ldarg_1);
+                equals = Assembly.MainModule.Import(equalsDefinition);
+            }
+        }
 
-      if (type.IsValueType)
-      {
+        if (equals == null) yield break;
+
+        // We need to initialize the local variables.
+        processor.Body.Variables.Add(new VariableDefinition(MainModule.Import(typeof(bool))));
+        processor.Body.InitLocals = true;
+
+        yield return processor.Create(OpCodes.Nop);
+        yield return processor.Create(OpCodes.Ldarg_0);
+        yield return processor.Create(OpCodes.Ldfld, backingField);
+        yield return processor.Create(OpCodes.Ldarg_1);
+
+        if (type.IsValueType)
+        {
+            yield return processor.Create(OpCodes.Ceq);
+        }
+        else
+        {
+            yield return processor.Create(OpCodes.Call, equals);
+        }
+
+        yield return processor.Create(OpCodes.Ldc_I4_0);
         yield return processor.Create(OpCodes.Ceq);
-      }
-      else
-      {
-        yield return processor.Create(OpCodes.Call, equals);
-      }
-
-      yield return processor.Create(OpCodes.Ldc_I4_0);
-      yield return processor.Create(OpCodes.Ceq);
-      yield return processor.Create(OpCodes.Stloc_0);
-      yield return processor.Create(OpCodes.Ldloc_0);
-      yield return processor.Create(OpCodes.Brtrue_S, cont);
-      yield return processor.Create(OpCodes.Br_S, ret);
+        yield return processor.Create(OpCodes.Stloc_0);
+        yield return processor.Create(OpCodes.Ldloc_0);
+        yield return processor.Create(OpCodes.Brtrue_S, cont);
+        yield return processor.Create(OpCodes.Br_S, ret);
     }
 
     private IEnumerable<Instruction> GetRaisePropertyChangedInstructions(ILProcessor processor, PropertyDefinition property, MethodReference raisePropertyChanged)

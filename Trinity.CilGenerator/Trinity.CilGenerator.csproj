@@ -55,6 +55,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Extensions\AssemblyDefinitionExtensions.cs" />
     <Compile Include="Extensions\CustomAttributeExtensions.cs" />
     <Compile Include="Extensions\IEnumerableExtensions.cs" />
     <Compile Include="Extensions\InstructionExtensions.cs" />

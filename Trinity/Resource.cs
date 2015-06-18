@@ -218,10 +218,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public override bool Equals(object comparand)
         {
-            if (comparand is Resource)
-                return Uri == ((Resource)comparand).Uri;
-
-            return false;
+            return (comparand is Resource) ? Uri == (comparand as Resource).Uri : false;
         }
 
         /// <summary>
