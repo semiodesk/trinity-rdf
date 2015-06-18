@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using NUnit.Core;
 using Semiodesk.Trinity;
 using NUnit.Framework;
 
@@ -18,7 +17,6 @@ namespace dotNetRDFStore.Test
         public void SetUp()
         {
             Store = Stores.CreateStore("provider=dotnetrdf");
-
 
             Uri testModel = new Uri("ex:Test");
             Model = Store.CreateModel(testModel);
