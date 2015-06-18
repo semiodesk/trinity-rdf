@@ -130,7 +130,6 @@ namespace Semiodesk.Trinity.Tests
             List<Resource> resources = result.GetResources().ToList();
             Assert.AreEqual(18, resources.Count);
 
-            DateTime? l = null;
             foreach (Resource r in resources)
             {
                 DateTime t = (DateTime)r.GetValue(nco.birthDate);
