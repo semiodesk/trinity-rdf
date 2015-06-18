@@ -116,36 +116,50 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
 
     public static MethodDefinition TryGetGenericMethod(this TypeDefinition type, string name, params object[] arguments)
     {
-      foreach (TypeDefinition t in GetBaseTypes(type))
-      {
-        foreach (MethodDefinition m in t.Methods)
+        MethodDefinition m = GetMethodDefition(type, name, arguments);
+
+        if (m == null)
         {
-          if (!m.Name.Equals(name) || m.Parameters.Count != arguments.Count()) continue;
-
-          for (int i = 0; i < m.Parameters.Count; i++)
-          {
-            if (arguments[i] is GenericParameter)
+            foreach (TypeDefinition t in GetBaseTypes(type))
             {
-              GenericParameter genericParameter = arguments[i] as GenericParameter;
+                m = GetMethodDefition(t, name, arguments);
 
-              if (genericParameter.FullName != m.Parameters[i].ParameterType.FullName) return null;
+                if (m != null) break;
             }
-            else
-            {
-              Type signatureType = arguments[i] as Type;
-              TypeReference parameterType = m.Parameters[i].ParameterType;
-
-              if (parameterType == null || signatureType == null) return null;
-
-              if (!parameterType.FullName.Equals(signatureType.FullName)) return null;
-            }
-          }
-
-          return m;
         }
-      }
 
-      return null;
+        return m;
+    }
+
+    private static MethodDefinition GetMethodDefition(TypeDefinition type, string name, params object[] arguments)
+    {
+        foreach (MethodDefinition m in type.Methods)
+        {
+            if (!m.Name.Equals(name) || m.Parameters.Count != arguments.Count()) continue;
+
+            for (int i = 0; i < m.Parameters.Count; i++)
+            {
+                if (arguments[i] is GenericParameter)
+                {
+                    GenericParameter genericParameter = arguments[i] as GenericParameter;
+
+                    if (genericParameter.FullName != m.Parameters[i].ParameterType.FullName) return null;
+                }
+                else
+                {
+                    Type signatureType = arguments[i] as Type;
+                    TypeReference parameterType = m.Parameters[i].ParameterType;
+
+                    if (parameterType == null || signatureType == null) return null;
+
+                    if (!parameterType.FullName.Equals(signatureType.FullName)) return null;
+                }
+            }
+
+            return m;
+        }
+
+        return null;
     }
 
     public static IEnumerable<PropertyDefinition> GetPropertiesWithAttribute<T>(this TypeDefinition type) where T : Attribute
