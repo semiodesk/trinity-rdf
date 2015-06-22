@@ -6,7 +6,7 @@ $buildCmd = 'OntologyGenerator.exe'
 $buildCmdTemplate = 'OntologyGenerator.exe -c $(ProjectDir)GeneratorConfig.xml -g $(ProjectDir)Ontologies.cs'
 
 $deployCmd = 'OntologyDeployment.exe'
-$deployCmdTemplate = 'OntologyDeployment.exe -c $(ProjectDir)DeploymentConfig.xml -o "provider=dotnetrdf"'
+$deployCmdTemplate = 'OntologyDeployment.exe -c $(ProjectDir)DeploymentConfig.xml -o ""'
 
 if (!$currentCmds.Contains($buildCmd))
 {
