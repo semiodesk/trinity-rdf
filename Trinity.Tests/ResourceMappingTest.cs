@@ -214,6 +214,7 @@ namespace Semiodesk.Trinity.Tests
             get { return GetValue(uniqueStringTestObject); }
             set { SetValue(uniqueStringTestObject, value); }
         }
+
         #endregion
     }
 
@@ -246,6 +247,44 @@ namespace Semiodesk.Trinity.Tests
             Class c = TestOntology.TestClass3;
             return new List<Class> { c };
         }
+        #endregion
+    }
+
+    public class StringMappingTestClass : Resource
+    {
+        #region Constructors
+        public StringMappingTestClass(Uri uri) : base(uri) { }
+        #endregion
+
+        #region Mapping
+
+        protected override List<Class> GetClasses()
+        {
+            Class c = TestOntology.TestClass3;
+            return new List<Class> { c };
+        }
+
+        public PropertyMapping<string> randomPropertyTestObject = new PropertyMapping<string>("RandomProperty", "http://www.example.com/property");
+        public string RandomProperty
+        {
+            get { return GetValue(randomPropertyTestObject); }
+            set { SetValue(randomPropertyTestObject, value); }
+        }
+
+        public PropertyMapping<string> uniqueStringTestObject = new PropertyMapping<string>("uniqueStringTest", TestOntology.uniqueStringTest.Uri.OriginalString);
+        public string uniqueStringTest
+        {
+            get { return GetValue(uniqueStringTestObject); }
+            set { SetValue(uniqueStringTestObject, value); }
+        }
+
+        public PropertyMapping<ObservableCollection<int>> intTestMapping = new PropertyMapping<ObservableCollection<int>>("intTest", "semio:test:intTest", new ObservableCollection<int>());
+        public ObservableCollection<int> intTest
+        {
+            get { return GetValue(intTestMapping); }
+            set { SetValue(intTestMapping, value); }
+        }
+        
         #endregion
     }
 
@@ -1220,6 +1259,23 @@ namespace Semiodesk.Trinity.Tests
 
             Assert.IsTrue(c1.Equals(c2));
             Assert.IsFalse(c1 == c2);
+        }
+
+
+        [Test]
+        public void TestStringPropertyMapping()
+        {
+            StringMappingTestClass p = new StringMappingTestClass(new Uri("http://test.example.com"));
+            p.uniqueStringTest = "Test string";
+
+            var x = p.GetValue(TestOntology.uniqueStringTest);
+            Assert.AreEqual(p.uniqueStringTest, x);
+
+            p.RandomProperty = "Test string 2";
+
+            x = p.GetValue(new Property(new Uri("http://www.example.com/property")));
+            Assert.AreEqual(p.RandomProperty, x);
+
         }
     }
 
