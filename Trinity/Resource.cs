@@ -134,6 +134,11 @@ namespace Semiodesk.Trinity
             Initialize(uri.ToUriRef());
         }
 
+        public Resource(string uriString)
+        {
+            Initialize(new UriRef(uriString));
+        }
+
         /// <summary>
         /// Create a new instance of the class and copy the properties from another class instance.
         /// </summary>
@@ -708,7 +713,6 @@ namespace Semiodesk.Trinity
                     rdfType = new Property(new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"));
                 foreach (Class c in Classes)
                 {
-
                     yield return new Tuple<Property, object>(rdfType, c);
                 }
             }

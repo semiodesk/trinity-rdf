@@ -213,26 +213,29 @@ namespace Semiodesk.Trinity.Store
                 foreach (DataRow row in queryResults.Rows)
                 {
                     // NOTE: We create an UriRef for correct equality comparision with fragment identifiers.
-                    UriRef s, p;
+                    UriRef s, predUri;
+                    Property p;
                     object o;
 
                     if (_query.QueryType == SparqlQueryType.Describe ||
                         _query.QueryType == SparqlQueryType.Construct)
                     {
                         s = new UriRef(row[0].ToString());
-                        p = new UriRef(row[1].ToString());
+                        predUri = new UriRef(row[1].ToString());
                         o = ParseCellValue(row[2]);
                     }
                     else if (_query.QueryType == SparqlQueryType.Select)
                     {
                         s = new UriRef(row[_query.SubjectVariable].ToString());
-                        p = new UriRef(row[_query.PredicateVariable].ToString());
+                        predUri = new UriRef(row[_query.PredicateVariable].ToString());
                         o = ParseCellValue(row[_query.ObjectVariable]);
                     }
                     else
                     {
                         break;
                     }
+
+                    p = OntologyDiscovery.GetProperty(predUri);
 
                     if (currentResource != null && currentResource.Uri.OriginalString == s.OriginalString)
                     {
@@ -280,7 +283,7 @@ namespace Semiodesk.Trinity.Store
 
                         if (cache.ContainsKey(uri.OriginalString))
                         {
-                            currentResource.AddProperty(new Property(p), cache[uri.OriginalString], true);
+                            currentResource.AddProperty(p, cache[uri.OriginalString], true);
                             currentResource.IsNew = false;
                             currentResource.IsSynchronized = false;
                             currentResource.SetModel(_model);
@@ -291,7 +294,7 @@ namespace Semiodesk.Trinity.Store
                             r.IsNew = false;
 
                             cache.Add(uri.OriginalString, r);
-                            currentResource.AddProperty(new Property(p), r, true);
+                            currentResource.AddProperty(p, r, true);
                             currentResource.IsNew = false;
                             currentResource.IsSynchronized = false;
                             currentResource.SetModel(_model);
@@ -299,7 +302,7 @@ namespace Semiodesk.Trinity.Store
                     }
                     else
                     {
-                        currentResource.AddProperty(new Property(p), o, true);
+                        currentResource.AddProperty(p, o, true);
                     }
                 }
             }
