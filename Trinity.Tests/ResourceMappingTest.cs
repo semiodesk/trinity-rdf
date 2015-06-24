@@ -23,10 +23,9 @@ namespace Semiodesk.Trinity.Tests
 
         #region Mapping
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = TestOntology.SingleMappingTestClass;
-            return new List<Class> { c };
+            return new List<Class> { TestOntology.SingleMappingTestClass };
         }
 
 
@@ -50,10 +49,9 @@ namespace Semiodesk.Trinity.Tests
 
         #region Mapping
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = TestOntology.SingleResourceMappingTestClass;
-            return new List<Class> { c };
+            return new List<Class> { TestOntology.SingleResourceMappingTestClass };
         }
 
 
@@ -77,10 +75,9 @@ namespace Semiodesk.Trinity.Tests
 
         #region Mapping
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = TestOntology.TestClass;
-            return new List<Class> { c };
+            return new List<Class> { TestOntology.TestClass };
         }
 
         protected PropertyMapping<ObservableCollection<int>> intTestMapping = new PropertyMapping<ObservableCollection<int>>("intTest", TestOntology.intTest, new ObservableCollection<int>());
@@ -202,10 +199,9 @@ namespace Semiodesk.Trinity.Tests
 
         #region Mapping
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = TestOntology.TestClass2;
-            return new List<Class> { c };
+            return new List<Class> { TestOntology.TestClass2 };
         }
 
         protected PropertyMapping<string> uniqueStringTestObject = new PropertyMapping<string>("uniqueStringTest", TestOntology.uniqueStringTest);
@@ -226,11 +222,11 @@ namespace Semiodesk.Trinity.Tests
 
         #region Mapping
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = TestOntology.TestClass3;
-            return new List<Class> { c };
+            return new List<Class> { TestOntology.TestClass3 };
         }
+
         #endregion
     }
 
@@ -242,11 +238,11 @@ namespace Semiodesk.Trinity.Tests
 
         #region Mapping
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = TestOntology.TestClass3;
-            return new List<Class> { c };
+            return new List<Class> { TestOntology.TestClass3 };
         }
+
         #endregion
     }
 
@@ -258,10 +254,9 @@ namespace Semiodesk.Trinity.Tests
 
         #region Mapping
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = TestOntology.TestClass3;
-            return new List<Class> { c };
+            return new List<Class> { TestOntology.TestClass3 };
         }
 
         public PropertyMapping<string> randomPropertyTestObject = new PropertyMapping<string>("RandomProperty", "http://www.example.com/property");

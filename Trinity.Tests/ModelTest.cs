@@ -86,7 +86,7 @@ namespace Semiodesk.Trinity.Tests
         public class Contact : Resource
         {
             // Type Mapping
-            protected override List<Class> GetClasses()
+            public override IEnumerable<Class> GetTypes()
             {
                 return new List<Class> { nco.Contact };
             }
