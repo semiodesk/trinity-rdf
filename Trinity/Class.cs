@@ -33,7 +33,14 @@ namespace Semiodesk.Trinity
 {
     public class Class : Resource
     {
-        public Class(Uri uri) : base(uri) { }
-        public Class(UriRef uri) : base(uri)  { }
+        #region Constructors
+
+        public Class(Uri uri) : base(uri) {}
+
+        public Class(UriRef uri) : base(uri)  {}
+
+        public Class(string uriString) : base(uriString) { }
+
+        #endregion
     }
 }

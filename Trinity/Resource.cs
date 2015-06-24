@@ -202,9 +202,9 @@ namespace Semiodesk.Trinity
         /// Overwrite this method to return the RDF classes of your resource type.
         /// </summary>
         /// <returns></returns>
-        protected virtual List<Class> GetClasses()
+        public virtual IEnumerable<Class> GetTypes()
         {
-            return new List<Class> { };
+            return new Class[] {};
         }
 
         /// <summary>
@@ -897,7 +897,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         protected void InitialiseClassMapping()
         {
-            Classes.AddRange(GetClasses());
+            Classes.AddRange(GetTypes());
         }
 
         /// <summary>
