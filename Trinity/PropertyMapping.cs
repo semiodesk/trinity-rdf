@@ -87,7 +87,7 @@ namespace Semiodesk.Trinity
             get { return _isList; }
         }
 
-        private string _propertyString;
+        private string _propertyUri;
         private Property _rdfProperty;
 
         Property IPropertyMapping.RdfProperty
@@ -96,7 +96,7 @@ namespace Semiodesk.Trinity
             {
                 if (_rdfProperty == null)
                 {
-                    _rdfProperty = OntologyDiscovery.GetProperty(_propertyString);
+                    _rdfProperty = OntologyDiscovery.GetProperty(_propertyUri);
                 }
                 return _rdfProperty;  
             }
@@ -182,9 +182,9 @@ namespace Semiodesk.Trinity
             #endif
         }
 
-        public PropertyMapping(string propertyName, string propertyString) : this(propertyName, property: null)
+        public PropertyMapping(string propertyName, string propertyUri) : this(propertyName, property: null)
         {
-            _propertyString = propertyString;
+            _propertyUri = propertyUri;
         }
 
         public PropertyMapping(string propertyName, Property property, T defaultValue) : this(propertyName, property)
@@ -192,12 +192,11 @@ namespace Semiodesk.Trinity
             SetValue(defaultValue);
         }
 
-        public PropertyMapping(string propertyName, string propertyString, T defaultValue)
-            : this(propertyName, property: null)
+        public PropertyMapping(string propertyName, string propertyUri, T defaultValue)
+            : this(propertyName, property: null, defaultValue: defaultValue)
         {
-            _propertyString = propertyString;
+            _propertyUri = propertyUri;
         }
-
 
         public PropertyMapping(string propertyName, Property property, T defaultValue, IEnumerable<string> relatedProperties) :this(propertyName, property, defaultValue)
             
@@ -205,7 +204,6 @@ namespace Semiodesk.Trinity
             _relatedProperties = relatedProperties;
         }
 
-        
         #endregion
 
         #region Methods
