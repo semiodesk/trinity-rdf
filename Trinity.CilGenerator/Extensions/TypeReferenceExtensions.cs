@@ -25,18 +25,39 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-using System.Collections.Generic;
+using Mono.Cecil;
+using System.Linq;
 
 namespace Semiodesk.Trinity.CilGenerator.Extensions
 {
     /// <summary>
-    /// Extensions for the System.Collections.Generic.IEnumerable class.
+    /// Extensions for the Mono.Cecil.TypeReference class.
     /// </summary>
-    public static class IEnumerableExtensions
+    public static class TypeReferenceExtensions
     {
-        public static HashSet<T> ToHashSet<T>(this IEnumerable<T> list)
+        /// <summary>
+        /// Get a method reference with the given set of arguments (type references).
+        /// </summary>
+        /// <param name="type">A type reference.</param>
+        /// <param name="assembly">Assembly from which to import the type reference.</param>
+        /// <param name="name">Name of the method.</param>
+        /// <param name="arguments">List of method arguments.</param>
+        /// <returns>A method reference on success, <c>null</c> otherwise.</returns>
+        public static MethodReference TryGetMethodReference(this TypeReference type, AssemblyDefinition assembly, string name, params TypeReference[] arguments)
         {
-            return new HashSet<T>(list);
+            TypeDefinition t = type.Resolve();
+
+            foreach (MethodDefinition m in t.Methods)
+            {
+                if (!m.Name.Equals(name) || m.Parameters.Count != arguments.Count()) continue;
+
+                bool match = !m.Parameters.Where((t1, i) => !t1.ParameterType.FullName.Equals(arguments[i].FullName)).Any();
+
+                // Return a reference to the method in the correct module.
+                if (match) return assembly.MainModule.Import(m);
+            }
+
+            return null;
         }
     }
 }
