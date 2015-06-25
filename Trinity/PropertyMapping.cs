@@ -87,11 +87,19 @@ namespace Semiodesk.Trinity
             get { return _isList; }
         }
 
-        private readonly Property _rdfProperty;
+        private string _propertyUri;
+        private Property _rdfProperty;
 
         Property IPropertyMapping.RdfProperty
         {
-            get { return _rdfProperty;  }
+            get 
+            {
+                if (_rdfProperty == null)
+                {
+                    _rdfProperty = OntologyDiscovery.GetProperty(_propertyUri);
+                }
+                return _rdfProperty;  
+            }
         }
 
         bool _isUnsetValue = true;
@@ -128,6 +136,11 @@ namespace Semiodesk.Trinity
 
         public PropertyMapping(string propertyName, Property property)
         {
+            if( string.IsNullOrEmpty(propertyName) )
+            {
+                throw new ArgumentException("Property name may not be empty in PropertyMapping object.");
+            }
+
             _relatedProperties = new string[0];
             PropertyName = propertyName;
             _rdfProperty = property;
@@ -144,6 +157,7 @@ namespace Semiodesk.Trinity
                 _isList = false;
                 _genericType = null;
             }
+
             
             #if DEBUG
             // Test if the given type is valid
@@ -168,9 +182,20 @@ namespace Semiodesk.Trinity
             #endif
         }
 
+        public PropertyMapping(string propertyName, string propertyUri) : this(propertyName, property: null)
+        {
+            _propertyUri = propertyUri;
+        }
+
         public PropertyMapping(string propertyName, Property property, T defaultValue) : this(propertyName, property)
         {
             SetValue(defaultValue);
+        }
+
+        public PropertyMapping(string propertyName, string propertyUri, T defaultValue)
+            : this(propertyName, property: null, defaultValue: defaultValue)
+        {
+            _propertyUri = propertyUri;
         }
 
         public PropertyMapping(string propertyName, Property property, T defaultValue, IEnumerable<string> relatedProperties) :this(propertyName, property, defaultValue)

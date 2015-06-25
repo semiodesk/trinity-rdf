@@ -94,7 +94,7 @@ namespace Semiodesk.Trinity.Store
             set;
         }
 
-        private string _defaultInferenceRule = null;
+        private string _defaultInferenceRule = "urn:semiodesk/ruleset";
         #endregion
 
         #region Constructors
@@ -284,7 +284,11 @@ namespace Semiodesk.Trinity.Store
             // are therefore added here in the store.
             if (query.InferenceEnabled)
             {
-                // TODO: Check if the model is an rdfs_rule_set
+                if (string.IsNullOrEmpty(_defaultInferenceRule))
+                {
+                    throw new Exception("You tried to query with inferencing but the inference rule is empty or not set.");
+                }
+                
                 queryBuilder.Append("DEFINE input:inference '"+_defaultInferenceRule+"' \n");
             }
 

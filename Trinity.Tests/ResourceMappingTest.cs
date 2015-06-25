@@ -23,10 +23,9 @@ namespace Semiodesk.Trinity.Tests
 
         #region Mapping
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = TestOntology.SingleMappingTestClass;
-            return new List<Class> { c };
+            return new List<Class> { TestOntology.SingleMappingTestClass };
         }
 
 
@@ -50,10 +49,9 @@ namespace Semiodesk.Trinity.Tests
 
         #region Mapping
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = TestOntology.SingleResourceMappingTestClass;
-            return new List<Class> { c };
+            return new List<Class> { TestOntology.SingleResourceMappingTestClass };
         }
 
 
@@ -77,10 +75,9 @@ namespace Semiodesk.Trinity.Tests
 
         #region Mapping
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = TestOntology.TestClass;
-            return new List<Class> { c };
+            return new List<Class> { TestOntology.TestClass };
         }
 
         protected PropertyMapping<ObservableCollection<int>> intTestMapping = new PropertyMapping<ObservableCollection<int>>("intTest", TestOntology.intTest, new ObservableCollection<int>());
@@ -202,10 +199,9 @@ namespace Semiodesk.Trinity.Tests
 
         #region Mapping
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = TestOntology.TestClass2;
-            return new List<Class> { c };
+            return new List<Class> { TestOntology.TestClass2 };
         }
 
         protected PropertyMapping<string> uniqueStringTestObject = new PropertyMapping<string>("uniqueStringTest", TestOntology.uniqueStringTest);
@@ -214,6 +210,7 @@ namespace Semiodesk.Trinity.Tests
             get { return GetValue(uniqueStringTestObject); }
             set { SetValue(uniqueStringTestObject, value); }
         }
+
         #endregion
     }
 
@@ -225,11 +222,11 @@ namespace Semiodesk.Trinity.Tests
 
         #region Mapping
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = TestOntology.TestClass3;
-            return new List<Class> { c };
+            return new List<Class> { TestOntology.TestClass3 };
         }
+
         #endregion
     }
 
@@ -241,11 +238,48 @@ namespace Semiodesk.Trinity.Tests
 
         #region Mapping
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = TestOntology.TestClass3;
-            return new List<Class> { c };
+            return new List<Class> { TestOntology.TestClass3 };
         }
+
+        #endregion
+    }
+
+    public class StringMappingTestClass : Resource
+    {
+        #region Constructors
+        public StringMappingTestClass(Uri uri) : base(uri) { }
+        #endregion
+
+        #region Mapping
+
+        public override IEnumerable<Class> GetTypes()
+        {
+            return new List<Class> { TestOntology.TestClass3 };
+        }
+
+        public PropertyMapping<string> randomPropertyTestObject = new PropertyMapping<string>("RandomProperty", "http://www.example.com/property");
+        public string RandomProperty
+        {
+            get { return GetValue(randomPropertyTestObject); }
+            set { SetValue(randomPropertyTestObject, value); }
+        }
+
+        public PropertyMapping<string> uniqueStringTestObject = new PropertyMapping<string>("uniqueStringTest", TestOntology.uniqueStringTest.Uri.OriginalString);
+        public string uniqueStringTest
+        {
+            get { return GetValue(uniqueStringTestObject); }
+            set { SetValue(uniqueStringTestObject, value); }
+        }
+
+        public PropertyMapping<ObservableCollection<int>> intTestMapping = new PropertyMapping<ObservableCollection<int>>("intTest", "semio:test:intTest", new ObservableCollection<int>());
+        public ObservableCollection<int> intTest
+        {
+            get { return GetValue(intTestMapping); }
+            set { SetValue(intTestMapping, value); }
+        }
+        
         #endregion
     }
 
@@ -1220,6 +1254,23 @@ namespace Semiodesk.Trinity.Tests
 
             Assert.IsTrue(c1.Equals(c2));
             Assert.IsFalse(c1 == c2);
+        }
+
+
+        [Test]
+        public void TestStringPropertyMapping()
+        {
+            StringMappingTestClass p = new StringMappingTestClass(new Uri("http://test.example.com"));
+            p.uniqueStringTest = "Test string";
+
+            var x = p.GetValue(TestOntology.uniqueStringTest);
+            Assert.AreEqual(p.uniqueStringTest, x);
+
+            p.RandomProperty = "Test string 2";
+
+            x = p.GetValue(new Property(new Uri("http://www.example.com/property")));
+            Assert.AreEqual(p.RandomProperty, x);
+
         }
     }
 

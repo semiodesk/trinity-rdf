@@ -253,14 +253,17 @@ namespace Semiodesk.Trinity.Store
 
                 while (_tripleProvider.HasNext)
                 {
-                    Uri s, p;
+                    Uri s, predUri;
                     INode o;
+                    Property p;
 
 
                     s = _tripleProvider.S;
-                    p = _tripleProvider.P;
+                    predUri = _tripleProvider.P;
                     o = _tripleProvider.O;
                     _tripleProvider.SetNext();
+
+                    p = OntologyDiscovery.GetProperty(predUri);
 
                     if (currentResource != null && currentResource.Uri.OriginalString == s.OriginalString)
                     {
@@ -306,7 +309,7 @@ namespace Semiodesk.Trinity.Store
 
                         if (cache.ContainsKey(uri.OriginalString))
                         {
-                            currentResource.AddProperty(new Property(p), cache[uri.OriginalString], true);
+                            currentResource.AddProperty(p, cache[uri.OriginalString], true);
                             currentResource.IsNew = false;
                             currentResource.IsSynchronized = false;
                             currentResource.Model = _model;
@@ -317,7 +320,7 @@ namespace Semiodesk.Trinity.Store
                             r.IsNew = false;
 
                             cache.Add(uri.OriginalString, r);
-                            currentResource.AddProperty(new Property(p), r, true);
+                            currentResource.AddProperty(p, r, true);
                             currentResource.IsNew = false;
                             currentResource.IsSynchronized = false;
                             currentResource.Model = _model;
@@ -325,7 +328,7 @@ namespace Semiodesk.Trinity.Store
                     }
                     else
                     {
-                        currentResource.AddProperty(new Property(p), ParseCellValue(o), true);
+                        currentResource.AddProperty(p, ParseCellValue(o), true);
                     }
                 }
             }

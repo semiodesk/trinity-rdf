@@ -18,13 +18,13 @@ namespace Semiodesk.Trinity.Tests
         public ContactList(Uri uri) : base(uri) { }
         #endregion
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = nco.ContactList;
-            return new List<Class> { c };
+            return new List<Class> { nco.ContactList };
         }
 
         protected PropertyMapping<ObservableCollection<Contact>> containsContactProperty = new PropertyMapping<ObservableCollection<Contact>>("ContainsContact", nco.containsContact, new ObservableCollection<Contact>());
+        
         public ObservableCollection<Contact> ContainsContact
         {
             get { return GetValue(containsContactProperty); }
@@ -38,10 +38,9 @@ namespace Semiodesk.Trinity.Tests
         public EmailAddress(Uri uri) : base(uri) { }
         #endregion
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = nco.EmailAddress;
-            return new List<Class> { c };
+            return new List<Class> { nco.EmailAddress };
         }
 
         protected PropertyMapping<string> addressProperty = new PropertyMapping<string>("Address", nco.emailAddress);
@@ -58,10 +57,9 @@ namespace Semiodesk.Trinity.Tests
         public PostalAddress(Uri uri) : base(uri) { }
         #endregion
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = nco.PostalAddress;
-            return new List<Class> { c };
+            return new List<Class> { nco.PostalAddress };
         }
 
         protected PropertyMapping<string> countryProperty = new PropertyMapping<string>("Country", nco.country);
@@ -99,13 +97,13 @@ namespace Semiodesk.Trinity.Tests
         public Contact(Uri uri) : base(uri) { }
         #endregion
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = nco.Contact;
-            return new List<Class> { c };
+            return new List<Class> { nco.Contact };
         }
 
         protected PropertyMapping<string> fullnameProperty = new PropertyMapping<string>("Fullname", nco.fullname);
+
         public string Fullname
         {
             get { return GetValue(fullnameProperty); }
@@ -113,6 +111,7 @@ namespace Semiodesk.Trinity.Tests
         }
 
         protected PropertyMapping<DateTime> birthDateProperty = new PropertyMapping<DateTime>("BirthDate", nco.birthDate);
+
         public DateTime BirthDate
         {
             get { return GetValue(birthDateProperty); }
@@ -141,10 +140,9 @@ namespace Semiodesk.Trinity.Tests
         public PersonContact(Uri uri) : base(uri) { }
         #endregion
 
-        protected override List<Class> GetClasses()
+        public override IEnumerable<Class> GetTypes()
         {
-            Class c = nco.PersonContact;
-            return new List<Class> { c };
+            return new List<Class> { nco.PersonContact };
         }
 
         protected PropertyMapping<string> nameGivenProperty = new PropertyMapping<string>("NameGiven", nco.nameGiven);
