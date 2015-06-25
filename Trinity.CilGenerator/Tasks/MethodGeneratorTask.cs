@@ -26,64 +26,52 @@
 // Copyright (c) Semiodesk GmbH 2015
 
 using Mono.Cecil;
+using Mono.Cecil.Cil;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Semiodesk.Trinity.CilGenerator.Tasks
 {
     /// <summary>
-    /// Base class for all CIL generator tasks.
+    /// A CIL generator task specialized on implementing method instructions.
     /// </summary>
-    public class GeneratorTaskBase : IGeneratorTask
+    public class MethodGeneratorTask : IGeneratorTask
     {
         #region Members
 
         /// <summary>
-        /// Currently modified type definition.
+        /// Method the task is modifying.
         /// </summary>
-        /// 
-        protected TypeDefinition Type { get; private set; }
+        public MethodDefinition Method { get; private set; }
 
         /// <summary>
-        /// Current CIL generator instance.
+        /// IL Processor for the method body.
         /// </summary>
-        protected ILGenerator Generator { get; private set; }
+        public ILProcessor Processor { get; private set; }
 
         /// <summary>
-        /// Currently modified assembly.
+        /// List of instructions the task will be implementing.
         /// </summary>
-        protected AssemblyDefinition Assembly
-        {
-            get { return Generator.Assembly; }
-        }
-
-        /// <summary>
-        /// Main module of the currently modified assembly.
-        /// </summary>
-        protected ModuleDefinition MainModule
-        {
-            get { return Generator.Assembly.MainModule; }
-        }
-
-        /// <summary>
-        /// Logger of the CIL generator instance.
-        /// </summary>
-        protected ILogger Log
-        {
-            get { return Generator.Log; }
-        }
+        public readonly List<Instruction> Instructions = new List<Instruction>();
 
         #endregion
 
         #region Constructors
 
         /// <summary>
-        /// Create a new generator task for a given type definition.
+        /// Create a new method implementation task.
         /// </summary>
-        /// <param name="generator">CIL generator.</param>
-        /// <param name="type">The type to be modified.</param>
-        public GeneratorTaskBase(ILGenerator generator, TypeDefinition type)
+        /// <param name="method">A method definition.</param>
+        public MethodGeneratorTask(MethodDefinition method)
         {
-            Generator = generator;
-            Type = type;
+            Method = method;
+
+            if (method == null) return;
+
+            Processor = Method.Body.GetILProcessor();
         }
 
         #endregion
@@ -93,21 +81,28 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
         /// <summary>
         /// Indicates if the task can be executed.
         /// </summary>
-        /// <param name="parameter">A task specific parameter.</param>
-        /// <returns><c>true</c> if the task can be executed.</returns>
-        public virtual bool CanExecute(object parameter = null)
+        /// <param name="parameter">This method takes no parameters.</param>
+        /// <returns><c>true</c> if the task can execute, <c>false</c> otherwise.</returns>
+        public bool CanExecute(object parameter = null)
         {
-            return false;
+            return Method != null && Instructions.Any();
         }
 
         /// <summary>
-        /// Execute the task.
+        /// Implement the instructions in the method body.
         /// </summary>
-        /// <param name="parameter">A task specific parameter.</param>
-        /// <returns><c>true</c> if the task has modified the assembly, <c>false</c> if not.</returns>
-        public virtual bool Execute(object parameter = null)
+        /// <param name="parameter">This method takes no parameters.</param>
+        /// <returns><c>true</c></returns>
+        public bool Execute(object parameter = null)
         {
-            return false;
+            Processor.Body.Instructions.Clear();
+
+            foreach (Instruction i in Instructions)
+            {
+                Processor.Append(i);
+            }
+
+            return true;
         }
 
         #endregion

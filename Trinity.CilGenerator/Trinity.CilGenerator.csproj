@@ -46,6 +46,10 @@
     <Reference Include="Mono.Cecil.Rocks">
       <HintPath>..\packages\Mono.Cecil.0.9.6.1\lib\net45\Mono.Cecil.Rocks.dll</HintPath>
     </Reference>
+    <Reference Include="nunit.framework, Version=2.6.4.14350, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -58,10 +62,13 @@
     <Compile Include="Extensions\AssemblyDefinitionExtensions.cs" />
     <Compile Include="Extensions\CustomAttributeExtensions.cs" />
     <Compile Include="Extensions\IEnumerableExtensions.cs" />
+    <Compile Include="Extensions\ILProcessorExtensions.cs" />
     <Compile Include="Extensions\InstructionExtensions.cs" />
+    <Compile Include="Extensions\MethodDefinitionExtensions.cs" />
     <Compile Include="Extensions\MethodReferenceExtensions.cs" />
     <Compile Include="Extensions\PropertyDefinitionExtensions.cs" />
     <Compile Include="Extensions\TypeDefinitionExtensions.cs" />
+    <Compile Include="Extensions\TypeReferenceExtensions.cs" />
     <Compile Include="ILGenerator.cs" />
     <Compile Include="ILogger.cs" />
     <Compile Include="Loggers\ConsoleLogger.cs" />
@@ -73,6 +80,8 @@
     <Compile Include="Tasks\ImplementNotifyPropertyChanged.cs" />
     <Compile Include="Tasks\ImplementRdfClassTask.cs" />
     <Compile Include="Tasks\ImplementRdfPropertyTask.cs" />
+    <Compile Include="Tasks\MethodGeneratorTask.cs" />
+    <Compile Include="Tasks\PropertyGeneratorTaskHelper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
