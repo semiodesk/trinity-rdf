@@ -56,7 +56,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
         /// <summary>
         /// Holds the symbols already in use.
         /// </summary>
-        private List<string> _symbols = new List<string>();
+        private List<string> _globalSymbols = new List<string>();
 
         /// <summary>
         /// A list of keywords which may not be used for generated names of resources.
@@ -158,13 +158,19 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
             foreach (Tuple<IModel, IModel, string, string> model in _models)
             {
-                _symbols.Clear();
+                _globalSymbols.Clear();
                 Console.WriteLine(string.Format("Generating <{0}>", model.Item1.Uri.OriginalString));
 
-                if( model.Item2 == null )
+                if (model.Item2 == null)
+                {
                     ontologies.Append(GenerateOntology(model.Item1, model.Item3, model.Item4));
+                    ontologies.Append(GenerateOntology(model.Item1, model.Item3, model.Item4, true));
+                }
                 else
+                {
                     ontologies.Append(GenerateOntology(model.Item1, model.Item2));
+                    ontologies.Append(GenerateOntology(model.Item1, model.Item2, true));
+                }
             }
 
             string content = string.Format(Properties.Resources.FileTemplate, DateTime.Now, WindowsIdentity.GetCurrent().Name, ontologies.ToString(), _namespace);
@@ -215,20 +221,21 @@ namespace Semiodesk.Trinity.OntologyGenerator
             return title;
         }
 
-        private string GenerateOntology(IModel model, string prefix, string ns)
+        private string GenerateOntology(IModel model, string prefix, string ns, bool stringOnly = false)
         {
             string title = GetOntologyTitle(model);
-            _symbols.Add(prefix);
-            return GenerateOntology(model, title, "", ns, prefix);
+            _globalSymbols.Add(prefix);
+            return GenerateOntology(model, title, "", ns, prefix, stringOnly);
         }
 
-        private string GenerateOntology(IModel model, IModel metadata)
+        private string GenerateOntology(IModel model, IModel metadata, bool stringOnly = false)
         {
             IResource ontology = metadata.GetResource(model.Uri);
 
             string ns = ontology.GetValue(nao.hasdefaultnamespace).ToString();
-            string nsPrefix = ontology.GetValue(nao.hasdefaultnamespaceabbreviation).ToString();
-            _symbols.Add(nsPrefix);
+            string nsPrefix = ontology.GetValue(nao.hasdefaultnamespaceabbreviation).ToString().ToLower();
+
+            _globalSymbols.Add(nsPrefix);
             string title = "";
             string description = "";
 
@@ -255,28 +262,31 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 string msg = "Warning: Could not retrieve <dc:description> of ontology <{0}>";
                 Debug.WriteLine(string.Format(msg, ontology.Uri.ToString()));
             }
-            return GenerateOntology(model, title, description, ns, nsPrefix);
+            return GenerateOntology(model, title, description, ns, nsPrefix, stringOnly);
         }
 
-        private string GenerateOntology(IModel model, string title, string description, string ns, string nsPrefix)
+        private string GenerateOntology(IModel model, string title, string description, string ns, string nsPrefix, bool stringOnly = false)
         {
             StringBuilder result = new StringBuilder();
 
             string queryString = string.Format("select * where {{ ?s ?p ?o }}", model.Uri);
             SparqlQuery query = new SparqlQuery(queryString);
 
+            List<string> localSymbols = new List<string>();
+
             foreach (IResource resource in model.GetResources(query))
             {
                 try
                 {
-                    result.Append(GenerateResource(resource));
+                    result.Append(GenerateResource(resource, localSymbols, stringOnly));
                 }
                 catch (Exception)
                 {
                     Console.WriteLine(string.Format("Error: Could not write <{0}>.", resource.Uri.OriginalString));
                 }
             }
-
+            if (stringOnly)
+                nsPrefix = nsPrefix.ToUpper();
             return string.Format(Properties.Resources.OntologyTemplate, nsPrefix, ns, result.ToString(), title, description);
         }
 
@@ -289,7 +299,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
         /// </summary>
         /// <param name="resource"></param>
         /// <returns></returns>
-        private string GenerateResource(IResource resource)
+        private string GenerateResource(IResource resource, List<string> localSymbols, bool stringOnly = false)
         {
             string name = GetName(resource);
             if (string.IsNullOrEmpty(name))
@@ -298,11 +308,11 @@ namespace Semiodesk.Trinity.OntologyGenerator
             string comment = "";
             string type = "Resource";
 
-            if (_symbols.Contains(name))
+            if (_globalSymbols.Contains(name) || localSymbols.Contains(name))
             {
                 int i = 0;
 
-                while (_symbols.Contains(string.Format("{0}_{1}", name, i)))
+                while (_globalSymbols.Contains(string.Format("{0}_{1}", name, i)))
                 {
                     i++;
                 }
@@ -310,7 +320,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 name = string.Format("{0}_{1}", name, i);
             }
 
-            _symbols.Add(name);
+            localSymbols.Add(name);
 
             if (resource.HasProperty(rdfs.comment))
             {
@@ -342,7 +352,10 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 type = "Class";
             }
 
-            return string.Format(Properties.Resources.ResourceTemplate, type, name, resource.Uri.OriginalString, comment);
+            if( stringOnly )
+                return string.Format(Properties.Resources.StringTemplate, type, name, resource.Uri.OriginalString, comment);
+            else
+                return string.Format(Properties.Resources.ResourceTemplate, type, name, resource.Uri.OriginalString, comment);
         }
 
         private string GetName(IResource resource)

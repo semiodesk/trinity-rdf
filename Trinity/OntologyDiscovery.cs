@@ -95,6 +95,19 @@ namespace Semiodesk.Trinity
                     select (T)Activator.CreateInstance(t)).ToList();
         }
 
+        public static Property GetProperty(Uri u)
+        {
+            if (Properties.ContainsKey(u.OriginalString))
+                return Properties[u.OriginalString];
+            return new Property(u);
+        }
+
+        public static Property GetProperty(string u)
+        {
+            if (Properties.ContainsKey(u))
+                return Properties[u];
+            return new Property(new UriRef(u));
+        }
         #endregion
     }
 
