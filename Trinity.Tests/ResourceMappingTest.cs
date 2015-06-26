@@ -1073,6 +1073,7 @@ namespace Semiodesk.Trinity.Tests
             m.Clear();
             Uri t1Uri = new Uri("semio:test:testInstance1");
             MappingTestClass2 t1 = m.CreateResource<MappingTestClass2>(t1Uri);
+            //Assert.AreEqual(1, t1.Classes.Count);
             t1.uniqueStringTest = "testing 1";
             t1.Commit();
 
