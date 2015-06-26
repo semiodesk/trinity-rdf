@@ -63,8 +63,9 @@ if (!$currentCmds.Contains($deployCmd))
       
 	$cmds += $deployCmdTemplate + "`r`n"
       
-	$project.Properties.Item("PreBuildEvent").Value = $cmds
 }
+
+$project.Properties.Item("PreBuildEvent").Value = $cmds
 
 $currentCmds = $project.Properties.Item("PostBuildEvent").Value
 
@@ -110,3 +111,5 @@ if (!$currentCmds.Contains($generateCmd))
       
 	$currentCmds = $cmds
 }
+
+$project.Properties.Item("PostBuildEvent").Value = $cmds
