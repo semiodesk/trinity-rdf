@@ -24,5 +24,10 @@
     <FileSource Location="Ontologies\dcterms.ttl" />
   </Ontology>
 
+  <!--http://purl.org/dc/terms/-->
+  <Ontology Uri="http://topbraid.org/schema/" Prefix="so">
+    <FileSource Location="Ontologies\schema.ttl" />
+  </Ontology>
+
 </GeneratorConfiguration>
 

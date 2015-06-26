@@ -327,7 +327,9 @@ namespace Semiodesk.Trinity.Store
                             currentResource.Model = _model;
                         }
                     }
-                    else
+                    else if( o is BlankNode )
+                    {
+                    }else
                     {
                         currentResource.AddProperty(p, ParseCellValue(o), true);
                     }
