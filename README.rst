@@ -10,7 +10,7 @@ Our platform is built on top of the powerful and stable `dotNetRDF`_  library wh
 Since dotNetRDF is low-level and primarliy focused on directly manipulating triples, it does not integrate well with existing application frameworks and introduces a steep learning curve for new developers.
 Therefore, our primary goal was to allow developers to use proven enterprise development patterns such as MVC or MVVM to build Linked Data applications that integrate well into existing application eco-systems.
 
-The software is supported by `Semiodesk`_.
+The software is supported by `Semiodesk`_, for more information have a look at the `product page`_.
 If you have any questions, suggestions or just want to tell us in which projects you are using the library, don't hesitate to `contact us`_.
 
 
@@ -100,6 +100,7 @@ References
 .. _`triplestores`: http://en.wikipedia.org/wiki/Triplestore
 .. _`MIT license`: http://en.wikipedia.org/wiki/MIT_License
 .. _`Semiodesk`: http://www.semiodesk.com
+.. _`product page`: http://www.semiodesk.com/products/trinity/
 .. _`contact us`: mailto:hello@semiodesk.com
 .. _`Unity3D`: https://unity3d.com/
 .. _`dotNetRDF`: http://dotnetrdf.org/
