@@ -34,38 +34,11 @@ using System.Collections.Specialized;
 
 namespace Semiodesk.Trinity
 {
-    internal interface IPropertyMapping
-    {
-        Type DataType { get; }
-
-        Type GenericType { get; }
-
-        bool IsList { get; }
-
-        Property RdfProperty { get; }
-
-        string PropertyName { get; }
-
-        IEnumerable<string> RelatedProperties { get; }
-
-        bool IsUnsetValue { get; }
-
-        bool IsTypeCompatible(Type type);
-
-        object GetValueObject();
-
-        void SetOrAddMappedValue(object value);
-
-        void RemoveOrResetValue(object value);
-
-        void CloneFrom(IPropertyMapping other);
-    }
-
     public class PropertyMapping<T> : IPropertyMapping
     {
         #region Members
 
-        T _value;
+        private T _value;
 
         private readonly Type _dataType;
 
@@ -88,22 +61,7 @@ namespace Semiodesk.Trinity
             get { return _isList; }
         }
 
-        private string _propertyUri;
-        private Property _rdfProperty;
-
-        Property IPropertyMapping.RdfProperty
-        {
-            get 
-            {
-                if (_rdfProperty == null)
-                {
-                    _rdfProperty = OntologyDiscovery.GetProperty(_propertyUri);
-                }
-                return _rdfProperty;  
-            }
-        }
-
-        bool _isUnsetValue = true;
+        private bool _isUnsetValue = true;
 
         bool IPropertyMapping.IsUnsetValue
         {
@@ -120,16 +78,24 @@ namespace Semiodesk.Trinity
             }
         }
 
-        IEnumerable<string> _relatedProperties;
-        IEnumerable<string> IPropertyMapping.RelatedProperties
+        private Property _property;
+
+        Property IPropertyMapping.Property
         {
-            get { return _relatedProperties; }
+            get 
+            {
+                if (_property == null)
+                {
+                    _property = OntologyDiscovery.GetProperty(PropertyUri);
+                }
+
+                return _property;  
+            }
         }
 
-        public string PropertyName
-        {
-            get; private set;
-        }
+        public string PropertyUri { get; private set; }
+
+        public string PropertyName { get; private set; }
 
         #endregion
 
@@ -142,9 +108,9 @@ namespace Semiodesk.Trinity
                 throw new ArgumentException("Property name may not be empty in PropertyMapping object.");
             }
 
-            _relatedProperties = new string[0];
+            _property = property;
+
             PropertyName = propertyName;
-            _rdfProperty = property;
 
             _dataType = typeof(T);
 
@@ -161,6 +127,7 @@ namespace Semiodesk.Trinity
 
             
             #if DEBUG
+
             // Test if the given type is valid
             List<Type> allowed = new List<Type>{ typeof(string), typeof(bool), typeof(float), typeof(double), 
                                                  typeof(Int16), typeof(Int32), typeof(Int64), 
@@ -178,14 +145,11 @@ namespace Semiodesk.Trinity
                         return;
                     }
                 }
+
                 throw new Exception(string.Format("The property '{0}' with type {1} mapped on RDF property '<{2}>' is not compatible.", propertyName, _dataType, property));
             }
-            #endif
-        }
 
-        public PropertyMapping(string propertyName, string propertyUri) : this(propertyName, property: null)
-        {
-            _propertyUri = propertyUri;
+            #endif
         }
 
         public PropertyMapping(string propertyName, Property property, T defaultValue) : this(propertyName, property)
@@ -193,16 +157,14 @@ namespace Semiodesk.Trinity
             SetValue(defaultValue);
         }
 
-        public PropertyMapping(string propertyName, string propertyUri, T defaultValue)
-            : this(propertyName, property: null, defaultValue: defaultValue)
+        public PropertyMapping(string propertyName, string propertyUri) : this(propertyName, property: null)
         {
-            _propertyUri = propertyUri;
+            PropertyUri = propertyUri;
         }
 
-        public PropertyMapping(string propertyName, Property property, T defaultValue, IEnumerable<string> relatedProperties) :this(propertyName, property, defaultValue)
-            
+        public PropertyMapping(string propertyName, string propertyUri, T defaultValue) : this(propertyName, property: null, defaultValue: defaultValue)
         {
-            _relatedProperties = relatedProperties;
+            PropertyUri = propertyUri;
         }
 
         #endregion
@@ -219,8 +181,6 @@ namespace Semiodesk.Trinity
         {
             return _value;
         }
-
-        #region IPropertyMapping
 
         /// <summary>
         /// This method is meant to be called from the non-mapped interface. It replaces the current value if 
@@ -328,8 +288,6 @@ namespace Semiodesk.Trinity
             }
             
         }
-
-        #endregion
 
         #endregion
     }

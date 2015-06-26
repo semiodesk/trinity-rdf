@@ -84,6 +84,7 @@
     <Compile Include="Collections\VirtualizingResourceCollection.cs" />
     <Compile Include="Collections\VirtualizingCollection.cs" />
     <Compile Include="Exceptions.cs" />
+    <Compile Include="IPropertyMapping.cs" />
     <Compile Include="IResourceQueryResult.cs" />
     <Compile Include="ITransactional.cs" />
     <Compile Include="Model\IModelGroup.cs" />

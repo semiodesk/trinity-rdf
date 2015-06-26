@@ -63,6 +63,11 @@ namespace Semiodesk.Trinity
         private Dictionary<Property, List<object>> _properties;
 
         /// <summary>
+        /// Contains a list of all properties which implement the INotifyPropertyChanged interface.
+        /// </summary>
+        private readonly HashSet<string> _notifyingProperties = new HashSet<string>();
+
+        /// <summary>
         /// All mappings as discovered by InitialisePropertyMapping.
         /// </summary>
         private Dictionary<string, IPropertyMapping> _mappings;
@@ -190,13 +195,38 @@ namespace Semiodesk.Trinity
 
             Uri = uri;
 
-            InitialisePropertyMapping();
-            InitialiseClassMapping();
-
-            IsSynchronized = false;
             IsNew = true;
+            IsSynchronized = false;
+
+            InitializePropertyMappings();
+            InitializeClassMappings();
 
             // We cannot register the resource with the model, if no model is set.
+        }
+
+        /// <summary>
+        /// Loads and initialises all mapped properties. 
+        /// </summary>
+        private void InitializePropertyMappings()
+        {
+            Type thisType = GetType();
+
+            FieldInfo[] b = thisType.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy);
+
+            IEnumerable<object> mappings = from n in b where (n.FieldType.GetInterface("IPropertyMapping") != null) select n.GetValue(this);
+
+            foreach (IPropertyMapping mapping in mappings)
+            {
+                _mappings.Add(mapping.PropertyName, mapping);
+            }
+        }
+
+        /// <summary>
+        /// Loads the rdf types of this resource.
+        /// </summary>
+        private void InitializeClassMappings()
+        {
+            Classes.AddRange(GetTypes());
         }
 
         /// <summary>
@@ -605,7 +635,7 @@ namespace Semiodesk.Trinity
             result = (_properties.ContainsKey(property) && _properties[property].Count > 0);
             if (!result)
             {
-                var mappings = from x in _mappings.Values where x.RdfProperty.Uri.Equals(property.Uri) && ( !x.IsUnsetValue || ResourceCache.HasCachedValues(x) ) select x;
+                var mappings = from x in _mappings.Values where x.Property.Uri.Equals(property.Uri) && ( !x.IsUnsetValue || ResourceCache.HasCachedValues(x) ) select x;
                 if (mappings.Count() > 0)
                 {
                     result = true;
@@ -637,7 +667,7 @@ namespace Semiodesk.Trinity
             {
                 foreach (IPropertyMapping propertyMapping in _mappings.Values)
                 {
-                    if (propertyMapping.RdfProperty.Uri.Equals(property.Uri) && !propertyMapping.IsUnsetValue )
+                    if (propertyMapping.Property.Uri.Equals(property.Uri) && !propertyMapping.IsUnsetValue )
                     {
                         if (propertyMapping.GetValueObject().Equals(value) || (propertyMapping.IsList && (propertyMapping.GetValueObject() as IList).Contains(value)))
                         {
@@ -687,17 +717,17 @@ namespace Semiodesk.Trinity
                     {
                         IList values = (IList)propertyMapping.GetValueObject();
                         foreach (object val in values)
-                            yield return new Tuple<Property, object>(propertyMapping.RdfProperty, val);
+                            yield return new Tuple<Property, object>(propertyMapping.Property, val);
                     }
                     else
                     {
-                        yield return new Tuple<Property, object>(propertyMapping.RdfProperty, propertyMapping.GetValueObject());
+                        yield return new Tuple<Property, object>(propertyMapping.Property, propertyMapping.GetValueObject());
                     }
                 }
                 else if (ResourceCache.HasCachedValues(propertyMapping))
                 {
                     foreach (var r in ResourceCache.ListCachedValues(propertyMapping))
-                        yield return new Tuple<Property, object>(propertyMapping.RdfProperty, new Resource(r));
+                        yield return new Tuple<Property, object>(propertyMapping.Property, new Resource(r));
 
                 }
             }
@@ -735,7 +765,7 @@ namespace Semiodesk.Trinity
             // iterate over the mapping and add all values
             foreach (IPropertyMapping propertyMapping in _mappings.Values)
             {
-                if(propertyMapping.RdfProperty.Equals(property))
+                if(propertyMapping.Property.Equals(property))
                 {
                     if (!propertyMapping.IsUnsetValue)
                     {
@@ -796,20 +826,30 @@ namespace Semiodesk.Trinity
             // List all mapped properties which have values (Listtypes) or have been set
             foreach (IPropertyMapping mappingObject in _mappings.Values)
             {
-                if (!propertyList.Contains(mappingObject.RdfProperty) && !mappingObject.IsUnsetValue)
+                if (!propertyList.Contains(mappingObject.Property) && !mappingObject.IsUnsetValue)
                 {
-                    propertyList.Add(mappingObject.RdfProperty);
+                    propertyList.Add(mappingObject.Property);
                 }
             }
 
             return propertyList;
         }
 
+        /// <summary>
+        /// Return the value for a given property.
+        /// </summary>
+        /// <param name="property">A RDF property.</param>
+        /// <returns>The value on success, <c>null</c> if the object has no such property.</returns>
         public virtual object GetValue(Property property)
         {
             return GetValue(property, null);
         }
 
+        /// <summary>
+        /// Return the value for a given property with a predefined default value.
+        /// </summary>
+        /// <param name="property">A RDF property.</param>
+        /// <returns>The value on success, the default value if the object has no such property.</returns>
         public object GetValue(Property property, object defaultValue)
         {
             List<object> result = ListValues(property);
@@ -841,61 +881,38 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void Rollback()
         {
-            Resource other = (Resource)Model.GetResource(this.Uri);
-            _model = other._model;
-            ResourceCache.Clear();
-            _properties = other._properties;
+            Resource resource = (Resource)Model.GetResource(this.Uri);
 
-            foreach (var x in _mappings)
+            _model = resource._model;
+            _properties = resource._properties;
+
+            Uri = resource.Uri;
+
+            IsNew = resource.IsNew;
+            IsSynchronized = resource.IsSynchronized;
+
+            ResourceCache.Clear();
+
+            foreach (KeyValuePair<string, IPropertyMapping> mapping in _mappings)
             {
-                var otherMapping = other._mappings[x.Key];
-                x.Value.CloneFrom(otherMapping);
-                if (other.ResourceCache.HasCachedValues(otherMapping))
+                IPropertyMapping persistedMapping = resource._mappings[mapping.Key];
+
+                mapping.Value.CloneFrom(persistedMapping);
+
+                if (resource.ResourceCache.HasCachedValues(persistedMapping))
                 {
-                    ResourceCache.CacheValues(x.Value, other.ResourceCache.ListCachedValues(otherMapping));
+                    ResourceCache.CacheValues(mapping.Value, resource.ResourceCache.ListCachedValues(persistedMapping));
                 }
             }
 
-            Uri = other.Uri;
-
-            IsNew = other.IsNew;
-            IsSynchronized = other.IsSynchronized;
-
-            other.Dispose();
-
-            foreach (IPropertyMapping mapping in _mappings.Values)
+            foreach (string name in _notifyingProperties)
             {
-                RaisePropertyChanged(mapping.PropertyName);
-                foreach (string relatedProperty in mapping.RelatedProperties)
-                    RaisePropertyChanged(relatedProperty);
+                RaisePropertyChanged(name);
             }
-            // We do not need to copy the classes, we have to assume the mapped type stays the same.
-        }
 
-        #region Mapping Functionality
+            resource.Dispose();
 
-        /// <summary>
-        /// Loads and initialises all mapped properties. 
-        /// </summary>
-        protected void InitialisePropertyMapping()
-        {
-            Type thisType = GetType();
-
-            FieldInfo[] b = thisType.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy);
-            IEnumerable<object> mappingList = from n in b where (n.FieldType.GetInterface("IPropertyMapping") != null) select n.GetValue(this);
-
-            foreach (IPropertyMapping mappingObject in mappingList)
-            {
-                _mappings.Add(mappingObject.PropertyName, mappingObject);
-            }
-        }
-
-        /// <summary>
-        /// Loads the rdf types of this resource.
-        /// </summary>
-        protected void InitialiseClassMapping()
-        {
-            Classes.AddRange(GetTypes());
+            // NOTE: We do not need to copy the classes, we have to assume the mapped type stays the same.
         }
 
         /// <summary>
@@ -908,7 +925,7 @@ namespace Semiodesk.Trinity
         {
             foreach (IPropertyMapping mappingObject in _mappings.Values)
             {
-                if (mappingObject.RdfProperty.Uri.OriginalString == property.Uri.OriginalString && mappingObject.IsTypeCompatible(type))
+                if (mappingObject.Property.Uri.OriginalString == property.Uri.OriginalString && mappingObject.IsTypeCompatible(type))
                 {
                     return mappingObject;
                 }
@@ -939,10 +956,6 @@ namespace Semiodesk.Trinity
         protected virtual void SetValue<T>(PropertyMapping<T> propertyMapping, T value)
         {
             propertyMapping.SetValue(value);
-
-            RaisePropertyChanged(propertyMapping.PropertyName);
-            foreach (string relatedProperty in (propertyMapping as IPropertyMapping).RelatedProperties)
-                RaisePropertyChanged(relatedProperty);
         }
 
         /// <summary>
@@ -957,12 +970,19 @@ namespace Semiodesk.Trinity
             }
         }
 
-        #endregion
+        /// <summary>
+        /// Register a property name to raise the INotifyProperty signal on rollback.
+        /// </summary>
+        /// <param name="propertyName">Name of a property.</param>
+        protected void RegisterPropertyChanged(string propertyName)
+        {
+            _notifyingProperties.Add(propertyName);
+        }
 
         /// <summary>
-        /// Raises this object's PropertyChanged event.
+        /// Raises the PropertyChanged event of the object.
         /// </summary>
-        /// <param name="propertyName">The property that has a new value.</param>
+        /// <param name="propertyName">Name of a property.</param>
         protected virtual void RaisePropertyChanged(string propertyName)
         {
             VerifyPropertyName(propertyName);
