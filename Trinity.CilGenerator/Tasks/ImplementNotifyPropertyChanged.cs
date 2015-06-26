@@ -166,13 +166,13 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
             if (!getValueGenerator.CanExecute())
             {
-                string msg = "{0}.{1}: Failed to implement property getter: {2}";
+                string msg = "{0}.{1}: Failed to implement property getter.";
                 throw new Exception(string.Format(msg, property.DeclaringType.FullName, property.Name));
             }
 
             if (!setValueGenerator.CanExecute())
             {
-                string msg = "{0}.{1}: Failed to implement property setter: {2}";
+                string msg = "{0}.{1}: Failed to implement property setter.";
                 throw new Exception(string.Format(msg, property.DeclaringType.FullName, property.Name));
             }
 
