@@ -48,7 +48,7 @@ namespace Semiodesk.Trinity
             public readonly List<Class> RdfClasses = new List<Class>();
             public readonly List<Class> InferencedRdfClasses = new List<Class>();
 
-            public MappingClass(Type mappingClassType, IList<Class> rdfClasses)
+            public MappingClass(Type mappingClassType, IEnumerable<Class> rdfClasses)
             {
                 MappingClassType = mappingClassType;
                 RdfClasses.AddRange(rdfClasses);
@@ -93,7 +93,7 @@ namespace Semiodesk.Trinity
             {
                 Resource r = (Resource)Activator.CreateInstance(_class, new UriRef("semio:empty"));
 
-                MappingClass c = new MappingClass(_class, r.Classes);
+                MappingClass c = new MappingClass(_class, r.GetTypes());
 
                 if (MappingClasses.Contains(c)) return;
 

@@ -48,11 +48,6 @@ namespace Semiodesk.Trinity
         #region Members
 
         /// <summary>
-        /// All classes as discovered by InitialiseClassMapping.
-        /// </summary>
-        public readonly List<Class> Classes = new List<Class>();
-
-        /// <summary>
         /// The cache for the associated resources, needed to support lazy loading for mapping.
         /// </summary>
         internal ResourceCache ResourceCache;
@@ -157,7 +152,6 @@ namespace Semiodesk.Trinity
             _mappings = other._mappings;
 
             Uri = other.Uri;
-            Classes = other.Classes;
             ResourceCache = other.ResourceCache;
 
             IsNew = other.IsNew;
@@ -199,7 +193,6 @@ namespace Semiodesk.Trinity
             IsSynchronized = false;
 
             InitializePropertyMappings();
-            InitializeClassMappings();
 
             // We cannot register the resource with the model, if no model is set.
         }
@@ -219,14 +212,6 @@ namespace Semiodesk.Trinity
             {
                 _mappings.Add(mapping.PropertyName, mapping);
             }
-        }
-
-        /// <summary>
-        /// Loads the rdf types of this resource.
-        /// </summary>
-        private void InitializeClassMappings()
-        {
-            Classes.AddRange(GetTypes());
         }
 
         /// <summary>
@@ -277,7 +262,7 @@ namespace Semiodesk.Trinity
             if (property.Uri.OriginalString == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
             {
                 IResource v = (IResource)value;
-                foreach (Class item in Classes)
+                foreach (Class item in GetTypes())
                 {
                     if (item.Uri == v.Uri)
                         return;
@@ -732,14 +717,15 @@ namespace Semiodesk.Trinity
                 }
             }
 
-            if (Classes.Count > 0)
+            var types = GetTypes();
+            if (types.Count ()> 0)
             {
                 Property rdfType;
                 if( OntologyDiscovery.Properties.ContainsKey("http://www.w3.org/1999/02/22-rdf-syntax-ns#type") )
                     rdfType = OntologyDiscovery.Properties["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"];
                 else
                     rdfType = new Property(new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"));
-                foreach (Class c in Classes)
+                foreach (Class c in types)
                 {
                     yield return new Tuple<Property, object>(rdfType, c);
                 }
@@ -791,7 +777,7 @@ namespace Semiodesk.Trinity
 
             if (property.Uri.OriginalString == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
             {
-                foreach (var type in Classes)
+                foreach (var type in GetTypes())
                 {
                     valueList.Add(type);
                 }
@@ -810,7 +796,7 @@ namespace Semiodesk.Trinity
         {
             List<Property> propertyList = new List<Property>();
 
-            if (Classes.Count > 0)
+            if (GetTypes().Count() > 0)
             {
                 Property rdfType = OntologyDiscovery.Properties["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"];
                 propertyList.Add(rdfType);
