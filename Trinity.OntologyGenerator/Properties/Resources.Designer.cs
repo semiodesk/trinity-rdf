@@ -121,7 +121,7 @@ namespace Semiodesk.Trinity.OntologyGenerator.Properties {
         ///   Looks up a localized string similar to ///&lt;summary&gt;
         ///    ///{3}
         ///    ///&lt;/summary&gt;
-        ///    public static readonly string {1} = &quot;{2}&quot;;.
+        ///    public static const string {1} = &quot;{2}&quot;;.
         /// </summary>
         internal static string StringTemplate {
             get {
