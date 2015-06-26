@@ -160,6 +160,6 @@ public class {0} : Ontology
     <value>///&lt;summary&gt;
     ///{3}
     ///&lt;/summary&gt;
-    public static readonly string {1} = "{2}";</value>
+    public static const string {1} = "{2}";</value>
   </data>
 </root>
