@@ -81,7 +81,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                     }
                     else
                     {
-                        string msg = "{0}.{1}: Failed to implement property getter: {2}";
+                        string msg = "{0}.{1}: Failed to implement property getter.";
                         throw new Exception(string.Format(msg, property.DeclaringType.FullName, property.Name));
                     }
                 }
@@ -104,7 +104,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                     }
                     else
                     {
-                        string msg = "{0}.{1}: Failed to implement property setter: {2}";
+                        string msg = "{0}.{1}: Failed to implement property setter.";
                         throw new Exception(string.Format(msg, property.DeclaringType.FullName, property.Name));
                     }
                 }
