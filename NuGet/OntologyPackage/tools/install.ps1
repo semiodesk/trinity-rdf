@@ -45,3 +45,27 @@ if (!$currentCmds.Contains($deployCmd))
       
 	$project.Properties.Item("PreBuildEvent").Value = $cmds
 }
+
+$currentCmds = $project.Properties.Item("PostBuildEvent").Value
+
+$generateCmd = 'cilg.exe'
+$generateCmdTemplate = 'cilg.exe -i $(TargetPath) -o $(TargetPath)'
+
+if (!$currentCmds.Contains($generateCmd))
+{
+	
+	$lines = [regex]::Split($currentCmds,"\r\n")
+	$cmds = ""
+
+	foreach($line in $lines)
+	{
+		if( $line.Length -gt 0 -and !$line.Contains($generateCmd))
+		{
+			$cmds += $line + "`r`n" 
+		}
+	}
+      
+	$cmds += $generateCmdTemplate + "`r`n"
+      
+	$currentCmds = $cmds
+}

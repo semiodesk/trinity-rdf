@@ -21,3 +21,23 @@ if ($cmds.Contains($buildCmd) -or $cmds.Contains($deployCmd) )
 
   $project.Properties.Item("PreBuildEvent").Value = $newCmds
 }
+
+$cmds = $project.Properties.Item("PostBuildEvent").Value
+
+$generateCmd = 'cilg.exe'
+
+if ($cmds.Contains($generateCmd))
+{
+    $lines = [regex]::Split($cmds,"\r\n")
+    $newCmds = ""
+   
+   foreach($line in $lines)
+   {
+        if($line.Length -gt 0 -and !$line.Contains($generateCmd))
+        {
+            $newCmds += $line + "`r`n"  # Creating a cleaned list of commands
+        }
+   }
+
+  $project.Properties.Item("PostBuildEvent").Value = $newCmds
+}
