@@ -2,6 +2,26 @@ param($installPath, $toolsPath, $package, $project)
 
 $currentCmds = $project.Properties.Item("PreBuildEvent").Value
 
+$cdCmd = 'CD "$(SolutionDir)packages\Semiodesk.Trinity.Ontologies*\tools"'
+if (!$currentCmds.Contains($cdCmd))
+{
+	
+	$lines = [regex]::Split($currentCmds,"\r\n")
+	$cmds = ""
+
+	foreach($line in $lines)
+	{
+		if( $line.Length -gt 0 -and !$line.Contains($cdCmd))
+		{
+			$cmds += $line + "`r`n" 
+		}
+	}
+      
+	$cmds += $cdCmd + "`r`n"
+      
+	$currentCmds = $cmds
+}
+
 $buildCmd = 'OntologyGenerator.exe'
 $buildCmdTemplate = 'OntologyGenerator.exe -c $(ProjectDir)GeneratorConfig.xml -g $(ProjectDir)Ontologies.cs'
 
@@ -47,6 +67,27 @@ if (!$currentCmds.Contains($deployCmd))
 }
 
 $currentCmds = $project.Properties.Item("PostBuildEvent").Value
+
+$cdCmd = 'CD "$(SolutionDir)packages\Semiodesk.Trinity.Ontologies*\tools"'
+if (!$currentCmds.Contains($cdCmd))
+{
+	
+	$lines = [regex]::Split($currentCmds,"\r\n")
+	$cmds = ""
+
+	foreach($line in $lines)
+	{
+		if( $line.Length -gt 0 -and !$line.Contains($cdCmd))
+		{
+			$cmds += $line + "`r`n" 
+		}
+	}
+      
+	$cmds += $cdCmd + "`r`n"
+      
+	$currentCmds = $cmds
+}
+
 
 $generateCmd = 'cilg.exe'
 $generateCmdTemplate = 'cilg.exe -i $(TargetPath) -o $(TargetPath)'
