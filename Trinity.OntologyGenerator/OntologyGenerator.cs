@@ -286,9 +286,17 @@ namespace Semiodesk.Trinity.OntologyGenerator
                     Console.WriteLine(string.Format("Error: Could not write <{0}>.", resource.Uri.OriginalString));
                 }
             }
+
             if (stringOnly)
+            {
                 nsPrefix = nsPrefix.ToUpper();
-            return string.Format(Properties.Resources.OntologyTemplate, nsPrefix, ns, result.ToString(), title, description);
+
+                return string.Format(Properties.Resources.StringOntologyTemplate, nsPrefix, ns, result.ToString(), title, description);
+            }
+            else
+            {
+                return string.Format(Properties.Resources.OntologyTemplate, nsPrefix, ns, result.ToString(), title, description);
+            }
         }
 
         private string NormalizeLineBreaks(string s)
