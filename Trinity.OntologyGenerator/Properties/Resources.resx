@@ -156,10 +156,24 @@ public class {0} : Ontology
     ///&lt;/summary&gt;
     public static readonly {0} {1} = new {0}(new Uri("{2}"));</value>
   </data>
+  <data name="StringOntologyTemplate" xml:space="preserve">
+    <value>///&lt;summary&gt;
+///{3}
+///{4}
+///&lt;/summary&gt;
+public static class {0} : Ontology
+{{
+    public static readonly Uri Namespace = new Uri("{1}");
+    public static Uri GetNamespace() {{ return Namespace; }}
+    
+    public static readonly string Prefix = "{0}";
+    public static string GetPrefix() {{ return Prefix; }} {2}
+}}</value>
+  </data>
   <data name="StringTemplate" xml:space="preserve">
     <value>///&lt;summary&gt;
     ///{3}
     ///&lt;/summary&gt;
-    public static const string {1} = "{2}";</value>
+    public const string {1} = "{2}";</value>
   </data>
 </root>
