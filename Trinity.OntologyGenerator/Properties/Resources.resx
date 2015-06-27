@@ -161,7 +161,7 @@ public class {0} : Ontology
 ///{3}
 ///{4}
 ///&lt;/summary&gt;
-public static class {0} : Ontology
+public static class {0}
 {{
     public static readonly Uri Namespace = new Uri("{1}");
     public static Uri GetNamespace() {{ return Namespace; }}

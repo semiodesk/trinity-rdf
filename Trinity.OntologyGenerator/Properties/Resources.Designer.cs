@@ -122,7 +122,7 @@ namespace Semiodesk.Trinity.OntologyGenerator.Properties {
         //////{3}
         //////{4}
         //////&lt;/summary&gt;
-        ///public static class {0} : Ontology
+        ///public static class {0}
         ///{{
         ///    public static readonly Uri Namespace = new Uri(&quot;{1}&quot;);
         ///    public static Uri GetNamespace() {{ return Namespace; }}
