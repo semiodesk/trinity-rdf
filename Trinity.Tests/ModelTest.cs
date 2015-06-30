@@ -139,6 +139,29 @@ namespace Semiodesk.Trinity.Tests
 
         }
 
+        [Test]
+        public void ModelNameTest()
+        {
+            Uri modelUri = new Uri("http://www.example.com");
+            Uri modelUri2 = new Uri("http://www.example.com/");
+            _store.RemoveModel(modelUri);
+            _store.RemoveModel(modelUri2);
+
+            
+            IModel model = _store.CreateModel(modelUri);
+            Assert.IsTrue(_store.ContainsModel(modelUri));
+            Assert.IsFalse(_store.ContainsModel(modelUri2));
+
+            PersonContact c = model.CreateResource<PersonContact>(new Uri("http://www.example.com/testResource"));
+            c.NameFamily = "Doe";
+            c.Commit();
+
+            model.Clear();
+
+            Assert.IsTrue(model.IsEmpty);
+
+        }
+
 
         [Test]
         public void ConnectTest()
