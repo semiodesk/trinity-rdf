@@ -133,7 +133,8 @@ namespace {3}
 }}</value>
   </data>
   <data name="OntologyTemplate" xml:space="preserve">
-    <value>///&lt;summary&gt;
+    <value>
+///&lt;summary&gt;
 ///{3}
 ///{4}
 ///&lt;/summary&gt;
@@ -145,7 +146,6 @@ public class {0} : Ontology
     public static readonly string Prefix = "{0}";
     public static string GetPrefix() {{ return Prefix; }} {2}
 }}
-
 </value>
   </data>
   <data name="ResourceTemplate" xml:space="preserve">
@@ -171,7 +171,9 @@ public static class {0}
 }}</value>
   </data>
   <data name="StringTemplate" xml:space="preserve">
-    <value>///&lt;summary&gt;
+    <value>
+
+    ///&lt;summary&gt;
     ///{3}
     ///&lt;/summary&gt;
     public const string {1} = "{2}";</value>
