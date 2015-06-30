@@ -82,7 +82,8 @@ namespace Semiodesk.Trinity.OntologyGenerator.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to ///&lt;summary&gt;
+        ///   Looks up a localized string similar to 
+        //////&lt;summary&gt;
         //////{3}
         //////{4}
         //////&lt;/summary&gt;
@@ -94,7 +95,6 @@ namespace Semiodesk.Trinity.OntologyGenerator.Properties {
         ///    public static readonly string Prefix = &quot;{0}&quot;;
         ///    public static string GetPrefix() {{ return Prefix; }} {2}
         ///}}
-        ///
         ///.
         /// </summary>
         internal static string OntologyTemplate {
@@ -118,7 +118,9 @@ namespace Semiodesk.Trinity.OntologyGenerator.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to ///&lt;summary&gt;
+        ///   Looks up a localized string similar to 
+        ///
+        ///    ///&lt;summary&gt;
         ///    ///{3}
         ///    ///&lt;/summary&gt;
         ///    public static const string {1} = &quot;{2}&quot;;.
