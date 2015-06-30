@@ -135,7 +135,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             string fieldName = "_" + Char.ToLowerInvariant(property.Name[0]) + property.Name.Substring(1) + "Mapping";
 
             // Implement the field.
-            FieldDefinition mappingField = new FieldDefinition(fieldName, FieldAttributes.Private, fieldType);
+            FieldDefinition mappingField = new FieldDefinition(fieldName, FieldAttributes.Family, fieldType);
 
             Type.Fields.Add(mappingField);
 
