@@ -94,14 +94,12 @@ namespace Semiodesk.Trinity.OntologyGenerator
         public OntologyGenerator(string ns)
         {
             _namespace = ns;
+
             Console.WriteLine();
             Console.WriteLine(string.Format("Starting OntologyGenerator in {0}", Directory.GetCurrentDirectory()));
             Console.WriteLine();
 
-
             _store = Stores.CreateStore("provider=dotnetrdf");
-
-            Initialize();
         }
 
         #endregion
@@ -111,20 +109,21 @@ namespace Semiodesk.Trinity.OntologyGenerator
         public void ImportOntology(Uri graphUri, Uri location)
         {
             FileInfo ontologyFile = new FileInfo(location.AbsolutePath);
+
             RdfSerializationFormat format;
-            if (ontologyFile.Extension == ".trig")
-                format = RdfSerializationFormat.Trig;
-            else if (ontologyFile.Extension == ".n3")
-                format = RdfSerializationFormat.N3;
-            else if (ontologyFile.Extension == ".ttl")
-                format = RdfSerializationFormat.Turtle;
-            else
-                format = RdfSerializationFormat.RdfXml;
+
+            switch (ontologyFile.Extension)
+            {
+                case ".trig": format = RdfSerializationFormat.Trig; break;
+                case ".n3": format = RdfSerializationFormat.N3; break;
+                case ".nt": format = RdfSerializationFormat.NTriples; break;
+                case ".ttl": format = RdfSerializationFormat.Turtle; break;
+                default: format = RdfSerializationFormat.RdfXml; break;
+            }
 
             try
             {
-                if (!_store.ContainsModel(graphUri))
-                    _store.Read(graphUri, location, format);
+                _store.Read(graphUri, location, format);
             }
             catch (Exception e)
             {
@@ -132,25 +131,24 @@ namespace Semiodesk.Trinity.OntologyGenerator
             }
         }
 
-
-
         public bool AddOntology(Uri graphUri, Uri metadataUri, string prefix)
         {
-            if (graphUri != null && _store.ContainsModel(graphUri))
+            if (graphUri == null) return false;
+
+            IModel graphModel = _store.ContainsModel(graphUri) ? _store.GetModel(graphUri) : null;
+
+            if (graphModel == null) return false;
+
+            IModel metadataModel = null;
+
+            if (metadataUri != null)
             {
-                IModel graphModel = _store.GetModel(graphUri);
-                IModel metaModel = null;
-                if (metadataUri != null && _store.ContainsModel(metadataUri))
-                    metaModel = _store.GetModel(metadataUri);
-
-                _models.Add(new Tuple<IModel, IModel, string, string>(graphModel, metaModel, prefix, graphUri.AbsoluteUri));
-                return true;
+                metadataModel = _store.ContainsModel(metadataUri) ? _store.GetModel(metadataUri) : null;
             }
-            return false;
-        }
 
-        private void Initialize()
-        {
+            _models.Add(new Tuple<IModel, IModel, string, string>(graphModel, metadataModel, prefix, graphUri.AbsoluteUri));
+
+            return true;
         }
 
         public void GenerateFile(FileInfo target)
@@ -160,6 +158,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
             foreach (Tuple<IModel, IModel, string, string> model in _models)
             {
                 _globalSymbols.Clear();
+
                 Console.WriteLine(string.Format("Generating <{0}>", model.Item1.Uri.OriginalString));
 
                 if (model.Item2 == null)
@@ -175,8 +174,12 @@ namespace Semiodesk.Trinity.OntologyGenerator
             }
 
             string content = string.Format(Properties.Resources.FileTemplate, DateTime.Now, WindowsIdentity.GetCurrent().Name, ontologies.ToString(), _namespace);
+
             if (string.IsNullOrEmpty(content))
+            {
                 throw new Exception(string.Format("Content of file {0} should not be empty", target.FullName));
+            }
+
             using (StreamWriter writer = new StreamWriter(target.FullName, false))
             {
                 writer.Write(content.ToString());
@@ -187,45 +190,35 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
         private string GetOntologyTitle(IModel model)
         {
-            string title = "";
             try
             {
                 ResourceQuery query = new ResourceQuery();
                 query.Where(rdf.type, owl.Ontology);
 
-                var res = model.ExecuteQuery(query);
-                if (res.Count() > 0)
-                {
-                    IResource ontology = res.GetResources().First();
-                    foreach (var t in ontology.ListValues(dces.Title))
-                    {
-                        if (t is string)
-                        {
-                            title = (t as string).Replace("\r\n", "///\r\n");
-                        }
-                        else if (t is Tuple<string, string>)
-                        {
-                            Tuple<string, string> val = (Tuple<string, string>)t;
+                IResourceQueryResult result = model.ExecuteQuery(query);
 
-                            //title = t.Replace("\r\n", "///\r\n");
-                        }
-                    }
-                }
+                if (result.Count() == 0) return "";
+
+                IResource ontology = result.GetResources().First();
+
+                return ontology.ListValues(dces.Title).OfType<string>().FirstOrDefault();
             }
             catch
             {
                 string msg = "Warning: Could not retrieve <dc:title> of ontology <{0}>";
+
                 Debug.WriteLine(string.Format(msg, model.Uri.ToString()));
 
+                return "";
             }
-
-            return title;
         }
 
         private string GenerateOntology(IModel model, string prefix, string ns, bool stringOnly = false)
         {
             string title = GetOntologyTitle(model);
+
             _globalSymbols.Add(prefix);
+
             return GenerateOntology(model, title, "", ns, prefix, stringOnly);
         }
 
@@ -237,12 +230,12 @@ namespace Semiodesk.Trinity.OntologyGenerator
             string nsPrefix = ontology.GetValue(nao.hasdefaultnamespaceabbreviation).ToString().ToLower();
 
             _globalSymbols.Add(nsPrefix);
+
             string title = "";
             string description = "";
 
             try
             {
-
                 title = ontology.ListValues(dces.Title).First().ToString().Replace("\r\n", "///\r\n");
             }
             catch
@@ -250,7 +243,6 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 string msg = "Warning: Could not retrieve <dc:title> of ontology <{0}>";
                 Debug.WriteLine(string.Format(msg, ontology.Uri.ToString()));
             }
-
 
             try
             {
@@ -263,6 +255,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 string msg = "Warning: Could not retrieve <dc:description> of ontology <{0}>";
                 Debug.WriteLine(string.Format(msg, ontology.Uri.ToString()));
             }
+
             return GenerateOntology(model, title, description, ns, nsPrefix, stringOnly);
         }
 
@@ -270,7 +263,8 @@ namespace Semiodesk.Trinity.OntologyGenerator
         {
             StringBuilder result = new StringBuilder();
 
-            string queryString = string.Format("select * where {{ ?s ?p ?o. FILTER isIRI(?s) }}  ", model.Uri);
+            string queryString = string.Format("select * where {{ ?s ?p ?o. FILTER isIRI(?s) }}  ", model.Uri.OriginalString);
+
             SparqlQuery query = new SparqlQuery(queryString);
 
             List<string> localSymbols = new List<string>();
@@ -311,8 +305,8 @@ namespace Semiodesk.Trinity.OntologyGenerator
         private string GenerateResource(IResource resource, List<string> localSymbols, bool stringOnly = false)
         {
             string name = GetName(resource);
-            if (string.IsNullOrEmpty(name))
-                return "";
+
+            if (string.IsNullOrEmpty(name)) return "";
 
             string comment = "";
             string type = "Resource";
@@ -337,6 +331,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 c = NormalizeLineBreaks(c);
                 comment = c.Replace("\r\n", "\r\n    ///");
             }
+
             comment = string.Format("{0}\r\n    ///<see cref=\"{1}\"/>", comment, resource.Uri.OriginalString);
 
             if (resource.HasProperty(rdf.type, rdf.Property) ||
@@ -348,23 +343,27 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 resource.HasProperty(rdf.type, owl.FunctionalProperty) ||
                 resource.HasProperty(rdf.type, owl.InverseFunctionalProperty) ||
                 resource.HasProperty(rdf.type, owl.IrreflexiveProperty) ||
-                resource.HasProperty(rdf.type, owl.ReflexiveProperty) ||
+                resource.HasProperty(rdf.type, owl.ReflexiveProperty) |
                 resource.HasProperty(rdf.type, owl.SymmetricProperty) || 
                 resource.HasProperty(rdf.type, owl.TransitiveProperty) ||
-                resource.HasProperty(rdf.type, owl.OntologyProperty)
-                )
+                resource.HasProperty(rdf.type, owl.OntologyProperty))
             {
                 type = "Property";
             }
-            else if (resource.HasProperty(rdf.type, rdfs.Class) || resource.HasProperty(rdf.type, owl.Class))
+            else if (resource.HasProperty(rdf.type, rdfs.Class) ||
+                resource.HasProperty(rdf.type, owl.Class))
             {
                 type = "Class";
             }
 
-            if( stringOnly )
+            if (stringOnly)
+            {
                 return string.Format(Properties.Resources.StringTemplate, type, name, resource.Uri.OriginalString, comment);
+            }
             else
+            {
                 return string.Format(Properties.Resources.ResourceTemplate, type, name, resource.Uri.OriginalString, comment);
+            }
         }
 
         private string GetName(IResource resource)
@@ -409,7 +408,6 @@ namespace Semiodesk.Trinity.OntologyGenerator
             {
                 result = result.Replace("-", "_");
             }
-
 
             return result;
         }

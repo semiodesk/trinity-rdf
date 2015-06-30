@@ -46,11 +46,13 @@ namespace Semiodesk.Trinity.Store
     public class dotNetRDFStore : IStore
     {
         #region Members
+
         TripleStore _store;
         LeviathanUpdateProcessor _updateProcessor;
         ISparqlQueryProcessor _queryProcessor;
         SparqlUpdateParser _parser;
         RdfsReasoner _reasoner;
+
         #endregion
 
         #region Constructor
@@ -120,7 +122,7 @@ namespace Semiodesk.Trinity.Store
             {
 
                 _store.AddInferenceEngine(_reasoner);
-                
+
             }
             else
             {
@@ -148,10 +150,10 @@ namespace Semiodesk.Trinity.Store
 
         public IModel GetModel(Uri uri)
         {
-          if (ContainsModel(uri))
-            return new Model(this, new UriRef(uri));
-          else
-            return null;
+            if (ContainsModel(uri))
+                return new Model(this, new UriRef(uri));
+            else
+                return null;
         }
 
         public bool IsReady
@@ -172,16 +174,16 @@ namespace Semiodesk.Trinity.Store
             switch (format)
             {
                 case RdfSerializationFormat.N3:
-                    return new Notation3Parser();
+                return new Notation3Parser();
 
                 case RdfSerializationFormat.NTriples:
-                    return new NTriplesParser();
+                return new NTriplesParser();
 
                 case RdfSerializationFormat.Turtle:
-                    return new TurtleParser();
+                return new TurtleParser();
                 default:
                 case RdfSerializationFormat.RdfXml:
-                    return new RdfXmlParser();
+                return new RdfXmlParser();
 
             }
         }
@@ -189,6 +191,7 @@ namespace Semiodesk.Trinity.Store
         public Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format)
         {
             IGraph graph = null;
+
             if (url.AbsoluteUri.StartsWith("file:"))
             {
                 string path;
@@ -201,18 +204,25 @@ namespace Semiodesk.Trinity.Store
                 {
                     path = Path.Combine(Directory.GetCurrentDirectory(), url.OriginalString.Substring(5));
                 }
+
                 if (graphUri != null)
                 {
-                    if( format == RdfSerializationFormat.Trig )
+                    if (format == RdfSerializationFormat.Trig)
                     {
-                        _store.LoadFromFile(path, new TriGParser());
-                    }else
+                        TripleStore s = new TripleStore();
+                        s.LoadFromFile(path, new TriGParser());
+
+                        foreach (Graph g in s.Graphs)
+                        {
+                            _store.Add(g, true);
+                        }
+                    }
+                    else
                     {
                         graph = new Graph();
-                        graph.LoadFromFile(path, GetParser(format) );
+                        graph.LoadFromFile(path, GetParser(format));
                         graph.BaseUri = graphUri;
                     }
-
                 }
             }
             else if (url.Scheme == "http")
@@ -225,6 +235,7 @@ namespace Semiodesk.Trinity.Store
             if (graph != null)
             {
                 _store.Add(graph);
+
                 return graphUri;
             }
 
@@ -247,7 +258,6 @@ namespace Semiodesk.Trinity.Store
             throw new NotImplementedException();
         }
 
-
         public ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
             return null;
@@ -256,6 +266,7 @@ namespace Semiodesk.Trinity.Store
         public IModelGroup CreateModelGroup(params Uri[] models)
         {
             List<IModel> modelList = new List<IModel>();
+
             foreach (var x in models)
             {
                 modelList.Add(GetModel(x));
@@ -270,12 +281,7 @@ namespace Semiodesk.Trinity.Store
             _store.Dispose();
         }
 
-
-
-
         #endregion
         #endregion
-
-
     }
 }
