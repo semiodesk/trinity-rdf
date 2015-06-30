@@ -58,7 +58,6 @@ namespace Semiodesk.Trinity.CilGenerator
         /// <summary>
         /// Indicates if the generator should write debugging symbols for the manipulated assembly.
         /// </summary>
-        [DefaultValue(true)]
         public bool WriteSymbols { get; set; }
 
         #endregion
@@ -67,6 +66,7 @@ namespace Semiodesk.Trinity.CilGenerator
 
         public ILGenerator(ILogger log)
         {
+            WriteSymbols = true;
             Log = log;
         }
 

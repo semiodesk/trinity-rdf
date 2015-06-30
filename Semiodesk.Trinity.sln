@@ -4,6 +4,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity", "Trinity\Trinity.csproj", "{0D10D2AD-CA61-46E3-88C8-0AB8318647BA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.Tests", "Trinity.Tests\Trinity.Tests.csproj", "{5E1FCE3C-9436-44F8-8DB6-18F6282DE70C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FDDBA220-DB73-4FC9-B95F-D69593C89EBD} = {FDDBA220-DB73-4FC9-B95F-D69593C89EBD}
+		{55D0E154-DE17-40E3-B434-A3A0D9BA17DF} = {55D0E154-DE17-40E3-B434-A3A0D9BA17DF}
+		{146FE869-CCA9-4B39-8FBE-58FD6515AFF9} = {146FE869-CCA9-4B39-8FBE-58FD6515AFF9}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.OntologyGenerator", "Trinity.OntologyGenerator\Trinity.OntologyGenerator.csproj", "{55D0E154-DE17-40E3-B434-A3A0D9BA17DF}"
 EndProject

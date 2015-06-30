@@ -56,22 +56,35 @@ namespace Semiodesk.Trinity.Tests
         public static readonly string Prefix = "test";
         public string GetPrefix() { return Prefix; }
 
-        public static readonly Class SingleMappingTestClass = new Class(new Uri("semio:test:SingleMappingTestClass"));
+        public static readonly Class SingleMappingTestClass = new Class(new Uri(SingleMappingTestClassString));
+        public const string SingleMappingTestClassString = "semio:test:SingleMappingTestClass";
         public static readonly Class SingleResourceMappingTestClass = new Class(new Uri("semio:test:SingleResourceMappingTestClass"));
-        public static readonly Class TestClass = new Class(new Uri("semio:test:TestClass"));
+
+        public const string SubMappingTestClassString = "semio:test:SubMappingTestClass";
+        public static readonly Class SubMappingTestClass = new Class(new Uri(SubMappingTestClassString));
+
+        public const string TestClassString = "semio:test:TestClass";
+        public static readonly Class TestClass = new Class(new Uri(TestClassString));
         public static readonly Class TestClass2 = new Class(new Uri("semio:test:TestClass2"));
         public static readonly Class TestClass3 = new Class(new Uri("semio:test:TestClass3"));
 
-        public static readonly Property genericTest = new Property(new Uri("semio:test:genericTest"));
+        public const string genericTestString = "semio:test:genericTest";
+        public static readonly Property genericTest = new Property(new Uri(genericTestString));
 
-        public static readonly Property intTest = new Property(new Uri("semio:test:intTest"));
-        public static readonly Property uniqueIntTest = new Property(new Uri("semio:test:uniqueIntTest"));
+        public const string intTestString = "semio:test:intTest";
+        public static readonly Property intTest = new Property(new Uri(intTestString));
+        public const string uniqueIntTestString = "semio:test:uniqueIntTest";
+        public static readonly Property uniqueIntTest = new Property(new Uri(uniqueIntTestString));
 
-        public static readonly Property uintTest = new Property(new Uri("semio:test:uintTest"));
-        public static readonly Property uniqueUintTest = new Property(new Uri("semio:test:uniqueUintTest"));
+        public const string uintTestString ="semio:test:uintTest";
+        public static readonly Property uintTest = new Property(new Uri(uintTestString));
+        public const string uniqueUintTestString = "semio:test:uniqueUintTest";
+        public static readonly Property uniqueUintTest = new Property(new Uri(uniqueUintTestString));
 
-        public static readonly Property stringTest = new Property(new Uri("semio:test:stringTest"));
-        public static readonly Property uniqueStringTest = new Property(new Uri("semio:test:uniqueStringTest"));
+        public const string stringTestString = "semio:test:stringTest";
+        public static readonly Property stringTest = new Property(new Uri(stringTestString));
+        public const  string uniqueStringTestString = "semio:test:uniqueStringTest";
+        public static readonly Property uniqueStringTest = new Property(new Uri(uniqueStringTestString));
 
         public static readonly Property floatTest = new Property(new Uri("semio:test:floatTest"));
         public static readonly Property uniqueFloatTest = new Property(new Uri("semio:test:uniqueFloatTest"));
