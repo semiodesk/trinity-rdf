@@ -1,19 +1,35 @@
-﻿<DeploymentConfiguration>
+﻿<?xml version="1.0" encoding="utf-8"?>
+<configuration>
 
-  <!--http://www.w3.org/1999/02/22-rdf-syntax-ns#-->
-  <Ontology Uri="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-    <WebSource Location="http://www.w3.org/1999/02/22-rdf-syntax-ns.rdf" />
-  </Ontology>
+  <Namespace>Semiodesk.Trinity.Ontologies</Namespace>
+  <Ontologies>
+    <!--http://www.w3.org/2002/07/owl#-->
+    <Ontology Uri="http://www.w3.org/2002/07/owl#" Prefix="owl">
+      <WebSource Location="http://www.w3.org/2002/07/owl.n3" />
+    </Ontology>
 
-  <!--http://www.w3.org/2000/01/rdf-schema#-->
-  <Ontology Uri="http://www.w3.org/2000/01/rdf-schema#">
-    <FileSource Location="rdf-schema.rdf" />
-  </Ontology>
+    <!--http://www.w3.org/1999/02/22-rdf-syntax-ns#-->
+    <Ontology Uri="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+      Prefix="rdf">
+      <FileSource Location="Ontologies\22-rdf-syntax-ns.rdf" />
+    </Ontology>
 
-  <!--http://www.w3.org/2002/07/owl#-->
-  <Ontology Uri ="http://www.w3.org/2002/07/owl#">
-    <WebSource Location ="http://www.w3.org/2002/07/owl.n3" />
-  </Ontology>
+    <!--http://www.w3.org/2000/01/rdf-schema#-->
+    <Ontology Uri="http://www.w3.org/2000/01/rdf-schema#"
+      MetadataUri="http://www.w3.org/2000/01/rdf-schema-metadata">
+      <FileSource Location="Ontologies\rdfs.trig" />
+    </Ontology>
+
+    <!--http://purl.org/dc/terms/-->
+    <Ontology Uri="http://purl.org/dc/terms/" Prefix="dcterms">
+      <FileSource Location="Ontologies\dcterms.ttl" />
+    </Ontology>
+
+    <!--http://purl.org/dc/terms/-->
+    <Ontology Uri="http://topbraid.org/schema/" Prefix="so">
+      <FileSource Location="Ontologies\schema.ttl" />
+    </Ontology>
+  </Ontologies>
 
   <VirtuosoSpecific>
     <RuleSet  Uri="urn:semiodesk/ruleset">
@@ -23,5 +39,5 @@
     </RuleSet>
   </VirtuosoSpecific>
 
-</DeploymentConfiguration>
+</configuration>
 

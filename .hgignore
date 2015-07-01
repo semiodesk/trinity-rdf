@@ -2,7 +2,6 @@ relre:Debug
 relre:svn
 syntax: glob
 *.orig
-*.config
 *.suo
 *.ldb
 *.user
