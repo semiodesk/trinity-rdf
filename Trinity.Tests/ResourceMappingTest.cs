@@ -360,6 +360,20 @@ namespace Semiodesk.Trinity.Tests
         }
 
         [Test]
+        public void GetTypesTest()
+        {
+            MappingTestClass2 t2 = new MappingTestClass2(new Uri("semio:t2"));
+            List<Class> classes = t2.GetTypes().ToList();
+            Assert.AreEqual(1, classes.Count);
+            Assert.Contains(TestOntology.TestClass2, classes);
+
+            MappingTestClass3 t3 = new MappingTestClass3(new Uri("semio:t3"));
+            classes = t3.GetTypes().ToList();
+            Assert.AreEqual(1, classes.Count);
+            Assert.Contains(TestOntology.TestClass3, classes);
+        }
+
+        [Test]
         public void AddRemoveIntegerTest()
         {
             IModel m = GetModel();

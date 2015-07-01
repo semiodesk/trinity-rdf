@@ -33,6 +33,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.Build.Framework" />
     <Reference Include="OpenLink.Data.Virtuoso">
       <HintPath>..\Dependencies\OpenLink.Data.Virtuoso.dll</HintPath>
     </Reference>
@@ -51,10 +52,11 @@
     <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Task\DeployOntology.cs" />
     <Compile Include="VirtuosoSpecific.cs" />
   </ItemGroup>
   <ItemGroup>
-     <None Include="App.config" />
+    <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Trinity\Trinity.csproj">

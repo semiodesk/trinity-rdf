@@ -58,6 +58,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
@@ -83,6 +84,11 @@
     <Compile Include="Collections\ResourceQueryItemsProvider.cs" />
     <Compile Include="Collections\VirtualizingResourceCollection.cs" />
     <Compile Include="Collections\VirtualizingCollection.cs" />
+    <Compile Include="Configuration\FileSource.cs" />
+    <Compile Include="Configuration\Ontology.cs" />
+    <Compile Include="Configuration\OntologySetting.cs" />
+    <Compile Include="Configuration\TrinitySettings.cs" />
+    <Compile Include="Configuration\VirtuosoStoreSettings.cs" />
     <Compile Include="Exceptions.cs" />
     <Compile Include="IPropertyMapping.cs" />
     <Compile Include="IResourceQueryResult.cs" />
