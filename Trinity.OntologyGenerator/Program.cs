@@ -36,6 +36,7 @@ using System.Xml.Serialization;
 using System.Runtime.Serialization;
 using System.Xml;
 using System.Reflection;
+using Semiodesk.Trinity.Configuration;
 
 namespace Semiodesk.Trinity.OntologyGenerator
 {
@@ -45,21 +46,25 @@ namespace Semiodesk.Trinity.OntologyGenerator
         string _generatePath = null;
         int _verbosity = 0;
         private string _configPath = null;
-        Configuration _config = null;
+        System.Configuration.Configuration _configuration = null;
+        TrinitySettings _config = null;
         private DirectoryInfo _sourceDir;
+        ILogger Logger { get; set; }
         #endregion
 
         [STAThread]
         static int Main(string[] args)
         {
-            Program p = new Program(args);
+
+            Program p = new Program(args, new ConsoleLogger());
 
             return 0;
         }
 
         #region Constructors
-        Program(string[] args)
+        Program(string[] args, ILogger logger)
         {
+            Logger = logger;
             bool showHelp = false;
 
             OptionSet o = new OptionSet()
@@ -73,15 +78,18 @@ namespace Semiodesk.Trinity.OntologyGenerator
             try
             {
                 o.Parse(args);
-                if (_config == null)
+                if (string.IsNullOrEmpty(_configPath))
                     showHelp = true;
                 else
+                {
+                    LoadConfigFile(_configPath);
                     Run();
+                }
 
             }
             catch (OptionException e)
             {
-                Debug(e.ToString());
+                Logger.LogMessage(e.ToString());
                 showHelp = true;
                 return;
             }
@@ -94,67 +102,84 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
         }
 
+        public Program(ILogger logger)
+        {
+            Logger = logger;
+        }
+
         #endregion
 
         #region Methods
-        public void SetConfig(string config)
+        protected void SetConfig(string config)
         {
-            Debug("Reading config from {0}", config);
+            Logger.LogMessage("Reading config from {0}", config);
 
             if (string.IsNullOrEmpty(config))
                 return;
 
             FileInfo configFile = new FileInfo(config);
             _configPath = configFile.FullName;
+           
+        }
+
+        public bool LoadConfigFile(string configPath)
+        {
+            _configPath = configPath;
+            FileInfo configFile = new FileInfo(configPath);
             if (configFile.Exists)
             {
+                ExeConfigurationFileMap configMap = new ExeConfigurationFileMap();
 
-                using (StreamReader reader = new StreamReader(configFile.FullName))
+                configMap.ExeConfigFilename = configFile.FullName;
+
+                _configuration = ConfigurationManager.OpenMappedExeConfiguration(configMap, ConfigurationUserLevel.None);
+                AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+                try
                 {
-                    XmlSerializer serializer = new XmlSerializer(typeof(Configuration));
-
-                    _config = (Configuration)serializer.Deserialize(reader);
-                    reader.Close();
-
-                    //DataContractSerializer serializer = new DataContractSerializer(typeof(Configuration));
-                    //_config = (Configuration)serializer.ReadObject(reader.BaseStream);
-                    //reader.Close();
+                    _config = (TrinitySettings)_configuration.GetSection("TrinitySettings");
                 }
-
+                catch (Exception e)
+                {
+                    Logger.LogError("Could not read config file from {0}. Reason: {1}", configPath, e.Message);
+                }
+                AppDomain.CurrentDomain.AssemblyResolve -= CurrentDomain_AssemblyResolve;
 
             }
+            else
+            {
+                Logger.LogError("Could not read config file from {0}. Reason: File does not exist.", configPath);
+            }
+            return _config == null;
+        }
+
+        Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
+        {
+            if (args.Name == "Semiodesk.Trinity")
+                return Assembly.GetAssembly(typeof(Resource));
+            return null;
         }
 
         public void SetGenerate(string generate)
         {
-            Debug("Generating to {0}", generate);
+            Logger.LogMessage("Generating to {0}", generate);
             _generatePath = generate;
         }
 
         void ShowHelp(OptionSet p)
         {
-            Console.WriteLine("Usage: OntologyGenerator.exe [OPTIONS]");
-            Console.WriteLine("Tool for generating and updating ontologies.");
-            Console.WriteLine();
-            Console.WriteLine("Options:");
+            Logger.LogMessage("Usage: OntologyGenerator.exe [OPTIONS]");
+            Logger.LogMessage("Tool for generating and updating ontologies.");
+            Logger.LogMessage("");
+            Logger.LogMessage("Options:");
             p.WriteOptionDescriptions(Console.Out);
         }
 
-        void Debug(string format, params object[] args)
-        {
-            if (_verbosity > 0)
-            {
-                Console.Write("# ");
-                Console.WriteLine(format, args);
-            }
-        }
-
-        protected UriRef GetPathFromSource(Source source)
+        protected UriRef GetPathFromSource(FileSource source)
         {
             UriRef result = null;
-            if (source != null && source is FileSource)
+            if (source != null )
             {
-                string sourcePath = (source as FileSource).Path;
+                string sourcePath = (source as FileSource).Location;
 
                 if (Path.IsPathRooted(sourcePath))
                 {
@@ -166,15 +191,14 @@ namespace Semiodesk.Trinity.OntologyGenerator
                     result = new UriRef(fullPath);
                 }
             }
-            else if (source != null && source is WebSource)
-            {
-                result = (source as WebSource).FileUrl;
-            }
             return result;
         }
 
         public int Run()
         {
+            if (_config == null)
+                throw new Exception("Config file not loaded.");
+
             FileInfo configFile = new FileInfo(_configPath);
             _sourceDir = configFile.Directory;
 
@@ -183,118 +207,38 @@ namespace Semiodesk.Trinity.OntologyGenerator
             {
                 FileInfo fileInfo = new FileInfo(_generatePath);
                 OntologyGenerator generator = new OntologyGenerator(_config.Namespace);
-                foreach (var ontology in _config.OntologyCollection)
+                generator.Logger = Logger;
+                if (_config.Ontologies != null)
                 {
-                    UriRef t = GetPathFromSource(ontology.Source);
-                    generator.ImportOntology(ontology.Uri, t);
-
-                    if (!generator.AddOntology(ontology.Uri, ontology.MetadataUri, ontology.Prefix))
+                    foreach (var ontology in _config.Ontologies)
                     {
-                        Debug("Ontology with uri <{0}> or uri <{1}> could not be found in store.", ontology.Uri, ontology.MetadataUri);
-                    }
+                        UriRef t = GetPathFromSource(ontology.FileSource);
+                        if ( !generator.ImportOntology(ontology.Uri, t) )
+                        {
+                            FileInfo ontologyFile = new FileInfo(t.AbsolutePath);
+                            var info = ontology.ElementInformation;
+                            Logger.LogWarning(string.Format("Could not read ontology <{0}> from path {1}.", ontology.Uri, ontologyFile.FullName), info);
+                        }
 
+                        
+
+                        if (!generator.AddOntology(ontology.Uri, ontology.MetadataUri, ontology.Prefix))
+                        {
+                            Logger.LogMessage("Ontology with uri <{0}> or uri <{1}> could not be found in store.", ontology.Uri, ontology.MetadataUri);
+                        }
+
+                    }
                 }
                 generator.GenerateFile(fileInfo);
-            }
-            return 0;
-        }
-
-        public void UpdateOntologies(string hostname, int port, string username, string password)
-        {
-
-        }
-
-        public static void CopyOntologies(DirectoryInfo target)
-        {
-            DirectoryInfo source = new DirectoryInfo("Ontologies");
-            if (!source.Exists)
-            {
-                Console.WriteLine(string.Format("Error: The ontology source folder {0} does not exist.", source.FullName));
-                return;
-            }
-
-
-            CopyAll(source, target);
-
-
-        }
-
-        public static void CopyAll(DirectoryInfo source, DirectoryInfo target)
-        {
-            if (source.FullName.ToLower() == target.FullName.ToLower())
-            {
-                return;
-            }
-
-            // Check if the target directory exists, if not, create it.
-            if (Directory.Exists(target.FullName) == false)
-            {
-                Directory.CreateDirectory(target.FullName);
-            }
-
-            // Copy each file into it's new directory.
-            foreach (FileInfo fi in source.GetFiles())
-            {
-                if (Encoding.ASCII == GetEncoding(fi))
-                {
-                    Console.WriteLine(@"Copying {0}\{1}", target.FullName, fi.Name);
-                    fi.CopyTo(Path.Combine(target.ToString(), fi.Name), true);
-                }
-                else
-                {
-                    Console.WriteLine(@"Omitting the file {0} is not ASCII encoded. Please re-encode manually.", fi.Name);
-                }
-            }
-
-            // Copy each subdirectory using recursion.
-            foreach (DirectoryInfo diSourceSubDir in source.GetDirectories())
-            {
-                DirectoryInfo nextTargetSubDir =
-                    target.CreateSubdirectory(diSourceSubDir.Name);
-                CopyAll(diSourceSubDir, nextTargetSubDir);
-            }
-        }
-
-        public static Encoding GetEncoding(FileInfo file)
-        {
-            Encoding enc = null;
-            FileStream fileStream = new System.IO.FileStream(file.FullName,
-                FileMode.Open, FileAccess.Read, FileShare.Read);
-            if (fileStream.CanSeek)
-            {
-                byte[] bom = new byte[4]; // Get the byte-order mark, if there is one 
-                fileStream.Read(bom, 0, 4);
-                if ((bom[0] == 0xef && bom[1] == 0xbb && bom[2] == 0xbf) || // utf-8 
-                    (bom[0] == 0xff && bom[1] == 0xfe) || // ucs-2le, ucs-4le, and ucs-16le 
-                    (bom[0] == 0xfe && bom[1] == 0xff) || // utf-16 and ucs-2 
-                    (bom[0] == 0 && bom[1] == 0 && bom[2] == 0xfe && bom[3] == 0xff)) // ucs-4 
-                {
-                    enc = System.Text.Encoding.Unicode;
-                }
-                else
-                {
-                    enc = System.Text.Encoding.ASCII;
-                }
-
-                // Now reposition the file cursor back to the start of the file 
-                fileStream.Seek(0, System.IO.SeekOrigin.Begin);
+                generator.Dispose();
+                return 0;
             }
             else
             {
-                // The file cannot be randomly accessed, so you need to decide what to set the default to 
-                // based on the data provided. If you're expecting data from a lot of older applications, 
-                // default your encoding to Encoding.ASCII. If you're expecting data from a lot of newer 
-                // applications, default your encoding to Encoding.Unicode. Also, since binary files are 
-                // single byte-based, so you will want to use Encoding.ASCII, even though you'll probably 
-                // never need to use the encoding then since the Encoding classes are really meant to get 
-                // strings from the byte array that is the file. 
-
-                enc = System.Text.Encoding.ASCII;
+                return -1;
             }
-
-            return enc;
-
         }
+
 
         #endregion
     }

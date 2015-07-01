@@ -40,9 +40,15 @@ using Semiodesk.Trinity.Utility;
 
 namespace Semiodesk.Trinity.OntologyGenerator
 {
-    internal class OntologyGenerator
+    internal class OntologyGenerator : IDisposable
     {
         #region Members
+
+        public ILogger Logger
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// A reference to the store
@@ -93,6 +99,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
         public OntologyGenerator(string ns)
         {
+            Logger = new ConsoleLogger();
             _namespace = ns;
             Console.WriteLine();
             Console.WriteLine(string.Format("Starting OntologyGenerator in {0}", Directory.GetCurrentDirectory()));
@@ -108,7 +115,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
         #region Methods
 
-        public void ImportOntology(Uri graphUri, Uri location)
+        public bool ImportOntology(Uri graphUri, Uri location)
         {
             FileInfo ontologyFile = new FileInfo(location.AbsolutePath);
             RdfSerializationFormat format;
@@ -125,11 +132,14 @@ namespace Semiodesk.Trinity.OntologyGenerator
             {
                 if (!_store.ContainsModel(graphUri))
                     _store.Read(graphUri, location, format);
+
+                return true;
             }
             catch (Exception e)
             {
-                Console.WriteLine(string.Format("Error reading ontology {0}: {1}", location.AbsolutePath, e));
+                return false;
             }
+            
         }
 
 
@@ -160,7 +170,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
             foreach (Tuple<IModel, IModel, string, string> model in _models)
             {
                 _globalSymbols.Clear();
-                Console.WriteLine(string.Format("Generating <{0}>", model.Item1.Uri.OriginalString));
+                Logger.LogMessage("Generating ontology <{0}>", model.Item1.Uri.OriginalString);
 
                 if (model.Item2 == null)
                 {
@@ -176,13 +186,13 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
             string content = string.Format(Properties.Resources.FileTemplate, DateTime.Now, WindowsIdentity.GetCurrent().Name, ontologies.ToString(), _namespace);
             if (string.IsNullOrEmpty(content))
+            {
                 throw new Exception(string.Format("Content of file {0} should not be empty", target.FullName));
+            }
             using (StreamWriter writer = new StreamWriter(target.FullName, false))
             {
                 writer.Write(content.ToString());
             }
-
-            Console.WriteLine();
         }
 
         private string GetOntologyTitle(IModel model)
@@ -214,9 +224,8 @@ namespace Semiodesk.Trinity.OntologyGenerator
             }
             catch
             {
-                string msg = "Warning: Could not retrieve <dc:title> of ontology <{0}>";
-                Debug.WriteLine(string.Format(msg, model.Uri.ToString()));
-
+                string msg = "Could not retrieve title of ontology <{0}>";
+                Logger.LogWarning(string.Format(msg, model.Uri.ToString()));
             }
 
             return title;
@@ -247,8 +256,8 @@ namespace Semiodesk.Trinity.OntologyGenerator
             }
             catch
             {
-                string msg = "Warning: Could not retrieve <dc:title> of ontology <{0}>";
-                Debug.WriteLine(string.Format(msg, ontology.Uri.ToString()));
+                string msg = "Could not retrieve title of ontology <{0}>";
+                Logger.LogWarning(string.Format(msg, model.Uri.ToString()));
             }
 
 
@@ -260,8 +269,9 @@ namespace Semiodesk.Trinity.OntologyGenerator
             }
             catch
             {
-                string msg = "Warning: Could not retrieve <dc:description> of ontology <{0}>";
-                Debug.WriteLine(string.Format(msg, ontology.Uri.ToString()));
+                string msg = "Could not retrieve description of ontology <{0}>";
+                Logger.LogWarning(string.Format(msg, model.Uri.ToString()));
+               
             }
             return GenerateOntology(model, title, description, ns, nsPrefix, stringOnly);
         }
@@ -283,7 +293,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 }
                 catch (Exception)
                 {
-                    Console.WriteLine(string.Format("Error: Could not write <{0}>.", resource.Uri.OriginalString));
+                    Logger.LogWarning("Could not write resource <{0}>.", resource.Uri.OriginalString);   
                 }
             }
 
@@ -412,6 +422,16 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
 
             return result;
+        }
+
+        #endregion
+
+        #region IDisposable Members
+
+        public void Dispose()
+        {
+            if (_store != null)
+                _store.Dispose();
         }
 
         #endregion
