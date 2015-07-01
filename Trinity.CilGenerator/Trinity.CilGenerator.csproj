@@ -38,6 +38,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.Build" />
+    <Reference Include="Microsoft.Build.Framework" />
+    <Reference Include="Microsoft.Build.Utilities.v4.0" />
     <Reference Include="Mono.Cecil">
       <HintPath>..\packages\Mono.Cecil.0.9.6.1\lib\net45\Mono.Cecil.dll</HintPath>
     </Reference>
@@ -76,9 +79,11 @@
     <Compile Include="ILGenerator.cs" />
     <Compile Include="ILogger.cs" />
     <Compile Include="Loggers\ConsoleLogger.cs" />
+    <Compile Include="Loggers\MsBuildLogger.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Tasks\CilGeneratorTask.cs" />
     <Compile Include="Tasks\GeneratorTaskBase.cs" />
     <Compile Include="Tasks\IGeneratorTask.cs" />
     <Compile Include="Tasks\ImplementNotifyPropertyChanged.cs" />
