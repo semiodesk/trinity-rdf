@@ -25,43 +25,24 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
+
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Text;
-using System.Xml.Serialization;
 
-namespace Semiodesk.Trinity.OntologyGenerator
+namespace Semiodesk.Trinity.Configuration
 {
-    [XmlRoot("GeneratorConfiguration")]
-    public class Configuration
+    public class Ontology : ConfigurationElement
     {
-
-        [XmlElement]
-        public string Namespace { get; set; }
-
-
-        [XmlElement(ElementName = "Ontology")]
-        public List<Ontology> OntologyCollection { get; set; }
-
-        public Configuration()
+        [ConfigurationProperty("Prefix")]
+        public string Prefix
         {
-            OntologyCollection = new List<Ontology>();
+            get { return (string)base["Prefix"]; }
+            set { base["Prefix"] = value; }
         }
-    }
 
-    public class Ontology
-    {
-
-        [XmlAttribute("Prefix")]
-        public string Prefix { get; set; }
-
-        [XmlElement("WebSource", Type = typeof(WebSource))]
-        [XmlElement("FileSource", Type = typeof(FileSource))]
-        public Source Source { get; set; }
-
-        [XmlIgnore]
         public UriRef Uri
         {
             get
@@ -76,15 +57,25 @@ namespace Semiodesk.Trinity.OntologyGenerator
             }
         }
 
-        [XmlAttribute("Uri")]
-        public string uriString { get; set; }
+        [ConfigurationProperty("Uri", IsKey = true, IsRequired = true)]
+        public string uriString
+        {
+            get { return (string)base["Uri"]; }
+            set { base["Uri"] = value; }
+        }
 
-        [XmlElement("MetadataWebSource", Type = typeof(WebSource))]
-        [XmlElement("MetadataFileSource", Type = typeof(FileSource))]
-        public Source MetadataSource { get; set; }
+        public object KeyElement
+        {
+            get { return uriString; }
+        }
 
+        [ConfigurationProperty("FileSource", IsRequired = true)]
+        public FileSource FileSource
+        {
+            get { return (FileSource)base["FileSource"]; }
+            set { base["FileSource"] = value; }
+        }
 
-        [XmlIgnore]
         public UriRef MetadataUri
         {
             get
@@ -99,8 +90,12 @@ namespace Semiodesk.Trinity.OntologyGenerator
             }
         }
 
-        [XmlAttribute("MetadataUri")]
-        public string metadataUriString { get; set; }
+        [ConfigurationProperty("MetadataUri", IsRequired = false)]
+        public string metadataUriString
+        {
+            get { return (string)base["MetadataUri"]; }
+            set { base["MetadataUri"] = value; }
+        }
 
         public override string ToString()
         {
@@ -114,48 +109,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
         {
             return base.GetHashCode();
         }
-    }
 
-    public abstract class Source
-    {
-
-    }
-
-    public class WebSource : Source
-    {
-
-        [XmlIgnore]
-        public UriRef FileUrl
-        {
-            get
-            {
-                return new UriRef(fileUrl);
-            }
-            set
-            {
-                fileUrl = value.OriginalString;
-            }
-        }
-
-        [XmlAttribute("Location")]
-        public string fileUrl
-        {
-            get;
-            set;
-        }
-    }
-
-    public class FileSource : Source
-    {
-        [XmlAttribute("Location")]
-        public string Path
-        {
-            get;
-            set;
-        }
-    }
-
-
-   
+}
 
 }

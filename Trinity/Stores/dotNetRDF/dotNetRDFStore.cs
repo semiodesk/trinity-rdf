@@ -234,7 +234,7 @@ namespace Semiodesk.Trinity.Store
 
             if (graph != null)
             {
-                _store.Add(graph);
+                _store.Add(graph, true);
 
                 return graphUri;
             }

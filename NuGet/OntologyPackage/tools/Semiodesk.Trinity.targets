@@ -1,0 +1,16 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  
+  <PropertyGroup>
+    <CoreCompileDependsOn>$(CoreCompileDependsOn);GenerateOntologies</CoreCompileDependsOn>
+  </PropertyGroup>
+  <UsingTask TaskName="GenerateOntology" AssemblyFile="F:\Projects\semiodesk.trinity\Build\Debug\OntologyGenerator.exe" />
+  <Target Name="GenerateOntologies">
+    <GenerateOntology ProjectPath="$(ProjectPath)" IntermediatePath="$(IntermediateOutputPath)" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)Ontologies.g.cs" />
+    </ItemGroup>
+  </Target>
+
+
+
+</Project>

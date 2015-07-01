@@ -39,6 +39,8 @@
     <OutputPath>..\Build\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.Build.Framework" />
+    <Reference Include="Microsoft.Build.Utilities.v4.0" />
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
@@ -53,7 +55,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BootstrapOntologies.cs" />
-    <Compile Include="OntologyCollection.cs" />
+    <Compile Include="Logger\ConsoleLogger.cs" />
+    <Compile Include="Logger\ILogger.cs" />
+    <Compile Include="Logger\TaskLogger.cs" />
     <Compile Include="OntologyGenerator.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
@@ -63,6 +67,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="Task\GenerateOntology.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Trinity\Trinity.csproj">
@@ -77,7 +82,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <None Include="GeneratorConfig.xml">
+    <None Include="model.config">
       <SubType>Designer</SubType>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
