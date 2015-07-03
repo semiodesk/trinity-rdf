@@ -38,6 +38,7 @@
       <HintPath>..\Dependencies\OpenLink.Data.Virtuoso.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -46,8 +47,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Configuration.cs" />
     <Compile Include="IStorageSpecific.cs" />
+    <Compile Include="Logger\ConsoleLogger.cs" />
+    <Compile Include="Logger\ILogger.cs" />
+    <Compile Include="Logger\TaskLogger.cs" />
     <Compile Include="OntologyUpdater.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
@@ -63,12 +66,6 @@
       <Project>{0d10d2ad-ca61-46e3-88c8-0ab8318647ba}</Project>
       <Name>Trinity</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="DeploymentConfig.xml">
-      <SubType>Designer</SubType>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

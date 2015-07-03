@@ -44,7 +44,7 @@ namespace dotNetRDFStore.Test
         {
             var p = new Property(new Uri("ex:myProperty"));
 
-            var Store = Stores.CreateStore("provider=dotnetrdf");
+            var Store = StoreFactory.CreateStore("provider=dotnetrdf");
             IModel m = Store.CreateModel(new UriRef("semio:test"));
             m.Clear();
             var x = m.CreateResource<Resource>();
@@ -52,7 +52,7 @@ namespace dotNetRDFStore.Test
             x.Commit();
             Store.Dispose();
 
-            Store = Stores.CreateStore("provider=dotnetrdf");
+            Store = StoreFactory.CreateStore("provider=dotnetrdf");
             m = Store.CreateModel(new UriRef("semio:test"));
             m.Clear();
             x = m.CreateResource<Resource>();
@@ -60,7 +60,7 @@ namespace dotNetRDFStore.Test
             x.Commit();
             Store.Dispose();
 
-            Store = Stores.CreateStore("provider=dotnetrdf");
+            Store = StoreFactory.CreateStore("provider=dotnetrdf");
             m = Store.CreateModel(new UriRef("semio:test"));
             m.Clear();
             x = m.CreateResource<Resource>();
@@ -68,7 +68,7 @@ namespace dotNetRDFStore.Test
             x.Commit();
             Store.Dispose();
 
-            Store = Stores.CreateStore("provider=dotnetrdf");
+            Store = StoreFactory.CreateStore("provider=dotnetrdf");
             m = Store.CreateModel(new UriRef("semio:test"));
             m.Clear();
             x = m.CreateResource<Resource>();
@@ -76,7 +76,7 @@ namespace dotNetRDFStore.Test
             x.Commit();
             Store.Dispose();
 
-            Store = Stores.CreateStore("provider=dotnetrdf");
+            Store = StoreFactory.CreateStore("provider=dotnetrdf");
             m = Store.CreateModel(new UriRef("semio:test"));
             m.Clear();
             x = m.CreateResource<Resource>();

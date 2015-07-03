@@ -36,16 +36,6 @@ namespace Semiodesk.Trinity.Configuration
 {
     public class TrinitySettings : ConfigurationSection
     {
-        private static TrinitySettings settings
-            = ConfigurationManager.GetSection("TrinitySettings") as TrinitySettings;
-
-        public static TrinitySettings Settings
-        {
-            get
-            {
-                return settings;
-            }
-        }
 
         [ConfigurationProperty("namespace",
             DefaultValue = "Semiodesk.Trinity.Model",

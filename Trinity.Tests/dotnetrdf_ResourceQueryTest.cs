@@ -63,7 +63,7 @@ namespace Semiodesk.Trinity.Tests
         {
           UriRef uri = new UriRef("http://localhost:8899/models/ResourceQueryTest");
 
-          _store = Stores.CreateStore("provider=dotnetrdf");
+          _store = StoreFactory.CreateStore("provider=dotnetrdf");
             Uri modelUri = new Uri("http://example.org/TestModel");
             if (_store.ContainsModel(modelUri))
             _model = _store.GetModel(modelUri);

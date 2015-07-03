@@ -57,7 +57,7 @@ namespace Semiodesk.Trinity.Tests
         public void QueryDBPediaTest()
         {
 
-            var store = Stores.CreateStore("provider=sparqlendpoint;endpoint=http://live.dbpedia.org/sparql");
+            var store = StoreFactory.CreateStore("provider=sparqlendpoint;endpoint=http://live.dbpedia.org/sparql");
             IModel m = store.GetModel(new Uri("http://dbpedia.org"));
             ResourceQuery q = new ResourceQuery();
             Property wikiPageID = new Property(new Uri("http://dbpedia.org/ontology/wikiPageID"));
@@ -74,7 +74,7 @@ namespace Semiodesk.Trinity.Tests
         public void GetResourceDBPediaTest()
         {
 
-            var store = Stores.CreateStore("provider=sparqlendpoint;endpoint=http://live.dbpedia.org/sparql");
+            var store = StoreFactory.CreateStore("provider=sparqlendpoint;endpoint=http://live.dbpedia.org/sparql");
             IModel m = store.GetModel(new Uri("http://dbpedia.org"));
             IResource res = m.GetResource(new Uri("http://dbpedia.org/resource/Munich"));
             
@@ -83,7 +83,7 @@ namespace Semiodesk.Trinity.Tests
         //[Test]
         public void QueryWordnetTest()
         {
-            var store = Stores.CreateStore("provider=sparqlendpoint;endpoint=http://wordnet.rkbexplorer.com/sparql/");
+            var store = StoreFactory.CreateStore("provider=sparqlendpoint;endpoint=http://wordnet.rkbexplorer.com/sparql/");
             IModel m = store.GetModel(new Uri("http://wordnet.rkbexplorer.com/sparql/"));
             ResourceQuery q = new ResourceQuery();
             q.Where(rdfs.label, "eat");

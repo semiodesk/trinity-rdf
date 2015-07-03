@@ -25,28 +25,35 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-
 using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Linq;
-using System.Text;
 
-namespace Semiodesk.Trinity.Configuration
+namespace Semiodesk.Trinity.OntologyDeployment
 {
-    
-    public class VirtuosoStoreSettings : ConfigurationElement
+    /// <summary>
+    /// A simple console logger.
+    /// </summary>
+    public class ConsoleLogger : ILogger
     {
-        [ConfigurationProperty("RuleSets", IsDefaultCollection = true)]
-        public RuleSetCollection RuleSets
+        public void LogMessage(string format, params object[] args)
         {
-            get { return (RuleSetCollection)base["RuleSets"]; }
+            Console.WriteLine(format, args);
+        }
+
+        public void LogWarning(string format, params object[] args)
+        {
+            Console.WriteLine("WARNING: " + format, args);
+        }
+
+        public void LogError(string format, params object[] args)
+        {
+            Console.WriteLine("ERROR: " + format, args);
+        }
+
+
+        public void LogWarning(string message, System.Configuration.ElementInformation info)
+        {
+            Console.WriteLine("WARNING: " + message);
         }
 
     }
-
-       
-
-     
-
 }

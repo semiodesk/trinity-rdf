@@ -35,11 +35,16 @@ using System.Text.RegularExpressions;
 using Semiodesk.Trinity.Store;
 #if !NET_3_5
 using System.ComponentModel.Composition.Hosting;
+using System.Configuration;
 #endif
 
 namespace Semiodesk.Trinity
 {
-    public class Stores
+    /// <summary>
+    /// This is the factory for object implementing the IStore interface.
+    /// If you want to use your own store, you can load the assembly containing the provider with the LoadProvider method.
+    /// </summary>
+    public class StoreFactory
     {
         private static readonly Dictionary<string, StoreProvider> _storeConfigurations = new Dictionary<string, StoreProvider>()
         {
@@ -50,6 +55,18 @@ namespace Semiodesk.Trinity
 
         #region Factory Methods
 
+        public static bool TestConnectionString(string connectionString)
+        {
+            bool res = false;
+            var config = ParseConfiguration(connectionString);
+            if (config.ContainsKey("provider"))
+            {
+                string provider = config["provider"];
+                res = _storeConfigurations.ContainsKey(provider);
+            }
+            return res;
+        }
+
         internal static Dictionary<string, string> ParseConfiguration(string configurationString)
         {
             Regex r = new Regex("(?<name>.*?)=(?<value>.*?)(;|$)");
@@ -57,14 +74,31 @@ namespace Semiodesk.Trinity
             return r.Matches(configurationString).Cast<Match>().ToDictionary(match => match.Groups["name"].Value, match => match.Groups["value"].Value);
         }
 
-        public static IStore CreateStore(string configurationString)
+        public static IStore CreateStore(string connectionString)
         {
-            var config = ParseConfiguration(configurationString);
-            string provider = config["provider"];
-            if (_storeConfigurations.ContainsKey(provider))
+            var config = ParseConfiguration(connectionString);
+            if (config.ContainsKey("provider"))
             {
-                StoreProvider p = _storeConfigurations[provider];
-                return p.GetStore(config);
+                string provider = config["provider"];
+                if (_storeConfigurations.ContainsKey(provider))
+                {
+                    StoreProvider p = _storeConfigurations[provider];
+                    return p.GetStore(config);
+                }
+            }
+            return null;
+        }
+
+        public static IStore CreateStoreFromConfiguration(string name = null)
+        {
+            foreach( ConnectionStringSettings setting in ConfigurationManager.ConnectionStrings)
+            {
+                if (!string.IsNullOrEmpty(name) && setting.Name != name)
+                    continue;
+                            
+                string conString = setting.ConnectionString;
+                if (setting.ProviderName == "Semiodesk.Trinity" && StoreFactory.TestConnectionString(conString))
+                    return CreateStore(conString);
             }
             return null;
         }

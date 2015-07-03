@@ -85,8 +85,12 @@
     <Compile Include="Collections\VirtualizingResourceCollection.cs" />
     <Compile Include="Collections\VirtualizingCollection.cs" />
     <Compile Include="Configuration\FileSource.cs" />
+    <Compile Include="Configuration\Graph.cs" />
+    <Compile Include="Configuration\GraphCollection.cs" />
     <Compile Include="Configuration\Ontology.cs" />
     <Compile Include="Configuration\OntologySetting.cs" />
+    <Compile Include="Configuration\RuleSet.cs" />
+    <Compile Include="Configuration\RuleSetCollection.cs" />
     <Compile Include="Configuration\TrinitySettings.cs" />
     <Compile Include="Configuration\VirtuosoStoreSettings.cs" />
     <Compile Include="Exceptions.cs" />
@@ -120,7 +124,7 @@
     <Compile Include="Query\SortDirection.cs" />
     <Compile Include="Query\StatementPattern.cs" />
     <Compile Include="StoreProvider.cs" />
-    <Compile Include="Stores.cs" />
+    <Compile Include="StoreFactory.cs" />
     <Compile Include="Stores\dotNetRDF\dotNetRDFQueryResult.cs" />
     <Compile Include="Stores\dotNetRDF\dotNetRDFStore.cs" />
     <Compile Include="Stores\dotNetRDF\dotNetRDFStoreProvider.cs" />

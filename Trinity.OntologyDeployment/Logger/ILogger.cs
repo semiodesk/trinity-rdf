@@ -32,21 +32,20 @@ using System.Configuration;
 using System.Linq;
 using System.Text;
 
-namespace Semiodesk.Trinity.Configuration
+namespace Semiodesk.Trinity.OntologyDeployment
 {
-    
-    public class VirtuosoStoreSettings : ConfigurationElement
+    public interface ILogger
     {
-        [ConfigurationProperty("RuleSets", IsDefaultCollection = true)]
-        public RuleSetCollection RuleSets
-        {
-            get { return (RuleSetCollection)base["RuleSets"]; }
-        }
+        #region Methods
 
+        void LogMessage(string msg, params object[] args);
+
+        void LogWarning(string message, ElementInformation info);
+
+        void LogWarning(string msg, params object[] args);
+
+        void LogError(string msg, params object[] args);
+
+        #endregion
     }
-
-       
-
-     
-
 }

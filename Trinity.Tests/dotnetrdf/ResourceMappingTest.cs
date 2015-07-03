@@ -64,7 +64,7 @@ namespace dotNetRDFStore.Test
                 ResourceMappingTest.RegisteredOntology = true;
             }
 
-            Store = Stores.CreateStore("provider=dotnetrdf");
+            Store = StoreFactory.CreateStore("provider=dotnetrdf");
 
 
             Uri testModel = new Uri("ex:Test");

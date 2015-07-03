@@ -31,6 +31,7 @@ using System.Linq;
 using System.Text;
 using OpenLink.Data.Virtuoso;
 using System.IO;
+using Semiodesk.Trinity.Configuration;
 
 namespace Semiodesk.Trinity.OntologyDeployment
 {
@@ -39,6 +40,7 @@ namespace Semiodesk.Trinity.OntologyDeployment
         #region Fields
         private DirectoryInfo _sourceDirectory;
         IStore _store;
+        public ILogger Logger { get; set; }
         #endregion
 
         #region Constructors
@@ -62,11 +64,11 @@ namespace Semiodesk.Trinity.OntologyDeployment
             }
         }
 
-        public void UpdateOntologies(List<Ontology> ontologies)
+        public void UpdateOntologies(IEnumerable<Semiodesk.Trinity.Configuration.Ontology> ontologies)
         {
-            foreach (Ontology onto in ontologies)
+            foreach (Semiodesk.Trinity.Configuration.Ontology onto in ontologies)
             {
-                Uri path = GetPathFromSource(onto.Source);
+                Uri path = GetPathFromSource(onto.FileSource);
 
                 RdfSerializationFormat format = GetSerializationFormatFromUri(path);
 
@@ -79,12 +81,12 @@ namespace Semiodesk.Trinity.OntologyDeployment
             storageSpecific.Update(_store);
         }
 
-        protected Uri GetPathFromSource(Source source)
+        protected Uri GetPathFromSource(FileSource source)
         {
             Uri result = null;
             if (source != null && source is FileSource)
             {
-                string sourcePath = (source as FileSource).Path;
+                string sourcePath = (source as FileSource).Location;
 
                 if (Path.IsPathRooted(sourcePath))
                 {
@@ -95,10 +97,6 @@ namespace Semiodesk.Trinity.OntologyDeployment
                     string fullPath = Path.Combine(_sourceDirectory.FullName, sourcePath);
                     result = new Uri(fullPath);
                 }
-            }
-            else if (source != null && source is WebSource)
-            {
-                result = (source as WebSource).FileUrl;
             }
             return result;
         }
@@ -115,72 +113,6 @@ namespace Semiodesk.Trinity.OntologyDeployment
             return RdfSerializationFormat.RdfXml;
         }
 
-        protected Uri DeployOntology(Uri source, DirectoryInfo target)
-        {
-            if (source.Scheme == "file")
-            {
-                FileInfo sourceFile = new FileInfo(source.LocalPath);
-
-                FileInfo targetFile = new FileInfo(Path.Combine(target.FullName, sourceFile.Name));
-                if (Encoding.ASCII == GetEncoding(sourceFile))
-                {
-                    string destFileName = Path.Combine(target.ToString(), sourceFile.Name);
-
-                    sourceFile.CopyTo(destFileName, true);
-                    return new Uri(destFileName);
-                }
-                else
-                {
-                    Console.WriteLine(@"Omitting the file {0} is not ASCII encoded. Please re-encode manually.", sourceFile.Name);
-                }
-            }
-            else if (source.Scheme == "http")
-            {
-                return source;
-            }
-            return null;
-        }
-
-        public static Encoding GetEncoding(FileInfo file)
-        {
-            Encoding enc = null;
-            FileStream fileStream = new System.IO.FileStream(file.FullName,
-                FileMode.Open, FileAccess.Read, FileShare.Read);
-            if (fileStream.CanSeek)
-            {
-                byte[] bom = new byte[4]; // Get the byte-order mark, if there is one 
-                fileStream.Read(bom, 0, 4);
-                if ((bom[0] == 0xef && bom[1] == 0xbb && bom[2] == 0xbf) || // utf-8 
-                    (bom[0] == 0xff && bom[1] == 0xfe) || // ucs-2le, ucs-4le, and ucs-16le 
-                    (bom[0] == 0xfe && bom[1] == 0xff) || // utf-16 and ucs-2 
-                    (bom[0] == 0 && bom[1] == 0 && bom[2] == 0xfe && bom[3] == 0xff)) // ucs-4 
-                {
-                    enc = System.Text.Encoding.Unicode;
-                }
-                else
-                {
-                    enc = System.Text.Encoding.ASCII;
-                }
-
-                // Now reposition the file cursor back to the start of the file 
-                fileStream.Seek(0, System.IO.SeekOrigin.Begin);
-            }
-            else
-            {
-                // The file cannot be randomly accessed, so you need to decide what to set the default to 
-                // based on the data provided. If you're expecting data from a lot of older applications, 
-                // default your encoding to Encoding.ASCII. If you're expecting data from a lot of newer 
-                // applications, default your encoding to Encoding.Unicode. Also, since binary files are 
-                // single byte-based, so you will want to use Encoding.ASCII, even though you'll probably 
-                // never need to use the encoding then since the Encoding classes are really meant to get 
-                // strings from the byte array that is the file. 
-
-                enc = System.Text.Encoding.ASCII;
-            }
-
-            return enc;
-
-        }
         #endregion
     }
 }

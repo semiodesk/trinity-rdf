@@ -35,6 +35,8 @@ using Semiodesk.Trinity.CilGenerator.Extensions;
 using Semiodesk.Trinity.CilGenerator.Tasks;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Reflection;
+using System.IO;
 
 namespace Semiodesk.Trinity.CilGenerator
 {
@@ -74,8 +76,9 @@ namespace Semiodesk.Trinity.CilGenerator
 
         #region Methods
 
-        public void ProcessFile(string sourceFile, string targetFile = "")
+        public bool ProcessFile(string sourceFile, string targetFile = "")
         {
+            bool result = false;
             if (string.IsNullOrEmpty(targetFile))
             {
                 targetFile = sourceFile;
@@ -86,7 +89,14 @@ namespace Semiodesk.Trinity.CilGenerator
 
             try
             {
-                Assembly = AssemblyDefinition.ReadAssembly(sourceFile);
+                var resolver = new DefaultAssemblyResolver();
+                resolver.AddSearchDirectory(GetAssemblyDirectoryFromType(typeof(Resource)));
+                var parameters = new ReaderParameters
+                {
+                    AssemblyResolver = resolver,
+                };
+
+                Assembly = AssemblyDefinition.ReadAssembly(sourceFile, parameters);
 
                 Log.LogMessage("------ Begin Task: ImplementRdfMapping [{0}]", Assembly.Name);
 
@@ -141,15 +151,23 @@ namespace Semiodesk.Trinity.CilGenerator
                         Assembly.Write(targetFile, new WriterParameters { WriteSymbols = WriteSymbols });
                     }
                 }
+                result = true;
             }
             catch (Exception ex)
             {
-                Log.LogMessage(ex.ToString());
+                Log.LogError(ex.ToString());
+                result = false;
             }
-
             stopwatch.Stop();
 
             Log.LogMessage("------ End Task: ImplementRdfMapping [Total time: {0}s]", stopwatch.Elapsed.TotalSeconds);
+            return result;
+        }
+
+
+        string GetAssemblyDirectoryFromType(Type type)
+        {
+            return new FileInfo(System.Reflection.Assembly.GetAssembly(type).Location).DirectoryName;
         }
 
         #endregion

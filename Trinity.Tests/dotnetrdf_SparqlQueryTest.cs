@@ -53,7 +53,7 @@ namespace Semiodesk.Trinity.Tests
         [SetUp]
         public void SetUp()
         {
-            _store = Stores.CreateStore("provider=dotnetrdf");
+            _store = StoreFactory.CreateStore("provider=dotnetrdf");
             Uri modelUri = new Uri("http://example.org/TestModel");
 
             if( _store.ContainsModel(modelUri) )
@@ -225,7 +225,7 @@ namespace Semiodesk.Trinity.Tests
         public void TestInferencing()
         {
             Assert.Inconclusive("dotnetrdf does not support inferencing.");
-            _store = Stores.CreateStore("provider=dotnetrdf;schema=Models/test-vocab.rdf");
+            _store = StoreFactory.CreateStore("provider=dotnetrdf;schema=Models/test-vocab.rdf");
 
 
             var model = _store.CreateModel(new Uri("http://example.org/TestModel"));

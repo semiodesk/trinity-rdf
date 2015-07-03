@@ -51,7 +51,7 @@ namespace Semiodesk.Trinity.Tests
         [SetUp]
         public void SetUp()
         {
-            _store = Stores.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba;rule=urn:semiodesk/ruleset");
+            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba;rule=urn:semiodesk/ruleset");
             try
             {
                 // Default uri scheme

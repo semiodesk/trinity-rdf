@@ -42,7 +42,7 @@ namespace dotNetRDFStore.Test
         [SetUp]
         public void SetUp()
         {
-            Store = Stores.CreateStore("provider=dotnetrdf");
+            Store = StoreFactory.CreateStore("provider=dotnetrdf");
         }
 
         [TearDown]
