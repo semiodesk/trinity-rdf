@@ -1137,7 +1137,7 @@ namespace Semiodesk.Trinity.Tests
         IModel GetModel()
         {
 
-            _store = Stores.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
+            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
 
             Uri testModelUri = new Uri("http://example.org/TestModel");
 

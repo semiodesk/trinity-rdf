@@ -31,31 +31,34 @@ using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
 using Semiodesk.Trinity;
+using Semiodesk.Trinity.Configuration;
 using Semiodesk.Trinity.Store;
 
 namespace Semiodesk.Trinity.OntologyDeployment
 {
-    public class VirtuosoSpecific : IStorageSpecific
+    public class VirtuosoSettings : IStorageSpecific
     {
-        [XmlElement(ElementName = "RuleSet")]
-        public List<RuleSet> RuleSets { get; set; }
+        #region Members
+        public VirtuosoStoreSettings Settings { get; set; }
+        #endregion
 
-
-
-        #region IStorageSpecific Members
+        public VirtuosoSettings(VirtuosoStoreSettings settings)
+        {
+            Settings = settings;
+        }
 
         public void Update(IStore store)
         {
             if (store is VirtuosoStore)
             {
                 VirtuosoStore virtuosoStore = (store as VirtuosoStore);
-                
-                foreach (RuleSet set in RuleSets)
+
+                foreach (RuleSet set in Settings.RuleSets)
                 {
-                    ClearRuleSet(set.RuleSetUri, virtuosoStore);
+                    ClearRuleSet(new Uri(set.Uri), virtuosoStore);
                     foreach (var item in set.Graphs)
                     {
-                        AddGraphToRuleSet(set.RuleSetUri, item, virtuosoStore);
+                        AddGraphToRuleSet(new Uri(set.Uri), new Uri(item.Uri), virtuosoStore);
                     }
                 }
             }
@@ -92,49 +95,7 @@ namespace Semiodesk.Trinity.OntologyDeployment
             store.ExecuteQuery(query);
         }
 
-        #endregion
     }
 
-    public class RuleSet
-    {
 
-        [XmlIgnore]
-        public List<UriRef> Graphs
-        {
-            get
-            {
-                return graphs.Select<string, UriRef>(x => new UriRef(x)).ToList();
-            }
-            set
-            {
-                graphs = value.Select<UriRef, string>(x => x.OriginalString).ToList();
-            }
-        }
-
-        [XmlElement(ElementName = "Graph")]
-        public List<string> graphs { get; set; }
-
-        [XmlIgnore]
-        public UriRef RuleSetUri
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(ruleSet))
-                    return null;
-                return new UriRef(ruleSet);
-            }
-            set
-            {
-                ruleSet = value.OriginalString;
-            }
-        }
-
-        [XmlAttribute("Uri")]
-        public string ruleSet { get; set; }
-
-        public RuleSet()
-        {
-            graphs = new List<string>();
-        }
-    }
 }

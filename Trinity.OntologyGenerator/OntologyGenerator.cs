@@ -106,7 +106,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
             Console.WriteLine(string.Format("Starting OntologyGenerator in {0}", Directory.GetCurrentDirectory()));
             Console.WriteLine();
 
-            _store = Stores.CreateStore("provider=dotnetrdf");
+            _store = StoreFactory.CreateStore("provider=dotnetrdf");
         }
 
         #endregion

@@ -25,28 +25,27 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Text;
+using NUnit.Framework;
+using Semiodesk.Trinity.Store;
 
-namespace Semiodesk.Trinity.Configuration
+namespace Semiodesk.Trinity.Test
 {
-    
-    public class VirtuosoStoreSettings : ConfigurationElement
+    [TestFixture]
+    class StoreFactoryTest
     {
-        [ConfigurationProperty("RuleSets", IsDefaultCollection = true)]
-        public RuleSetCollection RuleSets
+
+        [Test]
+        public void TestConnectionStringTest()
         {
-            get { return (RuleSetCollection)base["RuleSets"]; }
+            Assert.IsTrue(StoreFactory.TestConnectionString("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba"));
+            Assert.IsTrue(StoreFactory.TestConnectionString("provider=dotnetrdf;schema=Models/rdf-schema.rdf,Models/rdf-syntax.rdf"));
+            Assert.IsTrue(StoreFactory.TestConnectionString("provider=sparqlendpoint;endpoint=http://live.dbpedia.org/sparql"));
+            Assert.IsFalse(StoreFactory.TestConnectionString("data source=.\\SQLEXPRESS;Integrated Security=SSPI;AttachDBFilename=|DataDirectory|aspnetdb.mdf;User Instance=true"));
         }
 
     }
-
-       
-
-     
-
 }

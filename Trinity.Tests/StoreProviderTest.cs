@@ -40,19 +40,19 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void ParseConfigurationTest()
         {
-            Dictionary<string, string> result = Stores.ParseConfiguration("provider=virtuoso");
+            Dictionary<string, string> result = StoreFactory.ParseConfiguration("provider=virtuoso");
             Assert.AreEqual("virtuoso", result["provider"]);
 
-            result = Stores.ParseConfiguration("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
+            result = StoreFactory.ParseConfiguration("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
             Assert.AreEqual("localhost", result["host"]);
             Assert.AreEqual("1111", result["port"]);
             Assert.AreEqual("dba", result["uid"]);
             Assert.AreEqual("dba", result["pw"]);
 
-            result = Stores.ParseConfiguration("provider=virtuoso;path=c:/path/to/my/files.ext");
+            result = StoreFactory.ParseConfiguration("provider=virtuoso;path=c:/path/to/my/files.ext");
             Assert.AreEqual("c:/path/to/my/files.ext", result["path"]);
 
-            result = Stores.ParseConfiguration("provider=dotnetrdf;schema=c:/path/to/my/schema1.rdf,c:/path/to/my/schema2.rdf");
+            result = StoreFactory.ParseConfiguration("provider=dotnetrdf;schema=c:/path/to/my/schema1.rdf,c:/path/to/my/schema2.rdf");
 
         }
 
@@ -60,13 +60,13 @@ namespace Semiodesk.Trinity.Test
         public void DotNetRDFConfigTest()
         {
           dotNetRDFStoreProvider p = new dotNetRDFStoreProvider();
-          p.GetStore(Stores.ParseConfiguration("provider=dotnetrdf;schema=Models/rdf-schema.rdf,Models/rdf-syntax.rdf"));
+          p.GetStore(StoreFactory.ParseConfiguration("provider=dotnetrdf;schema=Models/rdf-schema.rdf,Models/rdf-syntax.rdf"));
         }
 
         [Test]
         public void VirtuosoConfigurationStringTest()
         {
-            IStore anObject = Stores.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
+            IStore anObject = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
             Assert.IsNotNull(anObject);
             anObject.Dispose();
         }

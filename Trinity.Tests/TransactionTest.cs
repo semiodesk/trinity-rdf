@@ -58,7 +58,7 @@ namespace Semiodesk.Trinity.Test
                 ResourceMappingTest.RegisteredOntology = true;
             }
 
-            Store = Stores.CreateStore(providerString);
+            Store = StoreFactory.CreateStore(providerString);
 
             if (Store.ContainsModel(transactionModel))
             {
@@ -82,7 +82,7 @@ namespace Semiodesk.Trinity.Test
 
         public IModel GetModel(out IStore store)
         {
-            store = Stores.CreateStore(providerString);
+            store = StoreFactory.CreateStore(providerString);
             return store.GetModel(transactionModel);
         }
 

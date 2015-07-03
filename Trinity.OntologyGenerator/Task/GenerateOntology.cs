@@ -50,9 +50,12 @@ namespace Semiodesk.Trinity.OntologyGenerator
             
             var logger = new TaskLogger(BuildEngine);
             FileInfo projectFile = new FileInfo(ProjectPath);
-            string configFile = Path.Combine(projectFile.DirectoryName, "model.config");
+            FileInfo configFile = new FileInfo(Path.Combine(projectFile.DirectoryName, "App.config"));
+            if( !configFile.Exists )
+                configFile = new FileInfo(Path.Combine(projectFile.DirectoryName, "Web.config"));
+
             Program p = new Program(logger);
-            p.LoadConfigFile(configFile);
+            p.LoadConfigFile(configFile.FullName);
             if (string.IsNullOrEmpty(IntermediatePath))
             {
                 IntermediatePath = projectFile.Directory.FullName;

@@ -152,7 +152,7 @@ namespace Semiodesk.Trinity
         {
             lock (ThreadDictionary)
             {
-                var store = Stores.CreateStore(connectionString);
+                var store = StoreFactory.CreateStore(connectionString);
                 if (!ThreadDictionary.ContainsKey(Thread.CurrentThread))
                     ThreadDictionary.Add(Thread.CurrentThread, store);
 

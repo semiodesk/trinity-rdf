@@ -45,14 +45,14 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
         public override bool Execute()
         {
+            
             if (!File.Exists(TargetFile)) return false;
 
             MsBuildLogger log = new MsBuildLogger(Log);
-
+            Log.LogMessage("TEST");
             ILGenerator generator = new ILGenerator(log);
-            generator.ProcessFile(TargetFile);
+            return generator.ProcessFile(TargetFile);
 
-            return false;
         }
 
         #endregion
