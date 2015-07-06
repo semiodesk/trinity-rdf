@@ -3,9 +3,9 @@
   <PropertyGroup>
     <CoreCompileDependsOn>$(CoreCompileDependsOn);GenerateOntologies</CoreCompileDependsOn>
   </PropertyGroup>
-  <UsingTask TaskName="GenerateOntology" AssemblyFile="F:\Projects\semiodesk.trinity\Build\Debug\OntologyGenerator.exe" />
-  <UsingTask TaskName="CilGeneratorTask" AssemblyFile="F:\Projects\semiodesk.trinity\Build\Debug\cilg.exe" />
-  <UsingTask TaskName="DeployOntology" AssemblyFile="F:\Projects\semiodesk.trinity\Build\Debug\OntologyDeployment.exe" />
+  <UsingTask TaskName="GenerateOntology" AssemblyFile="$(MSBuildThisFileDirectory)OntologyGenerator.exe" />
+  <UsingTask TaskName="CilGeneratorTask" AssemblyFile="$(MSBuildThisFileDirectory)cilg.exe" />
+  <UsingTask TaskName="DeployOntology" AssemblyFile="$(MSBuildThisFileDirectory)OntologyDeployment.exe" />
   
   <Target Name="GenerateOntologies">
     <GenerateOntology ProjectPath="$(ProjectPath)" IntermediatePath="$(IntermediateOutputPath)" />
@@ -14,7 +14,6 @@
     </ItemGroup>
   </Target>
   
-  <UsingTask TaskName="CilGeneratorTask" AssemblyFile="F:\Projects\semiodesk.trinity\Build\Debug\cilg.exe" />
   <Target Name="CilGeneratorTarget" AfterTargets="Build">
     <CilGeneratorTask TargetFile="$(TargetPath)" />
 	<DeployOntology ProjectPath="$(ProjectPath)" />

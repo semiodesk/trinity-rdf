@@ -52,6 +52,8 @@ namespace Semiodesk.Trinity.OntologyDeployment
         ILogger Logger { get; set; }
         bool _initalized = false;
 
+        public bool Initialized { get { return _initalized; } }
+
         DirectoryInfo BaseDirectory { get; set; }
         #endregion
 
@@ -208,8 +210,8 @@ namespace Semiodesk.Trinity.OntologyDeployment
 
                 if (string.IsNullOrEmpty(_connectionString))
                 {
-                    Logger.LogError("No connection string given. Nothing to do!");
-                    return false;
+                    Logger.LogWarning("No connection string given. Nothing to do!");
+                    return true;
                 }
             }
             else
