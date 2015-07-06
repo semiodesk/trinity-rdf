@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration xmlns:xdt="http://schemas.microsoft.com/XML-Document-Transform">
+
+  <!-- Insert the settings first, they will be appended. NOTE: This ordering is neccessary! -->
+  <TrinitySettings namespace="Trinity.Example.Model.Ontologies" xdt:Transform="InsertIfMissing">
+    <OntologySettings>
+	
+      <!--http://www.w3.org/1999/02/22-rdf-syntax-ns#-->
+      <Ontology Uri="http://www.w3.org/1999/02/22-rdf-syntax-ns#" Prefix="rdf">
+        <FileSource Location="Ontologies\rdf.rdf" />
+      </Ontology>
+
+      <!--http://www.w3.org/2000/01/rdf-schema#-->
+      <Ontology Uri="http://www.w3.org/2000/01/rdf-schema#" Prefix="rdfs">
+        <FileSource Location="Ontologies\rdfs.n3" />
+      </Ontology>
+	  
+	  <!--http://www.w3.org/2002/07/owl#-->
+	  <Ontology Uri ="http://www.w3.org/2002/07/owl#" Prefix="owl">
+		<FileSource Location ="Ontologies\owl.n3" />
+	  </Ontology>
+    </OntologySettings>
+
+    <VirtuosoStoreSettings>
+	<RuleSets>
+      <RuleSet Uri="urn:semiodesk/ruleset">
+        <Graphs>
+          <Graph Uri="http://www.w3.org/1999/02/22-rdf-syntax-ns#" />
+          <Graph Uri="http://www.w3.org/2000/01/rdf-schema#" />
+          <Graph Uri="http://www.w3.org/2002/07/owl#" />
+        </Graphs>
+      </RuleSet>
+	  </RuleSets>
+    </VirtuosoStoreSettings>
+	
+  </TrinitySettings>
+  
+  <!-- Now we add the configSection, it will be inserted at the beginning of the document. -->
+  <configSections xdt:Transform="InsertBefore(/configuration/*[1])" />
+  <configSections xdt:Locator="XPath(/configuration/configSections[last()])">
+    <section name="TrinitySettings" type="Semiodesk.Trinity.Configuration.TrinitySettings, Semiodesk.Trinity" xdt:Locator="Match(name)" xdt:Transform="InsertIfMissing" />
+  </configSections>
+  <configSections xdt:Transform="RemoveAll" xdt:Locator="Condition(count(*)=0)" />
+
+</configuration>
