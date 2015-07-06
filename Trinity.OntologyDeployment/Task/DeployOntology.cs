@@ -34,10 +34,21 @@ namespace Semiodesk.Trinity.OntologyDeployment.Task
                 configFile = new FileInfo(Path.Combine(projectFile.DirectoryName, "web.config"));
 
             Program p = new Program(logger);
-            p.LoadConfigFile(configFile.FullName);
-            int res = p.Run();
+            if (p.LoadConfigFile(configFile.FullName) )
+            {
+                if (p.Initialized)
+                {
+                    int res = p.Run();
+                    return res == 0;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+            return false;
 
-            return res == 0;
+            
         }
 
         public ITaskHost HostObject
