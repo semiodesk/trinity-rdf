@@ -49,6 +49,7 @@
       <HintPath>..\packages\OpenLink.Data.Virtuoso.6.2.3128.1\lib\net35\OpenLink.Data.Virtuoso.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.XML" />
     <Reference Include="VDS.Common">
@@ -56,6 +57,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Attributes\NotifyPropertyChangedAttribute.cs" />
+    <Compile Include="Attributes\RdfClassAttribute.cs" />
+    <Compile Include="Attributes\RdfNamespaceAttribute.cs" />
+    <Compile Include="Attributes\RdfPropertyAttribute.cs" />
     <Compile Include="Collections\AsyncVirtualizingCollection.cs" />
     <Compile Include="Collections\AsyncVirtualizingResourceCollection.cs" />
     <Compile Include="Collections\AsyncVirtualizingSparqlCollection.cs" />
@@ -65,7 +70,17 @@
     <Compile Include="Collections\ResourceQueryItemsProvider.cs" />
     <Compile Include="Collections\VirtualizingResourceCollection.cs" />
     <Compile Include="Collections\VirtualizingCollection.cs" />
+    <Compile Include="Configuration\FileSource.cs" />
+    <Compile Include="Configuration\Graph.cs" />
+    <Compile Include="Configuration\GraphCollection.cs" />
+    <Compile Include="Configuration\Ontology.cs" />
+    <Compile Include="Configuration\OntologySetting.cs" />
+    <Compile Include="Configuration\RuleSet.cs" />
+    <Compile Include="Configuration\RuleSetCollection.cs" />
+    <Compile Include="Configuration\TrinitySettings.cs" />
+    <Compile Include="Configuration\VirtuosoStoreSettings.cs" />
     <Compile Include="Exceptions.cs" />
+    <Compile Include="IPropertyMapping.cs" />
     <Compile Include="IResourceQueryResult.cs" />
     <Compile Include="ITransactional.cs" />
     <Compile Include="Model\IModel.cs" />
@@ -94,8 +109,8 @@
     <Compile Include="Query\SortCriterion.cs" />
     <Compile Include="Query\SortDirection.cs" />
     <Compile Include="Query\StatementPattern.cs" />
+    <Compile Include="StoreFactory.cs" />
     <Compile Include="StoreProvider.cs" />
-    <Compile Include="Stores.cs" />
     <Compile Include="Stores\dotNetRDF\dotNetRDFQueryResult.cs" />
     <Compile Include="Stores\dotNetRDF\dotNetRDFStore.cs" />
     <Compile Include="Stores\dotNetRDF\dotNetRDFStoreProvider.cs" />
