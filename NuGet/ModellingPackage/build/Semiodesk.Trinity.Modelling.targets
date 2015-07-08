@@ -3,9 +3,9 @@
   <PropertyGroup>
     <CoreCompileDependsOn>$(CoreCompileDependsOn);GenerateOntologies</CoreCompileDependsOn>
   </PropertyGroup>
-  <UsingTask TaskName="GenerateOntology" AssemblyFile="$(MSBuildThisFileDirectory)OntologyGenerator.exe" />
-  <UsingTask TaskName="CilGeneratorTask" AssemblyFile="$(MSBuildThisFileDirectory)cilg.exe" />
-  <UsingTask TaskName="DeployOntology" AssemblyFile="$(MSBuildThisFileDirectory)OntologyDeployment.exe" />
+  <UsingTask TaskName="GenerateOntology" AssemblyFile="$(MSBuildThisFileDirectory)/../tools/OntologyGenerator.exe" />
+  <UsingTask TaskName="CilGeneratorTask" AssemblyFile="$(MSBuildThisFileDirectory)/../tools/cilg.exe" />
+  <UsingTask TaskName="DeployOntology" AssemblyFile="$(MSBuildThisFileDirectory)/../tools/OntologyDeployment.exe" />
   
   <Target Name="GenerateOntologies">
     <GenerateOntology ProjectPath="$(ProjectPath)" IntermediatePath="$(IntermediateOutputPath)" />
