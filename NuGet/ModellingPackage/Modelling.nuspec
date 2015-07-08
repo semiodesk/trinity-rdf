@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
-    <id>Semiodesk.Trinity</id>
+    <id>Semiodesk.Trinity.Modelling</id>
 	<version>0.9.0</version>
     <authors>Semiodesk</authors>
     <owners>Semiodesk</owners>
@@ -9,13 +9,12 @@
     <projectUrl>https://bitbucket.org/semiodesk/semiodesk.trinity</projectUrl>
     <iconUrl>http://static.semiodesk.com/images/trinity_logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>Semiodesk.Trinity is a high-level C# API for querying and manipulating RDF triplestores. Semiodesk.Trinity offers a Object-Mapping mechanism which also supports all the features that makes RDF great, for example being schema-less and inferencing.</description>
+    <description>This package is part of the Semiodesk.Trinity API. It allows for the creation of C# representation of ontologies as well as the mapping of RDF classes to C# classes.</description>
     <releaseNotes>Initial release.</releaseNotes>
     <copyright>Copyright 2015 Semiodesk</copyright>
     <tags>RDF SPARQL Database Semantic Object Mapping</tags>
     <dependencies>
-      <dependency id="dotNetRDF" version="1.0.8" />
-	  <dependency id="OpenLink.Data.Virtuoso" version="6.2.3128.1" />
+      <dependency id="Semiodesk.Trinity.Core" version="0.9" />
     </dependencies>
   </metadata>
 </package>
