@@ -107,6 +107,7 @@ namespace Semiodesk.Trinity.Store
         /// <param name="port">The service port on the storage service host.</param>
         /// <param name="username">Username used to connect to storage.</param>
         /// <param name="password">Password needed to connect to storage.</param>
+        /// <param name="defaultInferenceRule"></param>
         public VirtuosoStore(string hostname, int port, string username, string password, string defaultInferenceRule) : this(hostname, port, username, password)
         {
             _defaultInferenceRule = defaultInferenceRule;

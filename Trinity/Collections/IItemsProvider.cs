@@ -29,9 +29,24 @@ using System.Collections.Generic;
 
 namespace Semiodesk.Trinity.Collections
 {
-    public interface IItemsProvider<T> 
+    /// <summary>
+    /// A generic items provider collection.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public interface IItemsProvider<T>
     {
+        /// <summary>
+        /// Number of element in the provider.
+        /// </summary>
+        /// <returns></returns>
         int Count();
+
+        /// <summary>
+        /// Enumerator of the items.
+        /// </summary>
+        /// <param name="offset"></param>
+        /// <param name="limit"></param>
+        /// <returns></returns>
         IEnumerable<T> GetItems(int offset, int limit);
     }
 }

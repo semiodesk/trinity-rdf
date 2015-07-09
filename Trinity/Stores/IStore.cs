@@ -121,6 +121,13 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         IModelGroup CreateModelGroup(params Uri[] models);
         
+        /// <summary>
+        /// Loads a serialized graph from the given location into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="graphUri">Uri of the graph in this store</param>
+        /// <param name="url">Location</param>
+        /// <param name="format">Allowed formats</param>
+        /// <returns></returns>
         Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format);
 
         void Write(Stream fs, Uri graphUri, RdfSerializationFormat format);

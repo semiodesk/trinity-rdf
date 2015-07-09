@@ -33,5 +33,49 @@ using System.Text.RegularExpressions;
 
 namespace Semiodesk.Trinity
 {
-    public enum FilterOperation { None, Equal, NotEqual, LessThan, LessOrEqual, GreaterThan, GreaterOrEqual, Contains };
+    /// <summary>
+    /// Available filter operations.
+    /// </summary>
+    public enum FilterOperation
+    {
+        /// <summary>
+        /// No filter
+        /// </summary>
+        None,
+
+        /// <summary>
+        /// Equal (==)
+        /// </summary>
+        Equal,
+
+        /// <summary>
+        /// Not Equal (!=)
+        /// </summary>
+        NotEqual,
+
+        /// <summary>
+        /// Less Than (&lt;)
+        /// </summary>
+        LessThan,
+
+        /// <summary>
+        /// Less or Equal (&lt;=)
+        /// </summary>
+        LessOrEqual,
+
+        /// <summary>
+        /// Greater than (&gt;)
+        /// </summary>
+        GreaterThan,
+
+        /// <summary>
+        /// Greater or Eqal (&gt;=)
+        /// </summary>
+        GreaterOrEqual,
+
+        /// <summary>
+        /// Contains
+        /// </summary>
+        Contains
+    };
 }

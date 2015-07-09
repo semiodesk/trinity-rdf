@@ -50,6 +50,7 @@ namespace Semiodesk.Trinity
         /// language based strings (Query or Update).
         /// </summary>
         /// <param name="sparqlBody">A SPARQL Query/Update expression.</param>
+        /// <param name="namespaceManager">A namepsace manager</param>
         /// <returns>The query string with generated PREFIXes.</returns>
         internal static string GeneratePrologue(string sparqlBody, NamespaceManager namespaceManager)
         {
@@ -72,6 +73,11 @@ namespace Semiodesk.Trinity
             return result + sparqlBody;
         }
 
+        /// <summary>
+        /// Serializes a string and excapes special characters
+        /// </summary>
+        /// <param name="str"></param>
+        /// <returns></returns>
         public static string SerializeString(string str)
         {
             // We need to escape specrial characters: http://www.w3.org/TeamSubmission/turtle/#sec-strings
@@ -82,16 +88,33 @@ namespace Semiodesk.Trinity
             return string.Format("\"{0}\"", s);
         }
 
+        /// <summary>
+        /// Serializes a string with a translation
+        /// </summary>
+        /// <param name="str"></param>
+        /// <param name="lang"></param>
+        /// <returns></returns>
         public static string SerializeTranslatedString(string str, string lang)
         {
             return string.Format("\"{0}\"@{1}", SerializeString(str), lang);
         }
 
+        /// <summary>
+        /// Serializes a typed literal
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="typeUri"></param>
+        /// <returns></returns>
         public static string SerializeTypedLiteral(object obj, Uri typeUri)
         {
             return string.Format("'{0}'^^<{1}>", XsdTypeMapper.SerializeObject(obj), typeUri);
         }
 
+        /// <summary>
+        /// Serializes a value
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeValue(object obj)
         {
             try
@@ -132,16 +155,31 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Serializes a DateTime
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeDateTime(DateTime obj)
         {
             return string.Format("'{0}'^^<http://www.w3.org/2001/XMLSchema#dateTime>", XmlConvert.ToString((DateTime)obj, XmlDateTimeSerializationMode.Utc));
         }
 
+        /// <summary>
+        /// Serializes a Uri
+        /// </summary>
+        /// <param name="uri"></param>
+        /// <returns></returns>
         public static string SerializeUri(Uri uri)
         {
             return string.Format(@"<{0}>", uri.AbsoluteUri);
         }
 
+        /// <summary>
+        /// Serializes a resource
+        /// </summary>
+        /// <param name="resource"></param>
+        /// <returns></returns>
         public static string SerializeResource(IResource resource)
         {
             StringBuilder result = new StringBuilder(SerializeUri(resource.Uri));
@@ -159,6 +197,11 @@ namespace Semiodesk.Trinity
             return result.ToString();
         }
 
+        /// <summary>
+        /// Generate the Dataset for the given model group
+        /// </summary>
+        /// <param name="modelGroup"></param>
+        /// <returns></returns>
         public static string GenerateDatasetClause(IModelGroup modelGroup)
         {
             if (modelGroup is ModelGroup)
@@ -166,6 +209,11 @@ namespace Semiodesk.Trinity
             return GenerateDatasetClause(modelGroup as IEnumerable<IModel>);               
         }
 
+        /// <summary>
+        /// Generate the Dataset for a enumeration of models
+        /// </summary>
+        /// <param name="models"></param>
+        /// <returns></returns>
         public static string GenerateDatasetClause(IEnumerable<IModel> models)
         {
             StringBuilder builder = new StringBuilder();
@@ -176,6 +224,11 @@ namespace Semiodesk.Trinity
             return builder.ToString();
         }
 
+        /// <summary>
+        /// Generate the Dataset for a single model
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
         public static string GenerateDatasetClause(IModel model)
         {
             if (model is IModelGroup)
@@ -184,6 +237,13 @@ namespace Semiodesk.Trinity
             return string.Format("FROM {0}", SparqlSerializer.SerializeUri(model.Uri));
         }
 
+        /// <summary>
+        /// Serialize a ResourceQuery from certain model. Can also only deliver the Uris of the result resources.
+        /// </summary>
+        /// <param name="model"></param>
+        /// <param name="query"></param>
+        /// <param name="onlyUris"></param>
+        /// <returns></returns>
         public static string Serialize(IModel model, ResourceQuery query, bool onlyUris = false)
         {
             StringBuilder result = new StringBuilder();
@@ -239,6 +299,14 @@ namespace Semiodesk.Trinity
             return result.ToString();
         }
 
+        /// <summary>
+        /// Serialize a query from the given parameters
+        /// </summary>
+        /// <param name="model"></param>
+        /// <param name="query"></param>
+        /// <param name="whereBlock"></param>
+        /// <param name="solutionModifiers"></param>
+        /// <param name="processed"></param>
         public static void Serialize(IModel model, ResourceQuery query, StringBuilder whereBlock, SortedList<int, string> solutionModifiers, IList<ResourceQuery> processed)
         {
             // The index of the currently processed resource query used for generating variable names.
@@ -383,6 +451,12 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Serialize a count query for the given ResourceQuery
+        /// </summary>
+        /// <param name="model"></param>
+        /// <param name="query"></param>
+        /// <returns></returns>
         public static string SerializeCount(IModel model, ResourceQuery query)
         {
             StringBuilder result = new StringBuilder();
@@ -402,6 +476,12 @@ namespace Semiodesk.Trinity
             return result.ToString();
         }
 
+        /// <summary>
+        /// Serialize a count query for the given SparqlQuery
+        /// </summary>
+        /// <param name="model"></param>
+        /// <param name="query"></param>
+        /// <returns></returns>
         public static string SerializeCount(IModel model, SparqlQuery query)
         {
             StringBuilder result = new StringBuilder();
@@ -410,6 +490,7 @@ namespace Semiodesk.Trinity
 
             return result.ToString();
         }
+
 
         internal static string SerializeFetchUris(IModel model, SparqlQuery query, int offset = -1, int limit = -1)
         {

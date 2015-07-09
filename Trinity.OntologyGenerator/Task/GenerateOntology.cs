@@ -73,7 +73,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
                 return 0 == res;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return false;
             }

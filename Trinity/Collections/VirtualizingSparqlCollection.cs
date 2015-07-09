@@ -29,6 +29,10 @@ using Semiodesk.Trinity.Collections;
 
 namespace Semiodesk.Trinity
 {
+    /// <summary>
+    /// A virtualizing collection for sparql query results
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class VirtualizingSparqlCollection<T> : VirtualizingCollection<T> where T : Resource
     {
         #region Members
@@ -40,8 +44,6 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Initializes a new instance of the <see cref="VirtualizingSparqlCollection{T}"/> class.
         /// </summary>
-        /// <param name="pageSize">Size of the page.</param>
-        /// <param name="pageTimeout">The page timeout.</param>
         public VirtualizingSparqlCollection(IModel model, SparqlQuery query, int pageSize, int pageTimeout, bool inferenceEnabled = true)
             : base(new SparqlQueryItemsProvider<T>(model, query, inferenceEnabled), pageSize, pageTimeout)
         {
@@ -53,7 +55,7 @@ namespace Semiodesk.Trinity
         /// <param name="model">The model to query.</param>
         /// <param name="query">The query.</param>
         /// <param name="pageSize">Size of the page.</param>
-        /// <param name="inferenceEnabled">Size of the page.</param>
+        /// <param name="inferenceEnabled">Using inferencing</param>
         public VirtualizingSparqlCollection(IModel model, SparqlQuery query, int pageSize, bool inferenceEnabled = true)
             : base(new SparqlQueryItemsProvider<T>(model, query, inferenceEnabled), pageSize)
         {
@@ -63,7 +65,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Initializes a new instance of the <see cref="VirtualizingSparqlCollection{T}"/> class.
         /// </summary>
-        public VirtualizingSparqlCollection(IModel model, SparqlQuery query, bool inferenceEnabled = false) 
+        public VirtualizingSparqlCollection(IModel model, SparqlQuery query, bool inferenceEnabled = false)
             : base(new SparqlQueryItemsProvider<T>(model, query, inferenceEnabled))
         {
 

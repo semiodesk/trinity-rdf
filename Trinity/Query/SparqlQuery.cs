@@ -69,6 +69,9 @@ namespace Semiodesk.Trinity
         /// </summary>
         private SparqlQueryType _queryType = SparqlQueryType.Unknown;
 
+        /// <summary>
+        /// Used model for this query.
+        /// </summary>
         public IModel Model { get; private set; }
 
         /// <summary>
@@ -279,7 +282,7 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Adds a FROM <Uri> clause to the query in order to restrict it to the given model. 
+        /// Adds a FROM &lt;Uri&gt; clause to the query in order to restrict it to the given model. 
         /// </summary>
         /// <param name="model">A model the query should be executed on.</param>
         internal void SetModel(IModel model)
@@ -317,7 +320,7 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Adds a LIMIT <int> clause to the query in order to restrict it to put an upper bound on the number of solutions returned. 
+        /// Adds a LIMIT &lt;int&gt; clause to the query in order to restrict it to put an upper bound on the number of solutions returned. 
         /// </summary>
         /// <param name="model">The number of return values.</param>
         internal void SetLimit(int limit)
@@ -329,7 +332,7 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Adds an Offset <int> clause to the query which causes the solutions generated to start after the specified number of solutions. 
+        /// Adds an Offset &lt;int&gt; clause to the query which causes the solutions generated to start after the specified number of solutions. 
         /// </summary>
         /// <param name="model">The number of return values.</param>
         internal void SetOffset(int offset)

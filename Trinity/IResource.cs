@@ -52,6 +52,9 @@ namespace Semiodesk.Trinity
         /// </summary>
         IModel Model { get; }
 
+        /// <summary>
+        /// Indicates that this resource is not writable, thus Commit() is illegal.
+        /// </summary>
         bool IsReadOnly { get; }
 
         #endregion

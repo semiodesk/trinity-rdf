@@ -32,14 +32,25 @@ using System.Text;
 
 namespace Semiodesk.Trinity
 {
+    /// <summary>
+    /// Represents a RDF class
+    /// </summary>
     public class Class : Resource
     {
         #region Constructors
-
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public Class(Uri uri) : base(uri) {}
 
+        /// <summary>
+        /// Constrctor
+        /// </summary>
         public Class(UriRef uri) : base(uri)  {}
 
+        /// <summary>
+        /// Constrctor
+        /// </summary>
         public Class(string uriString) : base(uriString) { }
 
         #endregion

@@ -50,7 +50,7 @@ namespace Semiodesk.Trinity.OntologyDeployment.Task
                 }
 
             }
-            catch (Exception e)
+            catch (Exception)
             {
 
             }

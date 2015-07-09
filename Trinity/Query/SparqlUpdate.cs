@@ -46,7 +46,14 @@ namespace Semiodesk.Trinity
         /// </summary>
         public string Update { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         public Resource Resource { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
         public IModel Model { get; set; }
         #endregion
 
@@ -71,6 +78,10 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             return Update;

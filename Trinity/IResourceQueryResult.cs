@@ -27,15 +27,35 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Semiodesk.Trinity
 {
+    /// <summary>
+    /// Interface for results of a resource query.
+    /// </summary>
     public interface IResourceQueryResult
     {
-         int Count();
-         IEnumerable<Resource> GetResources(int offset = -1, int limit = -1);
-         IEnumerable<T> GetResources<T>(int offset = -1, int limit = -1) where T : Resource;
+        /// <summary>
+        /// Number of results
+        /// </summary>
+        /// <returns></returns>
+        int Count();
+
+        /// <summary>
+        /// Enumerator of the resulting resources.
+        /// </summary>
+        /// <param name="offset"></param>
+        /// <param name="limit"></param>
+        /// <returns></returns>
+        IEnumerable<Resource> GetResources(int offset = -1, int limit = -1);
+
+        /// <summary>
+        /// Enumerator of the results bound to a certain type.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="offset"></param>
+        /// <param name="limit"></param>
+        /// <returns></returns>
+        IEnumerable<T> GetResources<T>(int offset = -1, int limit = -1) where T : Resource;
     }
 }

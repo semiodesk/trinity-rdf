@@ -29,6 +29,10 @@ using Semiodesk.Trinity.Collections;
 
 namespace Semiodesk.Trinity
 {
+    /// <summary>
+    /// A virtualizing collection of a resource query.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class VirtualizingResourceCollection<T> : VirtualizingCollection<T> where T : Resource
     {
         #region Constructors
@@ -36,9 +40,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Initializes a new instance of the <see cref="VirtualizingResourceCollection{T}"/> class.
         /// </summary>
-        /// <param name="pageSize">Size of the page.</param>
-        /// <param name="pageTimeout">The page timeout.</param>
-        public VirtualizingResourceCollection(IModel model, ResourceQuery query, int pageSize, int pageTimeout, bool inferenceEnabled = true) 
+        public VirtualizingResourceCollection(IModel model, ResourceQuery query, int pageSize, int pageTimeout, bool inferenceEnabled = true)
             : base(new ResourceQueryItemsProvider<T>(model, query, inferenceEnabled), pageSize, pageTimeout)
         {
         }
@@ -46,8 +48,6 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Initializes a new instance of the <see cref="VirtualizingResourceCollection{T}"/> class.
         /// </summary>
-        /// <param name="itemsProvider">The items provider.</param>
-        /// <param name="pageSize">Size of the page.</param>
         public VirtualizingResourceCollection(IModel model, ResourceQuery query, int pageSize, bool inferenceEnabled = true)
             : base(new ResourceQueryItemsProvider<T>(model, query, inferenceEnabled), pageSize)
         {
@@ -57,7 +57,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Initializes a new instance of the <see cref="VirtualizingResourceCollection{T}"/> class.
         /// </summary>
-        public VirtualizingResourceCollection(IModel model, ResourceQuery query, bool inferenceEnabled = false) 
+        public VirtualizingResourceCollection(IModel model, ResourceQuery query, bool inferenceEnabled = false)
             : base(new ResourceQueryItemsProvider<T>(model, query, inferenceEnabled))
         {
 
@@ -66,3 +66,4 @@ namespace Semiodesk.Trinity
         #endregion
     }
 }
+

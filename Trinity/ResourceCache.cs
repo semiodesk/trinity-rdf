@@ -155,6 +155,7 @@ namespace Semiodesk.Trinity
         /// Tests if the mapping has a certain cached values.
         /// </summary>
         /// <param name="mapping"></param>
+        /// <param name="uri"></param>
         /// <returns></returns>
         public bool HasCachedValues(IPropertyMapping mapping, Uri uri)
         {

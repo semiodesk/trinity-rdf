@@ -109,6 +109,9 @@ namespace Semiodesk.Trinity
         [Browsable(false)]
         public bool IsSynchronized { get; set; }
 
+        /// <summary>
+        /// Indicates this resource is read-only.
+        /// </summary>
         public bool IsReadOnly { get; internal set; }
 
         #endregion
@@ -130,11 +133,20 @@ namespace Semiodesk.Trinity
             Initialize(uri);
         }
 
+
+        /// <summary>
+        /// Create a new resource with a given Uri.
+        /// </summary>
+        /// <param name="uri"></param>
         public Resource(Uri uri)
         {
             Initialize(uri.ToUriRef());
         }
 
+        /// <summary>
+        /// Create a new resource with a given string. Throws an exception if string is Uri compatible.
+        /// </summary>
+        /// <param name="uriString">The string converted to a Uri. Throws an exception if not possible.</param>
         public Resource(string uriString)
         {
             Initialize(new UriRef(uriString));
@@ -979,6 +991,10 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Dispose this resource. 
+        /// Does nothing meaningful currently.
+        /// </summary>
         public void Dispose()
         {
             if (!IsDisposed)

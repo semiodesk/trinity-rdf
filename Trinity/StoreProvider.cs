@@ -32,16 +32,34 @@ using System.Text;
 
 namespace Semiodesk.Trinity
 {
+    /// <summary>
+    /// This is the abstract store provider class. Implement it if you want to write your own store provider.
+    /// </summary>
     public abstract class StoreProvider
     {
+        /// <summary>
+        /// The name of the store.
+        /// </summary>
         public string Name { get; protected set; }
+
+        /// <summary>
+        /// All valid configuration options
+        /// </summary>
         protected string[] ConfigurationOptions { get; set; }
 
+        /// <summary>
+        /// The constructor of the store provider
+        /// </summary>
         public StoreProvider()
         {
 
         }
 
+        /// <summary>
+        /// The GetStore method which will be called with the parsed configuration string.
+        /// </summary>
+        /// <param name="configurationDictionary"></param>
+        /// <returns></returns>
         public abstract IStore GetStore(Dictionary<string, string> configurationDictionary );
 
 
