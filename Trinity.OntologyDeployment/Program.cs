@@ -210,7 +210,7 @@ namespace Semiodesk.Trinity.OntologyDeployment
 
                 if (string.IsNullOrEmpty(_connectionString))
                 {
-                    Logger.LogWarning("No connection string given. Nothing to do!");
+                    Logger.LogMessage("No connection string given. Nothing to do!");
                     return true;
                 }
             }
