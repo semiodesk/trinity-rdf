@@ -26,29 +26,37 @@ namespace Semiodesk.Trinity.OntologyDeployment.Task
 
         public bool Execute()
         {
-
-            var logger = new TaskLogger(BuildEngine);
-            FileInfo projectFile = new FileInfo(ProjectPath);
-            FileInfo configFile = new FileInfo(Path.Combine(projectFile.DirectoryName, "app.config"));
-            if (!configFile.Exists)
-                configFile = new FileInfo(Path.Combine(projectFile.DirectoryName, "web.config"));
-
-            Program p = new Program(logger);
-            if (p.LoadConfigFile(configFile.FullName) )
+            try
             {
-                if (p.Initialized)
+
+                var logger = new TaskLogger(BuildEngine);
+                FileInfo projectFile = new FileInfo(ProjectPath);
+                FileInfo configFile = new FileInfo(Path.Combine(projectFile.DirectoryName, "app.config"));
+                if (!configFile.Exists)
+                    configFile = new FileInfo(Path.Combine(projectFile.DirectoryName, "web.config"));
+
+                Program p = new Program(logger);
+                if (p.LoadConfigFile(configFile.FullName))
                 {
-                    int res = p.Run();
-                    return res == 0;
+                    if (p.Initialized)
+                    {
+                        int res = p.Run();
+                        return res == 0;
+                    }
+                    else
+                    {
+                        return true;
+                    }
                 }
-                else
-                {
-                    return true;
-                }
+
+            }
+            catch (Exception e)
+            {
+
             }
             return false;
 
-            
+
         }
 
         public ITaskHost HostObject

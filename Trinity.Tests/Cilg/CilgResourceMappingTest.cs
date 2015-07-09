@@ -182,21 +182,21 @@ namespace Semiodesk.Trinity.Tests.Cilg
             m.Clear();
         }
 
-        /*
+        
         [Test]
         public void AddRemoveIntegerListTest()
         {
             IModel m = GetModel();
             m.Clear();
             Uri t1Uri = new Uri("semio:test:testInstance1");
-            MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
+            CilgMappingTestClass t1 = m.CreateResource<CilgMappingTestClass>(t1Uri);
             // Add value using the mapping interface
             int value = 2;
             t1.intTest.Add(value);
 
             t1.Commit();
 
-            MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
+            CilgMappingTestClass t_actual = m.GetResource<CilgMappingTestClass>(t1Uri);
 
             // Test if value was stored
             Assert.AreEqual(1, t_actual.intTest.Count());
@@ -215,7 +215,7 @@ namespace Semiodesk.Trinity.Tests.Cilg
             int value2 = -18583;
             t1.intTest.Add(value2);
             t1.Commit();
-            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+            t_actual = m.GetResource<CilgMappingTestClass>(t1Uri);
 
 
             // Test if value was stored
@@ -238,7 +238,7 @@ namespace Semiodesk.Trinity.Tests.Cilg
             // Remove value from mapped list
             t1.intTest.Remove(value2);
             t1.Commit();
-            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+            t_actual = m.GetResource<CilgMappingTestClass>(t1Uri);
 
             // Test if removed
             Assert.AreEqual(1, t_actual.intTest.Count());
@@ -253,7 +253,7 @@ namespace Semiodesk.Trinity.Tests.Cilg
 
             t1.intTest.Remove(value);
             t1.Commit();
-            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+            t_actual = m.GetResource<CilgMappingTestClass>(t1Uri);
 
             l = (List<Property>)t_actual.ListProperties();
             Assert.False(l.Contains(TestOntology.intTest));
@@ -263,7 +263,7 @@ namespace Semiodesk.Trinity.Tests.Cilg
 
             m.Clear();
         }
-
+        /*
         /// <summary>
         /// This Test fails because the datatype "unsigned int" is not stored correctly in the database. 
         /// To be more specific the xsd type is missing although it is given at the insert.

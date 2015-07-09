@@ -47,30 +47,36 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
         public bool Execute()
         {
-            
-            var logger = new TaskLogger(BuildEngine);
-            FileInfo projectFile = new FileInfo(ProjectPath);
-            FileInfo configFile = new FileInfo(Path.Combine(projectFile.DirectoryName, "App.config"));
-            if( !configFile.Exists )
-                configFile = new FileInfo(Path.Combine(projectFile.DirectoryName, "Web.config"));
-
-            Program p = new Program(logger);
-            p.LoadConfigFile(configFile.FullName);
-            if (string.IsNullOrEmpty(IntermediatePath))
+            try
             {
-                IntermediatePath = projectFile.Directory.FullName;
+                var logger = new TaskLogger(BuildEngine);
+                FileInfo projectFile = new FileInfo(ProjectPath);
+                FileInfo configFile = new FileInfo(Path.Combine(projectFile.DirectoryName, "App.config"));
+                if (!configFile.Exists)
+                    configFile = new FileInfo(Path.Combine(projectFile.DirectoryName, "Web.config"));
+
+                Program p = new Program(logger);
+                p.LoadConfigFile(configFile.FullName);
+                if (string.IsNullOrEmpty(IntermediatePath))
+                {
+                    IntermediatePath = projectFile.Directory.FullName;
+                }
+                else
+                {
+                    IntermediatePath = Path.Combine(projectFile.DirectoryName, IntermediatePath);
+                }
+                string targetFile = Path.Combine(IntermediatePath, "Ontologies.g.cs");
+                p.SetGenerate(targetFile);
+                var res = p.Run();
+
+                OutputFiles = new TaskItem[] { new TaskItem(targetFile) };
+
+                return 0 == res;
             }
-            else
+            catch (Exception e)
             {
-                IntermediatePath = Path.Combine(projectFile.DirectoryName, IntermediatePath);
+                return false;
             }
-            string targetFile = Path.Combine(IntermediatePath, "Ontologies.g.cs");
-            p.SetGenerate(targetFile);
-            var res = p.Run();
-
-            OutputFiles = new TaskItem[] { new TaskItem(targetFile) };
-
-            return 0 == res;
         }
 
         public ITaskHost HostObject
