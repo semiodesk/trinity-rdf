@@ -6,8 +6,14 @@ using System.Text;
 
 namespace Semiodesk.Trinity.Configuration
 {
+    /// <summary>
+    /// A graph element in the configuration.
+    /// </summary>
     public class Graph : ConfigurationElement
     {
+        /// <summary>
+        /// The Uri of the graph element
+        /// </summary>
         [ConfigurationProperty("Uri", IsRequired = true)]
         public string Uri
         {

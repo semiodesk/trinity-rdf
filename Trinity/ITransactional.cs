@@ -32,6 +32,9 @@ using System.Text;
 
 namespace Semiodesk.Trinity
 {
+    /// <summary>
+    /// Interface for a transactional object
+    /// </summary>
     public interface ITransactional
     {
         #region Methods

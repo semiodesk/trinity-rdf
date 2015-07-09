@@ -34,10 +34,16 @@ using System.Text.RegularExpressions;
 
 namespace Semiodesk.Trinity
 {
+    /// <summary>
+    /// Allows for easier namespace management for queries.
+    /// </summary>
     public class NamespaceManager : XmlNamespaceManager
     {
         #region Constructors
 
+        /// <summary>
+        /// Constructor, by default creates the namespaces for RDF and RDFS.
+        /// </summary>
         public NamespaceManager()
             : base(new NameTable())
         {
@@ -49,11 +55,20 @@ namespace Semiodesk.Trinity
 
         #region Methods
 
+        /// <summary>
+        /// Add a namespace to the manager.
+        /// </summary>
+        /// <param name="prefix"></param>
+        /// <param name="namespaceUri"></param>
         public void AddNamespace(string prefix, Uri namespaceUri)
         {
             AddNamespace(prefix, namespaceUri.OriginalString);
         }
 
+        /// <summary>
+        /// Remove a namespace from the manager.
+        /// </summary>
+        /// <param name="prefix"></param>
         public void RemoveNamespace(string prefix)
         {
             RemoveNamespace(prefix);

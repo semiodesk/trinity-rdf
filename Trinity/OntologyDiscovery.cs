@@ -41,7 +41,14 @@ namespace Semiodesk.Trinity
     {
         #region Fields
 
+        /// <summary>
+        /// All found RDF properties
+        /// </summary>
         public static Dictionary<string, Property> Properties = new Dictionary<string, Property>();
+
+        /// <summary>
+        /// All found RDF classes
+        /// </summary>
         public static Dictionary<string, Class> Classes = new Dictionary<string, Class>();
 
         #endregion
@@ -84,6 +91,10 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Register an assembly to search for RDF ontologies.
+        /// </summary>
+        /// <param name="asm"></param>
         public static void AddAssembly(Assembly asm)
         {
             AddOntologies(GetInstances<Ontology>(asm));
@@ -96,6 +107,11 @@ namespace Semiodesk.Trinity
                     select (T)Activator.CreateInstance(t)).ToList();
         }
 
+        /// <summary>
+        /// Returns a a property with the given Uri. Creates a new one if it doesn't exist.
+        /// </summary>
+        /// <param name="u"></param>
+        /// <returns></returns>
         public static Property GetProperty(Uri u)
         {
             if (Properties.ContainsKey(u.OriginalString))
@@ -103,6 +119,11 @@ namespace Semiodesk.Trinity
             return new Property(u);
         }
 
+        /// <summary>
+        /// Returns a a property with the given string. Creates a new one if it doesn't exist.
+        /// </summary>
+        /// <param name="u"></param>
+        /// <returns></returns>
         public static Property GetProperty(string u)
         {
             if (Properties.ContainsKey(u))

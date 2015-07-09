@@ -35,9 +35,14 @@ using System.Xml.Serialization;
 
 namespace Semiodesk.Trinity.Configuration
 {
-
+    /// <summary>
+    /// A file source of a element
+    /// </summary>
     public class FileSource : ConfigurationElement
     {
+        /// <summary>
+        /// The location of this file source
+        /// </summary>
         [ConfigurationProperty("Location", IsRequired=true)]
         public string Location
         {

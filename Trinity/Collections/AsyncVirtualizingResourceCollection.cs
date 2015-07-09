@@ -32,7 +32,11 @@ using System.Text;
 
 namespace Semiodesk.Trinity.Collections
 {
-    #if !NET_3_5
+#if !NET_3_5
+    /// <summary>
+    /// An generic asynchrous virtualizing collection for resource queries.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class AsyncVirtualizingResourceCollection<T> : AsyncVirtualizingCollection<T> where T : Resource
     {
         #region Constructors
@@ -40,18 +44,24 @@ namespace Semiodesk.Trinity.Collections
         /// <summary>
         /// Initializes a new instance of the <see cref="AsyncVirtualizingSparqlCollection{T}"/> class.
         /// </summary>
-        /// <param name="pageSize">Size of the page.</param>
-        /// <param name="pageTimeout">The page timeout.</param>
-        public AsyncVirtualizingResourceCollection(IModel model, ResourceQuery query, int pageSize, int pageTimeout, bool inferenceEnabled = true) 
+        /// <param name="model"></param>
+        /// <param name="query"></param>
+        /// <param name="pageSize"></param>
+        /// <param name="pageTimeout"></param>
+        /// <param name="inferenceEnabled"></param>
+        public AsyncVirtualizingResourceCollection(IModel model, ResourceQuery query, int pageSize, int pageTimeout, bool inferenceEnabled = true)
             : base(new ResourceQueryItemsProvider<T>(model, query, inferenceEnabled), pageSize, pageTimeout)
         {
         }
 
+
         /// <summary>
         /// Initializes a new instance of the <see cref="AsyncVirtualizingSparqlCollection{T}"/> class.
         /// </summary>
-        /// <param name="itemsProvider">The items provider.</param>
-        /// <param name="pageSize">Size of the page.</param>
+        /// <param name="model"></param>
+        /// <param name="query"></param>
+        /// <param name="pageSize"></param>
+        /// <param name="inferenceEnabled"></param>
         public AsyncVirtualizingResourceCollection(IModel model, ResourceQuery query, int pageSize, bool inferenceEnabled = true)
             : base(new ResourceQueryItemsProvider<T>(model, query, inferenceEnabled), pageSize)
         {

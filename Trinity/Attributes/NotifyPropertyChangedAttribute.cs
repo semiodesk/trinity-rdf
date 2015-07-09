@@ -29,6 +29,9 @@ using System;
 
 namespace Semiodesk.Trinity
 {
+    /// <summary>
+    /// Marks the property as NotifyingProperty.
+    /// </summary>
   [AttributeUsage(AttributeTargets.Property)]
   public class NotifyPropertyChangedAttribute : Attribute { }
 }

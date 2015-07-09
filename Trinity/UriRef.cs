@@ -87,6 +87,10 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Override of GetHashCode which factors the fragment in. 
+        /// </summary>
+        /// <returns></returns>
         public override int GetHashCode()
         {
             return base.GetHashCode() & Fragment.GetHashCode();
@@ -103,6 +107,9 @@ namespace Semiodesk.Trinity
         #endregion
     }
 
+    /// <summary>
+    /// Collection of string extension related to Uris
+    /// </summary>
     public static class StringExtensions
     {
         /// <summary>
@@ -125,6 +132,9 @@ namespace Semiodesk.Trinity
         }
     }
 
+    /// <summary>
+    /// Extension of Uri class concering UriRef handling.
+    /// </summary>
     public static class UriExtensions
     {
         /// <summary>
@@ -138,8 +148,16 @@ namespace Semiodesk.Trinity
         }
     }
 
+    /// <summary>
+    /// Extension to FileSystemInfo concerting UriRef handling
+    /// </summary>
     public static class FileSystemInfoExtensions
     {
+        /// <summary>
+        /// Create a UriRef from a FileSystemInfo
+        /// </summary>
+        /// <param name="fileInfo"></param>
+        /// <returns></returns>
         public static UriRef ToUriRef(this FileSystemInfo fileInfo)
         {
             return new UriRef(new Uri(fileInfo.FullName).AbsoluteUri);

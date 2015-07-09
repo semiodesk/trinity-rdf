@@ -41,14 +41,15 @@ namespace Semiodesk.Trinity
     {
         #region Properties
 
+        /// <summary>
+        /// Uri of this model.
+        /// </summary>
         UriRef Uri { get; }
 
-        bool IsEmpty { get; }
-
         /// <summary>
-        /// Set this to true if the refresh function of resources should be called automatically if it has been changed in another application.
+        /// True if the model is empty.
         /// </summary>
-        bool RefreshChangedResources { get; set; }
+        bool IsEmpty { get; }
 
         #endregion
 
@@ -66,7 +67,7 @@ namespace Semiodesk.Trinity
         /// Adds an existing resource to the model and its backing RDF store. The resulting resource supports the use of the Commit() method.
         /// </summary>
         /// <param name="resource">The resource to be added to the model.</param>
-        /// <param name="transaction">Transaction associated with the action.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>The resource which is now connected to the current model.</returns>
         T AddResource<T>(T resource, ITransaction transaction = null) where T : Resource;
 
@@ -74,6 +75,7 @@ namespace Semiodesk.Trinity
         /// Creates a new resource in the model and its backing RDF store.
         /// </summary>
         /// <param name="format">The format string from which a globally unique identifier URI should be generated from.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <returns>The newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
@@ -83,6 +85,7 @@ namespace Semiodesk.Trinity
         /// Creates a new resource in the model and its backing RDF store.
         /// </summary>
         /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>The newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
         IResource CreateResource(Uri uri, ITransaction transaction = null);
@@ -92,6 +95,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <typeparam name="T">Type of the resource object. Must be derived from Resource.</typeparam>
         /// <param name="format">The format string from which a globally unique identifier URI should be generated from.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
         T CreateResource<T>(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null) where T : Resource;
@@ -101,6 +105,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <typeparam name="T">Type of the resource object. Must be derived from Resource.</typeparam>
         /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
         T CreateResource<T>(Uri uri, ITransaction transaction = null) where T : Resource;
@@ -108,8 +113,8 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Creates a new resource in the model and its backing RDF store. Provides a resource object of the given type.
         /// </summary>
-        /// <typeparam name="t">Type of the resource object. Must be derived from Resource.</typeparam>
         /// <param name="format">The format of the resulting uri.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
         object CreateResource(Type t, string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null);
@@ -120,6 +125,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="uri">A Uniform Resource Identifier.</param>
         /// <param name="t">Type of the resource object. Must be derived from Resource. </param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <exception cref="Exception">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
         object CreateResource(Uri uri, Type t, ITransaction transaction = null);
@@ -136,12 +142,14 @@ namespace Semiodesk.Trinity
         /// that the given resource and its stored represenation have identical properties.
         /// </summary>
         /// <param name="resource">Resource that is to be removed from the model.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         void DeleteResource(IResource resource, ITransaction transaction = null);
 
         /// <summary>
         /// Indicates wheter a given resource is part of the model.
         /// </summary>
         /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>True if the resource is part of the model, False if not.</returns>
         bool ContainsResource(Uri uri, ITransaction transaction = null);
 
@@ -156,6 +164,8 @@ namespace Semiodesk.Trinity
         /// Execute a SPARQL query against the model.
         /// </summary>
         /// <param name="query">A SparqlQuery object.</param>
+        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>A SPARQL query result object.</returns>
         ISparqlQueryResult ExecuteQuery(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
 
@@ -163,19 +173,23 @@ namespace Semiodesk.Trinity
         /// Execute a ResourceQuery against the model.
         /// </summary>
         /// <param name="query">A ResourceQuery object.</param>
+        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
+        /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>A SPARQL query result object.</returns>
         IResourceQueryResult ExecuteQuery(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
 
         /// <summary>
         /// Execute a SparqlUpdate against the model.
         /// </summary>
-        /// <param name="query">A sparql update object.</param>
+        /// <param name="update">A sparql update object.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         void ExecuteUpdate(SparqlUpdate update, ITransaction transaction = null);
 
         /// <summary>
         /// Retrieves a resource from the model.
         /// </summary>
         /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>A resource with all asserted properties.</returns>
         IResource GetResource(Uri uri, ITransaction transaction = null);
 
@@ -183,6 +197,7 @@ namespace Semiodesk.Trinity
         /// Retrieves a resource from the model. Provides a resource object of the given type.
         /// </summary>
         /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>A resource with all asserted properties.</returns>
         T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource;
 
@@ -190,43 +205,61 @@ namespace Semiodesk.Trinity
         /// Retrieves a resource from the model. Provides a resource object of the given type.
         /// </summary>
         /// <param name="uri">A Uniform Resource Identifier.</param>
-        /// <param name="t">The type the resource should have.</param>
+        /// <param name="type">The type the resource should have.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>A resource with all asserted properties.</returns>
         object GetResource(Uri uri, Type type, ITransaction transaction = null);
 
         /// <summary>
         /// Executes a SPARQL query and provides an enumeration of matching resources.
         /// </summary>
+        /// <param name="query">A SparqlQuery object.</param>
+        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
+        /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
         IEnumerable<Resource> GetResources(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
 
         /// <summary>
         /// Executes a resource query and provides an enumeration of matching resources.
         /// </summary>
+        /// <param name="query">A ResourceQuery object.</param>
+        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
+        /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
         IEnumerable<Resource> GetResources(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
 
         /// <summary>
         /// Executes a SPARQL query and provides an enumeration of matching resources.
         /// </summary>
+        /// <param name="query">A SparqlQuery object.</param>
+        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
+        /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
         IEnumerable<T> GetResources<T>(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource;
 
         /// <summary>
         /// Executes a resource query and provides an enumeration of matching resources.
         /// </summary>
+        /// <param name="query">A ResourceQuery object.</param>
+        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
+        /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
         IEnumerable<T> GetResources<T>(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource;
 
         /// <summary>
         /// Returns a enumeration of all resources that match the given type.
         /// </summary>
+        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
+        /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
         IEnumerable<T> GetResources<T>(bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource;
-        
+
         /// <summary>
         /// Executes a SPARQL query and provides an enumeration of matching resources.
         /// </summary>
+        /// <param name="query">A SparqlQuery object.</param>
+        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
+        /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
         IEnumerable<BindingSet> GetBindings(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
 
@@ -235,12 +268,14 @@ namespace Semiodesk.Trinity
         /// importing files and other models stored in the local RDF store. 
         /// </summary>
         /// <param name="url">A uniform resource locator.</param>
+        /// <param name="format">The serialization format.</param>
         /// <returns>True if the contents of the model were imported, False if not.</returns>
         bool Read(Uri url, RdfSerializationFormat format);
 
         /// <summary>
         /// Serializes the contents of the model and provides a memory stream.
         /// </summary>
+        /// <param name="fs">The file stream to write to.</param>
         /// <param name="format">The serialization format.</param>
         /// <returns>A serialization of the models contents.</returns>
         void Write(Stream fs, RdfSerializationFormat format);
@@ -271,7 +306,29 @@ namespace Semiodesk.Trinity
     /// <summary>
     /// Enumerates all supported RDF serialization formats.
     /// </summary>
-    public enum RdfSerializationFormat { RdfXml, N3, NTriples, Trig, Turtle };
-
+    
+    public enum RdfSerializationFormat 
+    { 
+        /// <summary>
+        /// RDF/XML <see href="http://www.w3.org/TR/REC-rdf-syntax/">http://www.w3.org/TR/REC-rdf-syntax/</see>
+        /// </summary>
+        RdfXml,
+        /// <summary>
+        /// N3 <see href="http://www.w3.org/TeamSubmission/n3/">http://www.w3.org/TeamSubmission/n3/</see>
+        /// </summary>
+        N3, 
+        /// <summary>
+        /// NTriples <see href="http://www.w3.org/2001/sw/RDFCore/ntriples/">http://www.w3.org/2001/sw/RDFCore/ntriples/</see>
+        /// </summary>
+        NTriples, 
+        /// <summary>
+        /// TriG <see href="http://www.w3.org/TR/trig/">http://www.w3.org/TR/trig/</see>
+        /// </summary>
+        Trig,
+        /// <summary>
+        /// Turtle <see href="http://www.w3.org/TR/turtle/">http://www.w3.org/TR/turtle/</see>
+        /// </summary>
+        Turtle
+    };
 
 }

@@ -180,8 +180,18 @@ namespace Semiodesk.Trinity
 
         #region Serialization
 
+        /// <summary>
+        /// The object serialization delegate
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public delegate string ObjectSerializationDelegate(object obj);
 
+        /// <summary>
+        /// Serializes an object to an XML Schema encoded string.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeObject(object obj)
         {
             Type type = obj.GetType();
@@ -201,11 +211,22 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Serializes an object forcd to a given type to an XML Schema encoded string.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
         public static string SerializeObject(object obj, Type type)
         {
             return Serializers[type](obj);
         }
 
+        /// <summary>
+        /// Serialize an IResource
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeIResource(object obj)
         {
             IResource resource = obj as IResource;
@@ -221,6 +242,11 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Serialize an Uri
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeUri(object obj)
         {
             Uri uri = obj as Uri;
@@ -235,11 +261,21 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Serialize a string
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeString(object obj)
         {
             return "\"" + obj.ToString() + "\"";
         }
 
+        /// <summary>
+        /// Serialize an array of strings
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeStringArray(object obj)
         {
             string[] array = obj as string[];
@@ -254,6 +290,11 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Serialize a tuple consisting of a string and its associated culture
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeStringCultureInfoTuple(object obj)
         {
             Tuple<string, CultureInfo> tuple = obj as Tuple<string, CultureInfo>;
@@ -268,11 +309,21 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Serialize a DateTime
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeDateTime(object obj)
         {
             return XmlConvert.ToString((DateTime)obj, XmlDateTimeSerializationMode.Utc).ToString();
         }
 
+        /// <summary>
+        /// Serialize a byte array
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeByteArray(object obj)
         {
             byte[] array = obj as byte[];
@@ -287,51 +338,101 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Serialize a bool
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeBool(object obj)
         {
             return XmlConvert.ToString((bool)obj).ToString();
         }
 
+        /// <summary>
+        /// Serialize an Int16
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeInt16(object obj)
         {
             return XmlConvert.ToString((Int16)obj).ToString();
         }
 
+        /// <summary>
+        /// Serialize an Int32
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeInt32(object obj)
         {
             return XmlConvert.ToString((Int32)obj).ToString();
         }
 
+        /// <summary>
+        /// Serialize an Int64
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeInt64(object obj)
         {
             return XmlConvert.ToString((Int64)obj).ToString();
         }
 
+        /// <summary>
+        /// Serialize an Uint16
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeUInt16(object obj)
         {
             return XmlConvert.ToString((UInt16)obj).ToString();
         }
 
+        /// <summary>
+        /// Serialize an Uint32
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeUInt32(object obj)
         {
             return XmlConvert.ToString((UInt32)obj).ToString();
         }
 
+        /// <summary>
+        /// Serialize an Uint64
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeUInt64(object obj)
         {
             return XmlConvert.ToString((UInt64)obj).ToString();
         }
 
+        /// <summary>
+        /// Serialize a decimal
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeDecimal(object obj)
         {
             return XmlConvert.ToString((Decimal)obj).ToString();
         }
 
+        /// <summary>
+        /// Serialize a double
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeDouble(object obj)
         {
             return XmlConvert.ToString((double)obj).ToString();
         }
 
+        /// <summary>
+        /// Serialize a float
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static string SerializeSingle(object obj)
         {
             return XmlConvert.ToString((float)obj).ToString();

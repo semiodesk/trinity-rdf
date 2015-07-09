@@ -71,7 +71,9 @@ namespace Semiodesk.Trinity.Store
         /// Internal constructor which parses the results returned from a given query.
         /// </summary>
         /// <param name="query">The executed query.</param>
-        /// <param name="queryResults">The data table returned from the Virtuoso database.</param>
+        /// <param name="store"></param>
+        /// <param name="transaction"></param>
+        /// <param name="model"></param>
         internal VirtuosoSparqlQueryResult(IModel model, SparqlQuery query, VirtuosoStore store, ITransaction transaction=null)
         {
             _store = store;
@@ -325,6 +327,8 @@ namespace Semiodesk.Trinity.Store
         /// <param name="subjectColumn"></param>
         /// <param name="preducateColumn"></param>
         /// <param name="objectColumn"></param>
+        /// <param name="queryResults"></param>
+        /// <param name="inferencingEnabled"></param>
         /// <returns></returns>
         private Dictionary<string, T> FindResourceTypes<T>(DataTable queryResults, string subjectColumn, string preducateColumn, string objectColumn, bool inferencingEnabled = false) where T : Resource
         {

@@ -40,14 +40,33 @@ namespace Semiodesk.Trinity
     public static class MappingDiscovery
     {
         #region MappingClass Definition
-
+        /// <summary>
+        /// A class containing information about a RDF class mapped to c#.
+        /// </summary>
         public class MappingClass
         {
             private static Class ResourceClass = new Class(new UriRef("http://www.w3.org/2000/01/rdf-schema#Class"));
+
+            /// <summary>
+            /// The c# type of the class.
+            /// </summary>
             public readonly Type MappingClassType;
+
+            /// <summary>
+            /// The RDF classes that are mapped to this class
+            /// </summary>
             public readonly List<Class> RdfClasses = new List<Class>();
+
+            /// <summary>
+            /// A list of inferenced RDF classes mapped to this class. Currently not used.
+            /// </summary>
             public readonly List<Class> InferencedRdfClasses = new List<Class>();
 
+            /// <summary>
+            /// Constructor to create a new MappingClass
+            /// </summary>
+            /// <param name="mappingClassType">The c# type</param>
+            /// <param name="rdfClasses">The</param>
             public MappingClass(Type mappingClassType, IEnumerable<Class> rdfClasses)
             {
                 MappingClassType = mappingClassType;
@@ -59,11 +78,15 @@ namespace Semiodesk.Trinity
 
         #region Fields
 
+        /// <summary>
+        /// The list of all registered assemblies
+        /// </summary>
         public static List<string> RegisteredAssemblies = new List<string>();
 
+        /// <summary>
+        /// The list of all registered mapped classes.
+        /// </summary>
         public static List<MappingClass> MappingClasses = new List<MappingClass>();
-
-        //public static Dictionary<Type, Dictionary<string, Property>> MappedProperties = new Dictionary<Type, Dictionary<string, Property>>();
 
         #endregion
 
@@ -79,6 +102,10 @@ namespace Semiodesk.Trinity
 
         #region Methods
 
+        /// <summary>
+        /// Adds a collection of mapped classes to the registration.
+        /// </summary>
+        /// <param name="list"></param>
         public static void AddMappingClasses(IList<Type> list)
         {
             foreach (Type o in list)
@@ -87,6 +114,10 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Adds a mapped class to the registration.
+        /// </summary>
+        /// <param name="_class"></param>
         public static void AddMappingClass(Type _class)
         {
             try
@@ -105,6 +136,9 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Loads all mapped classes from the assembly calling this method.
+        /// </summary>
         public static void RegisterCallingAssembly()
         {
             Assembly asm = Assembly.GetCallingAssembly();
@@ -117,6 +151,7 @@ namespace Semiodesk.Trinity
 
         /// <summary>
         /// Register ALL THE THINGS!!
+        /// from all assemblies currently loaded.
         /// </summary>
         public static void RegisterAllCurrentAssemblies()
         {
@@ -127,6 +162,10 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Load all mapped classes from the given assembly.
+        /// </summary>
+        /// <param name="asm"></param>
         public static void RegisterAssembly(Assembly asm)
         {
             RegisteredAssemblies.Add(asm.GetName().FullName);
@@ -148,6 +187,12 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Returns all types which match the given restrictions.
+        /// </summary>
+        /// <param name="classes">List of RDF classes</param>
+        /// <param name="type">A c# type in a inheritence tree. Give Resource if you don't know what to do.</param>
+        /// <param name="inferencingEnabled">Should inferencing be factored in.</param>
         public static IList<Type> GetMatchingTypes(IList<Class> classes, Type type, bool inferencingEnabled = false)
         {
             if( !inferencingEnabled )
@@ -160,6 +205,11 @@ namespace Semiodesk.Trinity
                                      select t.MappingClassType).ToList();
         }
 
+        /// <summary>
+        /// The the RDF class of a C# type.
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
         public static IList<Class> GetRdfClasses(Type type)
         {
             return (from t in MappingClasses where t.MappingClassType == type select t.RdfClasses).First();

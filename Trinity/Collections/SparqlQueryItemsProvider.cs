@@ -30,6 +30,10 @@ using Semiodesk.Trinity.Collections;
 
 namespace Semiodesk.Trinity
 {
+    /// <summary>
+    /// The item provider for sparql queries.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class SparqlQueryItemsProvider<T> : IItemsProvider<T> where T : Resource
     {
         #region Members
@@ -38,7 +42,12 @@ namespace Semiodesk.Trinity
         #endregion
 
         #region Constructor
-
+        /// <summary>
+        /// Constructor for the SparqlQueryItemsProvider.
+        /// </summary>
+        /// <param name="model">The model on which the query should be executed.</param>
+        /// <param name="query">The query that should be executed.</param>
+        /// <param name="inferenceEnabled">Modifier if inferncing should be enabled. Default is true</param>
         public SparqlQueryItemsProvider(IModel model, SparqlQuery query, bool inferenceEnabled = true)
         {
             _queryResult = model.ExecuteQuery(query, inferenceEnabled);
@@ -48,11 +57,21 @@ namespace Semiodesk.Trinity
 
         #region IItemsProvider Members
 
+        /// <summary>
+        /// Number of elements in the result.
+        /// </summary>
+        /// <returns></returns>
         public int Count()
         {
             return _queryResult.Count();
         }
 
+        /// <summary>
+        /// Enumerator of the items. Should be narrowed with offset and limit.
+        /// </summary>
+        /// <param name="offset">Offset of the element where to start.</param>
+        /// <param name="limit">Number of elements.</param>
+        /// <returns></returns>
         public IEnumerable<T> GetItems(int offset, int limit)
         {
             return _queryResult.GetResources<T>(offset, limit);

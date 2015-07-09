@@ -30,9 +30,10 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Threading;
 
+
 namespace Semiodesk.Trinity.Collections
 {
-    #if !NET_3_5
+#if !NET_3_5
     /// <summary>
     /// Derived VirtualizatingCollection, performing loading asychronously.
     /// </summary>
@@ -190,6 +191,9 @@ namespace Semiodesk.Trinity.Collections
 
         #region Events
 
+        /// <summary>
+        /// The event that gets notified if the collection gets changed.
+        /// </summary>
         public event NotifyCollectionChangedEventHandler CollectionChanged;
 
         private void RaiseCollectionReset()
@@ -200,6 +204,9 @@ namespace Semiodesk.Trinity.Collections
             }
         }
 
+        /// <summary>
+        /// The event that gets notified if a property has changed.
+        /// </summary>
         public event PropertyChangedEventHandler PropertyChanged;
 
         private void RaisePropertyChanged(string propertyName)
@@ -212,5 +219,5 @@ namespace Semiodesk.Trinity.Collections
 
         #endregion
     }
-    #endif
+#endif
 }

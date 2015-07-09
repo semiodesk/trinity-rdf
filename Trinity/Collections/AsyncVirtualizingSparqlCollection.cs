@@ -32,7 +32,11 @@ using System.Text;
 
 namespace Semiodesk.Trinity.Collections
 {
-    #if !NET_3_5
+#if !NET_3_5
+    /// <summary>
+    /// An generic asynchrous virtualizing collection for sparql queries.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class AsyncVirtualizingSparqlCollection<T> : AsyncVirtualizingCollection<T> where T : Resource
     {
         #region Constructors
@@ -40,9 +44,7 @@ namespace Semiodesk.Trinity.Collections
         /// <summary>
         /// Initializes a new instance of the <see cref="AsyncVirtualizingSparqlCollection{T}"/> class.
         /// </summary>
-        /// <param name="pageSize">Size of the page.</param>
-        /// <param name="pageTimeout">The page timeout.</param>
-        public AsyncVirtualizingSparqlCollection(IModel model, SparqlQuery query, int pageSize, int pageTimeout, bool inferenceEnabled = true) 
+        public AsyncVirtualizingSparqlCollection(IModel model, SparqlQuery query, int pageSize, int pageTimeout, bool inferenceEnabled = true)
             : base(new SparqlQueryItemsProvider<T>(model, query, inferenceEnabled), pageSize, pageTimeout)
         {
         }
@@ -50,8 +52,6 @@ namespace Semiodesk.Trinity.Collections
         /// <summary>
         /// Initializes a new instance of the <see cref="AsyncVirtualizingSparqlCollection{T}"/> class.
         /// </summary>
-        /// <param name="itemsProvider">The items provider.</param>
-        /// <param name="pageSize">Size of the page.</param>
         public AsyncVirtualizingSparqlCollection(IModel model, SparqlQuery query, int pageSize, bool inferenceEnabled = true)
             : base(new SparqlQueryItemsProvider<T>(model, query, inferenceEnabled), pageSize)
         {
@@ -60,12 +60,12 @@ namespace Semiodesk.Trinity.Collections
         /// <summary>
         /// Initializes a new instance of the <see cref="AsyncVirtualizingSparqlCollection{T}"/> class.
         /// </summary>
-        public AsyncVirtualizingSparqlCollection(IModel model, SparqlQuery query, bool inferenceEnabled = false) 
+        public AsyncVirtualizingSparqlCollection(IModel model, SparqlQuery query, bool inferenceEnabled = false)
             : base(new SparqlQueryItemsProvider<T>(model, query, inferenceEnabled))
         {
         }
 
         #endregion
     }
-    #endif
+#endif
 }

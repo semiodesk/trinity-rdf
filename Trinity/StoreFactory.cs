@@ -27,7 +27,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -56,6 +55,11 @@ namespace Semiodesk.Trinity
 
         #region Factory Methods
 
+        /// <summary>
+        /// Tests if the given connection string is valid.
+        /// </summary>
+        /// <param name="connectionString"></param>
+        /// <returns></returns>
         public static bool TestConnectionString(string connectionString)
         {
             bool res = false;
@@ -75,6 +79,11 @@ namespace Semiodesk.Trinity
             return r.Matches(configurationString).Cast<Match>().ToDictionary(match => match.Groups["name"].Value, match => match.Groups["value"].Value);
         }
 
+        /// <summary>
+        /// Creates a store from the given connection string.
+        /// </summary>
+        /// <param name="connectionString"></param>
+        /// <returns></returns>
         public static IStore CreateStore(string connectionString)
         {
             var config = ParseConfiguration(connectionString);
@@ -90,6 +99,11 @@ namespace Semiodesk.Trinity
             return null;
         }
 
+        /// <summary>
+        /// Tries to read a connection string with the given name from the configuration. If no name was given, the first compatible connection string is used.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public static IStore CreateStoreFromConfiguration(string name = null)
         {
             foreach( ConnectionStringSettings setting in ConfigurationManager.ConnectionStrings)
@@ -104,6 +118,11 @@ namespace Semiodesk.Trinity
             return null;
         }
 
+        /// <summary>
+        /// Tries to load a store provider from the given assembly.
+        /// </summary>
+        /// <param name="assemblyPath"></param>
+        /// <returns></returns>
         public static bool LoadProvider(string assemblyPath)
         {
             bool result = false;
@@ -142,6 +161,11 @@ namespace Semiodesk.Trinity
             return result;
         }
 
+        /// <summary>
+        /// Tries to load a store provider from the given assembly.
+        /// </summary>
+        /// <param name="assembly"></param>
+        /// <returns></returns>
         public static bool LoadProvider(FileInfo assembly)
         {
             return LoadProvider(assembly.FullName);
