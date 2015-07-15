@@ -12,13 +12,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.OntologyGenerator",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.CilGenerator", "..\Trinity.CilGenerator\net35\Trinity.CilGenerator.csproj", "{146FE869-CCA9-4B39-8FBE-58FD6515AFF9}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{9B7710A6-4496-44AC-BDCA-30475A0EFA20}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.exe = .nuget\NuGet.exe
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.OntologyDeployment", "..\Trinity.OntologyDeployment\Net35\Trinity.OntologyDeployment.csproj", "{FDDBA220-DB73-4FC9-B95F-D69593C89EBD}"
 EndProject
 Global
