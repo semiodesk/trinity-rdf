@@ -141,12 +141,6 @@
     <Compile Include="UriRefTest.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Trinity\Trinity.csproj">
-      <Project>{0D10D2AD-CA61-46E3-88C8-0AB8318647BA}</Project>
-      <Name>Trinity</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Models\test-vocab.rdf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -167,6 +161,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Trinity\Trinity.csproj">
+      <Project>{0d10d2ad-ca61-46e3-88c8-0ab8318647ba}</Project>
+      <Name>Trinity</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

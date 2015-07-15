@@ -32,7 +32,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Mono.Options;
 using Semiodesk.Trinity.Configuration;
@@ -199,7 +198,7 @@ namespace Semiodesk.Trinity.OntologyDeployment
                 if( string.IsNullOrEmpty(_connectionString ))
                 {
                     // It was not, so we set it from the configuration
-                    var conStrings = _config.CurrentConfiguration.ConnectionStrings.ConnectionStrings;
+                    var conStrings = _configuration.ConnectionStrings.ConnectionStrings;
                     foreach( ConnectionStringSettings setting in conStrings)
                     {
                         string conString = setting.ConnectionString;

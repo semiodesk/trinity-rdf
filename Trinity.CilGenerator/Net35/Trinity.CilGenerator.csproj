@@ -8,7 +8,7 @@
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Semiodesk.Trinity.CilGenerator</RootNamespace>
-    <AssemblyName>cilg35</AssemblyName>
+    <AssemblyName>cilg</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
@@ -24,8 +24,8 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\Build\Net35\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <OutputPath>..\..\Build\Net35\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;NET_3_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -33,29 +33,33 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>..\Build\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <OutputPath>..\..\Build\Net35\Release\</OutputPath>
+    <DefineConstants>TRACE;NET_3_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Build.Framework" />
     <Reference Include="Microsoft.Build.Utilities.v3.5" />
-    <Reference Include="Mono.Cecil">
-      <HintPath>..\packages\Mono.Cecil.0.9.6.1\lib\net35\Mono.Cecil.dll</HintPath>
+    <Reference Include="Mono.Cecil, Version=0.9.6.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Net35\packages\Mono.Cecil.0.9.6.1\lib\net35\Mono.Cecil.dll</HintPath>
     </Reference>
-    <Reference Include="Mono.Cecil.Mdb">
-      <HintPath>..\packages\Mono.Cecil.0.9.6.1\lib\net35\Mono.Cecil.Mdb.dll</HintPath>
+    <Reference Include="Mono.Cecil.Mdb, Version=0.9.6.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Net35\packages\Mono.Cecil.0.9.6.1\lib\net35\Mono.Cecil.Mdb.dll</HintPath>
     </Reference>
-    <Reference Include="Mono.Cecil.Pdb">
-      <HintPath>..\packages\Mono.Cecil.0.9.6.1\lib\net35\Mono.Cecil.Pdb.dll</HintPath>
+    <Reference Include="Mono.Cecil.Pdb, Version=0.9.6.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Net35\packages\Mono.Cecil.0.9.6.1\lib\net35\Mono.Cecil.Pdb.dll</HintPath>
     </Reference>
-    <Reference Include="Mono.Cecil.Rocks">
-      <HintPath>..\packages\Mono.Cecil.0.9.6.1\lib\net35\Mono.Cecil.Rocks.dll</HintPath>
+    <Reference Include="Mono.Cecil.Rocks, Version=0.9.6.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Net35\packages\Mono.Cecil.0.9.6.1\lib\net35\Mono.Cecil.Rocks.dll</HintPath>
     </Reference>
     <Reference Include="nunit.framework, Version=2.6.4.14350, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
+      <HintPath>..\..\Net35\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -65,40 +69,40 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Extensions\AssemblyDefinitionExtensions.cs" />
-    <Compile Include="Extensions\CustomAttributeExtensions.cs" />
-    <Compile Include="Extensions\IEnumerableExtensions.cs" />
-    <Compile Include="Extensions\ILProcessorExtensions.cs" />
-    <Compile Include="Extensions\InstructionExtensions.cs" />
-    <Compile Include="Extensions\MethodDefinitionExtensions.cs" />
-    <Compile Include="Extensions\MethodReferenceExtensions.cs" />
-    <Compile Include="Extensions\PropertyDefinitionExtensions.cs" />
-    <Compile Include="Extensions\TypeDefinitionExtensions.cs" />
-    <Compile Include="Extensions\TypeReferenceExtensions.cs" />
-    <Compile Include="ILGenerator.cs" />
-    <Compile Include="ILogger.cs" />
-    <Compile Include="Loggers\ConsoleLogger.cs" />
-    <Compile Include="Loggers\MsBuildLogger.cs" />
-    <Compile Include="Options.cs" />
-    <Compile Include="Program.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Tasks\CilGeneratorTask.cs" />
-    <Compile Include="Tasks\GeneratorTaskBase.cs" />
-    <Compile Include="Tasks\IGeneratorTask.cs" />
-    <Compile Include="Tasks\ImplementNotifyPropertyChanged.cs" />
-    <Compile Include="Tasks\ImplementRdfClassTask.cs" />
-    <Compile Include="Tasks\ImplementRdfPropertyTask.cs" />
-    <Compile Include="Tasks\MethodGeneratorTask.cs" />
-    <Compile Include="Tasks\PropertyGeneratorTaskHelper.cs" />
+    <Compile Include="..\Extensions\AssemblyDefinitionExtensions.cs" />
+    <Compile Include="..\Extensions\CustomAttributeExtensions.cs" />
+    <Compile Include="..\Extensions\IEnumerableExtensions.cs" />
+    <Compile Include="..\Extensions\ILProcessorExtensions.cs" />
+    <Compile Include="..\Extensions\InstructionExtensions.cs" />
+    <Compile Include="..\Extensions\MethodDefinitionExtensions.cs" />
+    <Compile Include="..\Extensions\MethodReferenceExtensions.cs" />
+    <Compile Include="..\Extensions\PropertyDefinitionExtensions.cs" />
+    <Compile Include="..\Extensions\TypeDefinitionExtensions.cs" />
+    <Compile Include="..\Extensions\TypeReferenceExtensions.cs" />
+    <Compile Include="..\ILGenerator.cs" />
+    <Compile Include="..\ILogger.cs" />
+    <Compile Include="..\Loggers\ConsoleLogger.cs" />
+    <Compile Include="..\Loggers\MsBuildLogger.cs" />
+    <Compile Include="..\Options.cs" />
+    <Compile Include="..\Program.cs" />
+    <Compile Include="..\Properties\AssemblyInfo.cs" />
+    <Compile Include="..\Tasks\CilGeneratorTask.cs" />
+    <Compile Include="..\Tasks\GeneratorTaskBase.cs" />
+    <Compile Include="..\Tasks\IGeneratorTask.cs" />
+    <Compile Include="..\Tasks\ImplementNotifyPropertyChanged.cs" />
+    <Compile Include="..\Tasks\ImplementRdfClassTask.cs" />
+    <Compile Include="..\Tasks\ImplementRdfPropertyTask.cs" />
+    <Compile Include="..\Tasks\MethodGeneratorTask.cs" />
+    <Compile Include="..\Tasks\PropertyGeneratorTaskHelper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="packages35.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Trinity\Trinity_3_5.csproj">
+    <ProjectReference Include="..\..\Trinity\Net35\Trinity.csproj">
       <Project>{0d10d2ad-ca61-46e3-88c8-0ab8318647ba}</Project>
-      <Name>Trinity_3_5</Name>
+      <Name>Trinity</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

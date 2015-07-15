@@ -70,12 +70,6 @@
     <Compile Include="Task\GenerateOntology.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Trinity\Trinity.csproj">
-      <Project>{0D10D2AD-CA61-46E3-88C8-0AB8318647BA}</Project>
-      <Name>Trinity</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -87,7 +81,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\Trinity\Trinity.csproj">
+      <Project>{0d10d2ad-ca61-46e3-88c8-0ab8318647ba}</Project>
+      <Name>Trinity</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
