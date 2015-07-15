@@ -34,15 +34,24 @@ using System.Text;
 
 namespace Semiodesk.Trinity.Configuration
 {
+    /// <summary>
+    /// A ontology element
+    /// </summary>
     public class Ontology : ConfigurationElement
     {
-        [ConfigurationProperty("Prefix")]
+        /// <summary>
+        /// Prefix of this ontology
+        /// </summary>
+        [ConfigurationProperty("Prefix", IsRequired=true)]
         public string Prefix
         {
             get { return (string)base["Prefix"]; }
             set { base["Prefix"] = value; }
         }
 
+        /// <summary>
+        /// Uri of this ontology
+        /// </summary>
         public UriRef Uri
         {
             get
@@ -57,6 +66,9 @@ namespace Semiodesk.Trinity.Configuration
             }
         }
 
+        /// <summary>
+        /// String representation of the uri
+        /// </summary>
         [ConfigurationProperty("Uri", IsKey = true, IsRequired = true)]
         public string uriString
         {
@@ -64,11 +76,17 @@ namespace Semiodesk.Trinity.Configuration
             set { base["Uri"] = value; }
         }
 
+        /// <summary>
+        /// The key of the element
+        /// </summary>
         public object KeyElement
         {
             get { return uriString; }
         }
 
+        /// <summary>
+        /// The location of the ontology file
+        /// </summary>
         [ConfigurationProperty("FileSource", IsRequired = true)]
         public FileSource FileSource
         {
@@ -76,6 +94,9 @@ namespace Semiodesk.Trinity.Configuration
             set { base["FileSource"] = value; }
         }
 
+        /// <summary>
+        /// The uri of the metadata graph, only needed for TriG serialisations
+        /// </summary>
         public UriRef MetadataUri
         {
             get
@@ -90,6 +111,9 @@ namespace Semiodesk.Trinity.Configuration
             }
         }
 
+        /// <summary>
+        /// The string representation of the metadata graph uri
+        /// </summary>
         [ConfigurationProperty("MetadataUri", IsRequired = false)]
         public string metadataUriString
         {
@@ -97,6 +121,10 @@ namespace Semiodesk.Trinity.Configuration
             set { base["MetadataUri"] = value; }
         }
 
+        /// <summary>
+        /// String representation of this element
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             if (Uri != null)
@@ -105,6 +133,10 @@ namespace Semiodesk.Trinity.Configuration
                 return "Empty Ontology";
         }
 
+        /// <summary>
+        /// Overwritten hashcode
+        /// </summary>
+        /// <returns></returns>
         public override int GetHashCode()
         {
             return base.GetHashCode();
