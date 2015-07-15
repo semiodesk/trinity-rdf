@@ -33,6 +33,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using Semiodesk.Trinity.Store;
+using System.Configuration;
 #if !NET_3_5
 using System.ComponentModel.Composition.Hosting;
 using System.Configuration;

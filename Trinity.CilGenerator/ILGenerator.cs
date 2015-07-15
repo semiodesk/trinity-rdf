@@ -114,11 +114,11 @@ namespace Semiodesk.Trinity.CilGenerator
                         //  - PropertyAttribute with PropertyChangedAttribute
                         //  - PropertyAttribute without PropertyChangedAttribute
                         //  - PropertyChangedAttribute only
-                        ISet<PropertyDefinition> mapping = type.GetPropertiesWithAttribute<RdfPropertyAttribute>().ToHashSet();
-                        ISet<PropertyDefinition> notifying = type.GetPropertiesWithAttribute<NotifyPropertyChangedAttribute>().ToHashSet();
+                        HashSet<PropertyDefinition> mapping = type.GetPropertiesWithAttribute<Semiodesk.Trinity.RdfPropertyAttribute>().ToHashSet();
+                        HashSet<PropertyDefinition> notifying = type.GetPropertiesWithAttribute<Semiodesk.Trinity.NotifyPropertyChangedAttribute>().ToHashSet();
 
                         // Implement the GetTypes()-method for the given type.
-                        if (mapping.Count > 0 || type.TryGetCustomAttribute<RdfClassAttribute>().Any())
+                        if (mapping.Count > 0 || type.TryGetCustomAttribute<Semiodesk.Trinity.RdfClassAttribute>().Any())
                         {
                             ImplementRdfClassTask implementClass = new ImplementRdfClassTask(this, type);
 
