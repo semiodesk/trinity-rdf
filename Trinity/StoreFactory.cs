@@ -36,7 +36,6 @@ using Semiodesk.Trinity.Store;
 using System.Configuration;
 #if !NET_3_5
 using System.ComponentModel.Composition.Hosting;
-using System.Configuration;
 #endif
 
 namespace Semiodesk.Trinity

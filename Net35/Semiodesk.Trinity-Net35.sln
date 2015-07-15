@@ -1,16 +1,25 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity_3_5", "Trinity\Trinity_3_5.csproj", "{0D10D2AD-CA61-46E3-88C8-0AB8318647BA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity", "..\Trinity\Net35\Trinity.csproj", "{0D10D2AD-CA61-46E3-88C8-0AB8318647BA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.Tests_3_5", "Trinity.Tests\Trinity.Tests_3_5.csproj", "{5E1FCE3C-9436-44F8-8DB6-18F6282DE70C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.Tests", "..\Trinity.Tests\Net35\Trinity.Tests.csproj", "{5E1FCE3C-9436-44F8-8DB6-18F6282DE70C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.OntologyGenerator_3_5", "Trinity.OntologyGenerator\Trinity.OntologyGenerator_3_5.csproj", "{55D0E154-DE17-40E3-B434-A3A0D9BA17DF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.OntologyGenerator", "..\Trinity.OntologyGenerator\Net35\Trinity.OntologyGenerator.csproj", "{55D0E154-DE17-40E3-B434-A3A0D9BA17DF}"
 	ProjectSection(ProjectDependencies) = postProject
 		{0D10D2AD-CA61-46E3-88C8-0AB8318647BA} = {0D10D2AD-CA61-46E3-88C8-0AB8318647BA}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.CilGenerator_3_5", "Trinity.CilGenerator\Trinity.CilGenerator_3_5.csproj", "{146FE869-CCA9-4B39-8FBE-58FD6515AFF9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.CilGenerator", "..\Trinity.CilGenerator\net35\Trinity.CilGenerator.csproj", "{146FE869-CCA9-4B39-8FBE-58FD6515AFF9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{9B7710A6-4496-44AC-BDCA-30475A0EFA20}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.OntologyDeployment", "..\Trinity.OntologyDeployment\Net35\Trinity.OntologyDeployment.csproj", "{FDDBA220-DB73-4FC9-B95F-D69593C89EBD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +42,10 @@ Global
 		{146FE869-CCA9-4B39-8FBE-58FD6515AFF9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{146FE869-CCA9-4B39-8FBE-58FD6515AFF9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{146FE869-CCA9-4B39-8FBE-58FD6515AFF9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FDDBA220-DB73-4FC9-B95F-D69593C89EBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FDDBA220-DB73-4FC9-B95F-D69593C89EBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FDDBA220-DB73-4FC9-B95F-D69593C89EBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FDDBA220-DB73-4FC9-B95F-D69593C89EBD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

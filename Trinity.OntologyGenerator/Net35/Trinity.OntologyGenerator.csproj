@@ -23,7 +23,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\Build\NET35\Debug\</OutputPath>
+    <OutputPath>..\..\Build\NET35\Debug\</OutputPath>
     <DefineConstants>TRACE;DEBUG;NET_3_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -40,7 +40,7 @@
     <StartupObject>Semiodesk.Trinity.OntologyGenerator.Program</StartupObject>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
-    <OutputPath>..\Build\NET35\Release\</OutputPath>
+    <OutputPath>..\..\Build\Net35\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Build.Framework" />
@@ -57,36 +57,35 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BootstrapOntologies.cs" />
-    <Compile Include="Logger\ConsoleLogger.cs" />
-    <Compile Include="Logger\ILogger.cs" />
-    <Compile Include="Logger\TaskLogger.cs" />
-    <Compile Include="OntologyGenerator.cs" />
-    <Compile Include="Options.cs" />
-    <Compile Include="Program.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Properties\Resources.Designer.cs">
+    <Compile Include="..\BootstrapOntologies.cs" />
+    <Compile Include="..\Logger\ConsoleLogger.cs" />
+    <Compile Include="..\Logger\ILogger.cs" />
+    <Compile Include="..\Logger\TaskLogger.cs" />
+    <Compile Include="..\OntologyGenerator.cs" />
+    <Compile Include="..\Options.cs" />
+    <Compile Include="..\Program.cs" />
+    <Compile Include="..\Properties\AssemblyInfo.cs" />
+    <Compile Include="..\Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="Task\GenerateOntology.cs" />
+    <Compile Include="..\Task\GenerateOntology.cs" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Properties\Resources.resx">
+    <EmbeddedResource Include="..\Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Trinity\Trinity_3_5.csproj">
+    <ProjectReference Include="..\..\Trinity\Net35\Trinity.csproj">
       <Project>{0d10d2ad-ca61-46e3-88c8-0ab8318647ba}</Project>
-      <Name>Trinity_3_5</Name>
+      <Name>Trinity</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
-    <None Include="OntologyGenerator.cs.orig" />
+    <None Include="..\App.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
