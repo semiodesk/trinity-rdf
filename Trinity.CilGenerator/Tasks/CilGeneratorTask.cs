@@ -49,7 +49,6 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             if (!File.Exists(TargetFile)) return false;
 
             MsBuildLogger log = new MsBuildLogger(Log);
-            Log.LogMessage("TEST");
             ILGenerator generator = new ILGenerator(log);
             return generator.ProcessFile(TargetFile);
 
