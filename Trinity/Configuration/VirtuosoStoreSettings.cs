@@ -34,9 +34,14 @@ using System.Text;
 
 namespace Semiodesk.Trinity.Configuration
 {
-    
+    /// <summary>
+    /// Constains Virtuoso specific settings
+    /// </summary>
     public class VirtuosoStoreSettings : ConfigurationElement
     {
+        /// <summary>
+        /// A collection of rule sets
+        /// </summary>
         [ConfigurationProperty("RuleSets", IsDefaultCollection = true)]
         public RuleSetCollection RuleSets
         {
