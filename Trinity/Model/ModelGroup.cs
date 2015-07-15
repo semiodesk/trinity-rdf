@@ -35,16 +35,28 @@ using System.Text;
 
 namespace Semiodesk.Trinity
 {
+    /// <summary>
+    /// Compares two models by their uris
+    /// </summary>
     class IModelEqualityComparer : IEqualityComparer<IModel>
     {
-
         #region IEqualityComparer<IModel> Members
-
+        /// <summary>
+        /// Equals
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
         public bool Equals(IModel x, IModel y)
         {
  	        return x.Uri.Equals(y.Uri);
         }
 
+        /// <summary>
+        /// HashCode
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public int GetHashCode(IModel obj)
         {
  	        return obj.Uri.AbsoluteUri.GetHashCode();
@@ -53,6 +65,9 @@ namespace Semiodesk.Trinity
         #endregion
     }
 
+    /// <summary>
+    /// Implementation of the IModelGroup interface
+    /// </summary>
     class ModelGroup : IModelGroup
     {
         #region Member
@@ -112,11 +127,17 @@ namespace Semiodesk.Trinity
 
         #region IModel Members
 
+        /// <summary>
+        /// Uri of the model group is null
+        /// </summary>
         public UriRef Uri
         {
             get { return null; }
         }
 
+        /// <summary>
+        /// Tests if all contained models are empty
+        /// </summary>
         public bool IsEmpty
         {
             get 
@@ -126,84 +147,164 @@ namespace Semiodesk.Trinity
             }
         }
 
-        public bool RefreshChangedResources
-        {
-            get;
-            set;
-        }
-
         #region Not Supported
-
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <param name="resource"></param>
+        /// <param name="transaction"></param>
+        /// <returns></returns>
         public IResource AddResource(IResource resource, ITransaction transaction = null)
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="resource"></param>
+        /// <param name="transaction"></param>
+        /// <returns></returns>
         public T AddResource<T>(T resource, ITransaction transaction = null) where T : Resource
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <param name="format"></param>
+        /// <param name="transaction"></param>
+        /// <returns></returns>
         public IResource CreateResource(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null)
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <param name="uri"></param>
+        /// <param name="transaction"></param>
+        /// <returns></returns>
         public IResource CreateResource(Uri uri, ITransaction transaction = null)
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="format"></param>
+        /// <param name="transaction"></param>
+        /// <returns></returns>
         public T CreateResource<T>(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null) where T : Resource
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="uri"></param>
+        /// <param name="transaction"></param>
+        /// <returns></returns>
         public T CreateResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <param name="t"></param>
+        /// <param name="format"></param>
+        /// <param name="transaction"></param>
+        /// <returns></returns>
         public object CreateResource(Type t, string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null)
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <param name="uri"></param>
+        /// <param name="t"></param>
+        /// <param name="transaction"></param>
+        /// <returns></returns>
         public object CreateResource(Uri uri, Type t, ITransaction transaction = null)
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <param name="uri"></param>
+        /// <param name="transaction"></param>
         public void DeleteResource(Uri uri, ITransaction transaction = null)
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <param name="resource"></param>
+        /// <param name="transaction"></param>
         public void DeleteResource(IResource resource, ITransaction transaction = null)
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <param name="resource"></param>
+        /// <param name="transaction"></param>
         public void UpdateResource(Resource resource, ITransaction transaction = null)
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
         public void Clear()
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <param name="isolationLevel"></param>
+        /// <returns></returns>
         public ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <param name="update"></param>
+        /// <param name="transaction"></param>
         public void ExecuteUpdate(SparqlUpdate update, ITransaction transaction = null)
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <param name="url"></param>
+        /// <param name="format"></param>
+        /// <returns></returns>
         public bool Read(Uri url, RdfSerializationFormat format)
         {
             throw new NotSupportedException();
@@ -527,6 +628,10 @@ namespace Semiodesk.Trinity
 
         #region IEnumerable<IModel> Members
 
+        /// <summary>
+        /// Enumerator of the models
+        /// </summary>
+        /// <returns></returns>
         public IEnumerator<IModel> GetEnumerator()
         {
             return _set.GetEnumerator();
@@ -536,6 +641,10 @@ namespace Semiodesk.Trinity
 
         #region IEnumerable Members
 
+        /// <summary>
+        /// Enumerator of the models
+        /// </summary>
+        /// <returns></returns>
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
         {
             return _set.GetEnumerator();

@@ -29,42 +29,69 @@ using System;
 
 namespace Semiodesk.Trinity
 {
-  [AttributeUsage(AttributeTargets.Class)]
-  public class RdfClassAttribute : Attribute
-  {
-    #region Members
-
-    public readonly Uri MappedUri;
-
-    #endregion
-
-    #region Constructors
-
-    public RdfClassAttribute(Uri uri)
+    /// <summary>
+    /// Decorate a class with this attribute to mark it as mapping for an RDF class of the given type.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class)]
+    public class RdfClassAttribute : Attribute
     {
-      MappedUri = uri;
-    }
+        #region Members
+        /// <summary>
+        /// The Uri of the type.
+        /// </summary>
+        public readonly Uri MappedUri;
 
-    public RdfClassAttribute(string uriString)
-    {
-      MappedUri = new Uri(uriString);
-    }
+        #endregion
 
-    public RdfClassAttribute(Uri baseUri, string relativeUri)
-    {
-      MappedUri = new Uri(baseUri, relativeUri);
-    }
+        #region Constructors
 
-    public RdfClassAttribute(Uri baseUri, Uri relativeUri)
-    {
-      MappedUri = new Uri(baseUri, relativeUri);
-    }
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="uri"></param>
+        public RdfClassAttribute(Uri uri)
+        {
+            MappedUri = uri;
+        }
 
-    public RdfClassAttribute(IResource resource)
-    {
-      MappedUri = resource.Uri;
-    }
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="uriString"></param>
+        public RdfClassAttribute(string uriString)
+        {
+            MappedUri = new Uri(uriString);
+        }
 
-    #endregion
-  }
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="baseUri"></param>
+        /// <param name="relativeUri"></param>
+        public RdfClassAttribute(Uri baseUri, string relativeUri)
+        {
+            MappedUri = new Uri(baseUri, relativeUri);
+        }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="baseUri"></param>
+        /// <param name="relativeUri"></param>
+        public RdfClassAttribute(Uri baseUri, Uri relativeUri)
+        {
+            MappedUri = new Uri(baseUri, relativeUri);
+        }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="resource"></param>
+        public RdfClassAttribute(IResource resource)
+        {
+            MappedUri = resource.Uri;
+        }
+
+        #endregion
+    }
 }

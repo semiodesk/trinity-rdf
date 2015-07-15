@@ -34,9 +34,14 @@ using System.Text;
 
 namespace Semiodesk.Trinity.Configuration
 {
+    /// <summary>
+    /// Constains the settings for the Semiodesk.Trinity framework.
+    /// </summary>
     public class TrinitySettings : ConfigurationSection
     {
-
+        /// <summary>
+        /// Namespace of the generated ontology file.
+        /// </summary>
         [ConfigurationProperty("namespace",
             DefaultValue = "Semiodesk.Trinity.Model",
             IsRequired = true)]
@@ -53,12 +58,18 @@ namespace Semiodesk.Trinity.Configuration
             }
         }
 
+        /// <summary>
+        /// Collection of ontologies
+        /// </summary>
         [ConfigurationProperty("OntologySettings", IsDefaultCollection = true)]
         public OntologyCollection Ontologies
         {
             get { return (OntologyCollection)base["OntologySettings"]; }
         }
 
+        /// <summary>
+        /// Virtuoso specific settings
+        /// </summary>
         [ConfigurationProperty("VirtuosoStoreSettings")]
         public VirtuosoStoreSettings VirtuosoStoreSettings
         {
