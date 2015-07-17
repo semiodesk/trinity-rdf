@@ -81,10 +81,6 @@ namespace Semiodesk.Trinity.Store
             _query = query;
             _model = model;
 
-            if (model == null)
-            {
-                Debugger.Break();
-            }
         }
 
         #endregion

@@ -2,6 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
     <id>Semiodesk.Trinity.Modelling</id>
+	<title>Semiodesk.Trinity.Modelling</title>
 	<version>0.9.0</version>
     <authors>Semiodesk</authors>
     <owners>Semiodesk</owners>

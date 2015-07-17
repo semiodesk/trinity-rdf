@@ -63,7 +63,7 @@ namespace Semiodesk.Trinity.Tests.Cilg
         #region Constructors
         public CilgMappingTestClass(Uri uri) : base(uri) 
         {
-            intTest = new List<int>();
+           
         }
         #endregion
 
