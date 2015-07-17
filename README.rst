@@ -78,7 +78,7 @@ Installation
 ============
 The easiest way to start using the Trinity API is to add it to your project trough NuGet.
 
-  PM> Install-Package Semiodesk.Trinity
+  PM> Install-Package Semiodesk.Trinity.Core
 
 Getting Started
 ===============
@@ -87,10 +87,7 @@ After the installation our `First Steps`_ guide should help you getting started.
 
 Support
 =======
-
-
-References
-==========
+If you need help, contact us under `hello@semiodesk.com`_.
 
 
 
@@ -102,6 +99,7 @@ References
 .. _`Semiodesk`: http://www.semiodesk.com
 .. _`product page`: http://www.semiodesk.com/products/trinity/
 .. _`contact us`: mailto:hello@semiodesk.com
+.. _`hello@semiodesk.com`: mailto:hello@semiodesk.com
 .. _`Unity3D`: https://unity3d.com/
 .. _`dotNetRDF`: http://dotnetrdf.org/
 .. _`OpenLink.Data.Virtuoso`: https://github.com/openlink/virtuoso-opensource
