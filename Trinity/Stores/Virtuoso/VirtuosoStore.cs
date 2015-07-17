@@ -176,7 +176,6 @@ namespace Semiodesk.Trinity.Store
                     ExecuteNonQuery(update, transaction);
                     update = new SparqlUpdate(string.Format("DROP GRAPH <{0}>", uri.OriginalString));
                     ExecuteNonQuery(update, transaction);
-                    ExecuteDirectQuery(string.Format("DELETE FROM DB.DBA.RDF_QUAD WHERE G = DB.DBA.RDF_MAKE_IID_OF_QNAME ('{0}')", uri.OriginalString), transaction);
                     transaction.Commit();
                 }
                 catch (Exception)
@@ -199,12 +198,11 @@ namespace Semiodesk.Trinity.Store
 
             using (ITransaction transaction = this.BeginTransaction(IsolationLevel.ReadCommitted))
             {
-                string query = string.Format("SELECT GRAPH_IRI FROM DB.DBA.SPARQL_SELECT_KNOWN_GRAPHS_T WHERE GRAPH_IRI = '{0}'", uri.OriginalString);
+                string query = string.Format("SELECT GRAPH_IRI from DB.DBA.SPARQL_SELECT_KNOWN_GRAPHS()(GRAPH_IRI VARCHAR) GRAPH_IRI WHERE GRAPH_IRI = '{0}'", uri.OriginalString);
 
-                if (ExecuteQuery(query, transaction).Rows.Count > 0)
-                {
-                    result = true;
-                }
+                var res = ExecuteQuery(query, transaction);
+                result = res.Rows.Count > 0;
+                res.Dispose();
             }
 
             return result;
@@ -231,13 +229,15 @@ namespace Semiodesk.Trinity.Store
         {
             List<IModel> result = new List<IModel>();
 
-            DataTable queryResult = ExecuteQuery("SELECT * FROM DB.DBA.SPARQL_SELECT_KNOWN_GRAPHS_T");
+            SparqlQuery update = new SparqlQuery(string.Format("SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } } "));
+            var queryRes = ExecuteQuery(update);
 
-            for(int i = 0; i < queryResult.Rows.Count; i++)
+            foreach( var bindingSet in queryRes.GetBindings())
             {
                 try
                 {
-                    result.Add(new Model(this, new UriRef((string)queryResult.Rows[i][0])));
+                    var x = bindingSet["g"];
+                    result.Add(new Model(this, null));
                 }
                 catch (Exception)
                 {
