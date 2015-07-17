@@ -227,25 +227,24 @@ namespace Semiodesk.Trinity.Store
 
         public IEnumerable<IModel> ListModels()
         {
-            List<IModel> result = new List<IModel>();
-
-            SparqlQuery update = new SparqlQuery(string.Format("SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } } "));
+            SparqlQuery update = new SparqlQuery(string.Format("SELECT DISTINCT ?g WHERE {{ GRAPH ?g {{ ?s ?p ?o }} }} "));
             var queryRes = ExecuteQuery(update);
 
             foreach( var bindingSet in queryRes.GetBindings())
             {
+                IModel m = null;
                 try
                 {
                     var x = bindingSet["g"];
-                    result.Add(new Model(this, null));
+                    m = new Model(this, new UriRef(x.ToString()));
                 }
                 catch (Exception)
                 {
                     continue;
                 }
+                if (m != null)
+                    yield return m;
             }
-
-            return result;
         }
 
         public ITransaction BeginTransaction()

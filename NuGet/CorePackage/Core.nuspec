@@ -2,6 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
     <id>Semiodesk.Trinity.Core</id>
+	<title>Semiodesk.Trinity.Core</title>
 	<version>0.9.0</version>
     <authors>Semiodesk</authors>
     <owners>Semiodesk</owners>
@@ -16,6 +17,7 @@
     <dependencies>
       <dependency id="dotNetRDF" version="1.0.8" />
 	  <dependency id="OpenLink.Data.Virtuoso" version="6.2.3128.1" />
+	  <dependency id="dotNetRDF.Data.Virtuoso" version="1.0.8.3533" />
     </dependencies>
   </metadata>
 </package>
