@@ -118,6 +118,7 @@ namespace Semiodesk.Trinity
             {
                 _isList = true;
                 _genericType = _dataType.GetGenericArguments()[0];
+                _value = (T)Activator.CreateInstance(typeof(T));
             }
             else
             {

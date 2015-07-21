@@ -2,7 +2,7 @@
 Overview
 ========
 
-Semiodesk.Trinity is an application development platform for Microsoft .NET and Mono.
+Semiodesk Trinity is an application development platform for Microsoft .NET and Mono.
 It allows to easily build Linked Data and Semantic Web applications based on the RDF metadata standard issued by the W3C.
 The API allows for developing first-class .NET applications with direct access to Linked Open Data repositories and knowledge bases such as DBPedia, Freebase, Geonames, BBC Business News, BBC Sports and many more.
 
@@ -51,7 +51,7 @@ With a lazy loading mechanism, the related resources are only loaded when access
 
 Various Backends
 ----------------
-The Trinity API has built-in support for three store types. 
+The Semiodesk Trinity API has built-in support for three store types. 
 We offer an in-memory store to get started quick and without much overhead. 
 For more sophisticated applications we support the use of OpenLinks Virtuoso database. 
 To access data from the Linked Open Data cloud, Trinity is able to connect to SPARQL endpoints. 
