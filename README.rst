@@ -87,8 +87,7 @@ After the installation our `First Steps`_ guide should help you getting started.
 
 Support
 =======
-If you need help, contact us under `hello@semiodesk.com`_.
-
+If you need help or want priority support, contact us under `hello@semiodesk.com`_.
 
 
 
