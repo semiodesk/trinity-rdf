@@ -153,6 +153,10 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             // Finally, implement the field initializers in the constructors of the class.
             foreach (MethodDefinition ctor in Type.GetConstructors())
             {
+                // Implementing mapping fields in static constructors results in invalid byte code,
+                // since there is no ldarg.0 (this) variable.
+                if (ctor.IsStatic) continue;
+
                 MethodGeneratorTask g = new MethodGeneratorTask(ctor);
                 g.Instructions.AddRange(GetFieldInitializationInstructions(g.Processor, p, fieldType));
                 g.Instructions.AddRange(ctor.Body.Instructions);
