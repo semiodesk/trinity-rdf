@@ -31,6 +31,7 @@ using System.Linq;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Pdb;
+using Mono.Cecil.Mdb;
 using Semiodesk.Trinity.CilGenerator.Extensions;
 using Semiodesk.Trinity.CilGenerator.Tasks;
 using System.ComponentModel;
@@ -79,6 +80,7 @@ namespace Semiodesk.Trinity.CilGenerator
         public bool ProcessFile(string sourceFile, string targetFile = "")
         {
             bool result = false;
+
             if (string.IsNullOrEmpty(targetFile))
             {
                 targetFile = sourceFile;
@@ -87,70 +89,89 @@ namespace Semiodesk.Trinity.CilGenerator
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
+            ISymbolReader symbolReader = null;
+
             try
             {
                 var resolver = new DefaultAssemblyResolver();
                 resolver.AddSearchDirectory(GetAssemblyDirectoryFromType(typeof(Resource)));
-                var parameters = new ReaderParameters
-                {
-                    AssemblyResolver = resolver,
-                };
+
+                var parameters = new ReaderParameters { AssemblyResolver = resolver };
 
                 Assembly = AssemblyDefinition.ReadAssembly(sourceFile, parameters);
 
                 Log.LogMessage("------ Begin Task: ImplementRdfMapping [{0}]", Assembly.Name);
 
                 // Read the debug symbols from the assembly.
-                using (ISymbolReader symbolReader = new PdbReaderProvider().GetSymbolReader(Assembly.MainModule, sourceFile))
+                if (Type.GetType("Mono.Runtime") != null)
                 {
-                    Assembly.MainModule.ReadSymbols(symbolReader);
+                    symbolReader = new MdbReaderProvider().GetSymbolReader(Assembly.MainModule, sourceFile);
+                }
+                else
+                {
+                    symbolReader = new PdbReaderProvider().GetSymbolReader(Assembly.MainModule, sourceFile);
+                }
 
-                    bool assemblyModified = false;
+                Assembly.MainModule.ReadSymbols(symbolReader);
 
-                    // Iterate over all types in the main assembly.
-                    foreach (TypeDefinition type in Assembly.MainModule.Types)
+                bool assemblyModified = false;
+
+                // Iterate over all types in the main assembly.
+                foreach (TypeDefinition type in Assembly.MainModule.Types)
+                {
+                    // In the following we need to seperate between properties which have the following attribute combinations:
+                    //  - PropertyAttribute with PropertyChangedAttribute
+                    //  - PropertyAttribute without PropertyChangedAttribute
+                    //  - PropertyChangedAttribute only
+                    HashSet<PropertyDefinition> mapping = type.GetPropertiesWithAttribute<Semiodesk.Trinity.RdfPropertyAttribute>().ToHashSet();
+                    HashSet<PropertyDefinition> notifying = type.GetPropertiesWithAttribute<Semiodesk.Trinity.NotifyPropertyChangedAttribute>().ToHashSet();
+
+                    // Implement the GetTypes()-method for the given type.
+                    if (mapping.Count > 0 || type.TryGetCustomAttribute<Semiodesk.Trinity.RdfClassAttribute>().Any())
                     {
-                        // In the following we need to seperate between properties which have the following attribute combinations:
-                        //  - PropertyAttribute with PropertyChangedAttribute
-                        //  - PropertyAttribute without PropertyChangedAttribute
-                        //  - PropertyChangedAttribute only
-                        HashSet<PropertyDefinition> mapping = type.GetPropertiesWithAttribute<Semiodesk.Trinity.RdfPropertyAttribute>().ToHashSet();
-                        HashSet<PropertyDefinition> notifying = type.GetPropertiesWithAttribute<Semiodesk.Trinity.NotifyPropertyChangedAttribute>().ToHashSet();
+                        ImplementRdfClassTask implementClass = new ImplementRdfClassTask(this, type);
 
-                        // Implement the GetTypes()-method for the given type.
-                        if (mapping.Count > 0 || type.TryGetCustomAttribute<Semiodesk.Trinity.RdfClassAttribute>().Any())
-                        {
-                            ImplementRdfClassTask implementClass = new ImplementRdfClassTask(this, type);
-
-                            // RDF types _must_ be implemented for classes with mapped properties.
-                            assemblyModified = implementClass.Execute();
-                        }
-
-                        // Properties which do not raise the PropertyChanged-event can be implemented using minimal IL code.
-                        var implementProperty = new ImplementRdfPropertyTask(this, type);
-
-                        foreach (PropertyDefinition p in mapping.Except(notifying).Where(implementProperty.CanExecute))
-                        {
-                            assemblyModified = implementProperty.Execute(p);
-                        }
-
-                        // Properties which raise the PropertyChanged-event may also have the RdfProperty attribute.
-                        var implementPropertyChanged = new ImplementNotifyPropertyChangedTask(this, type);
-
-                        foreach (PropertyDefinition p in notifying.Where(implementPropertyChanged.CanExecute))
-                        {
-                            implementPropertyChanged.IsMappedProperty = mapping.Contains(p);
-
-                            assemblyModified = implementPropertyChanged.Execute(p);
-                        }
+                        // RDF types _must_ be implemented for classes with mapped properties.
+                        assemblyModified = implementClass.Execute();
                     }
 
-                    if (assemblyModified)
+                    // Properties which do not raise the PropertyChanged-event can be implemented using minimal IL code.
+                    var implementProperty = new ImplementRdfPropertyTask(this, type);
+
+                    foreach (PropertyDefinition p in mapping.Except(notifying).Where(implementProperty.CanExecute))
                     {
-                        // NOTE: "WriteSymbols = true" generates the .pdb symbols required for debugging.
-                        Assembly.Write(targetFile, new WriterParameters { WriteSymbols = WriteSymbols });
+                        assemblyModified = implementProperty.Execute(p);
+                    }
+
+                    // Properties which raise the PropertyChanged-event may also have the RdfProperty attribute.
+                    var implementPropertyChanged = new ImplementNotifyPropertyChangedTask(this, type);
+
+                    foreach (PropertyDefinition p in notifying.Where(implementPropertyChanged.CanExecute))
+                    {
+                        implementPropertyChanged.IsMappedProperty = mapping.Contains(p);
+
+                        assemblyModified = implementPropertyChanged.Execute(p);
                     }
                 }
+
+                if (assemblyModified)
+                {
+                    ISymbolWriterProvider symbolWriter;
+
+                    // Use the correct debug symbol writer on Mono and .NET.
+                    if (Type.GetType("Mono.Runtime") != null)
+                    {
+                        symbolWriter = new MdbWriterProvider();
+                    }
+                    else
+                    {
+                        symbolWriter = new PdbWriterProvider();
+                    }
+
+                    // NOTE: "WriteSymbols = true" generates the .pdb symbols required for debugging.
+                    Assembly.Write(targetFile, new WriterParameters { WriteSymbols = WriteSymbols, SymbolWriterProvider = symbolWriter });
+                }
+
                 result = true;
             }
             catch (Exception ex)
@@ -158,9 +179,15 @@ namespace Semiodesk.Trinity.CilGenerator
                 Log.LogError(ex.ToString());
                 result = false;
             }
+            finally
+            {
+                if (symbolReader != null) symbolReader.Dispose();
+            }
+
             stopwatch.Stop();
 
             Log.LogMessage("------ End Task: ImplementRdfMapping [Total time: {0}s]", stopwatch.Elapsed.TotalSeconds);
+
             return result;
         }
 
