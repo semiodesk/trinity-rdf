@@ -2,7 +2,7 @@
 <configuration xmlns:xdt="http://schemas.microsoft.com/XML-Document-Transform">
 
   <!-- Insert the settings first, they will be appended. NOTE: This ordering is neccessary! -->
-  <TrinitySettings namespace="$DefaultNameSpace$" xdt:Transform="InsertIfMissing">
+  <TrinitySettings namespace="$RootNamespace$" xdt:Transform="InsertIfMissing">
     <OntologySettings>
 	
       <!--http://www.w3.org/1999/02/22-rdf-syntax-ns#-->
