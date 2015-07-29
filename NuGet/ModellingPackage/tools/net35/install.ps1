@@ -19,7 +19,7 @@ ForEach ($item in $project.ProjectItems)
 
 if( $foundAppConfig -eq $false -and $foundWebConfig -eq $false )
 {
-	(get-content "$installPath\tools\App.config") | foreach-object {$_ -replace "\{0\}", $project.Properties.Item("RootNamespace").Value} | set-content "$installPath\tools\App.config";
+	(get-content "$installPath\tools\App.t.config") | foreach-object {$_ -replace "\{0\}", $project.Properties.Item("RootNamespace").Value} | set-content "$installPath\tools\App.config";
     $project.ProjectItems.AddFromFileCopy("$installPath\tools\App.config");
 	
 	#$item = $project.ProjectItems | where-object {$_.Name -eq "App.config" };

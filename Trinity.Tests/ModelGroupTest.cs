@@ -128,7 +128,19 @@ namespace Semiodesk.Trinity.Tests
             Assert.IsTrue(res.IsReadOnly);
             Assert.AreEqual(resourceUri, res.Uri);
             Assert.Contains(nco.Contact, res.ListValues(rdf.type));
-            
+
+
+            resource = _model2.CreateResource(resourceUri);
+            resource.AddProperty(rdf.type, nco.Contact);
+            resource.Commit();
+
+            res = g.GetResource(resourceUri);
+            Assert.IsNotNull(res);
+            Assert.AreEqual(1, res.ListValues(rdf.type).Count);
+            Assert.IsTrue(res.IsReadOnly);
+            Assert.AreEqual(resourceUri, res.Uri);
+            Assert.Contains(nco.Contact, res.ListValues(rdf.type));
+
         }
 
         [Test]
@@ -145,8 +157,6 @@ namespace Semiodesk.Trinity.Tests
             ResourceQuery q = new ResourceQuery(nco.Contact);
             var res = g.GetResources(q);
 
-            
-            
 
         }
 
