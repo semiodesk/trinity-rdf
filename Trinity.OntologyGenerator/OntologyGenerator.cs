@@ -138,7 +138,6 @@ namespace Semiodesk.Trinity.OntologyGenerator
             {
                 return false;
             }
-            
         }
 
         public bool AddOntology(Uri graphUri, Uri metadataUri, string prefix)
@@ -168,6 +167,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
             foreach (Tuple<IModel, IModel, string, string> model in _models)
             {
                 _globalSymbols.Clear();
+
                 Logger.LogMessage("Generating ontology <{0}>", model.Item1.Uri.OriginalString);
 
                 if (model.Item2 == null)
@@ -182,7 +182,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 }
             }
 
-            string content = string.Format(Properties.Resources.FileTemplate, DateTime.Now, WindowsIdentity.GetCurrent().Name, ontologies.ToString(), _namespace);
+            string content = string.Format(Properties.Resources.FileTemplate, DateTime.Now, ontologies.ToString(), _namespace);
 
             if (string.IsNullOrEmpty(content))
             {
