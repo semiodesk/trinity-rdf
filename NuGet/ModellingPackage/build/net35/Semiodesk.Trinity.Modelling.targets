@@ -3,21 +3,18 @@
   <PropertyGroup>
     <CoreCompileDependsOn>$(CoreCompileDependsOn);GenerateOntologies</CoreCompileDependsOn>
   </PropertyGroup>
-  <UsingTask TaskName="GenerateOntology" AssemblyFile="$(MSBuildThisFileDirectory)/../../tools/net35/OntologyGenerator.exe" />
-  <UsingTask TaskName="CilGeneratorTask" AssemblyFile="$(MSBuildThisFileDirectory)/../../tools/net35/cilg.exe" />
-  <UsingTask TaskName="DeployOntology" AssemblyFile="$(MSBuildThisFileDirectory)/../../tools/net35/OntologyDeployment.exe" />
   
+  <UsingTask TaskName="CilGeneratorTask" AssemblyFile="$(MSBuildThisFileDirectory)../../tools/net40/cilg.exe" />
+  <UsingTask TaskName="GenerateOntology" AssemblyFile="$(MSBuildThisFileDirectory)../../tools/net40/OntologyGenerator.exe" />
+  <UsingTask TaskName="DeployOntology" AssemblyFile="$(MSBuildThisFileDirectory)../../tools/net40/OntologyDeployment.exe" />
+
   <Target Name="GenerateOntologies">
-    <GenerateOntology ProjectPath="$(ProjectDir)/$(ProjectName)$(ProjectExt)" IntermediatePath="$(IntermediateOutputPath)" />
-    <ItemGroup>
-      <Compile Include="$(IntermediateOutputPath)Ontologies.g.cs" />
-    </ItemGroup>
+    <GenerateOntology ProjectPath="$(ProjectDir)/$(ProjectName)$(ProjectExt)" IntermediatePath="$(ProjectDir)/Ontologies/" />
   </Target>
   
   <Target Name="CilGeneratorTarget" AfterTargets="Build">
     <CilGeneratorTask TargetFile="$(TargetDir)/$(TargetName)$(TargetExt)" />
-	<DeployOntology ProjectPath="$(ProjectDir)/$(ProjectName)$(ProjectExt)" />
+    <DeployOntology ProjectPath="$(ProjectDir)/$(ProjectName)$(ProjectExt)" />
   </Target>
-
 
 </Project>
