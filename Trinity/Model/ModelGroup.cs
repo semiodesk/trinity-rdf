@@ -652,5 +652,11 @@ namespace Semiodesk.Trinity
 
         #endregion
         #endregion
+
+
+        public IQueryable<T> ListResources<T>() where T : Resource
+        {
+            throw new NotImplementedException();
+        }
     }
 }

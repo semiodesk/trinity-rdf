@@ -59,6 +59,10 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Net40\packages\dotNetRDF.Data.Virtuoso.1.0.8.3533\lib\net40\OpenLink.Data.Virtuoso.dll</HintPath>
     </Reference>
+    <Reference Include="Remotion.Linq, Version=1.13.183.0, Culture=neutral, PublicKeyToken=fee00910d6e5f53b, processorArchitecture=MSIL">
+      <HintPath>..\Net40\packages\Remotion.Linq.1.13.183.0\lib\net35\Remotion.Linq.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.configuration" />
@@ -120,7 +124,11 @@
     <Compile Include="PropertyMapping.cs" />
     <Compile Include="PropertyValue.cs" />
     <Compile Include="Query\ISparqlQueryResult.cs" />
+    <Compile Include="Query\Linq\ExpressionVisitor.cs" />
+    <Compile Include="Query\Linq\QueryModelVisitor.cs" />
+    <Compile Include="Query\Linq\ResourceQueryExecutor.cs" />
     <Compile Include="Query\ResourceProvider.cs" />
+    <Compile Include="Query\Linq\ResourceQuerable.cs" />
     <Compile Include="Query\ResourceQuery.cs" />
     <Compile Include="Query\ResourceQueryResult.cs" />
     <Compile Include="Query\SortCriterion.cs" />
@@ -151,6 +159,7 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

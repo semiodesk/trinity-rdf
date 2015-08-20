@@ -35,13 +35,16 @@ using System.Text;
 using System.IO;
 using System.Reflection;
 using OpenLink.Data.Virtuoso;
+using Remotion.Linq;
+using Semiodesk.Trinity.Query;
+using Remotion.Linq.Parsing.Structure;
 
 namespace Semiodesk.Trinity
 {
     /// <summary>
     /// A set of resources which represent a logical model for a given application domain.
     /// </summary>
-    public class Model : IModel
+    public class Model :IModel
     {
         #region Members
 
@@ -655,5 +658,12 @@ namespace Semiodesk.Trinity
 
         #endregion
 
+
+        public IQueryable<T> ListResources<T>() where T : Resource
+        {
+            ResourceQueryExecutor executor = new ResourceQueryExecutor();
+            var queryParser = QueryParser.CreateDefault();
+            return new ResourceQuerable<T>(queryParser, executor);
+        }
     }
 }
