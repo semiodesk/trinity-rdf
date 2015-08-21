@@ -136,6 +136,26 @@ namespace Semiodesk.Trinity
             }
         }
 
+        internal static IEnumerable<IPropertyMapping> ListMappings(Type _class)
+        {
+            Type propertyMappingType = typeof(IPropertyMapping);
+            Resource resource;
+            try
+            {
+                resource = (Resource)Activator.CreateInstance(_class, new UriRef("semio:empty"));
+            }
+            catch (Exception e)
+            {
+                throw new Exception(string.Format("Initialisation of mapping class {0} failed. For the reason please consult the inner exception.", _class.ToString()), e);
+            }
+            foreach (var x in _class.GetFields())
+            {
+                if (propertyMappingType.IsAssignableFrom(x.FieldType))
+                    yield return x.GetValue(resource) as IPropertyMapping;
+            }
+
+        }
+
         /// <summary>
         /// Loads all mapped classes from the assembly calling this method.
         /// </summary>
