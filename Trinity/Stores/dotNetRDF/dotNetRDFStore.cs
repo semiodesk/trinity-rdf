@@ -36,6 +36,7 @@ using VDS.RDF.Query;
 using VDS.RDF.Query.Datasets;
 using VDS.RDF.Query.Inference;
 using VDS.RDF.Update;
+using VDS.RDF.Writing;
 
 
 namespace Semiodesk.Trinity.Store
@@ -169,7 +170,7 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-        public static IRdfReader GetParser(RdfSerializationFormat format)
+        public static IRdfReader GetReader(RdfSerializationFormat format)
         {
             switch (format)
             {
@@ -186,6 +187,38 @@ namespace Semiodesk.Trinity.Store
                 return new RdfXmlParser();
 
             }
+        }
+
+        public static IRdfWriter GetWriter(RdfSerializationFormat format)
+        {
+            switch (format)
+            {
+                case RdfSerializationFormat.N3:
+                    return new Notation3Writer();
+
+                case RdfSerializationFormat.NTriples:
+                    return new NTriplesWriter();
+
+                case RdfSerializationFormat.Turtle:
+                    return new CompressingTurtleWriter();
+                default:
+                case RdfSerializationFormat.RdfXml:
+                    return new RdfXmlWriter();
+
+            }
+        }
+
+
+        public Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format)
+        {
+            TextReader reader = new StreamReader(stream);
+            IGraph graph = new Graph();
+            IRdfReader parser = GetReader(format);
+
+            parser.Load(graph, reader);
+            graph.BaseUri = graphUri;
+            _store.Add(graph, true);
+            return graphUri;
         }
 
         public Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format)
@@ -220,7 +253,7 @@ namespace Semiodesk.Trinity.Store
                     else
                     {
                         graph = new Graph();
-                        graph.LoadFromFile(path, GetParser(format));
+                        graph.LoadFromFile(path, GetReader(format));
                         graph.BaseUri = graphUri;
                     }
                 }
@@ -253,9 +286,16 @@ namespace Semiodesk.Trinity.Store
                 _store.Remove(uri);
         }
 
-        public void Write(Stream fs, Uri graphUri, RdfSerializationFormat format)
+        public void Write(Stream stream, Uri graphUri, RdfSerializationFormat format)
         {
-            throw new NotImplementedException();
+            if (_store.HasGraph(graphUri))
+            {
+                IGraph graph = _store.Graphs[graphUri];
+                using (StreamWriter writer = new StreamWriter(stream))
+                {
+                    graph.SaveToStream(writer, GetWriter(format));
+                }
+            }
         }
 
         public ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)

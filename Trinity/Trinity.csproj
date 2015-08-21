@@ -102,6 +102,7 @@
     <Compile Include="ITransactional.cs" />
     <Compile Include="Model\IModelGroup.cs" />
     <Compile Include="Model\ModelGroup.cs" />
+    <Compile Include="Model\RdfSerializationFormat.cs" />
     <Compile Include="Query\BindingSet.cs" />
     <Compile Include="Class.cs" />
     <Compile Include="Model\IModel.cs" />

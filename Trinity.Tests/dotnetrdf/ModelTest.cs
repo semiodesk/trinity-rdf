@@ -238,5 +238,44 @@ namespace dotNetRDFStore.Test
         {
 
         }
+
+        [Test]
+        public void ReadFromStringTest()
+        {
+            string turtle = @"@base <http://example.org/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rel: <http://www.perceive.net/schemas/relationship/> .
+
+<#green-goblin>
+    rel:enemyOf <#spiderman> ;
+    a foaf:Person ;    # in the context of the Marvel universe
+    foaf:name ""Green Goblin"" .
+<#spiderman>
+    rel:enemyOf <#green-goblin> ;
+    a foaf:Person ;
+    foaf:name ""Spiderman"", ""Человек-паук""@ru .";
+
+            using( Stream s = GenerateStreamFromString(turtle))
+            {
+                Assert.IsTrue(Model.Read(s, RdfSerializationFormat.Turtle));
+            }
+
+            IResource r = Model.GetResource(new Uri("http://example.org/#green-goblin"));
+            string name = r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/name"))) as string;
+            Assert.AreEqual("Green Goblin", name);
+
+        }
+
+        public Stream GenerateStreamFromString(string s)
+        {
+            MemoryStream stream = new MemoryStream();
+            StreamWriter writer = new StreamWriter(stream);
+            writer.Write(s);
+            writer.Flush();
+            stream.Position = 0;
+            return stream;
+        }
     }
 }

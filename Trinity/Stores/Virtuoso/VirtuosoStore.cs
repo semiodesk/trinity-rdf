@@ -41,6 +41,7 @@ using System.Diagnostics;
 using System.ComponentModel;
 using OpenLink.Data.Virtuoso;
 using VDS.RDF.Parsing;
+using VDS.RDF;
 
 namespace Semiodesk.Trinity.Store
 {
@@ -397,95 +398,113 @@ namespace Semiodesk.Trinity.Store
             ExecuteDirectQuery(queryString, transaction);
         }
 
-        public Uri Read(Uri graph, Uri url, RdfSerializationFormat format)
+        private string GetLocalPathFromUrl(Uri url)
         {
-            if (format == RdfSerializationFormat.Trig)
+            string path;
+            if (url.IsAbsoluteUri)
             {
-                return ReadQuadFormat(graph, url, format);
+                path = url.AbsolutePath;
             }
             else
             {
-                return ReadTripleFormat(graph, url, format);
+                path = Path.Combine(Directory.GetCurrentDirectory(), url.OriginalString.Substring(5));
+            }
+            return path;
+        }
+
+        public Uri Read(Uri graph, Uri url, RdfSerializationFormat format)
+        {
+            // Note: Accessing the file scheme here throws an exception in case the URL is relative..
+            if (url.IsFile)
+            {
+                string path = GetLocalPathFromUrl(url);
+
+                using (TextReader reader = File.OpenText(path))
+                {
+                    if (format == RdfSerializationFormat.Trig)
+                    {
+                        return ReadQuadFormat(reader, graph, format);
+                    }
+                    else
+                    {
+                        return ReadTripleFormat(reader, graph, format);
+                    }
+                } 
+            }
+            else if (url.Scheme == "http")
+            {
+                if (format == RdfSerializationFormat.Trig)
+                {
+                    throw new Exception("Loading of remote trig files is not supported yet.");
+                }
+                else
+                {
+                    return ReadRemoteTripleFormat(graph, url, format);
+                }
+            }
+            else
+            {
+                string msg = string.Format("Unkown URL scheme {0}", url.Scheme);
+                throw new ArgumentException(msg);
             }
         }
 
-        private Uri ReadQuadFormat(Uri graph, Uri url, RdfSerializationFormat format)
+        public Uri Read(Stream stream, Uri graph, RdfSerializationFormat format)
+        {
+            using (TextReader reader = new StreamReader(stream))
+            {
+                if (format == RdfSerializationFormat.Trig)
+                {
+                    return ReadQuadFormat(reader, graph, format);
+                }
+                else
+                {
+                    return ReadTripleFormat(reader, graph, format);
+                }
+            }
+        }
+
+        private Uri ReadQuadFormat(TextReader reader, Uri graph, RdfSerializationFormat format)
         {
             using (VDS.RDF.Storage.VirtuosoManager m = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
             {
                 using (VDS.RDF.ThreadSafeTripleStore store = new VDS.RDF.ThreadSafeTripleStore())
                 {
-                    // Note: Accessing the file scheme here throws an exception in case the URL is relative..
-                    if (url.IsFile)
+                    VDS.RDF.Parsing.TriGParser p = new TriGParser();
+                    p.Load(store, reader);
+                    foreach (var x in store.Graphs)
                     {
-                        string path;
-
-                        if (url.IsAbsoluteUri)
-                        {
-                            path = url.AbsolutePath;
-                        }
-                        else
-                        {
-                            path = Path.Combine(Directory.GetCurrentDirectory(), url.OriginalString.Substring(5));
-                        }
-
-
-                        VDS.RDF.Parsing.TriGParser p = new TriGParser();
-                        p.Load(store, path);
-                        foreach (var x in store.Graphs)
-                        {
-                            m.SaveGraph(x);
-                        }
+                        m.SaveGraph(x);
                     }
-                    else if (url.Scheme == "http")
-                    {
-                        throw new Exception("Loading of remote trig files is not supported yet.");
-
-                    }
-                    else
-                    {
-                        string msg = string.Format("Unkown URL scheme {0}", url.Scheme);
-                        throw new ArgumentException(msg);
-                    }
-
                 }
             }
 
             return graph;
         }
 
-        private Uri ReadTripleFormat(Uri graph, Uri url, RdfSerializationFormat format)
+        private Uri ReadTripleFormat(TextReader reader, Uri graphUri, RdfSerializationFormat format)
+        {
+            using (VDS.RDF.Storage.VirtuosoManager m = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
+            {
+                using (VDS.RDF.Graph graph = new VDS.RDF.Graph())
+                {
+                    IRdfReader parser = dotNetRDFStore.GetReader(format);
+                    parser.Load(graph, reader);
+                    graph.BaseUri = graphUri;
+                    m.SaveGraph(graph);
+                }
+            }
+
+            return graphUri;
+        }
+
+        private Uri ReadRemoteTripleFormat(Uri graph, Uri location, RdfSerializationFormat format)
         {
             using (VDS.RDF.Storage.VirtuosoManager m = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
             {
                 using (VDS.RDF.Graph g = new VDS.RDF.Graph())
                 {
-                    // Note: Accessing the file scheme here throws an exception in case the URL is relative..
-                    if ( url.IsFile )
-                    {
-                        string path;
-
-                        if (url.IsAbsoluteUri)
-                        {
-                            path = url.AbsolutePath;
-                        }
-                        else
-                        {
-                            path = Path.Combine(Directory.GetCurrentDirectory(), url.OriginalString.Substring(5));
-                        }
-
-                        VDS.RDF.Parsing.FileLoader.Load(g, path );
-                    }
-                    else if (url.Scheme == "http")
-                    {
-                        UriLoader.Load(g, url);
-
-                    }
-                    else
-                    {
-                        string msg = string.Format("Unkown URL scheme {0}", url.Scheme);
-                        throw new ArgumentException(msg);
-                    }
+                    UriLoader.Load(g, location);
                     g.BaseUri = graph;
                     m.SaveGraph(g);
                 }

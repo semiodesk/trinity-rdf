@@ -216,6 +216,9 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string GenerateDatasetClause(IEnumerable<IModel> models)
         {
+            if (models.Count() == 0)
+                return "";
+
             StringBuilder builder = new StringBuilder();
             foreach (var x in models)
             {
@@ -231,6 +234,9 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string GenerateDatasetClause(IModel model)
         {
+            if (model == null)
+                return "";
+
             if (model is IModelGroup)
                 return GenerateDatasetClause(model as IModelGroup);
 

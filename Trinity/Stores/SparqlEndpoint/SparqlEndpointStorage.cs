@@ -138,6 +138,11 @@ namespace Semiodesk.Trinity.Store
             throw new NotSupportedException();
         }
 
+        public Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format)
+        {
+            throw new NotSupportedException();
+        }
+
         public void Write(Stream fs, Uri graphUri, RdfSerializationFormat format)
         {
             throw new NotSupportedException();
@@ -170,5 +175,6 @@ namespace Semiodesk.Trinity.Store
         }
 
         #endregion
+
     }
 }
