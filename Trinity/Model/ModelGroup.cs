@@ -519,7 +519,12 @@ namespace Semiodesk.Trinity
 
         public void Write(Stream fs, RdfSerializationFormat format)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
+        }
+
+        public bool Read(Stream stream, RdfSerializationFormat format)
+        {
+            throw new NotSupportedException();
         }
 
         #endregion

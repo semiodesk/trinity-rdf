@@ -273,6 +273,14 @@ namespace Semiodesk.Trinity
         bool Read(Uri url, RdfSerializationFormat format);
 
         /// <summary>
+        /// Imports the contents of a graph serialized in the stream to this model.
+        /// </summary>
+        /// <param name="stream">The stream containing the serialization</param>
+        /// <param name="format">Format of the serialization</param>
+        /// <returns>True if the contents of the model were imported, False if not.</returns>
+        bool Read(Stream stream, RdfSerializationFormat format);
+
+        /// <summary>
         /// Serializes the contents of the model and provides a memory stream.
         /// </summary>
         /// <param name="fs">The file stream to write to.</param>
@@ -302,33 +310,4 @@ namespace Semiodesk.Trinity
 
         #endregion
     }
-
-    /// <summary>
-    /// Enumerates all supported RDF serialization formats.
-    /// </summary>
-    
-    public enum RdfSerializationFormat 
-    { 
-        /// <summary>
-        /// RDF/XML <see href="http://www.w3.org/TR/REC-rdf-syntax/">http://www.w3.org/TR/REC-rdf-syntax/</see>
-        /// </summary>
-        RdfXml,
-        /// <summary>
-        /// N3 <see href="http://www.w3.org/TeamSubmission/n3/">http://www.w3.org/TeamSubmission/n3/</see>
-        /// </summary>
-        N3, 
-        /// <summary>
-        /// NTriples <see href="http://www.w3.org/2001/sw/RDFCore/ntriples/">http://www.w3.org/2001/sw/RDFCore/ntriples/</see>
-        /// </summary>
-        NTriples, 
-        /// <summary>
-        /// TriG <see href="http://www.w3.org/TR/trig/">http://www.w3.org/TR/trig/</see>
-        /// </summary>
-        Trig,
-        /// <summary>
-        /// Turtle <see href="http://www.w3.org/TR/turtle/">http://www.w3.org/TR/turtle/</see>
-        /// </summary>
-        Turtle
-    };
-
 }

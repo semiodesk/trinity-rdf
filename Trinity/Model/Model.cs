@@ -642,6 +642,15 @@ namespace Semiodesk.Trinity
             return (_store.Read(Uri, url, format) != null);
         }
 
+
+        public bool Read(Stream stream, RdfSerializationFormat format)
+        {
+            if (format == RdfSerializationFormat.Trig)
+                throw new ArgumentException("Quadruple serialization formats are not supported by this method. Use IStore.Read() instead.");
+
+            return (_store.Read(stream, Uri, format) != null);
+        }
+
         /// <summary>
         /// Starts a transaction which can be used to group more queries together to be executed as one.
         /// </summary>
@@ -654,6 +663,9 @@ namespace Semiodesk.Trinity
 
 
         #endregion
+
+
+
 
     }
 }

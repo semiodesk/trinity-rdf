@@ -265,6 +265,11 @@ namespace Semiodesk.Trinity
             }
         }
 
+        public override string ToString()
+        {
+            return SparqlSerializer.Serialize(null, this);
+        }
+
         #endregion
     }
 }
