@@ -19,21 +19,6 @@ namespace Semiodesk.Trinity.Query
             QueryModelVisitor visitor = new QueryModelVisitor();
             visitor.VisitQueryModel(queryModel);
 
-            // Create an expression that returns the current item when invoked.
-            Expression currentItemExpression = Expression.Property(Expression.Constant(this), "Current");
-
-            // Now replace references like the "i" in "select i" that refers to the "i" in "from i in items"
-            var mapping = new QuerySourceMapping();
-            mapping.AddMapping(queryModel.MainFromClause, currentItemExpression);
-            queryModel.TransformExpressions(e =>
-                ReferenceReplacingExpressionTreeVisitor.ReplaceClauseReferences(e, mapping, true));
-
-            // Create a lambda that takes our SampleDataSourceItem and passes it through the select clause
-            // to produce a type of T.  (T may be SampleDataSourceItem, in which case this is an identity function.)
-            var currentItemProperty = Expression.Parameter(typeof(Resource));
-            var projection = Expression.Lambda<Func<Resource, T>>(queryModel.SelectClause.Selector, currentItemProperty);
-            var projector = projection.Compile();
-
             return new T[] { };
         }
 
