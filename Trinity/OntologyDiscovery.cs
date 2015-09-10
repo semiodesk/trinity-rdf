@@ -36,6 +36,7 @@ namespace Semiodesk.Trinity
 {
     /// <summary>
     /// This static class contains a mapping of all properties and classes to its uris for discovery of the proper object and its attributes.
+    /// For future reference: look into PreApplicationStartMethodAttribute Class or ModuleInitializer
     /// </summary>
     public static class OntologyDiscovery
     {

@@ -2,7 +2,7 @@
 <configuration xmlns:xdt="http://schemas.microsoft.com/XML-Document-Transform">
 
   <!-- Insert the settings first, they will be appended. NOTE: This ordering is neccessary! -->
-  <TrinitySettings namespace="$DefaultNameSpace$" xdt:Transform="InsertIfMissing">
+  <TrinitySettings namespace="$RootNamespace$" xdt:Transform="InsertIfMissing">
     <OntologySettings>
 	
       <!--http://www.w3.org/1999/02/22-rdf-syntax-ns#-->
@@ -15,22 +15,22 @@
         <FileSource Location="Ontologies\rdfs.n3" />
       </Ontology>
 	  
-	  <!--http://www.w3.org/2002/07/owl#-->
-	  <Ontology Uri ="http://www.w3.org/2002/07/owl#" Prefix="owl">
-		<FileSource Location ="Ontologies\owl.n3" />
-	  </Ontology>
+	    <!--http://www.w3.org/2002/07/owl#-->
+	    <Ontology Uri ="http://www.w3.org/2002/07/owl#" Prefix="owl">
+		    <FileSource Location ="Ontologies\owl.n3" />
+	    </Ontology>
     </OntologySettings>
 
     <VirtuosoStoreSettings>
-	<RuleSets>
-      <RuleSet Uri="urn:semiodesk/ruleset">
-        <Graphs>
-          <Graph Uri="http://www.w3.org/1999/02/22-rdf-syntax-ns#" />
-          <Graph Uri="http://www.w3.org/2000/01/rdf-schema#" />
-          <Graph Uri="http://www.w3.org/2002/07/owl#" />
-        </Graphs>
-      </RuleSet>
-	  </RuleSets>
+	    <RuleSets>
+        <RuleSet Uri="urn:semiodesk/ruleset">
+          <Graphs>
+            <Graph Uri="http://www.w3.org/1999/02/22-rdf-syntax-ns#" />
+            <Graph Uri="http://www.w3.org/2000/01/rdf-schema#" />
+            <Graph Uri="http://www.w3.org/2002/07/owl#" />
+          </Graphs>
+        </RuleSet>
+	    </RuleSets>
     </VirtuosoStoreSettings>
 	
   </TrinitySettings>

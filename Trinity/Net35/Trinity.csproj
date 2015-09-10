@@ -151,6 +151,9 @@
     <Compile Include="..\Model\Model.cs">
       <Link>Model\Model.cs</Link>
     </Compile>
+    <Compile Include="..\Model\RdfSerializationFormat.cs">
+      <Link>Model\RdfSerializationFormat.cs</Link>
+    </Compile>
     <Compile Include="..\Model\ModelChangedEventArgs.cs">
       <Link>Model\ModelChangedEventArgs.cs</Link>
     </Compile>

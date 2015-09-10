@@ -102,4 +102,4 @@ If you need help or want priority support, contact us under `hello@semiodesk.com
 .. _`Unity3D`: https://unity3d.com/
 .. _`dotNetRDF`: http://dotnetrdf.org/
 .. _`OpenLink.Data.Virtuoso`: https://github.com/openlink/virtuoso-opensource
-.. _`First Steps`: https://bitbucket.org/semiodesk/semiodesk.trinity/wiki/FirstSteps
+.. _`First Steps`: https://bitbucket.org/semiodesk/trinity/wiki/FirstSteps
