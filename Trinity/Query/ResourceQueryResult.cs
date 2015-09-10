@@ -167,6 +167,13 @@ namespace Semiodesk.Trinity
             }
         }
 
+        public override string ToString()
+        {
+            SparqlQuery query = new SparqlQuery(SparqlSerializer.Serialize(_model, _query));
+            query.SetModel(_model);
+            return query.Query;
+        }
+
         #endregion
     }
 }

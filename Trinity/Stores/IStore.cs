@@ -130,6 +130,22 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format);
 
+        /// <summary>
+        /// Loads a serialized graph from the given stream into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="stream">Stream containing a serialized graph</param>
+        /// <param name="graphUri">Uri of the graph in this store</param>
+        /// <param name="format">Allowed formats</param>
+        /// <returns></returns>
+        Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format);
+
+        /// <summary>
+        /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="graphUri">Uri of the graph in this store</param>
+        /// <param name="url">Location</param>
+        /// <param name="format">Allowed formats</param>
+        /// <returns></returns>
         void Write(Stream fs, Uri graphUri, RdfSerializationFormat format);
 
 

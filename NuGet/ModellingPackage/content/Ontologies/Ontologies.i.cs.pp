@@ -2,7 +2,7 @@
 using System.Reflection;
 using Semiodesk.Trinity;
 
-namespace $DefaultNameSpace$
+namespace $RootNamespace$
 {
     public static class SemiodeskDiscovery
     {
