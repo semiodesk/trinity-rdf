@@ -12,9 +12,8 @@ namespace Semiodesk.Trinity.Query
     class QueryModelVisitor : QueryModelVisitorBase
     {
         #region Members
-        Dictionary<Expression, ResourceQuery> _queries = new Dictionary<Expression, ResourceQuery>();
-        public QuerySourceMapping Mapping { get; private set; }
-        public Dictionary<Expression, ResourceQuery> Queries { get { return _queries; } }
+        Dictionary<Type, ResourceQuery> _queryType = new Dictionary<Type, ResourceQuery>();
+        Dictionary<Type, Resource> _instances = new Dictionary<Type, Resource>();
         public List<IPropertyMapping> PropertyMappings;
         #endregion
 
@@ -26,10 +25,12 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitMainFromClause(Remotion.Linq.Clauses.MainFromClause fromClause, QueryModel queryModel)
         {
-            Mapping = new QuerySourceMapping();
             IList<Class> classes = MappingDiscovery.GetRdfClasses(fromClause.ItemType);
             var q = new ResourceQuery(classes);
-            _queries.Add(fromClause.FromExpression, q);
+            var x = (Resource)Activator.CreateInstance(fromClause.ItemType, new UriRef("semio:empty"));
+            _instances.Add(fromClause.ItemType, x);
+            _queryType.Add(fromClause.ItemType, q);
+            
             
             //PropertyMappings = MappingDiscovery.ListMappings()
 
@@ -52,6 +53,20 @@ namespace Semiodesk.Trinity.Query
             base.VisitSelectClause(selectClause, queryModel);
         }
 
+        //((Remotion.Linq.Clauses.Expressions.QuerySourceReferenceExpression)(exp))
+        public ResourceQuery GetResourceQuery(Expression exp)
+        {
+            ResourceQuery q = null;
+            _queryType.TryGetValue(exp.Type, out q);
+            return q;
+        }
+
+        public IPropertyMapping GetMapping(Type type, string propertyName)
+        {
+            Resource res = null;
+            _instances.TryGetValue(type, out res);
+            return res.GetPropertyMapping(propertyName);
+        }
         
 
         #endregion

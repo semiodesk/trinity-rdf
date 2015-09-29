@@ -29,19 +29,20 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void LinqTest1()
         {
-            
+         
             IStore s = StoreFactory.CreateStore("provider=dotnetrdf");
             IModel model = s.CreateModel(new Uri("http://test.com/test"));
-            var x = from res in model.ListResources<MappingTestClass>() where res.uniqueIntTest < 5 select res;
+            var x = from res in model.ListResources<MappingTestClass>() where res.uniqueIntTest < 5select res;
             var ret = x.ToList();
         }
 
         [Test]
         public void LinqTest2()
         {
+            string b = "blub";
             IStore s = StoreFactory.CreateStore("provider=dotnetrdf");
             IModel model = s.CreateModel(new Uri("http://test.com/test"));
-            var x = from res in model.ListResources<MappingTestClass>() where res.uniqueIntTest < 5 && res.uniqueResourceTest.uniqueStringTest == "abc" select res;
+            var x = from res in model.ListResources<MappingTestClass>() where res.uniqueIntTest < 5 && res.uniqueResourceTest.uniqueStringTest == "abc" && res.uniqueResourceTest.uniqueStringTest == "Test" || res.uniqueStringTest == b select res;
             var ret = x.ToList();
         }
     }
