@@ -56,7 +56,12 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitMemberExpression(MemberExpression expression)
         {
-            return base.VisitMemberExpression(expression);
+            //_visitor.GetResourceQuery(expression.)
+            ResourceQuery q = _visitor.GetResourceQuery(expression.Expression);
+
+            IPropertyMapping mapping = _visitor.GetMapping(expression.Expression.Type, expression.Member.Name);
+            return null;
+            //return base.VisitMemberExpression(expression);
         }
 
         protected override Exception CreateUnhandledItemException<T>(T unhandledItem, string visitMethod)
