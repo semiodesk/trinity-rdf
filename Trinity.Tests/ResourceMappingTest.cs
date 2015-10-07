@@ -325,6 +325,7 @@ namespace Semiodesk.Trinity.Tests
                 MappingDiscovery.RegisterAssembly(Assembly.GetExecutingAssembly());
                 RegisterOntologies.Register();
                 ResourceMappingTest.RegisteredOntology = true;
+                
             }
 
         }
@@ -1137,7 +1138,7 @@ namespace Semiodesk.Trinity.Tests
         IModel GetModel()
         {
 
-            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
+            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba;rule=urn:semiodesk/test/ruleset");
 
             Uri testModelUri = new Uri("http://example.org/TestModel");
 

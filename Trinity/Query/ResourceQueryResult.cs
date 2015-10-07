@@ -107,19 +107,20 @@ namespace Semiodesk.Trinity
 
             IEnumerable<BindingSet> bindings = _model.ExecuteQuery(query, _inferenceEnabled).GetBindings();
             Uri uri = null;
-
-            foreach (BindingSet binding in bindings)
+            if (bindings != null)
             {
-                Uri u = binding["s0"] as Uri;
-
-                if (u != uri)
+                foreach (BindingSet binding in bindings)
                 {
-                    result.Add(binding["s0"] as Uri);
+                    Uri u = binding["s0"] as Uri;
+
+                    if (u != uri)
+                    {
+                        result.Add(binding["s0"] as Uri);
+                    }
+
+                    uri = u;
                 }
-
-                uri = u;
             }
-
             return result;
         }
 

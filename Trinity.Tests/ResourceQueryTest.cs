@@ -60,7 +60,7 @@ namespace Semiodesk.Trinity.Tests
         [SetUp]
         public void SetUp()
         {
-            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
+            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba;rule=urn:semiodesk/test/ruleset");
 
 
             UriRef uri = new UriRef("http://localhost:8899/models/ResourceQueryTest");
