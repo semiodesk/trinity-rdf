@@ -228,9 +228,9 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                 yield return i;
             }
 
-            yield return processor.Create(OpCodes.Stloc_0);
-            yield return processor.Create(OpCodes.Br_S, ldloc0);
-            yield return ldloc0;
+            //yield return processor.Create(OpCodes.Stloc_0);
+            //yield return processor.Create(OpCodes.Br_S, ldloc0);
+            //yield return ldloc0;
             yield return processor.Create(OpCodes.Ret);
         }
 
