@@ -25,10 +25,13 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
+
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using VDS.RDF;
 using VDS.RDF.Parsing;
@@ -37,7 +40,7 @@ using VDS.RDF.Query.Datasets;
 using VDS.RDF.Query.Inference;
 using VDS.RDF.Update;
 using VDS.RDF.Writing;
-
+using TrinitySettings = Semiodesk.Trinity.Configuration.TrinitySettings;
 
 namespace Semiodesk.Trinity.Store
 {
@@ -166,7 +169,8 @@ namespace Semiodesk.Trinity.Store
         {
             foreach (var g in _store.Graphs)
             {
-                yield return new Model(this, new UriRef(g.BaseUri));
+                if( g.BaseUri != null)
+                    yield return new Model(this, new UriRef(g.BaseUri));
             }
         }
 
@@ -245,7 +249,7 @@ namespace Semiodesk.Trinity.Store
                         TripleStore s = new TripleStore();
                         s.LoadFromFile(path, new TriGParser());
 
-                        foreach (Graph g in s.Graphs)
+                        foreach (VDS.RDF.Graph g in s.Graphs)
                         {
                             _store.Add(g, true);
                         }
@@ -321,6 +325,22 @@ namespace Semiodesk.Trinity.Store
             _store.Dispose();
         }
 
+        public void LoadOntologySettings(string sourceDir = "")
+        {
+            Trinity.Configuration.TrinitySettings settings;
+            settings = (TrinitySettings)ConfigurationManager.GetSection("TrinitySettings");
+            DirectoryInfo srcDir;
+            if (string.IsNullOrEmpty(sourceDir))
+            {
+                srcDir = new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+            }
+            else
+            {
+                srcDir = new DirectoryInfo(sourceDir);
+            }
+            StoreUpdater updater = new StoreUpdater(this, srcDir);
+            updater.UpdateOntologies(settings.Ontologies);
+        }
         #endregion
         #endregion
     }

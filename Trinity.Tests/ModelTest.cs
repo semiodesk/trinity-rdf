@@ -51,7 +51,8 @@ namespace Semiodesk.Trinity.Tests
         [SetUp]
         public void SetUp()
         {
-            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba;rule=urn:semiodesk/ruleset");
+            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba;rule=urn:semiodesk/test/ruleset");
+            _store.LoadOntologySettings();
             try
             {
                 // Default uri scheme
@@ -146,6 +147,8 @@ namespace Semiodesk.Trinity.Tests
             Uri modelUri2 = new Uri("http://www.example.com/");
             _store.RemoveModel(modelUri);
             _store.RemoveModel(modelUri2);
+            Assert.IsFalse(_store.ContainsModel(modelUri));
+            Assert.IsFalse(_store.ContainsModel(modelUri2));
 
             
             IModel model = _store.CreateModel(modelUri);

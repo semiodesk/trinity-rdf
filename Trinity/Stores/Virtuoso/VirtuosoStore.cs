@@ -42,6 +42,9 @@ using System.ComponentModel;
 using OpenLink.Data.Virtuoso;
 using VDS.RDF.Parsing;
 using VDS.RDF;
+using Semiodesk.Trinity.Configuration;
+using System.Configuration;
+using System.Reflection;
 
 namespace Semiodesk.Trinity.Store
 {
@@ -545,6 +548,30 @@ namespace Semiodesk.Trinity.Store
             }
 
             return new ModelGroup(this, modelList);
+        }
+
+        public void LoadOntologySettings(string sourceDir = "")
+        {
+            Trinity.Configuration.TrinitySettings settings;
+            settings = (TrinitySettings)ConfigurationManager.GetSection("TrinitySettings");
+            DirectoryInfo srcDir;
+            if (string.IsNullOrEmpty(sourceDir))
+            {
+                srcDir = new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+            }
+            else
+            {
+                srcDir = new DirectoryInfo(sourceDir);
+            }
+            StoreUpdater updater = new StoreUpdater(this, srcDir);
+            updater.UpdateOntologies(settings.Ontologies);
+
+            if (settings.VirtuosoStoreSettings != null)
+            {
+                IStorageSpecific spec = new VirtuosoSettings(settings.VirtuosoStoreSettings);
+                updater.UpdateStorageSpecifics(spec);
+            }
+            
         }
         #endregion
 
