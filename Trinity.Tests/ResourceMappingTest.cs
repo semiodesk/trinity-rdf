@@ -273,6 +273,22 @@ namespace Semiodesk.Trinity.Tests
         #endregion
     }
 
+    public class MappingTestClass5 : MappingTestClass3
+    {
+        #region Constructors
+        public MappingTestClass5(Uri uri) : base(uri) { }
+        #endregion
+
+        #region Mapping
+
+        public override IEnumerable<Class> GetTypes()
+        {
+            return new List<Class> { TestOntology.TestClass4 };
+        }
+
+        #endregion
+    }
+
     public class StringMappingTestClass : Resource
     {
         #region Constructors
@@ -325,6 +341,7 @@ namespace Semiodesk.Trinity.Tests
                 MappingDiscovery.RegisterAssembly(Assembly.GetExecutingAssembly());
                 RegisterOntologies.Register();
                 ResourceMappingTest.RegisteredOntology = true;
+                
             }
 
         }
@@ -1109,6 +1126,35 @@ namespace Semiodesk.Trinity.Tests
 
             Resource r3 = m.GetResource<Resource>(t3Uri);
             Assert.AreEqual(t3, r3);
+
+        }
+
+        [Test]
+        public void MultipeTypesMappingTest()
+        {
+            IModel m = GetModel();
+            m.Clear();
+
+            Uri t3Uri = new Uri("semio:test:testInstance3");
+            MappingTestClass5 t3 = m.CreateResource<MappingTestClass5>(t3Uri);
+            t3.uniqueStringTest = "testing 3";
+            t3.AddProperty(rdf.type, nco.Affiliation);
+            t3.Commit();
+
+            Resource r3 = m.GetResource<Resource>(t3Uri);
+            Assert.AreEqual(typeof(MappingTestClass5), r3.GetType());
+
+            m.Clear();
+            t3 = m.CreateResource<MappingTestClass5>(t3Uri);
+            t3.uniqueStringTest = "testing 3";
+            t3.AddProperty(rdf.type, nco.Contact);
+            t3.Commit();
+
+            r3 = m.GetResource<MappingTestClass5>(t3Uri);
+            Assert.AreEqual(typeof(MappingTestClass5), r3.GetType());
+
+            r3 = m.GetResource<Contact>(t3Uri);
+            Assert.AreEqual(typeof(Contact), r3.GetType());
         }
 
         [Test]
@@ -1137,7 +1183,7 @@ namespace Semiodesk.Trinity.Tests
         IModel GetModel()
         {
 
-            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
+            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba;rule=urn:semiodesk/test/ruleset");
 
             Uri testModelUri = new Uri("http://example.org/TestModel");
 

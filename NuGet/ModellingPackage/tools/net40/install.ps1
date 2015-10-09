@@ -16,20 +16,49 @@ $ontologiesDir = $project.ProjectItems | where-object { $_.Name.ToLower() -eq "o
 
 if(!$ontologiesDir)
 {
-    write-host "Creating Ontologies folder.."
+    write-host "Creating Ontologies folder..."
 
     $ontologiesDir = $project.ProjectItems.AddFolder("Ontologies");
 }
 
 if($ontologiesDir)
 {
-    write-host "Adding Ontologies.g.cs.."
+    #write-host "Adding Ontologies.g.cs..."
 
     # We add the ontologies file to the project for cross-platform compatibility with Xamarin Studio.
-    $item = $ontologiesDir.ProjectItems.AddFromFileCopy("$installPath\Ontologies.g.cs");
+	#$item = $ontologiesDir.ProjectItems | where-object { $_.Name.ToLower() -eq "ontologies.g.cs" };
+	#if( !$item )
+	#{
+	#	$item = $ontologiesDir.ProjectItems.AddFromFileCopy("$installPath\Ontologies.g.cs");
+	#}
 
-    write-host "Setting build action for Ontologies.g.cs.."
+    #write-host "Setting build action for Ontologies.g.cs..."
 
     # Set the build action to 'Compile', see: https://msdn.microsoft.com/en-us/library/aa983962(VS.71).aspx
-    $item.Properties.Item("BuildAction").Value = [int]1;
+    #$item.Properties.Item("BuildAction").Value = [int]1;
+	
+	
+	write-host "Copying ontologies..."
+
+	$pi = $ontologiesDir.ProjectItems | where-object { $_.Name.ToLower() -eq "owl.n3" };
+	if( !$pi )
+	{
+		$pi = $ontologiesDir.ProjectItems.AddFromFileCopy("$installPath\content\Ontologies\owl.n3");
+	}
+	$pi.Properties.Item("CopyToOutputDirectory").Value = 1;
+
+	$pi = $ontologiesDir.ProjectItems | where-object { $_.Name.ToLower() -eq "rdf.rdf" };
+	if( !$pi )
+	{
+		$pi = $ontologiesDir.ProjectItems.AddFromFileCopy("$installPath\content\Ontologies\rdf.rdf");
+	}
+	$pi.Properties.Item("CopyToOutputDirectory").Value = 1;
+
+	$pi = $ontologiesDir.ProjectItems | where-object { $_.Name.ToLower() -eq "rdfs.n3" };
+	if( !$pi )
+	{
+		$pi = $ontologiesDir.ProjectItems.AddFromFileCopy("$installPath\content\Ontologies\rdfs.n3");
+	}
+	$pi.Properties.Item("CopyToOutputDirectory").Value = 1;
+
 }

@@ -142,47 +142,47 @@
     <Compile Include="..\ITransactional.cs">
       <Link>ITransactional.cs</Link>
     </Compile>
-    <Compile Include="..\Model\IModel.cs">
-      <Link>Model\IModel.cs</Link>
-    </Compile>
     <Compile Include="..\Model\IModelGroup.cs">
       <Link>Model\IModelGroup.cs</Link>
     </Compile>
-    <Compile Include="..\Model\Model.cs">
-      <Link>Model\Model.cs</Link>
+	<Compile Include="..\Model\ModelGroup.cs">
+      <Link>Model\ModelGroup.cs</Link>
     </Compile>
     <Compile Include="..\Model\RdfSerializationFormat.cs">
       <Link>Model\RdfSerializationFormat.cs</Link>
     </Compile>
+	<Compile Include="..\Query\BindingSet.cs">
+      <Link>Query\BindingSet.cs</Link>
+    </Compile>
+	    <Compile Include="..\Class.cs">
+      <Link>Class.cs</Link>
+    </Compile>
+	<Compile Include="..\Model\IModel.cs">
+      <Link>Model\IModel.cs</Link>
+    </Compile>
+	<Compile Include="..\Query\FilterOperation.cs">
+      <Link>Query\FilterOperation.cs</Link>
+    </Compile>
+	<Compile Include="..\Query\InvalidQueryException.cs">
+      <Link>Query\InvalidQueryException.cs</Link>
+    </Compile>
+	    <Compile Include="..\MappingDiscovery.cs">
+      <Link>MappingDiscovery.cs</Link>
+    </Compile>
+    <Compile Include="..\Model\Model.cs">
+      <Link>Model\Model.cs</Link>
+    </Compile>
     <Compile Include="..\Model\ModelChangedEventArgs.cs">
       <Link>Model\ModelChangedEventArgs.cs</Link>
-    </Compile>
-    <Compile Include="..\Model\ModelGroup.cs">
-      <Link>Model\ModelGroup.cs</Link>
     </Compile>
     <Compile Include="..\Model\ModelManager.cs">
       <Link>Model\ModelManager.cs</Link>
     </Compile>
+	<Compile Include="..\NamespaceManager.cs">
+      <Link>NamespaceManager.cs</Link>
+    </Compile>
     <Compile Include="..\Ontology.cs">
       <Link>Ontology.cs</Link>
-    </Compile>
-    <Compile Include="..\Query\BindingSet.cs">
-      <Link>Query\BindingSet.cs</Link>
-    </Compile>
-    <Compile Include="..\Class.cs">
-      <Link>Class.cs</Link>
-    </Compile>
-    <Compile Include="..\Query\FilterOperation.cs">
-      <Link>Query\FilterOperation.cs</Link>
-    </Compile>
-    <Compile Include="..\Query\InvalidQueryException.cs">
-      <Link>Query\InvalidQueryException.cs</Link>
-    </Compile>
-    <Compile Include="..\MappingDiscovery.cs">
-      <Link>MappingDiscovery.cs</Link>
-    </Compile>
-    <Compile Include="..\NamespaceManager.cs">
-      <Link>NamespaceManager.cs</Link>
     </Compile>
     <Compile Include="..\OntologyDiscovery.cs">
       <Link>OntologyDiscovery.cs</Link>
@@ -223,11 +223,11 @@
     <Compile Include="..\Query\StatementPattern.cs">
       <Link>Query\StatementPattern.cs</Link>
     </Compile>
-    <Compile Include="..\StoreFactory.cs">
-      <Link>StoreFactory.cs</Link>
+    <Compile Include="..\Stores\StoreProvider.cs">
+      <Link>Stores\StoreProvider.cs</Link>
     </Compile>
-    <Compile Include="..\StoreProvider.cs">
-      <Link>StoreProvider.cs</Link>
+	<Compile Include="..\Stores\StoreFactory.cs">
+      <Link>Stores\StoreFactory.cs</Link>
     </Compile>
     <Compile Include="..\Stores\dotNetRDF\dotNetRDFQueryResult.cs">
       <Link>Stores\dotNetRDF\dotNetRDFQueryResult.cs</Link>
@@ -238,11 +238,17 @@
     <Compile Include="..\Stores\dotNetRDF\dotNetRDFStoreProvider.cs">
       <Link>Stores\dotNetRDF\dotNetRDFStoreProvider.cs</Link>
     </Compile>
+	<Compile Include="..\Stores\IStorageSpecific.cs">
+      <Link>Stores\IStorageSpecific.cs</Link>
+    </Compile>
     <Compile Include="..\Stores\IStore.cs">
       <Link>Stores\IStore.cs</Link>
     </Compile>
     <Compile Include="..\Stores\ITransaction.cs">
       <Link>Stores\ITransaction.cs</Link>
+    </Compile>
+	<Compile Include="..\Stores\StoreUpdater.cs">
+      <Link>Stores\StoreUpdater.cs</Link>
     </Compile>
     <Compile Include="..\Stores\SparqlEndpoint\SparqlEndpointQueryResult.cs">
       <Link>Stores\SparqlEndpoint\SparqlEndpointQueryResult.cs</Link>
@@ -252,6 +258,9 @@
     </Compile>
     <Compile Include="..\Stores\SparqlEndpoint\SparqlEndpointStoreProvider.cs">
       <Link>Stores\SparqlEndpoint\SparqlEndpointStoreProvider.cs</Link>
+    </Compile>
+	<Compile Include="..\Stores\Virtuoso\VirtuosoSpecific.cs">
+      <Link>Stores\Virtuoso\VirtuosoSpecific.cs</Link>
     </Compile>
     <Compile Include="..\Stores\Virtuoso\VirtuosoStoreProvider.cs">
       <Link>Stores\Virtuoso\VirtuosoStoreProvider.cs</Link>

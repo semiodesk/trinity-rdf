@@ -29,6 +29,7 @@ using System;
 using System.IO;
 using NUnit.Framework;
 using Semiodesk.Trinity;
+using System.Linq;
 
 namespace dotNetRDFStore.Test
 {
@@ -50,6 +51,16 @@ namespace dotNetRDFStore.Test
         {
             Store.Dispose();
             Store = null;
+        }
+
+        [Test]
+        public void LoadOntologiesTest()
+        {
+            Uri testModel = new Uri("ex:Test");
+
+            Store.LoadOntologySettings();
+
+            Assert.AreEqual(6, Store.ListModels().Count());
         }
 
         [Test]

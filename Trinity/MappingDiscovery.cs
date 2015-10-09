@@ -197,11 +197,11 @@ namespace Semiodesk.Trinity
         {
             if( !inferencingEnabled )
                 return (IList<Type>)(from t in MappingClasses
-                                     where t.RdfClasses.Intersect(classes).Count() == classes.Count && type.IsAssignableFrom(t.MappingClassType)
+                                     where t.RdfClasses.Count > 0 && t.RdfClasses.Intersect(classes).Count() == t.RdfClasses.Count && type.IsAssignableFrom(t.MappingClassType)
                                      select t.MappingClassType).ToList();
             else
                 return (IList<Type>)(from t in MappingClasses
-                                     where t.InferencedRdfClasses.Intersect(classes).Count() == classes.Count && type.IsAssignableFrom(t.MappingClassType)
+                                     where t.InferencedRdfClasses.Intersect(classes).Count() == t.RdfClasses.Count && type.IsAssignableFrom(t.MappingClassType)
                                      select t.MappingClassType).ToList();
         }
 
