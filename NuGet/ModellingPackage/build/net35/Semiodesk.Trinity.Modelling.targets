@@ -6,15 +6,17 @@
   
   <UsingTask TaskName="CilGeneratorTask" AssemblyFile="$(MSBuildThisFileDirectory)../../tools/net35/cilg.exe" />
   <UsingTask TaskName="GenerateOntology" AssemblyFile="$(MSBuildThisFileDirectory)../../tools/net35/OntologyGenerator.exe" />
-  <UsingTask TaskName="DeployOntology" AssemblyFile="$(MSBuildThisFileDirectory)../../tools/net35/OntologyDeployment.exe" />
 
   <Target Name="GenerateOntologies">
     <GenerateOntology ProjectPath="$(ProjectDir)/$(ProjectName)$(ProjectExt)" IntermediatePath="$(ProjectDir)/Ontologies/" />
+	
+	<ItemGroup>
+		<Compile Include="Ontologies\Ontologies.g.cs" Exclude="@(Compile)" />
+	</ItemGroup>
   </Target>
   
   <Target Name="CilGeneratorTarget" AfterTargets="Build">
     <CilGeneratorTask TargetFile="$(TargetDir)/$(TargetName)$(TargetExt)" />
-    <DeployOntology ProjectPath="$(ProjectDir)/$(ProjectName)$(ProjectExt)" />
   </Target>
 
 </Project>

@@ -67,6 +67,7 @@ namespace Semiodesk.Trinity.Tests
         public static readonly Class TestClass = new Class(new Uri(TestClassString));
         public static readonly Class TestClass2 = new Class(new Uri("semio:test:TestClass2"));
         public static readonly Class TestClass3 = new Class(new Uri("semio:test:TestClass3"));
+        public static readonly Class TestClass4 = new Class(new Uri("semio:test:TestClass4"));
 
         public const string genericTestString = "semio:test:genericTest";
         public static readonly Property genericTest = new Property(new Uri(genericTestString));

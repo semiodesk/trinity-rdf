@@ -89,7 +89,8 @@ namespace Semiodesk.Trinity.OntologyGenerator
             "do", "is", "sizeof", "while",
             "double", "lock", "stackalloc",	 
             "else", "long", "static",
-            "enum", "namespace", "string"
+            "enum", "namespace", "string", 
+            "Namespace", "Prefix"
         };
         private string _namespace;
 

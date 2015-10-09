@@ -596,7 +596,8 @@ namespace Semiodesk.Trinity
         public IEnumerable<T> GetResources<T>(bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
         {
             T temp = (T)Activator.CreateInstance(typeof(T), new Uri("semio:desk"));
-            ResourceQuery query = new ResourceQuery(temp.GetTypes());            
+            ResourceQuery query = new ResourceQuery(temp.GetTypes());
+            query.InferencingEnabled = inferenceEnabled;
 
             return GetResources<T>(query, inferenceEnabled, transaction);
         }
