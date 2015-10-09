@@ -52,8 +52,14 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 var logger = new TaskLogger(BuildEngine);
                 FileInfo projectFile = new FileInfo(ProjectPath);
                 FileInfo configFile = null;
+                IEnumerable<string> allFiles;
+                #if NET_3_5
+                allFiles = Directory.GetFiles(projectFile.DirectoryName);
+                #else
+                allFiles = Directory.EnumerateFiles(projectFile.DirectoryName);
+                #endif
 
-                foreach (string file in Directory.EnumerateFiles(projectFile.DirectoryName))
+                foreach (string file in allFiles)
                 {
                     string filename = file.ToLower();
                     if( filename.EndsWith("app.config") || filename.EndsWith("web.config" ))
