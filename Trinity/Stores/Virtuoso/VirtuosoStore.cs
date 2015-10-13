@@ -406,7 +406,7 @@ namespace Semiodesk.Trinity.Store
             string path;
             if (url.IsAbsoluteUri)
             {
-                path = url.AbsolutePath;
+                path = url.LocalPath;
             }
             else
             {
