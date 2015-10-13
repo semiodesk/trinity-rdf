@@ -235,7 +235,7 @@ namespace Semiodesk.Trinity.Store
 
                 if (url.IsAbsoluteUri)
                 {
-                    path = url.AbsolutePath;
+                    path = url.LocalPath;
                 }
                 else
                 {
