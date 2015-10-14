@@ -168,7 +168,7 @@ namespace Semiodesk.Trinity
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
         public IResource CreateResource(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null)
         {
-            return CreateResource<Resource>(format);
+            return CreateResource<Resource>(format, transaction);
         }
 
         /// <summary>
@@ -180,7 +180,7 @@ namespace Semiodesk.Trinity
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
         public IResource CreateResource(Uri uri, ITransaction transaction = null)
         {
-            if (ContainsResource(uri))
+            if (ContainsResource(uri, transaction))
             {
                 string msg = "A resource with the given URI already exists.";
                 throw new ArgumentException(msg);
@@ -202,7 +202,7 @@ namespace Semiodesk.Trinity
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
         public T CreateResource<T>(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null) where T : Resource
         {
-            return CreateResource(UriRef.GetGuid(format), typeof(T)) as T;
+            return CreateResource(UriRef.GetGuid(format), typeof(T), transaction) as T;
         }
 
         /// <summary>
@@ -215,7 +215,7 @@ namespace Semiodesk.Trinity
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
         public T CreateResource<T>(Uri uri, ITransaction transaction = null) where T : Resource 
         {
-            return CreateResource(uri, typeof(T)) as T;
+            return CreateResource(uri, typeof(T), transaction) as T;
         }
 
         /// <summary>
@@ -228,7 +228,7 @@ namespace Semiodesk.Trinity
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
         public object CreateResource(Type t, string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null)
         {
-            return CreateResource(UriRef.GetGuid(format), t);
+            return CreateResource(UriRef.GetGuid(format), t, transaction);
         }
 
         /// <summary>
@@ -247,7 +247,7 @@ namespace Semiodesk.Trinity
                 throw new ArgumentException("The given type is not derived from Resource.");
             }
 
-            if (ContainsResource(uri))
+            if (ContainsResource(uri, transaction))
             {
                 string msg = "A resource with the given URI already exists.";
                 throw new ArgumentException(msg);
@@ -272,7 +272,7 @@ namespace Semiodesk.Trinity
                 SparqlSerializer.SerializeUri(Uri),
                 SparqlSerializer.SerializeUri(uri));
             SparqlUpdate update = new SparqlUpdate(updateString);
-            _store.ExecuteNonQuery(update);
+            _store.ExecuteNonQuery(update, transaction);
         }
 
         /// <summary>
@@ -300,7 +300,7 @@ namespace Semiodesk.Trinity
                     SparqlSerializer.SerializeResource(resource));
                 SparqlUpdate update = new SparqlUpdate(updateString);
                 update.Resource = resource;
-                ExecuteUpdate(update);
+                ExecuteUpdate(update, transaction);
             }
             else
             {
@@ -310,7 +310,7 @@ namespace Semiodesk.Trinity
                     SparqlSerializer.SerializeResource(resource));
                 SparqlUpdate update = new SparqlUpdate(updateString);
                 update.Resource = resource;
-                ExecuteUpdate(update);
+                ExecuteUpdate(update, transaction);
             }
 
             resource.IsNew = false;
@@ -378,7 +378,7 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">ransaction associated with this action.</param>
         public void ExecuteUpdate(SparqlUpdate update, ITransaction transaction = null)
         {
-            _store.ExecuteNonQuery(update);
+            _store.ExecuteNonQuery(update, transaction);
         }
 
         /// <summary>

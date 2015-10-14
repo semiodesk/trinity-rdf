@@ -174,11 +174,8 @@ namespace Semiodesk.Trinity.Store
             return new ModelGroup(this, modelList);
         }
 
-        public void LoadOntologySettings(DirectoryInfo sourceDir = null)
-        {
-            throw new NotSupportedException();
-        }
-        public void LoadOntologySettings(string sourceDir = null)
+
+        public void LoadOntologySettings(string configPath = null, string sourceDir = null)
         {
             throw new NotSupportedException();
         }

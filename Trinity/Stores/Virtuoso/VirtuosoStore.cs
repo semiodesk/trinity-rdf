@@ -134,6 +134,7 @@ namespace Semiodesk.Trinity.Store
 
             Connection = new VirtuosoConnection();
             Connection.ConnectionString = CreateConnectionString();
+            
             Connection.Open();
         }
 
@@ -267,7 +268,7 @@ namespace Semiodesk.Trinity.Store
 
         public ISparqlQueryResult ExecuteQuery(SparqlQuery query, ITransaction transaction = null)
         {
-            return new VirtuosoSparqlQueryResult(query.Model, query, this);
+            return new VirtuosoSparqlQueryResult(query.Model, query, this, transaction);
         }
 
         internal string CreateQuery(SparqlQuery query)
@@ -550,10 +551,30 @@ namespace Semiodesk.Trinity.Store
             return new ModelGroup(this, modelList);
         }
 
-        public void LoadOntologySettings(string sourceDir = "")
+        public void LoadOntologySettings(string configPath = null, string sourceDir = "")
         {
             Trinity.Configuration.TrinitySettings settings;
-            settings = (TrinitySettings)ConfigurationManager.GetSection("TrinitySettings");
+            if (!string.IsNullOrEmpty(configPath) && File.Exists(configPath))
+            {
+                ExeConfigurationFileMap configMap = new ExeConfigurationFileMap();
+
+                configMap.ExeConfigFilename = configPath;
+
+                var configuration = ConfigurationManager.OpenMappedExeConfiguration(configMap, ConfigurationUserLevel.None);
+                try
+                {
+                    settings = (TrinitySettings)configuration.GetSection("TrinitySettings");
+                }
+                catch (Exception e)
+                {
+                    throw new Exception(string.Format("Could not read config file from {0}. Reason: {1}", configPath, e.Message));
+                }
+            }
+            else
+            {
+                settings = (TrinitySettings)ConfigurationManager.GetSection("TrinitySettings");
+            }
+
             DirectoryInfo srcDir;
             if (string.IsNullOrEmpty(sourceDir))
             {

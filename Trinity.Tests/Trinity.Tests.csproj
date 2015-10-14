@@ -121,8 +121,13 @@
     <Compile Include="UriRefTest.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="custom.config">
+      <SubType>Designer</SubType>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="App.config">
       <SubType>Designer</SubType>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Models\test-vocab.rdf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
