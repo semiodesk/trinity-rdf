@@ -152,8 +152,7 @@ namespace Semiodesk.Trinity
         /// Loads Ontologies defined in the currently loaded config file into the store.
         /// </summary>
         /// <param name="sourceDir"></param>
-        void LoadOntologySettings(string sourceDir = null);
-        
+        void LoadOntologySettings(string configPath = null, string sourceDir = null);
 
 
         #endregion
