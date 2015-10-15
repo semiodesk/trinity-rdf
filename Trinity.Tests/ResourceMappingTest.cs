@@ -879,7 +879,7 @@ namespace Semiodesk.Trinity.Tests
             t1.Commit();
 
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
-            Assert.AreEqual(t1.uniqueDateTimeTest, t_actual.uniqueDateTimeTest);
+            Assert.AreEqual(t1.uniqueDateTimeTest, t_actual.uniqueDateTimeTest.ToLocalTime());
 
             m.Clear();
         }

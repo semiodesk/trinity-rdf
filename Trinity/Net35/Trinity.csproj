@@ -34,13 +34,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="dotNetRDF, Version=1.0.8.3533, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Net35\packages\dotNetRDF.1.0.8.3533\lib\net35\dotNetRDF.dll</HintPath>
+    <Reference Include="dotNetRDF, Version=1.0.9.3683, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\dotNetRDF.1.0.9.3683\lib\net35\dotNetRDF.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="dotNetRDF.Data.Virtuoso, Version=1.0.8.3533, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Net35\packages\dotNetRDF.Data.Virtuoso.1.0.8.3533\lib\net35\dotNetRDF.Data.Virtuoso.dll</HintPath>
+    <Reference Include="dotNetRDF.Data.Virtuoso, Version=1.0.9.3683, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\dotNetRDF.Data.Virtuoso.1.0.9.3683\lib\net35\dotNetRDF.Data.Virtuoso.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="HtmlAgilityPack, Version=1.4.9.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -54,9 +54,9 @@
     <Reference Include="System.configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.XML" />
-    <Reference Include="VDS.Common, Version=1.5.0.0, Culture=neutral, PublicKeyToken=ab5f4eb908061bf0, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Net35\packages\VDS.Common.1.5.0\lib\net35-client\VDS.Common.dll</HintPath>
+    <Reference Include="VDS.Common, Version=1.6.0.0, Culture=neutral, PublicKeyToken=ab5f4eb908061bf0, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\VDS.Common.1.6.0\lib\net35-client\VDS.Common.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="virtado3, Version=3.0.0.0, Culture=neutral, PublicKeyToken=391bf132017ae989, processorArchitecture=MSIL">
       <HintPath>..\..\Net35\packages\OpenLink.Data.Virtuoso.7.20.3214.1\lib\net35\virtado3.dll</HintPath>
@@ -300,6 +300,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>
