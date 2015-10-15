@@ -29,7 +29,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using OpenLink.Data.Virtuoso;
 using System.IO;
 using Semiodesk.Trinity.Configuration;
 
