@@ -116,7 +116,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
         public bool ImportOntology(Uri graphUri, Uri location)
         {
-            FileInfo ontologyFile = new FileInfo(location.AbsolutePath);
+            FileInfo ontologyFile = new FileInfo(location.LocalPath);
 
             RdfSerializationFormat format;
 

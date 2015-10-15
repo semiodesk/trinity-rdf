@@ -215,7 +215,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
                         UriRef t = GetPathFromSource(ontology.FileSource);
                         if ( !generator.ImportOntology(ontology.Uri, t) )
                         {
-                            FileInfo ontologyFile = new FileInfo(t.AbsolutePath);
+                            FileInfo ontologyFile = new FileInfo(t.LocalPath);
                             var info = ontology.ElementInformation;
                             Logger.LogWarning(string.Format("Could not read ontology <{0}> from path {1}.", ontology.Uri, ontologyFile.FullName), info);
                         }

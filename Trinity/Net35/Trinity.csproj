@@ -34,13 +34,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="dotNetRDF, Version=1.0.8.3533, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Net35\packages\dotNetRDF.1.0.8.3533\lib\net35\dotNetRDF.dll</HintPath>
+    <Reference Include="dotNetRDF, Version=1.0.9.3683, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\dotNetRDF.1.0.9.3683\lib\net35\dotNetRDF.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="dotNetRDF.Data.Virtuoso, Version=1.0.8.3533, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Net35\packages\dotNetRDF.Data.Virtuoso.1.0.8.3533\lib\net35\dotNetRDF.Data.Virtuoso.dll</HintPath>
+    <Reference Include="dotNetRDF.Data.Virtuoso, Version=1.0.9.3683, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\dotNetRDF.Data.Virtuoso.1.0.9.3683\lib\net35\dotNetRDF.Data.Virtuoso.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="HtmlAgilityPack, Version=1.4.9.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -50,17 +50,17 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Net35\packages\Newtonsoft.Json.6.0.8\lib\net35\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="OpenLink.Data.Virtuoso, Version=6.2.3128.1, Culture=neutral, PublicKeyToken=6654f6917d07cb95, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Net35\packages\dotNetRDF.Data.Virtuoso.1.0.8.3533\lib\net35\OpenLink.Data.Virtuoso.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.XML" />
-    <Reference Include="VDS.Common, Version=1.5.0.0, Culture=neutral, PublicKeyToken=ab5f4eb908061bf0, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Net35\packages\VDS.Common.1.5.0\lib\net35-client\VDS.Common.dll</HintPath>
+    <Reference Include="VDS.Common, Version=1.6.0.0, Culture=neutral, PublicKeyToken=ab5f4eb908061bf0, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\VDS.Common.1.6.0\lib\net35-client\VDS.Common.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="virtado3, Version=3.0.0.0, Culture=neutral, PublicKeyToken=391bf132017ae989, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\OpenLink.Data.Virtuoso.7.20.3214.1\lib\net35\virtado3.dll</HintPath>
+      <Private>True</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -145,28 +145,28 @@
     <Compile Include="..\Model\IModelGroup.cs">
       <Link>Model\IModelGroup.cs</Link>
     </Compile>
-	<Compile Include="..\Model\ModelGroup.cs">
+    <Compile Include="..\Model\ModelGroup.cs">
       <Link>Model\ModelGroup.cs</Link>
     </Compile>
     <Compile Include="..\Model\RdfSerializationFormat.cs">
       <Link>Model\RdfSerializationFormat.cs</Link>
     </Compile>
-	<Compile Include="..\Query\BindingSet.cs">
+    <Compile Include="..\Query\BindingSet.cs">
       <Link>Query\BindingSet.cs</Link>
     </Compile>
-	    <Compile Include="..\Class.cs">
+    <Compile Include="..\Class.cs">
       <Link>Class.cs</Link>
     </Compile>
-	<Compile Include="..\Model\IModel.cs">
+    <Compile Include="..\Model\IModel.cs">
       <Link>Model\IModel.cs</Link>
     </Compile>
-	<Compile Include="..\Query\FilterOperation.cs">
+    <Compile Include="..\Query\FilterOperation.cs">
       <Link>Query\FilterOperation.cs</Link>
     </Compile>
-	<Compile Include="..\Query\InvalidQueryException.cs">
+    <Compile Include="..\Query\InvalidQueryException.cs">
       <Link>Query\InvalidQueryException.cs</Link>
     </Compile>
-	    <Compile Include="..\MappingDiscovery.cs">
+    <Compile Include="..\MappingDiscovery.cs">
       <Link>MappingDiscovery.cs</Link>
     </Compile>
     <Compile Include="..\Model\Model.cs">
@@ -178,7 +178,7 @@
     <Compile Include="..\Model\ModelManager.cs">
       <Link>Model\ModelManager.cs</Link>
     </Compile>
-	<Compile Include="..\NamespaceManager.cs">
+    <Compile Include="..\NamespaceManager.cs">
       <Link>NamespaceManager.cs</Link>
     </Compile>
     <Compile Include="..\Ontology.cs">
@@ -226,7 +226,7 @@
     <Compile Include="..\Stores\StoreProvider.cs">
       <Link>Stores\StoreProvider.cs</Link>
     </Compile>
-	<Compile Include="..\Stores\StoreFactory.cs">
+    <Compile Include="..\Stores\StoreFactory.cs">
       <Link>Stores\StoreFactory.cs</Link>
     </Compile>
     <Compile Include="..\Stores\dotNetRDF\dotNetRDFQueryResult.cs">
@@ -238,7 +238,7 @@
     <Compile Include="..\Stores\dotNetRDF\dotNetRDFStoreProvider.cs">
       <Link>Stores\dotNetRDF\dotNetRDFStoreProvider.cs</Link>
     </Compile>
-	<Compile Include="..\Stores\IStorageSpecific.cs">
+    <Compile Include="..\Stores\IStorageSpecific.cs">
       <Link>Stores\IStorageSpecific.cs</Link>
     </Compile>
     <Compile Include="..\Stores\IStore.cs">
@@ -247,7 +247,7 @@
     <Compile Include="..\Stores\ITransaction.cs">
       <Link>Stores\ITransaction.cs</Link>
     </Compile>
-	<Compile Include="..\Stores\StoreUpdater.cs">
+    <Compile Include="..\Stores\StoreUpdater.cs">
       <Link>Stores\StoreUpdater.cs</Link>
     </Compile>
     <Compile Include="..\Stores\SparqlEndpoint\SparqlEndpointQueryResult.cs">
@@ -259,7 +259,7 @@
     <Compile Include="..\Stores\SparqlEndpoint\SparqlEndpointStoreProvider.cs">
       <Link>Stores\SparqlEndpoint\SparqlEndpointStoreProvider.cs</Link>
     </Compile>
-	<Compile Include="..\Stores\Virtuoso\VirtuosoSpecific.cs">
+    <Compile Include="..\Stores\Virtuoso\VirtuosoSpecific.cs">
       <Link>Stores\Virtuoso\VirtuosoSpecific.cs</Link>
     </Compile>
     <Compile Include="..\Stores\Virtuoso\VirtuosoStoreProvider.cs">
@@ -300,6 +300,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>

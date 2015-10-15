@@ -30,6 +30,7 @@ using System.IO;
 using NUnit.Framework;
 using Semiodesk.Trinity;
 using System.Linq;
+using System.Reflection;
 
 namespace dotNetRDFStore.Test
 {
@@ -61,6 +62,17 @@ namespace dotNetRDFStore.Test
             Store.LoadOntologySettings();
 
             Assert.AreEqual(6, Store.ListModels().Count());
+        }
+
+        [Test]
+        public void LoadOntologiesFromFileTest()
+        {
+            Uri testModel = new Uri("ex:Test");
+            DirectoryInfo asm = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory;
+            string configFile = Path.Combine(asm.FullName, "custom.config");
+            Store.LoadOntologySettings(configFile);
+
+            Assert.AreEqual(4, Store.ListModels().Count());
         }
 
         [Test]
