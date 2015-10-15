@@ -34,6 +34,7 @@ using Semiodesk.Trinity;
 using System.Diagnostics;
 using Semiodesk.Trinity.Ontologies;
 using System.IO;
+using System.Threading;
 
 namespace Semiodesk.Trinity.Tests
 {
@@ -455,6 +456,25 @@ namespace Semiodesk.Trinity.Tests
             Assert.Throws(typeof(ArgumentException), () => { _model.Read(fileUri, RdfSerializationFormat.Trig); });
             
         }
+
+        [Test]
+        public void TestAddMultipleResources()
+        {
+            _model.Clear();
+            for (int j = 1; j < 7; j++)
+            {
+                for (int i = 1; i < 1000; i++)
+                {
+                    using (PersonContact pers = _model.CreateResource<PersonContact>())
+                    {
+                        pers.Fullname = string.Format("Name {0}", i * j);
+                        pers.Commit();
+                    }
+                }
+
+            }
+        }
+
 
     }
 
