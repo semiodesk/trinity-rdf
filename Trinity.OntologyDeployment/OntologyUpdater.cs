@@ -29,7 +29,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using OpenLink.Data.Virtuoso;
 using System.IO;
 using Semiodesk.Trinity.Configuration;
 
@@ -109,6 +108,12 @@ namespace Semiodesk.Trinity.OntologyDeployment
 
             if (ext == ".trig")
                 return RdfSerializationFormat.Trig;
+
+            if (ext == ".turtle")
+                return RdfSerializationFormat.Turtle;
+
+            if (ext == ".nt")
+                return RdfSerializationFormat.NTriples;
 
             return RdfSerializationFormat.RdfXml;
         }
