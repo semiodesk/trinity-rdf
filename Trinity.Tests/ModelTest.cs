@@ -306,9 +306,11 @@ namespace Semiodesk.Trinity.Tests
             res.Commit();
 
             IResource actual = _model.GetResource(resUri);
+            object o = actual.GetValue(property);
+            Assert.AreEqual(typeof(DateTime), o.GetType());
             DateTime actualDateTime = (DateTime)actual.GetValue(property);
-            
-            Assert.AreEqual(t, actualDateTime);
+
+            Assert.AreEqual(t.ToUniversalTime(), actualDateTime.ToUniversalTime());
         }
 
         [Test]
