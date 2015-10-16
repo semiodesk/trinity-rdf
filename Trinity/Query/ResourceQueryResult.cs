@@ -139,7 +139,8 @@ namespace Semiodesk.Trinity
 
                 foreach (Uri u in uriList)
                 {
-                    uris.Append(SparqlSerializer.SerializeUri(u));
+                    if(u != null)
+                        uris.Append(SparqlSerializer.SerializeUri(u));
                 }
 
                 if (!uriList.Any())

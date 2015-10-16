@@ -109,7 +109,7 @@ namespace Semiodesk.Trinity
             if (ext == ".trig")
                 return RdfSerializationFormat.Trig;
 
-            if (ext == ".turtle")
+            if (ext == ".ttl")
                 return RdfSerializationFormat.Turtle;
 
             if (ext == ".nt")
