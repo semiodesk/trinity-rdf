@@ -280,7 +280,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
             {
                 try
                 {
-                    result.Append(GenerateResource(resource, localSymbols, stringOnly));
+                    result.Append(GenerateResource(resource, model.Uri, localSymbols, stringOnly));
                 }
                 catch (Exception)
                 {
@@ -309,7 +309,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
         /// </summary>
         /// <param name="resource"></param>
         /// <returns></returns>
-        private string GenerateResource(IResource resource, List<string> localSymbols, bool stringOnly = false)
+        private string GenerateResource(IResource resource, Uri ontology, List<string> localSymbols, bool stringOnly = false)
         {
             string name = GetName(resource);
 
@@ -319,10 +319,13 @@ namespace Semiodesk.Trinity.OntologyGenerator
             string type = "Resource";
 
             if (_globalSymbols.Contains(name) || localSymbols.Contains(name))
+                name = GetName(resource, ontology);
+
+            if (_globalSymbols.Contains(name) || localSymbols.Contains(name))
             {
                 int i = 0;
 
-                while (_globalSymbols.Contains(string.Format("{0}_{1}", name, i)))
+                while (_globalSymbols.Contains(string.Format("{0}_{1}", name, i)) || localSymbols.Contains(string.Format("{0}_{1}", name, i)))
                 {
                     i++;
                 }
@@ -373,19 +376,26 @@ namespace Semiodesk.Trinity.OntologyGenerator
             }
         }
 
-        private string GetName(IResource resource)
+        private string GetName(IResource resource, Uri ontology = null)
         {
-            string result;
+            string result = null;
 
-            if (!string.IsNullOrEmpty(resource.Uri.Fragment) && resource.Uri.Fragment.Length > 1)
+            if( ontology == null )
             {
-                result = resource.Uri.Fragment.Substring(1);
-            }
-            else if (!string.IsNullOrEmpty(resource.Uri.Segments.Last()))
+                if (!string.IsNullOrEmpty(resource.Uri.Fragment) && resource.Uri.Fragment.Length > 1)
+                {
+                    result = resource.Uri.Fragment.Substring(1);
+                }
+                else if (!string.IsNullOrEmpty(resource.Uri.Segments.Last()))
+                {
+                    result = resource.Uri.Segments.Last();
+                }
+            }else
             {
-                result = resource.Uri.Segments.Last();
+                result = ontology.MakeRelativeUri(resource.Uri).ToString();
             }
-            else
+
+            if( string.IsNullOrEmpty(result))
             {
                 string msg = "Could not retrieve a name for resource <{0}>";
                 throw new Exception(string.Format(msg, resource.Uri.OriginalString));
@@ -401,9 +411,11 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 result = "_" + result;
             }
 
+            result = result.Trim('/');
+
             if (result.Contains("/"))
             {
-                result = result.Replace("/", "");
+                result = result.Replace("/", "_");
             }
 
             if (result.Contains("."))
@@ -412,6 +424,11 @@ namespace Semiodesk.Trinity.OntologyGenerator
             }
 
             if (result.Contains("-"))
+            {
+                result = result.Replace("-", "_");
+            }
+
+            if (result.Contains("#"))
             {
                 result = result.Replace("-", "_");
             }
