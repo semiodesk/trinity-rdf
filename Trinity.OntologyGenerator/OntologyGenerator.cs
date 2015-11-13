@@ -321,6 +321,8 @@ namespace Semiodesk.Trinity.OntologyGenerator
             if (_globalSymbols.Contains(name) || localSymbols.Contains(name))
                 name = GetName(resource, ontology);
 
+            if (string.IsNullOrEmpty(name)) return "";
+
             if (_globalSymbols.Contains(name) || localSymbols.Contains(name))
             {
                 int i = 0;
@@ -390,7 +392,12 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 {
                     result = resource.Uri.Segments.Last();
                 }
-            }else
+            }
+            else if (ontology == resource.Uri)
+            {
+                return null;
+            }
+            else
             {
                 result = ontology.MakeRelativeUri(resource.Uri).ToString();
             }
@@ -430,7 +437,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
             if (result.Contains("#"))
             {
-                result = result.Replace("-", "_");
+                result = result.Replace("#", "_");
             }
 
             return result;
