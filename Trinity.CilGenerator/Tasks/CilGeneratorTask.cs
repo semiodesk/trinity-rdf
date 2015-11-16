@@ -26,6 +26,7 @@
 // Copyright (c) Semiodesk GmbH 2015
 
 using System.IO;
+using System.ComponentModel;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Semiodesk.Trinity.CilGenerator.Loggers;
@@ -39,19 +40,24 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
         [Required]
         public string TargetFile { get; set; }
 
+        [DefaultValue(true)]
+        public bool WriteSymbols { get; set; }
+
         #endregion
 
         #region Methods
 
         public override bool Execute()
         {
-            
-            if (!File.Exists(TargetFile)) return false;
+            if (!File.Exists(TargetFile))
+            {
+                return false;
+            }
 
             MsBuildLogger log = new MsBuildLogger(Log);
-            ILGenerator generator = new ILGenerator(log);
-            return generator.ProcessFile(TargetFile);
+            ILGenerator generator = new ILGenerator(log, WriteSymbols);
 
+            return generator.ProcessFile(TargetFile);
         }
 
         #endregion

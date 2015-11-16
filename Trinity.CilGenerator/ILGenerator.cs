@@ -67,9 +67,9 @@ namespace Semiodesk.Trinity.CilGenerator
 
         #region Constructors
 
-        public ILGenerator(ILogger log)
+        public ILGenerator(ILogger log, bool writeSymbols = true)
         {
-            WriteSymbols = true;
+            WriteSymbols = writeSymbols;
             Log = log;
         }
 

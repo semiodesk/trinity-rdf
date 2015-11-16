@@ -48,11 +48,15 @@ namespace Semiodesk.Trinity.CilGenerator
             string output = "";
 
             bool help = false;
+            bool writeSymbols = true;
+            bool overwriteInput = false;
 
             OptionSet options = new OptionSet()
             {
                 { "i|input=", "Input assembly.", v => input = v },
                 { "o|output=", "Output assembly.", v => output = v },
+                { "O|overwrite", "Overwrite input assembly.", v => overwriteInput = true },
+                { "s|no-symbols", "Do not generate debug symbols.", v => writeSymbols = false },
                 { "h|help",  "Show this message and exit.", v => help = v != null }
             };
 
@@ -60,7 +64,7 @@ namespace Semiodesk.Trinity.CilGenerator
             {
                 options.Parse(args);
 
-                if (!help && !string.IsNullOrEmpty(input) && !string.IsNullOrEmpty(output))
+                if (!help && !string.IsNullOrEmpty(input) && (!string.IsNullOrEmpty(output) || overwriteInput))
                 {
                     if (!File.Exists(input))
                     {
@@ -69,7 +73,7 @@ namespace Semiodesk.Trinity.CilGenerator
                         return -1;
                     }
 
-                    ILGenerator generator = new ILGenerator(new ConsoleLogger());
+                    ILGenerator generator = new ILGenerator(new ConsoleLogger(), writeSymbols);
                     generator.ProcessFile(input, output);
 
                     return 0;

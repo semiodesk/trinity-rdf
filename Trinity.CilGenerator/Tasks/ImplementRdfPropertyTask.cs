@@ -115,7 +115,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                 }
             }
 
-            Log.LogMessage("{0}.{1} --> <{2}>", Type.FullName, property.Name, p.Uri);
+            Log.LogMessage("{0}.{1} -> <{2}>", Type.FullName, property.Name, p.Uri);
 
             return true;
         }
