@@ -148,7 +148,10 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
             PropertyGeneratorTaskHelper p = new PropertyGeneratorTaskHelper(property, mappingField);
 
-            Uri uri = new Uri(p.Uri, UriKind.Absolute);
+            if (!Uri.IsWellFormedUriString(p.Uri, UriKind.Absolute))
+            {
+                throw new UriFormatException("Annotated URI must be in absolute format.");
+            }
 
             // Finally, implement the field initializers in the constructors of the class.
             foreach (MethodDefinition ctor in Type.GetConstructors())
@@ -221,23 +224,18 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
         private IEnumerable<Instruction> GetReturnGetValueInstructions(ILProcessor processor, PropertyGeneratorTaskHelper p, MethodReference getValue)
         {
-            Instruction ldloc0 = processor.Create(OpCodes.Ldloc_0);
+            processor.Create(OpCodes.Ldloc_0);
 
             foreach (Instruction i in GetCallGetValueInstructions(processor, p, getValue))
             {
                 yield return i;
             }
-
-            //yield return processor.Create(OpCodes.Stloc_0);
-            //yield return processor.Create(OpCodes.Br_S, ldloc0);
-            //yield return ldloc0;
+                
             yield return processor.Create(OpCodes.Ret);
         }
 
         private IEnumerable<Instruction> GetFieldInitializationInstructions(ILProcessor processor, PropertyGeneratorTaskHelper p, TypeReference mappingType)
         {
-            TypeReference propertyType = Generator.Assembly.MainModule.Import(typeof(Property));
-
             MethodDefinition ctorDef;
 
             if (p.HasDefaultValue)
