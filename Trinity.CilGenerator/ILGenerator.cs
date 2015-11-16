@@ -102,18 +102,6 @@ namespace Semiodesk.Trinity.CilGenerator
 
                 Log.LogMessage("------ Begin Task: ImplementRdfMapping [{0}]", Assembly.Name);
 
-                // Read the debug symbols from the assembly.
-                if (Type.GetType("Mono.Runtime") != null)
-                {
-                    symbolReader = new MdbReaderProvider().GetSymbolReader(Assembly.MainModule, sourceFile);
-                }
-                else
-                {
-                    symbolReader = new PdbReaderProvider().GetSymbolReader(Assembly.MainModule, sourceFile);
-                }
-
-                Assembly.MainModule.ReadSymbols(symbolReader);
-
                 bool assemblyModified = false;
 
                 // Iterate over all types in the main assembly.
@@ -156,20 +144,39 @@ namespace Semiodesk.Trinity.CilGenerator
 
                 if (assemblyModified)
                 {
-                    ISymbolWriterProvider symbolWriter;
-
-                    // Use the correct debug symbol writer on Mono and .NET.
-                    if (Type.GetType("Mono.Runtime") != null)
+                    if(WriteSymbols)
                     {
-                        symbolWriter = new MdbWriterProvider();
+                        // Read the debug symbols from the assembly.
+                        if (Type.GetType("Mono.Runtime") != null)
+                        {
+                            symbolReader = new MdbReaderProvider().GetSymbolReader(Assembly.MainModule, sourceFile);
+                        }
+                        else
+                        {
+                            symbolReader = new PdbReaderProvider().GetSymbolReader(Assembly.MainModule, sourceFile);
+                        }
+
+                        Assembly.MainModule.ReadSymbols(symbolReader);
+
+                        ISymbolWriterProvider symbolWriter;
+
+                        // Use the correct debug symbol writer on Mono and .NET.
+                        if (Type.GetType("Mono.Runtime") != null)
+                        {
+                            symbolWriter = new MdbWriterProvider();
+                        }
+                        else
+                        {
+                            symbolWriter = new PdbWriterProvider();
+                        }
+
+                        // NOTE: "WriteSymbols = true" generates the .pdb symbols required for debugging.
+                        Assembly.Write(targetFile, new WriterParameters { WriteSymbols = true, SymbolWriterProvider = symbolWriter });
                     }
                     else
                     {
-                        symbolWriter = new PdbWriterProvider();
+                        Assembly.Write(targetFile, new WriterParameters { WriteSymbols = false });
                     }
-
-                    // NOTE: "WriteSymbols = true" generates the .pdb symbols required for debugging.
-                    Assembly.Write(targetFile, new WriterParameters { WriteSymbols = WriteSymbols, SymbolWriterProvider = symbolWriter });
                 }
 
                 result = true;

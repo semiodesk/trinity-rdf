@@ -28,7 +28,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
-    <Commandlineparameters>-i /home/sebastian/Projects/Artivity/artivity-explorer/bin/Release/Artivity.Model.dll -ow</Commandlineparameters>
+    <Commandlineparameters>-i /home/sebastian/Projects/Artivity/artivity-explorer/bin/Release/Artivity.Model.dll -O -s</Commandlineparameters>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
