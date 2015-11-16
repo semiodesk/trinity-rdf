@@ -251,8 +251,11 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
         private IEnumerable<Instruction> GetReturnOnEqualsInstructionsForMapping(ILProcessor processor, FieldDefinition backingField, MethodReference getValue, Instruction cont, Instruction ret)
         {
-            // Get a reference to the equality operator for the field type.
-            TypeReference type = backingField.FieldType;
+            // The PropertyMapping field type is a generic instance type.
+            GenericInstanceType mappingType = backingField.FieldType as GenericInstanceType;
+
+            // Get a reference to the equality operator for the generic instance type argument.
+            TypeReference type = mappingType.GenericArguments.First();
 
             // We need to initialize the local variables.
             processor.Body.Variables.Add(new VariableDefinition(MainModule.Import(typeof(bool))));
