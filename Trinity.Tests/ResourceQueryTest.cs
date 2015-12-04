@@ -36,7 +36,7 @@ using System.ComponentModel;
 using System.Text.RegularExpressions;
 using Semiodesk.Trinity.Ontologies;
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class ResourceQueryTest
@@ -60,7 +60,8 @@ namespace Semiodesk.Trinity.Tests
         [SetUp]
         public void SetUp()
         {
-            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba;rule=urn:semiodesk/test/ruleset");
+            string connectionString = SetupClass.ConnectionString;
+            _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
 
 
             UriRef uri = new UriRef("http://localhost:8899/models/ResourceQueryTest");

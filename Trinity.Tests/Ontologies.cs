@@ -32,13 +32,6 @@ using System.Text;
 
 namespace Semiodesk.Trinity.Ontologies
 {
-    public static class RegisterOntologies
-    {
-        public static void Register()
-        {
-            OntologyDiscovery.AddAssembly(Assembly.GetExecutingAssembly());
-        }
-    }
 
 	///<summary>
 ///The RDF Vocabulary (RDF)

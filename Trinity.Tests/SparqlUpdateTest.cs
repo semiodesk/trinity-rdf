@@ -35,7 +35,7 @@ using NUnit.Framework;
 using Semiodesk.Trinity;
 using System.IO;
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class SparqlUpdateTest
@@ -48,7 +48,8 @@ namespace Semiodesk.Trinity.Tests
         [SetUp]
         public void SetUp()
         {
-            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba;rule=urn:semiodesk/test/ruleset");
+            string connectionString = SetupClass.ConnectionString;
+            _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
 
             Uri modelUri = new Uri("ex:TestModel");
             if (_store.ContainsModel(modelUri))

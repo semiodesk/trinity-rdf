@@ -35,11 +35,12 @@ using System.Collections.ObjectModel;
 using Semiodesk.Trinity.Ontologies;
 using System.Reflection;
 using NUnit.Framework;
+using Semiodesk.Trinity.Test;
 #if NET_3_5
 using Semiodesk.Trinity.Utility;
 #endif
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     public class SingleMappingTestClass : Resource
     {
@@ -335,14 +336,6 @@ namespace Semiodesk.Trinity.Tests
         [SetUp]
         public void SetUp()
         {
-            if (ResourceMappingTest.RegisteredOntology == false)
-            {
-                OntologyDiscovery.AddAssembly(Assembly.GetExecutingAssembly());
-                MappingDiscovery.RegisterAssembly(Assembly.GetExecutingAssembly());
-                RegisterOntologies.Register();
-                ResourceMappingTest.RegisteredOntology = true;
-                
-            }
 
         }
 
@@ -1054,7 +1047,7 @@ namespace Semiodesk.Trinity.Tests
         [Test]
         public void LazyLoadResourceTest()
         {
-            MappingDiscovery.RegisterCallingAssembly();
+            
             IModel model = GetModel();
             model.Clear();
 
@@ -1182,8 +1175,8 @@ namespace Semiodesk.Trinity.Tests
 
         IModel GetModel()
         {
-
-            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba;rule=urn:semiodesk/test/ruleset");
+            string connectionString = SetupClass.ConnectionString;
+            _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
 
             Uri testModelUri = new Uri("http://example.org/TestModel");
 

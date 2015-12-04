@@ -37,7 +37,7 @@ using Semiodesk.Trinity.Ontologies;
 using System.Collections.ObjectModel;
 using System.Threading;
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     class ContactList : Resource
     {
@@ -212,12 +212,6 @@ namespace Semiodesk.Trinity.Tests
         {
             _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba;rule=urn:semiodesk/test/ruleset");
 
-            if (ResourceMappingTest.RegisteredOntology == false)
-            {
-                OntologyDiscovery.AddAssembly(Assembly.GetExecutingAssembly());
-                MappingDiscovery.RegisterAssembly(Assembly.GetExecutingAssembly());
-                ResourceMappingTest.RegisteredOntology = true;
-            }
 
         }
 

@@ -39,7 +39,7 @@ using Semiodesk.Trinity.Ontologies;
 
 using NUnit.Framework;
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class SparqlQueryTest
@@ -53,8 +53,8 @@ namespace Semiodesk.Trinity.Tests
         [SetUp]
         public void SetUp()
         {
-
-            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba;rule=urn:semiodesk/test/ruleset");
+            string connectionString = SetupClass.ConnectionString;
+            _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
 
             Uri modelUri = new Uri("http://example.org/TestModel");
             if (_store.ContainsModel(modelUri))
@@ -73,8 +73,6 @@ namespace Semiodesk.Trinity.Tests
             NamespaceManager.AddNamespace("nco", "http://www.semanticdesktop.org/ontologies/2007/03/22/nco#");
             NamespaceManager.AddNamespace("sfo", sfo.GetNamespace());
             NamespaceManager.AddNamespace(nfo.GetPrefix(), nfo.GetNamespace());
-
-            MappingDiscovery.RegisterAllCurrentAssemblies();
 
             Model.Clear();
 
@@ -411,7 +409,7 @@ namespace Semiodesk.Trinity.Tests
         [Test]
         public void TestIsSorted()
         {
-           
+            Assert.Inconclusive("Reevaluate with more recent version of virtuoso client library.");
 
             string queryString = "SELECT ?s0 ?p0 ?o0 " +
                  "WHERE " +

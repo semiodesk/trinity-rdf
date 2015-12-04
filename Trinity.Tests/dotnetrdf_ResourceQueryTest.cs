@@ -36,7 +36,7 @@ using System.ComponentModel;
 using System.Text.RegularExpressions;
 using Semiodesk.Trinity.Ontologies;
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class DotNetRDF_ResourceQueryTest

@@ -50,16 +50,16 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Net35\packages\Newtonsoft.Json.6.0.8\lib\net35\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="OpenLink.Data.Virtuoso, Version=6.2.3128.1, Culture=neutral, PublicKeyToken=6654f6917d07cb95, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\dotNetRDF.Data.Virtuoso.1.0.9.3683\lib\net35\OpenLink.Data.Virtuoso.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.XML" />
     <Reference Include="VDS.Common, Version=1.6.0.0, Culture=neutral, PublicKeyToken=ab5f4eb908061bf0, processorArchitecture=MSIL">
       <HintPath>..\..\Net35\packages\VDS.Common.1.6.0\lib\net35-client\VDS.Common.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="virtado3, Version=3.0.0.0, Culture=neutral, PublicKeyToken=391bf132017ae989, processorArchitecture=MSIL">
-      <HintPath>..\..\Net35\packages\OpenLink.Data.Virtuoso.7.20.3214.1\lib\net35\virtado3.dll</HintPath>
       <Private>True</Private>
     </Reference>
   </ItemGroup>

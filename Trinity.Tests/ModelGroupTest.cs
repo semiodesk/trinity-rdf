@@ -32,7 +32,7 @@ using System.Text;
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class ModelGroupTest
@@ -44,7 +44,8 @@ namespace Semiodesk.Trinity.Tests
         [SetUp]
         public void SetUp()
         {
-            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba;rule=urn:semiodesk/test/ruleset");
+            string connectionString = SetupClass.ConnectionString;
+            _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
 
            Uri modelUri1 = new Uri("http://example.org/TestModel");
 
@@ -163,7 +164,6 @@ namespace Semiodesk.Trinity.Tests
         [Test]
         public void LazyLoadResourceTest()
         {
-            MappingDiscovery.RegisterCallingAssembly();
             IModel model = _model;
             IModelGroup modelGroup = _store.CreateModelGroup(_model.Uri, _model2.Uri);
             model.Clear();
