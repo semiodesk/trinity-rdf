@@ -34,7 +34,7 @@ using Semiodesk.Trinity;
 using System.Diagnostics;
 using Semiodesk.Trinity.Ontologies;
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class SparqlEndpointTest

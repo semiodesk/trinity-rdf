@@ -35,7 +35,7 @@ using System.Text;
 using System.Threading;
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
-using Semiodesk.Trinity.Tests;
+using Semiodesk.Trinity.Test;
 
 namespace Semiodesk.Trinity.Test
 {
@@ -44,19 +44,12 @@ namespace Semiodesk.Trinity.Test
     {
         UriRef transactionModel = new UriRef("ex:TransactionTest");
         IStore Store;
-        string providerString = "provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba";
+        string providerString = SetupClass.ConnectionString;
 
 
         [SetUp]
         public void SetUp()
         {
-            if (ResourceMappingTest.RegisteredOntology == false)
-            {
-                OntologyDiscovery.AddAssembly(Assembly.GetExecutingAssembly());
-                MappingDiscovery.RegisterAssembly(Assembly.GetExecutingAssembly());
-                RegisterOntologies.Register();
-                ResourceMappingTest.RegisteredOntology = true;
-            }
 
             Store = StoreFactory.CreateStore(providerString);
 

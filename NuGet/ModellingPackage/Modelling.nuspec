@@ -11,7 +11,7 @@
     <iconUrl>http://static.semiodesk.com/images/trinity_logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>This package is part of the Semiodesk Trinity API. It allows for the creation of C# representation of ontologies as well as the mapping of RDF classes to C# classes.</description>
-    <releaseNotes>Initial release.</releaseNotes>
+    <releaseNotes></releaseNotes>
     <copyright>Copyright 2015 Semiodesk</copyright>
     <tags>RDF SPARQL Database Semantic Object Mapping Linked Data</tags>
     <dependencies>

@@ -30,7 +30,7 @@ using System.Linq;
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     class SparqlQueryItemsProviderTest
@@ -44,7 +44,8 @@ namespace Semiodesk.Trinity.Tests
         [SetUp]
         public void SetUp()
         {
-            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba;rule=urn:semiodesk/test/ruleset");
+            string connectionString = SetupClass.ConnectionString;
+            _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
 
             Uri modelUri = new Uri("http://example.org/TestModel");
 
@@ -68,7 +69,6 @@ namespace Semiodesk.Trinity.Tests
             NamespaceManager.AddNamespace("nco", "http://www.semanticdesktop.org/ontologies/2007/03/22/nco#");
             NamespaceManager.AddNamespace("sfo", sfo.GetNamespace());
             NamespaceManager.AddNamespace(nfo.GetPrefix(), nfo.GetNamespace());
-            MappingDiscovery.RegisterAllCurrentAssemblies();
 
             Model.Clear();
 

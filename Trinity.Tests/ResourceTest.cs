@@ -47,7 +47,7 @@ using Semiodesk.Trinity.Utility;
 //   - Hinzufügen von un-commiteten objecten darf nicht funktionieren
 //   - Beim ändern von gemappten resource listen, wird der komplette Content abgefragt, obwohl vllt. nur ein element hinzugefügt werden muss.
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     public class TestOntology
     {

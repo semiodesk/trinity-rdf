@@ -153,10 +153,11 @@ namespace Semiodesk.Trinity.Store
                 DateTime res = ((DateTime)cellValue).ToLocalTime();
                 return res;
             }
-            else if (cellValue is VirtuosoDateTimeOffset)
-            {
-                return ((VirtuosoDateTimeOffset)cellValue).Value.UtcDateTime.ToUniversalTime();
-            }
+
+            //else if (cellValue is VirtuosoDateTimeOffset)
+            //{
+            //    return ((VirtuosoDateTimeOffset)cellValue).Value.UtcDateTime.ToUniversalTime();
+            //}
             
 
             return cellValue;

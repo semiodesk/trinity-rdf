@@ -39,7 +39,7 @@ using Semiodesk.Trinity.Ontologies;
 
 using NUnit.Framework;
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class DotNetRDF_SparqlQueryTest
@@ -78,8 +78,6 @@ namespace Semiodesk.Trinity.Tests
             //User u = UserManager.Instance.AddUser(new Uri("http://semiodesk.com/id/TestUser"));
             //u.GetDesktopFolder();
             //u.GetDownloadsFolder();
-
-            MappingDiscovery.RegisterAllCurrentAssemblies();
 
             Model.Clear();
 
