@@ -545,20 +545,14 @@ namespace Semiodesk.Trinity.Store
                     return GenerateBindings(queryResults);
                 }
             }
-            #if DEBUG
+            
             catch (Exception e)
             {
-                
+                #if DEBUG
                 Debug.WriteLine(e);
-
+                #endif
                 throw new Trinity.InvalidQueryException("The current query led to an error in Virtuoso. See inner exception for more details.", e, queryString);
             }
-            #else
-            catch (Exception)
-            {
-                throw new Trinity.InvalidQueryException("The current query led to an error in Virtuoso. See inner exception for more details.", e, queryString);
-            }
-            #endif
         }
 
         /// <remarks>
