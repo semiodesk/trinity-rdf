@@ -536,9 +536,11 @@ namespace Semiodesk.Trinity.Store
         /// <returns>An enumeration of bound solution variables (BindingSet).</returns>
         public IEnumerable<BindingSet> GetBindings()
         {
+            string queryString = "";
             try
             {
-                using (DataTable queryResults = _store.ExecuteQuery(_store.CreateQuery(_query), _transaction))
+                queryString = _store.CreateQuery(_query);
+                using (DataTable queryResults = _store.ExecuteQuery(queryString, _transaction))
                 {
                     return GenerateBindings(queryResults);
                 }
@@ -548,14 +550,13 @@ namespace Semiodesk.Trinity.Store
             {
                 
                 Debug.WriteLine(e);
-                
 
-                return null;
+                throw new Trinity.InvalidQueryException("The current query led to an error in Virtuoso. See inner exception for more details.", e, queryString);
             }
             #else
             catch (Exception)
             {
-                return null;
+                throw new Trinity.InvalidQueryException("The current query led to an error in Virtuoso. See inner exception for more details.", e, queryString);
             }
             #endif
         }

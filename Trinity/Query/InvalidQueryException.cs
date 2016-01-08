@@ -34,6 +34,10 @@ namespace Semiodesk.Trinity
 {
     public class InvalidQueryException : ArgumentException
     {
+        #region Members
+        public string Query { get; private set; }
+        #endregion
+
         #region Constructors
 
         public InvalidQueryException()
@@ -45,9 +49,10 @@ namespace Semiodesk.Trinity
         {
         }
 
-        public InvalidQueryException(string message, Exception innerException)
+        public InvalidQueryException(string message, Exception innerException, string query)
             : base(message, innerException)
         {
+            Query = query;
         }
 
         #endregion

@@ -16,7 +16,7 @@
   </Target>
   
   <Target Name="CilGeneratorTarget" AfterTargets="Build">
-    <CilGeneratorTask TargetFile="$(TargetDir)/$(TargetName)$(TargetExt)" />
+    <CilGeneratorTask TargetFile="$(TargetDir)/$(TargetName)$(TargetExt)" WriteSymbols="$(DebugSymbols)" />
   </Target>
 
 </Project>
