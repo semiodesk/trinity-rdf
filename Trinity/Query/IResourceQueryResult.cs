@@ -25,14 +25,37 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
+using System;
 using System.Collections.Generic;
 
 namespace Semiodesk.Trinity
 {
     /// <summary>
-    /// A dictionary of named value bindings which represents a single query solution.
+    /// Interface for results of a resource query.
     /// </summary>
-    public class BindingSet : Dictionary<string, object>
+    public interface IResourceQueryResult
     {
+        /// <summary>
+        /// Number of results
+        /// </summary>
+        /// <returns></returns>
+        int Count();
+
+        /// <summary>
+        /// Enumerator of the resulting resources.
+        /// </summary>
+        /// <param name="offset"></param>
+        /// <param name="limit"></param>
+        /// <returns></returns>
+        IEnumerable<Resource> GetResources(int offset = -1, int limit = -1);
+
+        /// <summary>
+        /// Enumerator of the results bound to a certain type.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="offset"></param>
+        /// <param name="limit"></param>
+        /// <returns></returns>
+        IEnumerable<T> GetResources<T>(int offset = -1, int limit = -1) where T : Resource;
     }
 }

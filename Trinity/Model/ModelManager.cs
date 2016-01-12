@@ -43,7 +43,7 @@ namespace Semiodesk.Trinity
     /// <summary>
     /// Responsible entity for managing the connection to the OpenLink Virtuoso database and its RDF models.
     /// </summary>
-    [Obsolete("This class is deprecated. Use the Stores factory class instead.")]
+    [Obsolete("This class is deprecated. Use the StoreFactory class instead.")]
     public class ModelManager : IEnumerable<IModel>
     {
         #region Members
@@ -404,7 +404,5 @@ namespace Semiodesk.Trinity
             
         }
         #endregion
-
-
     }
 }

@@ -42,19 +42,20 @@ namespace Semiodesk.Trinity
         #region Properties
 
         /// <summary>
+        /// Get or set the model used for this query.
+        /// </summary>
+        public IModel Model { get; set; }
+
+        /// <summary>
         /// The SPARQL Update string including all generated PREFIX declarations.
         /// </summary>
         public string Update { get; protected set; }
 
         /// <summary>
-        /// 
+        /// Get or set the resource being updated.
         /// </summary>
         public Resource Resource { get; set; }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        public IModel Model { get; set; }
         #endregion
 
         #region Constructors
@@ -68,20 +69,16 @@ namespace Semiodesk.Trinity
         /// <param name="namespaceManager">The optional namespace manager used to declare Sparql PREFIXes.</param>
         public SparqlUpdate(string update, NamespaceManager namespaceManager = null)
         {
-            if (namespaceManager != null)
-            {
-                Update = SparqlSerializer.GeneratePrologue(update, namespaceManager);
-            }
-            else
+            if (namespaceManager == null)
             {
                 Update = update;
             }
+            else
+            {
+                Update = SparqlSerializer.GeneratePrologue(update, namespaceManager);
+            }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
         public override string ToString()
         {
             return Update;

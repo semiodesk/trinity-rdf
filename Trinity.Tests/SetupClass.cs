@@ -11,9 +11,10 @@ namespace Semiodesk.Trinity.Test
     [SetUpFixture]
     public class SetupClass
     {
-        TinyVirtuoso.TinyVirtuoso virtuoso;
         Virtuoso instance;
+
         public static string ConnectionString;
+
         public static string HostAndPort;
 
         [SetUp]

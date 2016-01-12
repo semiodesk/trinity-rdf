@@ -188,35 +188,40 @@ namespace Semiodesk.Trinity.Test
             a.Where(nie.relatedTo, b);
 
             IResourceQueryResult result = _model.ExecuteQuery(b);
-
             List<Resource> resources = result.GetResources().ToList();
+
             Assert.AreEqual(18, resources.Count);
 
             DateTime? l = null;
+
             foreach (Resource r in resources)
             {
                 DateTime t = (DateTime)r.GetValue(nco.birthDate);
+
                 if (l.HasValue)
+                {
                     Assert.IsTrue(t > l);
+                }
+
                 l = t;
             }
 
-
-            a = new ResourceQuery(nco.PersonContact);
-            a.Where(nco.gender);
-            a.Where(nie.relatedTo, b);
-
             result = _model.ExecuteQuery(b, true);
-
             resources = result.GetResources().ToList();
+
             Assert.AreEqual(18, resources.Count);
 
             l = null;
+
             foreach (Resource r in resources)
             {
                 DateTime t = (DateTime)r.GetValue(nco.birthDate);
+
                 if (l.HasValue)
+                {
                     Assert.IsTrue(t > l);
+                }
+
                 l = t;
             }
         }
