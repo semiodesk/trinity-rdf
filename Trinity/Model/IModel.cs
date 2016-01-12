@@ -30,10 +30,8 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 
-
 namespace Semiodesk.Trinity
 {
-
     /// <summary>
     /// An interface for classes which provide functionality to manage a set of resources.
     /// </summary>

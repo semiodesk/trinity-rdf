@@ -41,6 +41,7 @@ namespace Semiodesk.Trinity
     class IModelEqualityComparer : IEqualityComparer<IModel>
     {
         #region IEqualityComparer<IModel> Members
+
         /// <summary>
         /// Equals
         /// </summary>

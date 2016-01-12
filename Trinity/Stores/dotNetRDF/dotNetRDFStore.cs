@@ -124,13 +124,10 @@ namespace Semiodesk.Trinity.Store
         {
             if (query.InferenceEnabled && _reasoner != null)
             {
-
                 _store.AddInferenceEngine(_reasoner);
-
             }
             else
             {
-                //_store.RemoveInferenceEngine(_reasoner);
                 _store.ClearInferenceEngines();
             }
 
@@ -138,10 +135,16 @@ namespace Semiodesk.Trinity.Store
             var q = sparqlparser.ParseFromString(query.ToString());
 
             object results = _store.ExecuteQuery(q);
+
             if (results is IGraph)
+            {
                 return new dotNetRDFQueryResult(this, query, results as IGraph);
+            }
             else if (results is SparqlResultSet)
+            {
                 return new dotNetRDFQueryResult(this, query, results as SparqlResultSet);
+            }
+
             return null;
         }
 

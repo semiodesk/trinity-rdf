@@ -52,7 +52,7 @@ namespace Semiodesk.Trinity
         // for implementing the GetResource(Uri, Type) method that supports runtime type specification.
         private MethodInfo _getResourceMethod;
 
-        Dictionary<string, List<Resource>> _currentResources = new Dictionary<string, List<Resource>>();
+        private Dictionary<string, List<Resource>> _currentResources = new Dictionary<string, List<Resource>>();
 
         /// <summary>
         /// The Uniform Resource Identifier which provides a name for the model.
@@ -67,6 +67,7 @@ namespace Semiodesk.Trinity
             get
             {
                 SparqlQuery query = new SparqlQuery(string.Format(@"ASK FROM {0} {{ ?s ?p ?o . }}", SparqlSerializer.SerializeUri(Uri)));
+
                 return !ExecuteQuery(query).GetAnwser();
             }
         }
@@ -89,9 +90,9 @@ namespace Semiodesk.Trinity
         /// <param name="graphManager">RDF backend to manage the models RDF graph.</param>
         public Model(IStore store, UriRef uri)
         {
-            Uri = uri;
             _store = store;
 
+            Uri = uri;
 
             // Searches for the generic method T GetResource<T>(Uri) and saves a handle
             // for later use within GetResource(Uri, Type);
@@ -99,8 +100,7 @@ namespace Semiodesk.Trinity
             {
                 if (methodInfo.Name == "GetResource" && methodInfo.IsGenericMethod)
                 {
-                    _getResourceMethod = methodInfo;
-                    break;
+                    _getResourceMethod = methodInfo; break;
                 }
             }
         }
@@ -130,10 +130,12 @@ namespace Semiodesk.Trinity
         public IResource AddResource(IResource resource, ITransaction transaction = null)
         {
             Resource result = CreateResource<Resource>(resource.Uri, transaction);
+
             foreach (var v in resource.ListValues())
             {
                 result.AddProperty(v.Item1, v.Item2);
             }
+
             result.Commit();
 
             return result;
@@ -150,10 +152,12 @@ namespace Semiodesk.Trinity
         public T AddResource<T>(T resource, ITransaction transaction = null) where T : Resource
         {
             T result = CreateResource<T>(resource.Uri, transaction);
+
             foreach (var v in resource.ListValues())
             {
                 result.AddProperty(v.Item1, v.Item2);
             }
+
             result.Commit();
 
             return result;
@@ -271,7 +275,9 @@ namespace Semiodesk.Trinity
             string updateString = string.Format(@"WITH {0} DELETE {{ {1} ?p ?o. ?s1 ?p1 {1} . }} WHERE {{ {1} ?p ?o. OPTIONAL {{ ?s1 ?p1 {1} . }} }}",
                 SparqlSerializer.SerializeUri(Uri),
                 SparqlSerializer.SerializeUri(uri));
+
             SparqlUpdate update = new SparqlUpdate(updateString);
+
             _store.ExecuteNonQuery(update, transaction);
         }
 
@@ -298,8 +304,10 @@ namespace Semiodesk.Trinity
                 string updateString = string.Format(@"WITH {0} INSERT {{ {1} }} WHERE {{}}",
                     SparqlSerializer.SerializeUri(Uri),
                     SparqlSerializer.SerializeResource(resource));
+
                 SparqlUpdate update = new SparqlUpdate(updateString);
                 update.Resource = resource;
+
                 ExecuteUpdate(update, transaction);
             }
             else
@@ -308,8 +316,10 @@ namespace Semiodesk.Trinity
                     SparqlSerializer.SerializeUri(Uri),
                     SparqlSerializer.SerializeUri(resource.Uri),
                     SparqlSerializer.SerializeResource(resource));
+
                 SparqlUpdate update = new SparqlUpdate(updateString);
                 update.Resource = resource;
+
                 ExecuteUpdate(update, transaction);
             }
 
@@ -664,9 +674,5 @@ namespace Semiodesk.Trinity
 
 
         #endregion
-
-
-
-
     }
 }

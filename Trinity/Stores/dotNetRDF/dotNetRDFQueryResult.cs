@@ -222,19 +222,18 @@ namespace Semiodesk.Trinity.Store
 
         public IEnumerable<T> GetResources<T>() where T : Resource
         {
-
-            if (_query.ProvidesStatements())
+            if (!_query.ProvidesStatements())
             {
-                return GenerateResources<T>();
+                throw new ArgumentException("Error: The given query cannot be resolved into statements.");
             }
 
-            throw new ArgumentException("Error: The given query cannot be resolved into statements.");
-
+            return GenerateResources<T>();
         }
 
         private IEnumerable<T> GenerateResources<T>() where T : Resource
         {
             List<T> result = new List<T>();
+
             if (0 < _tripleProvider.Count)
             {
                 // A dictionary mapping URIs to the generated resource objects.
@@ -356,7 +355,6 @@ namespace Semiodesk.Trinity.Store
             return null;
         }
 
-
         private Dictionary<string, T> FindResourceTypes<T>(bool inferencingEnabled)
             where T : Resource
         {
@@ -441,20 +439,27 @@ namespace Semiodesk.Trinity.Store
         public virtual int Count()
         {
             string countQuery = SparqlSerializer.SerializeCount(_model, _query);
+
+            SparqlQuery query = new SparqlQuery(countQuery);
             // TODO: Apply inferencing if enabled
 
-            var res = _store.ExecuteQuery(countQuery);
+            var res = _store.ExecuteQuery(query.ToString());
 
             if (res is SparqlResultSet)
             {
                 SparqlResultSet result = res as SparqlResultSet;
+
                 if (result.Count > 0 && result[0].Count > 0)
                 {
                     var value = ParseCellValue(result[0][0]);
+
                     if (value.GetType() == typeof(int))
+                    {
                         return (int)value;
+                    }
                 }
             }
+
             return -1;
         }
 

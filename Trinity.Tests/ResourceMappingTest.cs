@@ -273,7 +273,6 @@ namespace Semiodesk.Trinity.Test
 
         #endregion
     }
-
     public class MappingTestClass5 : MappingTestClass3
     {
         #region Constructors
@@ -289,7 +288,6 @@ namespace Semiodesk.Trinity.Test
 
         #endregion
     }
-
     public class StringMappingTestClass : Resource
     {
         #region Constructors
@@ -326,7 +324,6 @@ namespace Semiodesk.Trinity.Test
         
         #endregion
     }
-
     [TestFixture]
     public class ResourceMappingTest
     {
@@ -1043,7 +1040,6 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(0, t_actual.resourceTest.Count);
         }
 
-
         [Test]
         public void LazyLoadResourceTest()
         {
@@ -1244,7 +1240,6 @@ namespace Semiodesk.Trinity.Test
            
         }
 
-
         [Test]
         public void RollbackMappedResourcesTest()
         {
@@ -1299,7 +1294,6 @@ namespace Semiodesk.Trinity.Test
 
         }
 
-
         [Test]
         public void KeepListsAfterRollbackTest()
         {
@@ -1337,7 +1331,6 @@ namespace Semiodesk.Trinity.Test
             Assert.IsFalse(c1 == c2);
         }
 
-
         [Test]
         public void TestStringPropertyMapping()
         {
@@ -1351,8 +1344,6 @@ namespace Semiodesk.Trinity.Test
 
             x = p.GetValue(new Property(new Uri("http://www.example.com/property")));
             Assert.AreEqual(p.RandomProperty, x);
-
         }
     }
-
 }

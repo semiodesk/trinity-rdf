@@ -34,6 +34,8 @@ namespace Semiodesk.Trinity
 {
     public class ResourceProvider
     {
+        #region Members
+
         private string _name;
 
         public string Name
@@ -50,6 +52,10 @@ namespace Semiodesk.Trinity
             set { _query = value; }
         }
 
+        #endregion
+
+        #region Constructors
+
         public ResourceProvider()
         {
         }
@@ -57,5 +63,7 @@ namespace Semiodesk.Trinity
         public ResourceProvider(string name, ResourceQuery query)
         {
         }
+
+        #endregion
     }
 }
