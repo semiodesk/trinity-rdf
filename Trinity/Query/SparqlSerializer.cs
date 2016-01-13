@@ -183,13 +183,16 @@ namespace Semiodesk.Trinity
         public static string SerializeResource(IResource resource)
         {
             StringBuilder result = new StringBuilder(SerializeUri(resource.Uri));
+            result.Append(' ');
 
             foreach (var value in resource.ListValues())
             {
-                if (value.Item2 != null)
+                if (value.Item2 == null)
                 {
-                    result.Append(string.Format("{0} {1};\n", SerializeUri(value.Item1.Uri), SerializeValue(value.Item2)));
+                    continue;
                 }
+
+                result.AppendFormat("{0} {1}; ", SerializeUri(value.Item1.Uri), SerializeValue(value.Item2));
             }
 
             result[result.Length - 2] = '.';
@@ -505,9 +508,9 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string SerializeCount(IModel model, SparqlQuery query)
         {
-            string variable = query.QueryProcessor.GlobalScopeVariables.FirstOrDefault();
+            string variable = query.Preprocessor.GlobalScopeVariables.FirstOrDefault();
             string from = GenerateDatasetClause(model);
-            string where = query.QueryProcessor.GetRootGraphPattern();
+            string where = query.Preprocessor.GetRootGraphPattern();
 
             StringBuilder queryBuilder = new StringBuilder();
 
@@ -524,11 +527,11 @@ namespace Semiodesk.Trinity
 
         internal static string SerializeFetchUris(IModel model, SparqlQuery query, int offset = -1, int limit = -1)
         {
-            string prefixes = query.QueryProcessor.GetPrefixDeclarations();
-            string variable = query.QueryProcessor.GlobalScopeVariables.FirstOrDefault();
+            string prefixes = query.Preprocessor.GetPrefixDeclarations();
+            string variable = query.Preprocessor.GlobalScopeVariables.FirstOrDefault();
             string from = GenerateDatasetClause(model);
-            string where = query.QueryProcessor.GetRootGraphPattern();
-            string orderby = query.QueryProcessor.GetOrderByClause();
+            string where = query.Preprocessor.GetRootGraphPattern();
+            string orderby = query.Preprocessor.GetOrderByClause();
 
             StringBuilder queryBuilder = new StringBuilder();
 
@@ -558,9 +561,9 @@ namespace Semiodesk.Trinity
 
         internal static string SerializeOffsetLimit(IModel model, SparqlQuery query, int offset = -1, int limit = -1)
         {
-            string variable = query.QueryProcessor.GlobalScopeVariables.FirstOrDefault();
+            string variable = query.Preprocessor.GlobalScopeVariables.FirstOrDefault();
             string from = GenerateDatasetClause(model);
-            string where = query.QueryProcessor.GetRootGraphPattern();
+            string where = query.Preprocessor.GetRootGraphPattern();
 
             StringBuilder resultBuilder = new StringBuilder();
             resultBuilder.AppendFormat("SELECT {0} ?p ?o {1} WHERE {{ {0} ?p ?o {{", variable, from);

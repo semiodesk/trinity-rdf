@@ -60,7 +60,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// The SPARQL query processor used to determine the prefixes and statement variables in the query.
         /// </summary>
-        internal SparqlProcessor QueryProcessor;
+        internal SparqlQueryPreprocessor Preprocessor;
 
         /// <summary>
         /// Holds the variable name of the subject for SELECT queries which
@@ -105,36 +105,16 @@ namespace Semiodesk.Trinity
             using (TextReader reader = new StringReader(queryString))
             {
                 // Parse the query for namespace prefixes and optionally remove any formatting characters.
-                QueryProcessor = new SparqlProcessor(reader, SparqlQuerySyntax.Extended);
-                QueryProcessor.Process();
+                Preprocessor = new SparqlQueryPreprocessor(reader, SparqlQuerySyntax.Extended);
+                Preprocessor.Process(declarePrefixes);
 
-                // Declare the globally registered RDF namespace prefixes used in the query.
-                if (declarePrefixes)
+                QueryType = Preprocessor.QueryType;
+
+                if (Preprocessor.QueryProvidesStatements && Preprocessor.GlobalScopeVariables.Count == 3)
                 {
-                    foreach (string prefix in QueryProcessor.UsedPrefixes)
-                    {
-                        if (OntologyDiscovery.Namespaces.ContainsKey(prefix))
-                        {
-                            Uri uri = OntologyDiscovery.Namespaces[prefix];
-
-                            QueryProcessor.AddPrefix(prefix, uri);
-                        }
-                        else
-                        {
-                            string msg = string.Format("The prefix '{0}' is not registered with any ontology in app.config", prefix);
-
-                            throw new KeyNotFoundException(msg);
-                        }
-                    }
-                }
-
-                QueryType = QueryProcessor.QueryType;
-
-                if (QueryProcessor.ProvidesStatements && QueryProcessor.GlobalScopeVariables.Count == 3)
-                {
-                    SubjectVariable = QueryProcessor.GlobalScopeVariables[0].Substring(1);
-                    PredicateVariable = QueryProcessor.GlobalScopeVariables[1].Substring(1);
-                    ObjectVariable = QueryProcessor.GlobalScopeVariables[2].Substring(1);
+                    SubjectVariable = Preprocessor.GlobalScopeVariables[0].Substring(1);
+                    PredicateVariable = Preprocessor.GlobalScopeVariables[1].Substring(1);
+                    ObjectVariable = Preprocessor.GlobalScopeVariables[2].Substring(1);
                 }
             }
         }
@@ -149,7 +129,7 @@ namespace Semiodesk.Trinity
         /// <returns>True if the query will be matched against the background graph.</returns>
         internal bool IsAgainstDefaultModel()
         {
-            return QueryProcessor.DefaultGraphs.Count == 0;
+            return Preprocessor.DefaultGraphs.Count == 0;
         }
 
         /// <summary>
@@ -157,7 +137,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public bool ProvidesStatements()
         {
-            return QueryProcessor.ProvidesStatements;
+            return Preprocessor.QueryProvidesStatements;
         }
 
         /// <summary>
@@ -165,22 +145,14 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="parameter">The parameter name including the '@'.</param>
         /// <param name="value">The paramter value.</param>
-        public void Set(string parameter, object value)
+        public void Bind(string parameter, object value)
         {
-            if (string.IsNullOrEmpty(parameter))
+            if(Preprocessor == null)
             {
-                throw new ArgumentException("Empty or null value for SPARQL query parameter.");
-            }
-            else if (parameter[0] != '@')
-            {
-                throw new ArgumentException("SPARQL query parameters must start with '@'.");
-            }
-            else if (value == null)
-            {
-                throw new ArgumentNullException("SPARQL query parameter values may not be null.");
+                throw new NotSupportedException("SPARQL query parameters can only be used with a query processor. Try using the default constructor.");
             }
 
-            QueryProcessor.ParameterValues[parameter] = SparqlSerializer.SerializeValue(value);
+            Preprocessor.Bind(parameter, value);
         }
 
         /// <summary>
@@ -189,20 +161,29 @@ namespace Semiodesk.Trinity
         /// <param name="model">A model the query should be executed on.</param>
         internal void SetModel(IModel model)
         {
+            if(Model == model)
+            {
+                return;
+            }
+
             Model = model;
 
-            if (model is IModelGroup)
+            if (Preprocessor == null)
+            {
+                return;
+            }
+            else if (model is IModelGroup)
             {
                 IModelGroup group = model as IModelGroup;
 
                 foreach (IModel m in group)
                 {
-                    QueryProcessor.AddNamedGraph(m.Uri);
+                    Preprocessor.AddNamedGraph(m.Uri);
                 }
             }
             else
             {
-                QueryProcessor.AddDefaultGraph(model.Uri);
+                Preprocessor.AddDefaultGraph(model.Uri);
             }
         }
 
@@ -212,27 +193,26 @@ namespace Semiodesk.Trinity
         /// <returns><c>true</c> if the query contains an ORDER BY clause, <c>false</c> otherwise.</returns>
         internal bool IsOrdered()
         {
-            return QueryProcessor.IsOrdered;
+            return Preprocessor.IsOrdered;
         }
 
         internal void SetLimit(int limit)
         {
-            QueryProcessor.SetLimit(limit);
+            Preprocessor.SetLimit(limit);
         }
 
         internal void SetOffset(int offset)
         {
-            QueryProcessor.SetOffset(offset);
+            Preprocessor.SetOffset(offset);
         }
 
         /// <summary>
-        /// Returns the query string with generated prefixes and optional definitions for
-        /// the Virtuoso store.
+        /// Returns the query string with generated prefixes and subsituted parameters.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A valid SPARQL string.</returns>
         public override string ToString()
         {
-            return QueryProcessor.ToString();
+            return Preprocessor.ToString();
         }
 
         #endregion

@@ -383,8 +383,8 @@ namespace Semiodesk.Trinity.Test
                     }
                 }");
 
-            query.Set("@type", rdf.type);
-            query.Set("@class", tmo.Task);
+            query.Bind("@type", rdf.type);
+            query.Bind("@class", tmo.Task);
             
             MethodInfo method = query.GetType().GetMethod("SetLimit", BindingFlags.NonPublic | BindingFlags.Instance);
             method.Invoke(query, new object[] { 10 });
@@ -426,8 +426,8 @@ namespace Semiodesk.Trinity.Test
                     }
                 }");
 
-            query.Set("@type", rdf.type);
-            query.Set("@class", tmo.Task);
+            query.Bind("@type", rdf.type);
+            query.Bind("@class", tmo.Task);
 
             isOrdered = query.GetType().GetMethod("IsOrdered", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.AreEqual(true, isOrdered.Invoke(query, null));
@@ -456,8 +456,8 @@ namespace Semiodesk.Trinity.Test
                     }
                 }");
 
-            query.Set("@type", rdf.type);
-            query.Set("@class", tmo.Task);
+            query.Bind("@type", rdf.type);
+            query.Bind("@class", tmo.Task);
 
             isOrdered = query.GetType().GetMethod("IsOrdered", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.AreEqual(false, isOrdered.Invoke(query, null));

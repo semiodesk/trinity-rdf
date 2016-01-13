@@ -141,8 +141,7 @@ namespace Semiodesk.Trinity.Test
 
             _model.ExecuteUpdate(update);
 
-            SparqlQuery query = new SparqlQuery(@"
-                SELECT * WHERE { ?s ?p ?o . }");
+            SparqlQuery query = new SparqlQuery(@"SELECT * WHERE { ?s ?p ?o . }");
 
             Assert.Greater(_model.ExecuteQuery(query).GetBindings().Count(), 0);
         }

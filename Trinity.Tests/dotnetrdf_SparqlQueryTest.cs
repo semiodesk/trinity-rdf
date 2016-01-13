@@ -405,8 +405,8 @@ namespace Semiodesk.Trinity.Test
                 }
             ");
 
-            query.Set("@type", rdf.type);
-            query.Set("@class", tmo.Task);
+            query.Bind("@type", rdf.type);
+            query.Bind("@class", tmo.Task);
 
             MethodInfo method = query.GetType().GetMethod("IsOrdered", BindingFlags.NonPublic | BindingFlags.Instance);
 
@@ -438,8 +438,8 @@ namespace Semiodesk.Trinity.Test
                 }
             ");
 
-            query.Set("@type", rdf.type);
-            query.Set("@class", tmo.Task);
+            query.Bind("@type", rdf.type);
+            query.Bind("@class", tmo.Task);
 
             Assert.AreEqual(false, method.Invoke(query, null));
 

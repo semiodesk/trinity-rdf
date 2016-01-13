@@ -52,15 +52,18 @@ namespace Semiodesk.Trinity.Store
         #region Members
 
         TripleStore _store;
-        LeviathanUpdateProcessor _updateProcessor;
+
+        ISparqlUpdateProcessor _updateProcessor;
+
         ISparqlQueryProcessor _queryProcessor;
+
         SparqlUpdateParser _parser;
+
         RdfsReasoner _reasoner;
 
         #endregion
 
-        #region Constructor
-
+        #region Constructors
 
         public dotNetRDFStore(string[] schema)
         {
@@ -68,19 +71,22 @@ namespace Semiodesk.Trinity.Store
             _updateProcessor = new LeviathanUpdateProcessor(_store);
             _queryProcessor = new LeviathanQueryProcessor(_store);
             _parser = new SparqlUpdateParser();
-            if (schema != null)
-            {
-                _reasoner = new RdfsReasoner();
-                _store.AddInferenceEngine(_reasoner);
 
-                foreach (string m in schema)
-                {
-                    IGraph schemaGraph = LoadSchema(m);
-                    _store.Add(schemaGraph);
-                    _reasoner.Initialise(schemaGraph);
-                }
+            if (schema == null)
+            {
+                return;
             }
 
+            _reasoner = new RdfsReasoner();
+            _store.AddInferenceEngine(_reasoner);
+
+            foreach (string m in schema)
+            {
+                IGraph schemaGraph = LoadSchema(m);
+
+                _store.Add(schemaGraph);
+                _reasoner.Initialise(schemaGraph);
+            }
         }
 
         #endregion
@@ -89,12 +95,16 @@ namespace Semiodesk.Trinity.Store
 
         private IGraph LoadSchema(string schema)
         {
-            IGraph g = new Graph();
-            g.LoadFromFile(schema);
-            SparqlResultSet res = (SparqlResultSet)g.ExecuteQuery("select ?s where { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Ontology>. }");
-            g.BaseUri = (res[0]["s"] as UriNode).Uri;
+            IGraph graph = new Graph();
+            graph.LoadFromFile(schema);
 
-            return g;
+            string queryString = "SELECT ?s WHERE { ?s a <http://www.w3.org/2002/07/owl#Ontology>. }";
+
+            SparqlResultSet result = (SparqlResultSet)graph.ExecuteQuery(queryString);
+
+            graph.BaseUri = (result[0]["s"] as UriNode).Uri;
+
+            return graph;
         }
 
         #region IStore implementation
@@ -117,6 +127,7 @@ namespace Semiodesk.Trinity.Store
         public void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
         {
             SparqlUpdateCommandSet cmds = _parser.ParseFromString(query.ToString());
+
             _updateProcessor.ProcessCommandSet(cmds);
         }
 

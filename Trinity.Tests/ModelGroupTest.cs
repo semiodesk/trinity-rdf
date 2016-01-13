@@ -45,6 +45,7 @@ namespace Semiodesk.Trinity.Test
         public void SetUp()
         {
             string connectionString = SetupClass.ConnectionString;
+
             _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
 
            Uri modelUri1 = new Uri("http://example.org/TestModel");
@@ -106,6 +107,22 @@ namespace Semiodesk.Trinity.Test
             resource.Commit();
 
             Assert.IsTrue(group.ContainsResource(uri));
+        }
+
+        [Test]
+        public void DeleteResouceTest2()
+        {
+            var uri = new Uri("ex:Resource2");
+
+            IResource resource = _model.CreateResource(uri);
+            resource.AddProperty(rdf.type, nco.Contact);
+            resource.Commit();
+
+            Assert.IsTrue(_model.ContainsResource(uri));
+
+            _model.DeleteResource(resource);
+
+            Assert.IsFalse(_model.ContainsResource(uri));
         }
 
         [Test]

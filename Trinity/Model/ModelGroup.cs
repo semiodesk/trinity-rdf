@@ -316,7 +316,6 @@ namespace Semiodesk.Trinity
 
         public bool ContainsResource(Uri uri, ITransaction transaction = null)
         {
-            
             return ExecuteQuery(new SparqlQuery(string.Format(@"ASK {0} {{ {1} ?p ?o . }}",
                 DatasetClause,
                 SparqlSerializer.SerializeUri(uri))), transaction: transaction).GetAnwser();
@@ -330,7 +329,6 @@ namespace Semiodesk.Trinity
         public ISparqlQueryResult ExecuteQuery(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
         {
             query.SetModel(this);
-
             query.InferenceEnabled = inferenceEnabled;
 
             return _store.ExecuteQuery(query, transaction);

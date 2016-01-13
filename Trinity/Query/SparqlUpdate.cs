@@ -27,8 +27,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
+using VDS.RDF.Parsing;
 
 namespace Semiodesk.Trinity
 {
@@ -47,14 +49,19 @@ namespace Semiodesk.Trinity
         public IModel Model { get; set; }
 
         /// <summary>
-        /// The SPARQL Update string including all generated PREFIX declarations.
-        /// </summary>
-        public string Update { get; protected set; }
-
-        /// <summary>
         /// Get or set the resource being updated.
         /// </summary>
-        public Resource Resource { get; set; }
+        public IResource Resource { get; set; }
+
+        /// <summary>
+        /// The SPARQL processor used to determine the prefixes and statement variables in the query.
+        /// </summary>
+        internal SparqlPreprocessor Preprocessor;
+
+        /// <summary>
+        /// The plain SPARQL update string.
+        /// </summary>
+        private string _updateString;
 
         #endregion
 
@@ -65,23 +72,40 @@ namespace Semiodesk.Trinity
         /// can be used to declare PREFIX declarations for the namespace abbreviations
         /// used in the update string.
         /// </summary>
-        /// <param name="update">The u update string.</param>
+        /// <param name="updateString">The u update string.</param>
         /// <param name="namespaceManager">The optional namespace manager used to declare Sparql PREFIXes.</param>
-        public SparqlUpdate(string update, NamespaceManager namespaceManager = null)
+        public SparqlUpdate(string updateString)
         {
-            if (namespaceManager == null)
+            using (TextReader reader = new StringReader(updateString))
             {
-                Update = update;
-            }
-            else
-            {
-                Update = SparqlSerializer.GeneratePrologue(update, namespaceManager);
+                // Parse the query for namespace prefixes and optionally remove any formatting characters.
+                Preprocessor = new SparqlPreprocessor(reader, SparqlQuerySyntax.Extended);
+                Preprocessor.Process(true);
             }
         }
 
+        /// <summary>
+        /// Set the value for a query parameter which is preceeded by '@'.
+        /// </summary>
+        /// <param name="parameter">The parameter name including the '@'.</param>
+        /// <param name="value">The paramter value.</param>
+        public void Bind(string parameter, object value)
+        {
+            if (Preprocessor == null)
+            {
+                throw new NotSupportedException("SPARQL query parameters can only be used with a query processor. Try using the default constructor.");
+            }
+
+            Preprocessor.Bind(parameter, value);
+        }
+
+        /// <summary>
+        /// Returns the query string with generated prefixes and subsituted parameters.
+        /// </summary>
+        /// <returns>A valid SPARQL string.</returns>
         public override string ToString()
         {
-            return Update;
+            return Preprocessor != null ? Preprocessor.ToString() : _updateString;
         }
 
         #endregion
