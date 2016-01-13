@@ -119,7 +119,8 @@
     <Compile Include="Query\ResourceQueryResult.cs" />
     <Compile Include="Query\SortCriterion.cs" />
     <Compile Include="Query\SortDirection.cs" />
-    <Compile Include="Query\SparqlProcessor.cs" />
+    <Compile Include="Query\SparqlPreprocessor.cs" />
+    <Compile Include="Query\SparqlQueryPreprocessor.cs" />
     <Compile Include="Query\StatementPattern.cs" />
     <Compile Include="Stores\StoreProvider.cs" />
     <Compile Include="Stores\StoreFactory.cs" />
