@@ -202,6 +202,15 @@ namespace Semiodesk.Trinity.Test
             set { SetValue(uniqueDoubleTestMapping, value); }
         }
 
+        protected PropertyMapping<decimal> uniqueDecimalTestMapping =
+            new PropertyMapping<decimal>("uniqueDecimalTest", TestOntology.uniqueDecimalTest);
+
+        public decimal uniqueDecimalTest
+        {
+            get { return GetValue(uniqueDecimalTestMapping); }
+            set { SetValue(uniqueDecimalTestMapping, value); }
+        }
+
         protected PropertyMapping<ObservableCollection<Resource>> _genericPropertyMapping =
             new PropertyMapping<ObservableCollection<Resource>>("genericProperty", TestOntology.genericTest);
 
@@ -973,6 +982,54 @@ namespace Semiodesk.Trinity.Test
 
             // Test if ListValues works
             Assert.AreEqual(0, storedResource.ListValues(TestOntology.uniqueDoubleTest).Count());
+
+            m.Clear();
+        }
+
+        [Test]
+        public void AddRemoveDecimalTest()
+        {
+            IModel m = GetModel();
+            m.Clear();
+
+            Uri uri = new Uri("semio:test:testInstance1");
+
+            MappingTestClass testResource = m.CreateResource<MappingTestClass>(uri);
+
+            // Add value using the mapping interface
+            decimal decimalValue = 1.0m;
+
+            testResource.uniqueDecimalTest = decimalValue;
+            testResource.Commit();
+
+            MappingTestClass storedResource = m.GetResource<MappingTestClass>(uri);
+
+            // Test if value was stored
+            Assert.AreEqual(decimalValue, storedResource.uniqueDecimalTest);
+
+            // Test if property is present
+            List<Property> properties = storedResource.ListProperties();
+
+            Assert.True(properties.Contains(TestOntology.uniqueDecimalTest));
+            Assert.AreEqual(2, properties.Count());
+
+            // Test if ListValues works
+            Assert.AreEqual(typeof(decimal), storedResource.ListValues(TestOntology.uniqueDecimalTest).First().GetType());
+            Assert.AreEqual(decimalValue, storedResource.ListValues(TestOntology.uniqueDecimalTest).First());
+
+            // Remove with RemoveProperty
+            testResource.RemoveProperty(TestOntology.uniqueDecimalTest, decimalValue);
+            testResource.Commit();
+
+            storedResource = m.GetResource<MappingTestClass>(uri);
+
+            // Test if ListProperties works
+            properties = storedResource.ListProperties();
+
+            Assert.False(properties.Contains(TestOntology.uniqueDecimalTest));
+
+            // Test if ListValues works
+            Assert.AreEqual(0, storedResource.ListValues(TestOntology.uniqueDecimalTest).Count());
 
             m.Clear();
         }

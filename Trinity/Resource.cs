@@ -415,6 +415,15 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// Add a property with a decimal as value.
+        /// If this property is mapped with a compatible type, it will be filled with the given value.
+        /// </summary>
+        public void AddProperty(Property property, decimal value)
+        {
+            AddPropertyToMapping(property, value, false);
+        }
+
+        /// <summary>
         /// Add a property with a bool as value.
         /// If this property is mapped with a compatible type, it will be filled with the given value.
         /// </summary>
@@ -572,6 +581,15 @@ namespace Semiodesk.Trinity
         /// If this property is mapped with a compatible type, the given value will be removed.
         /// </summary>
         public void RemoveProperty(Property property, double value)
+        {
+            RemovePropertyFromMapping(property, value);
+        }
+
+        /// <summary>
+        /// Removes a property with a decimal value.
+        /// If this property is mapped with a compatible type, the given value will be removed.
+        /// </summary>
+        public void RemoveProperty(Property property, decimal value)
         {
             RemovePropertyFromMapping(property, value);
         }
