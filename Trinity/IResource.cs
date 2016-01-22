@@ -143,6 +143,13 @@ namespace Semiodesk.Trinity
         /// Adds a new property with the given value to the resource.
         /// </summary>
         /// <param name="property">Property the value should be associated with.</param>
+        /// <param name="value">A decimal value.</param>
+        void AddProperty(Property property, decimal value);
+
+        /// <summary>
+        /// Adds a new property with the given value to the resource.
+        /// </summary>
+        /// <param name="property">Property the value should be associated with.</param>
         /// <param name="value">A boolean value.</param>
         void AddProperty(Property property, bool value);
 
@@ -236,6 +243,13 @@ namespace Semiodesk.Trinity
         /// <param name="property">Property the given value is associated with.</param>
         /// <param name="value">A double precision float value.</param>
         void RemoveProperty(Property property, double value);
+
+        /// <summary>
+        /// Removes an associated property from the resource.
+        /// </summary>
+        /// <param name="property">Property the given value is associated with.</param>
+        /// <param name="value">A decimal value.</param>
+        void RemoveProperty(Property property, decimal value);
 
         /// <summary>
         /// Removes an associated property from the resource.

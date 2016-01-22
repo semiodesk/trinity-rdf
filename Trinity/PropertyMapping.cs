@@ -130,7 +130,7 @@ namespace Semiodesk.Trinity
             #if DEBUG
 
             // Test if the given type is valid
-            List<Type> allowed = new List<Type>{ typeof(string), typeof(bool), typeof(float), typeof(double), 
+            HashSet<Type> allowed = new HashSet<Type>{ typeof(string), typeof(bool), typeof(float), typeof(double), typeof(decimal),
                                                  typeof(Int16), typeof(Int32), typeof(Int64), 
                                                  typeof(UInt16),typeof(UInt32), typeof(UInt64), 
                                                  typeof(DateTime)};

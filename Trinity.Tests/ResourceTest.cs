@@ -93,6 +93,9 @@ namespace Semiodesk.Trinity.Test
         public static readonly Property doubleTest = new Property(new Uri("semio:test:doubleTest"));
         public static readonly Property uniqueDoubleTest = new Property(new Uri("semio:test:uniqueDoubleTest"));
 
+        public static readonly Property decimalTest = new Property(new Uri("semio:test:decimalTest"));
+        public static readonly Property uniqueDecimalTest = new Property(new Uri("semio:test:uniqueDecimalTest"));
+
         public static readonly Property boolTest = new Property(new Uri("semio:test:boolTest"));
         public static readonly Property uniqueBoolTest = new Property(new Uri("semio:test:uniqueBoolTest"));
 
