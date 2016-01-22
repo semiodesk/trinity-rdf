@@ -46,7 +46,7 @@ namespace Semiodesk.Trinity.Test
     {
         #region Constructors
 
-        public SingleMappingTestClass(Uri uri) : base(uri) { }
+        public SingleMappingTestClass(Uri uri) : base(uri) {}
 
         #endregion
 
@@ -73,7 +73,7 @@ namespace Semiodesk.Trinity.Test
     {
         #region Constructors
 
-        public SingleResourceMappingTestClass(Uri uri) : base(uri) { }
+        public SingleResourceMappingTestClass(Uri uri) : base(uri) {}
 
         #endregion
 
@@ -83,7 +83,6 @@ namespace Semiodesk.Trinity.Test
         {
             return new List<Class> { TestOntology.SingleResourceMappingTestClass };
         }
-
 
         protected PropertyMapping<ObservableCollection<Resource>> resourceTestMapping =
             new PropertyMapping<ObservableCollection<Resource>>("ResourceTest", TestOntology.resourceTest, new ObservableCollection<Resource>());
@@ -101,7 +100,7 @@ namespace Semiodesk.Trinity.Test
     {
         #region Constructors
 
-        public MappingTestClass(Uri uri) : base(uri) { }
+        public MappingTestClass(Uri uri) : base(uri) {}
 
         #endregion
 
@@ -267,7 +266,7 @@ namespace Semiodesk.Trinity.Test
     {
         #region Constructors
 
-        public MappingTestClass2(Uri uri) : base(uri) { }
+        public MappingTestClass2(Uri uri) : base(uri) {}
 
         #endregion
 
@@ -293,7 +292,8 @@ namespace Semiodesk.Trinity.Test
     public class MappingTestClass3 : MappingTestClass2
     {
         #region Constructors
-        public MappingTestClass3(Uri uri) : base(uri) { }
+
+        public MappingTestClass3(Uri uri) : base(uri) {}
 
         #endregion
 
@@ -310,7 +310,8 @@ namespace Semiodesk.Trinity.Test
     public class MappingTestClass4 : MappingTestClass3
     {
         #region Constructors
-        public MappingTestClass4(Uri uri) : base(uri) { }
+
+        public MappingTestClass4(Uri uri) : base(uri) {}
 
         #endregion
 
@@ -326,7 +327,8 @@ namespace Semiodesk.Trinity.Test
     public class MappingTestClass5 : MappingTestClass3
     {
         #region Constructors
-        public MappingTestClass5(Uri uri) : base(uri) { }
+
+        public MappingTestClass5(Uri uri) : base(uri) {}
 
         #endregion
 
@@ -343,7 +345,8 @@ namespace Semiodesk.Trinity.Test
     public class StringMappingTestClass : Resource
     {
         #region Constructors
-        public StringMappingTestClass(Uri uri) : base(uri) { }
+
+        public StringMappingTestClass(Uri uri) : base(uri) {}
 
         #endregion
 
