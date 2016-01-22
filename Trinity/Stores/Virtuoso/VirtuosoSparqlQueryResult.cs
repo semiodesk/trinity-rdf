@@ -284,7 +284,7 @@ namespace Semiodesk.Trinity.Store
 
                         if (cache.ContainsKey(uri.OriginalString))
                         {
-                            currentResource.AddProperty(p, cache[uri.OriginalString], true);
+                            currentResource.AddPropertyToMapping(p, cache[uri.OriginalString], true);
                             currentResource.IsNew = false;
                             currentResource.IsSynchronized = false;
                             currentResource.SetModel(_model);
@@ -295,7 +295,7 @@ namespace Semiodesk.Trinity.Store
                             r.IsNew = false;
 
                             cache.Add(uri.OriginalString, r);
-                            currentResource.AddProperty(p, r, true);
+                            currentResource.AddPropertyToMapping(p, r, true);
                             currentResource.IsNew = false;
                             currentResource.IsSynchronized = false;
                             currentResource.SetModel(_model);
@@ -303,7 +303,7 @@ namespace Semiodesk.Trinity.Store
                     }
                     else
                     {
-                        currentResource.AddProperty(p, o, true);
+                        currentResource.AddPropertyToMapping(p, o, true);
                     }
                 }
             }

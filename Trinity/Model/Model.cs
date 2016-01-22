@@ -133,7 +133,7 @@ namespace Semiodesk.Trinity
 
             foreach (var v in resource.ListValues())
             {
-                result.AddProperty(v.Item1, v.Item2);
+                result.AddPropertyToMapping(v.Item1, v.Item2, false);
             }
 
             result.Commit();
@@ -155,7 +155,7 @@ namespace Semiodesk.Trinity
 
             foreach (var v in resource.ListValues())
             {
-                result.AddProperty(v.Item1, v.Item2);
+                result.AddPropertyToMapping(v.Item1, v.Item2, false);
             }
 
             result.Commit();
