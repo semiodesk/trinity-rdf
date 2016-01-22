@@ -273,7 +273,6 @@ namespace Semiodesk.Trinity.Test
 
         #endregion
     }
-
     public class MappingTestClass5 : MappingTestClass3
     {
         #region Constructors
@@ -289,7 +288,6 @@ namespace Semiodesk.Trinity.Test
 
         #endregion
     }
-
     public class StringMappingTestClass : Resource
     {
         #region Constructors
@@ -326,7 +324,6 @@ namespace Semiodesk.Trinity.Test
         
         #endregion
     }
-
     [TestFixture]
     public class ResourceMappingTest
     {
@@ -772,26 +769,26 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void AddRemoveBoolListTest()
         {
-            IModel m = GetModel();
-            m.Clear();
-            Uri t1Uri = new Uri("semio:test:testInstance1");
-            MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
+            IModel model = GetModel();
+            model.Clear();
 
+            Uri t1Uri = new Uri("semio:test:testInstance1");
+            MappingTestClass t1 = model.CreateResource<MappingTestClass>(t1Uri);
 
             // Add value using the mapping interface
             bool value = true;
             t1.boolTest.Add(value);
-
             t1.Commit();
-            MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
+
+            MappingTestClass t_actual = model.GetResource<MappingTestClass>(t1Uri);
 
             // Test if value was stored
             Assert.AreEqual(1, t_actual.boolTest.Count());
             Assert.AreEqual(value, t_actual.boolTest[0]);
 
-
             // Test if property is present
             var l = t_actual.ListProperties();
+
             Assert.True(l.Contains(TestOntology.boolTest));
             Assert.AreEqual(2, l.Count());
 
@@ -802,19 +799,21 @@ namespace Semiodesk.Trinity.Test
             // Remove value from mapped list
             t1.boolTest.Remove(value);
             t1.Commit();
-            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+
+            t_actual = model.GetResource<MappingTestClass>(t1Uri);
 
             // Test if removed
             Assert.AreEqual(0, t_actual.boolTest.Count());
 
             // Test if ListProperties works
             l = (List<Property>)t_actual.ListProperties();
+
             Assert.False(l.Contains(TestOntology.boolTest));
 
             // Test if ListValues works
             Assert.AreEqual(0, t_actual.ListValues(TestOntology.boolTest).Count());
 
-            m.Clear();
+            model.Clear();
         }
 
         /// <summary>
@@ -1043,7 +1042,6 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(0, t_actual.resourceTest.Count);
         }
 
-
         [Test]
         public void LazyLoadResourceTest()
         {
@@ -1244,7 +1242,6 @@ namespace Semiodesk.Trinity.Test
            
         }
 
-
         [Test]
         public void RollbackMappedResourcesTest()
         {
@@ -1299,7 +1296,6 @@ namespace Semiodesk.Trinity.Test
 
         }
 
-
         [Test]
         public void KeepListsAfterRollbackTest()
         {
@@ -1337,7 +1333,6 @@ namespace Semiodesk.Trinity.Test
             Assert.IsFalse(c1 == c2);
         }
 
-
         [Test]
         public void TestStringPropertyMapping()
         {
@@ -1351,8 +1346,6 @@ namespace Semiodesk.Trinity.Test
 
             x = p.GetValue(new Property(new Uri("http://www.example.com/property")));
             Assert.AreEqual(p.RandomProperty, x);
-
         }
     }
-
 }

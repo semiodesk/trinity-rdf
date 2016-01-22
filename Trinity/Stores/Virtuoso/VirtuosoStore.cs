@@ -163,8 +163,11 @@ namespace Semiodesk.Trinity.Store
             using (ITransaction transaction = this.BeginTransaction(IsolationLevel.ReadCommitted))
             {
                 model = new Model(this, uri.ToUriRef());
+
                 SparqlUpdate update = new SparqlUpdate(string.Format("CREATE GRAPH <{0}>", uri.OriginalString));
+
                 ExecuteNonQuery(update, transaction);
+
                 transaction.Commit();
             }
 
@@ -399,6 +402,7 @@ namespace Semiodesk.Trinity.Store
         public void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
         {
             string queryString = string.Format("SPARQL {0}", query.ToString());
+
             ExecuteDirectQuery(queryString, transaction);
         }
 

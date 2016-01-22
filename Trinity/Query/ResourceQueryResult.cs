@@ -78,7 +78,7 @@ namespace Semiodesk.Trinity
 
         public int Count()
         {
-            SparqlQuery query = new SparqlQuery(SparqlQueryType.Select, SparqlSerializer.SerializeCount(_model, _query), null);
+            SparqlQuery query = new SparqlQuery(SparqlSerializer.SerializeCount(_model, _query));
 
             ISparqlQueryResult result = _model.ExecuteQuery(query, _inferenceEnabled);
 
@@ -88,8 +88,10 @@ namespace Semiodesk.Trinity
             {
                 foreach (BindingSet b in bindings)
                 {
-                    if( b.ContainsKey("count"))
+                    if (b.ContainsKey("count"))
+                    {
                         return (int)b["count"];
+                    }
                 }
             }
 
@@ -132,7 +134,6 @@ namespace Semiodesk.Trinity
             if (_inferenceEnabled)
             {
                 SparqlQuery uriQuery = new SparqlQuery(SparqlSerializer.Serialize(_model, _query, true));
-                uriQuery.SetModel(_model);
 
                 StringBuilder uris = new StringBuilder();
                 var uriList = FetchUris(uriQuery).ToList();
@@ -163,7 +164,6 @@ namespace Semiodesk.Trinity
             else
             {
                 SparqlQuery query = new SparqlQuery(SparqlSerializer.Serialize(_model, _query));
-                query.SetModel(_model);
 
                 return _model.ExecuteQuery(query, _inferenceEnabled).GetResources<T>();
             }
@@ -173,7 +173,8 @@ namespace Semiodesk.Trinity
         {
             SparqlQuery query = new SparqlQuery(SparqlSerializer.Serialize(_model, _query));
             query.SetModel(_model);
-            return query.Query;
+
+            return query.ToString();
         }
 
         #endregion

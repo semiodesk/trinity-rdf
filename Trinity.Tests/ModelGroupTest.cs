@@ -45,6 +45,7 @@ namespace Semiodesk.Trinity.Test
         public void SetUp()
         {
             string connectionString = SetupClass.ConnectionString;
+
             _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
 
            Uri modelUri1 = new Uri("http://example.org/TestModel");
@@ -85,30 +86,43 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void ContainsResourceTest()
         {
-            Uri resourceUri = new Uri("http://example.com/testResource");
+            Uri uri = new Uri("http://example.com/testResource");
 
-            IModelGroup g = _store.CreateModelGroup(_model.Uri, _model2.Uri);
-            bool res = g.ContainsResource(resourceUri);
-            Assert.IsFalse(res);
+            IModelGroup group = _store.CreateModelGroup(_model.Uri, _model2.Uri);
 
-            IResource resource = _model.CreateResource(resourceUri);
+            Assert.IsFalse(group.ContainsResource(uri));
+
+            IResource resource = _model.CreateResource(uri);
             resource.AddProperty(rdf.type, nco.Contact);
             resource.Commit();
             
-            res = g.ContainsResource(resourceUri);
-            Assert.IsTrue(res);
+            Assert.IsTrue(group.ContainsResource(uri));
 
             _model.DeleteResource(resource);
 
-            res = g.ContainsResource(resourceUri);
-            Assert.IsFalse(res);
+            Assert.IsFalse(group.ContainsResource(uri));
 
-            resource = _model2.CreateResource(resourceUri);
+            resource = _model2.CreateResource(uri);
             resource.AddProperty(rdf.type, nco.Contact);
             resource.Commit();
 
-            res = g.ContainsResource(resourceUri);
-            Assert.IsTrue(res);
+            Assert.IsTrue(group.ContainsResource(uri));
+        }
+
+        [Test]
+        public void DeleteResouceTest2()
+        {
+            var uri = new Uri("ex:Resource2");
+
+            IResource resource = _model.CreateResource(uri);
+            resource.AddProperty(rdf.type, nco.Contact);
+            resource.Commit();
+
+            Assert.IsTrue(_model.ContainsResource(uri));
+
+            _model.DeleteResource(resource);
+
+            Assert.IsFalse(_model.ContainsResource(uri));
         }
 
         [Test]
