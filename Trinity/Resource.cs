@@ -122,7 +122,8 @@ namespace Semiodesk.Trinity
         /// Private since a Resource cannot be created without a URI.
         /// </summary>
         private Resource()
-        {}
+        {
+        }
 
         /// <summary>
         /// Create a new resource with a given Uri.
@@ -168,7 +169,7 @@ namespace Semiodesk.Trinity
 
             IsNew = other.IsNew;
             IsSynchronized = other.IsSynchronized;
-         }
+        }
 
         #endregion
 
@@ -241,7 +242,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public override string ToString()
         {
-            return string.Format("<{0}>",Uri.OriginalString);
+            return string.Format("<{0}>", Uri.OriginalString);
         }
 
         /// <summary>
@@ -273,17 +274,19 @@ namespace Semiodesk.Trinity
         {
             if (property.Uri.OriginalString == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
             {
-                IResource v = (IResource)value;
+                IResource v = value as IResource;
+
                 foreach (Class item in GetTypes())
                 {
                     if (item.Uri == v.Uri)
+                    {
                         return;
+                    }
                 }
             }
 
             IPropertyMapping propertyMapping = GetPropertyMapping(property, value.GetType());
 
-            // Is property mapped
             if (propertyMapping != null)
             {
                 // yes, so we try to set or add it
@@ -296,7 +299,6 @@ namespace Semiodesk.Trinity
                 {
                     propertyMapping.SetOrAddMappedValue(value);
                 }
-                return;
             }
             else
             {
@@ -304,13 +306,13 @@ namespace Semiodesk.Trinity
                 if (_properties.ContainsKey(property))
                 {
                     if (!_properties[property].Contains(value))
+                    {
                         _properties[property].Add(value);
+                    }
                 }
                 else
                 {
-                    List<object> l = new List<object>();
-                    l.Add(value);
-                    _properties.Add(property, l);
+                    _properties.Add(property, new List<object>() { value });
                 }
 
             }
@@ -344,6 +346,7 @@ namespace Semiodesk.Trinity
             // Write a custom string class with an associated language.
             // Internally the language and string are stored as Tuple containing the string and culture info
             Tuple<string, CultureInfo> aggregation = new Tuple<string, CultureInfo>(value, language);
+
             AddProperty(property, (object)aggregation);
         }
 

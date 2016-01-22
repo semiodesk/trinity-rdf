@@ -184,8 +184,6 @@ namespace Semiodesk.Trinity.Test
             
             Assert.IsTrue(t1.ListValues(myProperty).Contains(iValue));
 
-
-
             Assert.IsFalse(t1.HasProperty(myProperty, t2));
             t1.AddProperty(myProperty, t2);
             Assert.IsTrue(t1.HasProperty(myProperty, t2));
@@ -221,7 +219,6 @@ namespace Semiodesk.Trinity.Test
             t1.RemoveProperty(myProperty, t2);
             Assert.IsTrue(t1.HasProperty(myProperty));
             Assert.IsFalse(t1.HasProperty(myProperty, t2));
-
 
             t1.RemoveProperty(myProperty, sValue);
             Assert.IsTrue(t1.HasProperty(myProperty));
