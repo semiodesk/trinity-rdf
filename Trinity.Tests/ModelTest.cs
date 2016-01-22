@@ -216,34 +216,41 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void DeleteResourceTest()
         {
-            Assert.IsTrue(_model.ContainsResource(new Uri("http://example.org/MyResource")));
+            Uri uri0 = new Uri("http://example.org/MyResource");
+            Uri uri1 = new Uri("http://example.org/MyResource1");
 
-            _model.DeleteResource(new Uri("http://example.org/MyResource"));
+            Assert.IsTrue(_model.ContainsResource(uri0));
 
-            Assert.IsFalse(_model.ContainsResource(new Uri("http://example.org/MyResource")));
+            _model.DeleteResource(uri0);
 
+            Assert.IsFalse(_model.ContainsResource(uri0));
 
-            IResource resource2 = _model.CreateResource(new Uri("http://example.org/MyResource2"));
-            Property property = new Property(new Uri("http://example.org/MyProperty2"));
-           
-            resource2.AddProperty(property, "in the jungle");
-            resource2.AddProperty(property, 123);
-            resource2.Commit();
+            Property p0 = new Property(new Uri("http://example.org/MyProperty"));
+            Property p1 = new Property(new Uri("http://example.org/MyProperty1"));
 
-            var uri = new Uri("ex:Resource2");
-            Property property2 = new Property(new Uri("http://example.org/MyProperty3"));
-            IResource resource3 = _model.CreateResource(uri);
-            resource3.AddProperty(property, 123);
-            resource3.AddProperty(property2, resource2);
-            resource3.Commit();
+            IResource r0 = _model.CreateResource(uri0);
+            r0.AddProperty(p0, "in the jungle");
+            r0.AddProperty(p0, 123);
+            r0.Commit();
 
-            _model.DeleteResource(resource2);
-            Assert.IsFalse(_model.ContainsResource(new Uri("http://example.org/MyResource2")));
-            Assert.IsTrue(_model.ContainsResource(uri));
+            IResource r1 = _model.CreateResource(uri1);
+            r1.AddProperty(p0, 123);
+            r1.AddProperty(p1, r0);
+            r1.Commit();
 
-            IResource actual = _model.GetResource(uri);
-            Assert.IsFalse( actual.HasProperty(property2, resource2));
-            Assert.IsTrue(actual.HasProperty(property, 123));
+            Assert.IsTrue(_model.ContainsResource(r0));
+            Assert.IsTrue(_model.ContainsResource(r1));
+
+            _model.DeleteResource(r0);
+
+            Assert.IsFalse(_model.ContainsResource(r0));
+            Assert.IsTrue(_model.ContainsResource(r1));
+
+            // Update the resource from the model.
+            r1 = _model.GetResource(uri1);
+
+            Assert.IsTrue(r1.HasProperty(p0, 123));
+            Assert.IsFalse(r1.HasProperty(p1, r0));
         }
 
         [Test]
@@ -338,14 +345,16 @@ namespace Semiodesk.Trinity.Test
         {
             _model.Clear();
 
-            Property property = new Property(new Uri("http://example.org/MyProperty"));
+            Property p0 = new Property(new Uri("http://example.org/MyProperty"));
 
-            IResource model2_resource2 = _model.CreateResource(new Uri("ex:Resource"));
-            model2_resource2.AddProperty(property, "in the\n jungle");
-            model2_resource2.Commit();
+            IResource r0 = _model.CreateResource(new Uri("ex:Resource"));
+            r0.AddProperty(p0, "in the\n jungle");
+            r0.Commit();
 
-            IResource r = _model.GetResource(new Uri("ex:Resource"));
-            object o = r.GetValue(property);
+            r0 = _model.GetResource(new Uri("ex:Resource"));
+
+            object o = r0.GetValue(p0);
+
             Assert.AreEqual(typeof(string), o.GetType());
             Assert.AreEqual("in the\n jungle", o);
         }

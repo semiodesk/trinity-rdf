@@ -46,6 +46,7 @@ namespace Semiodesk.Trinity
         #endregion
 
         #region Methods
+
         /// <summary>
         /// Adds a new model with the given uri to the storage. 
         /// </summary>

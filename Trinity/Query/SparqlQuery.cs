@@ -25,8 +25,12 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using VDS.RDF.Parsing;
 using VDS.RDF.Query.Patterns;
@@ -39,80 +43,24 @@ namespace Semiodesk.Trinity
     /// namespace manager.
     /// </summary>
     /// <see href="http://www.w3.org/TR/rdf-sparql-query/#grammar"/>
-    public class SparqlQuery
+    public class SparqlQuery : ISparqlQuery
     {
         #region Members
 
         /// <summary>
-        /// Indicates if run-time inferencing is enabled.
-        /// </summary>
-        public bool InferenceEnabled = false;
-
-        /// <summary>
-        /// Indicates if the query parser is enabled.
-        /// </summary>
-        protected bool QueryParserEnabled = true;
-
-        /// <summary>
-        /// The query parser is used to determine the query type and 
-        /// wheter a given SELECT expression provides triple bindings.
-        /// </summary>
-        internal VDS.RDF.Query.SparqlQuery ParsedQuery;
-
-        /// <summary>
-        /// The SPARQL query string including all generated PREFIX declarations.
-        /// </summary>
-        public string Query { get; protected set; }
-
-        /// <summary>
-        /// The query type being returned if the query parser is not enabled.
-        /// </summary>
-        private SparqlQueryType _queryType = SparqlQueryType.Unknown;
-
-        /// <summary>
-        /// Used model for this query.
+        /// Get or set the model used for this query.
         /// </summary>
         public IModel Model { get; private set; }
 
         /// <summary>
         /// The query form as defined in http://www.w3.org/TR/rdf-sparql-query/#QueryForms
         /// </summary>
-        public SparqlQueryType QueryType
-        {
-            get
-            {
-                if (QueryParserEnabled)
-                {
-                    switch (ParsedQuery.QueryType)
-                    {
-                        case VDS.RDF.Query.SparqlQueryType.Describe:
-                        case VDS.RDF.Query.SparqlQueryType.DescribeAll:
-                            return SparqlQueryType.Describe;
-                        case VDS.RDF.Query.SparqlQueryType.Select:
-                        case VDS.RDF.Query.SparqlQueryType.SelectAll:
-                        case VDS.RDF.Query.SparqlQueryType.SelectAllDistinct:
-                        case VDS.RDF.Query.SparqlQueryType.SelectAllReduced:
-                        case VDS.RDF.Query.SparqlQueryType.SelectDistinct:
-                        case VDS.RDF.Query.SparqlQueryType.SelectReduced:
-                            return SparqlQueryType.Select;
-                        case VDS.RDF.Query.SparqlQueryType.Construct:
-                            return SparqlQueryType.Construct;
-                        case VDS.RDF.Query.SparqlQueryType.Ask:
-                            return SparqlQueryType.Ask;
-                        default:
-                            return SparqlQueryType.Unknown;
-                    }
-                }
-                else
-                {
-                    return _queryType;
-                }
-            }
-            protected set
-            {
-                _queryType = value;
-            }
-        }
+        public SparqlQueryType QueryType { get; protected set; }
+
+        /// <summary>
+        /// The SPARQL query processor used to determine the prefixes and statement variables in the query.
+        /// </summary>
+        internal SparqlQueryPreprocessor Preprocessor;
 
         /// <summary>
         /// Holds the variable name of the subject for SELECT queries which
@@ -135,67 +83,39 @@ namespace Semiodesk.Trinity
         /// </summary>
         internal string ObjectVariable { get; private set; }
 
+        /// <summary>
+        /// Indicates if the query result should be expanded using run-time inferencing.
+        /// </summary>
+        public bool InferenceEnabled { get; set; }
+
         #endregion
 
         #region Constructors
 
         /// <summary>
-        /// Create a new SPARQL Query with an optional namespace manager instance which
-        /// can be used to declare PREFIX declarations for the namespace abbreviations
-        /// used in the query string.
+        /// Creates a new SPARQL query. If enabled, the PREFIXES used in any of the query's graph patterns will
+        /// be declared in the query header if they are found in the application config. Additionally, the query 
+        /// may be compacted in order to reduce processing overhead when being used repeatedly in loops.
         /// </summary>
-        /// <param name="query">The SPARQL query string.</param>
-        /// <param name="namespaceManager">The optional namespace manager used to declare SPARQL PREFIXes.</param>
-        /// <param name="parseVariables"></param>
-        /// <param name="variables"></param>
-        public SparqlQuery(string query, NamespaceManager namespaceManager = null)
+        /// <param name="queryString">The SPARQL query string.</param>
+        /// <param name="declarePrefixes">Set to <c>true</c> if the namespace prefixes used in the query should be declared.</param>
+        /// <param name="compactQuery">Set to <c>true</c> if formatting characters should be removed from the query to increase processing speed.</param>
+        public SparqlQuery(string queryString, bool declarePrefixes = true)
         {
-            if (namespaceManager == null)
+            using (TextReader reader = new StringReader(queryString))
             {
-                Query = query;
-            }
-            else
-            {
-                Query = SparqlSerializer.GeneratePrologue(query, namespaceManager);
-            }
+                // Parse the query for namespace prefixes and optionally remove any formatting characters.
+                Preprocessor = new SparqlQueryPreprocessor(reader, SparqlQuerySyntax.Extended);
+                Preprocessor.Process(declarePrefixes);
 
-            QueryParserEnabled = true;
-            ParsedQuery = new SparqlQueryParser(SparqlQuerySyntax.Extended).ParseFromString(Query);
+                QueryType = Preprocessor.QueryType;
 
-            if (ParsedQuery.Variables != null && ParsedQuery.Variables.Count() == 3)
-            {
-                SubjectVariable = ParsedQuery.Variables.ElementAt(0).Name;
-                PredicateVariable = ParsedQuery.Variables.ElementAt(1).Name;
-                ObjectVariable = ParsedQuery.Variables.ElementAt(2).Name;
-            }
-        }
-
-        /// <summary>
-        /// Create a new SPARQL query without parsing the query with the built-in query parser.
-        /// </summary>
-        /// <param name="queryType">The SPARQL query type.</param>
-        /// <param name="query">The SPARQL query string.</param>
-        /// <param name="namespaceManager">The optional namespace manager used to declare Sparql PREFIXes.</param>
-        /// <param name="statementVariables">The variable names which are being used to parse the statements returend by the query when creating resources.</param>
-        public SparqlQuery(SparqlQueryType queryType, string query, NamespaceManager namespaceManager, IList<string> statementVariables = null)
-        {
-            if (namespaceManager != null)
-            {
-                Query = SparqlSerializer.GeneratePrologue(query, namespaceManager);
-            }
-            else
-            {
-                Query = query;
-            }
-
-            QueryParserEnabled = false;
-            QueryType = queryType;
-
-            if (statementVariables != null && statementVariables.Count == 3)
-            {
-                SubjectVariable = statementVariables[0];
-                PredicateVariable = statementVariables[1];
-                ObjectVariable = statementVariables[2];
+                if (Preprocessor.QueryProvidesStatements && Preprocessor.GlobalScopeVariables.Count == 3)
+                {
+                    SubjectVariable = Preprocessor.GlobalScopeVariables[0].Substring(1);
+                    PredicateVariable = Preprocessor.GlobalScopeVariables[1].Substring(1);
+                    ObjectVariable = Preprocessor.GlobalScopeVariables[2].Substring(1);
+                }
             }
         }
 
@@ -204,44 +124,12 @@ namespace Semiodesk.Trinity
         #region Methods
 
         /// <summary>
-        /// Counts the maximum number of variables in a given query graph pattern and
-        /// its child graph patterns. One can use this method to determine if a given
-        /// query selects has a variable set which defines triples or not.
+        /// Indicates if the query will be matched against the background/default graph.
         /// </summary>
-        /// <param name="pattern"></param>
-        /// <returns></returns>
-        private bool ParseStatementVariables(GraphPattern pattern)
+        /// <returns>True if the query will be matched against the background graph.</returns>
+        internal bool IsAgainstDefaultModel()
         {
-            if (QueryParserEnabled)
-            {
-                foreach (ITriplePattern p in pattern.TriplePatterns)
-                {
-                    if (p is TriplePattern)
-                    {
-                        TriplePattern t = p as TriplePattern;
-
-                        if (t.Variables.Count == 3)
-                        {
-                            // TODO: ensure that the order of the variables is as stated in the query.
-                            SubjectVariable = t.Subject.ToString().Substring(1);
-                            PredicateVariable = t.Predicate.ToString().Substring(1);
-                            ObjectVariable = t.Object.ToString().Substring(1);
-
-                            return true;
-                        }
-                    }
-                }
-
-                foreach (GraphPattern p in pattern.ChildGraphPatterns)
-                {
-                    if (ParseStatementVariables(p))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
+            return Preprocessor.DefaultGraphs.Count == 0;
         }
 
         /// <summary>
@@ -249,161 +137,82 @@ namespace Semiodesk.Trinity
         /// </summary>
         public bool ProvidesStatements()
         {
-            if (QueryType == SparqlQueryType.Describe || QueryType == SparqlQueryType.Construct)
-            {
-                return true;
-            }
-            else if (QueryType == SparqlQueryType.Select)
-            {
-                return (ParsedQuery.Variables.Count() > 2 && ParseStatementVariables(ParsedQuery.RootGraphPattern));
-            }
-            else
-            {
-                return false;
-            }
+            return Preprocessor.QueryProvidesStatements;
         }
 
         /// <summary>
-        /// Indicates if the query will be matched against the background/default graph.
+        /// Set the value for a query parameter which is preceeded by '@'.
         /// </summary>
-        /// <returns>True if the query will be matched against the background graph.</returns>
-        internal bool IsAgainstDefaultModel()
+        /// <param name="parameter">The parameter name including the '@'.</param>
+        /// <param name="value">The paramter value.</param>
+        public void Bind(string parameter, object value)
         {
-            // NOTE: This could also be done using _parser.UsesDefaultGraph. However, due to a bug
-            //       in the Parser this method sometimes results in a NullReferenceException.
-            if (QueryParserEnabled)
+            if(Preprocessor == null)
             {
-                return ParsedQuery.DefaultGraphs.Count() == 0;
+                throw new NotSupportedException("SPARQL query parameters can only be used with a query processor. Try using the default constructor.");
             }
-            else
-            {
-                return false;
-            }
+
+            Preprocessor.Bind(parameter, value);
         }
 
         /// <summary>
-        /// Adds a FROM &lt;Uri&gt; clause to the query in order to restrict it to the given model. 
+        /// Adds a FROM clause to the query in order to restrict it to the given model. 
         /// </summary>
         /// <param name="model">A model the query should be executed on.</param>
         internal void SetModel(IModel model)
         {
+            if(Model == model)
+            {
+                return;
+            }
+
             Model = model;
 
-            //if (!QueryParserEnabled)
-            //{
-            //    QueryParserEnabled = true;
-            //    QueryParser = new SparqlQueryParser(SparqlQuerySyntax.Extended).ParseFromString(Query);
-            //}
-
-            if (QueryParserEnabled)
+            if (Preprocessor == null)
             {
-                if (model is IModelGroup)
-                {
-                    foreach (var m in (model as IModelGroup))
-                        ParsedQuery.AddDefaultGraph(m.Uri);
-                }else
-                    ParsedQuery.AddDefaultGraph(model.Uri);
+                return;
             }
-        }
-
-        internal void SetModelGroup(IModelGroup modelGroup)
-        {
-            Model = modelGroup;
-
-            if (QueryParserEnabled)
+            else if (model is IModelGroup)
             {
-                foreach (var m in modelGroup)
+                IModelGroup group = model as IModelGroup;
+
+                foreach (IModel m in group)
                 {
-                    ParsedQuery.AddNamedGraph(m.Uri);
+                    Preprocessor.AddNamedGraph(m.Uri);
                 }
+            }
+            else
+            {
+                Preprocessor.AddDefaultGraph(model.Uri);
             }
         }
 
         /// <summary>
-        /// Adds a LIMIT &lt;int&gt; clause to the query in order to restrict it to put an upper bound on the number of solutions returned. 
+        /// Indicates if the query contains an ORDER BY clause in any of its graph patterns.
         /// </summary>
-        /// <param name="model">The number of return values.</param>
+        /// <returns><c>true</c> if the query contains an ORDER BY clause, <c>false</c> otherwise.</returns>
+        internal bool IsOrdered()
+        {
+            return Preprocessor.IsOrdered;
+        }
+
         internal void SetLimit(int limit)
         {
-            if (QueryParserEnabled)
-            {
-                ParsedQuery.Limit = limit;
-            }
+            Preprocessor.SetLimit(limit);
         }
 
-        /// <summary>
-        /// Adds an Offset &lt;int&gt; clause to the query which causes the solutions generated to start after the specified number of solutions. 
-        /// </summary>
-        /// <param name="model">The number of return values.</param>
         internal void SetOffset(int offset)
         {
-            if (QueryParserEnabled)
-            {
-                ParsedQuery.Offset = offset;
-            }
-        }
-
-        private bool IsOrdered(VDS.RDF.Query.SparqlQuery query)
-        {
-            if (query.OrderBy != null)
-                return true;
-            else
-                return IsOrdered(query.RootGraphPattern);
-        }
-
-        private bool IsOrdered(GraphPattern graphPattern)
-        {
-            foreach (ITriplePattern pattern in graphPattern.TriplePatterns)
-            {
-                if (pattern is SubQueryPattern)
-                {
-                    SubQueryPattern b = (pattern as SubQueryPattern);
-                    if (b.SubQuery.OrderBy != null)
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        if (IsOrdered(b.SubQuery.RootGraphPattern))
-                            return true;
-                    }
-                }
-
-            }
-            
-
-            return false;
-        }
-
-        internal bool IsSorted()
-        {
-            if (!QueryParserEnabled) return false;
-
-            return IsOrdered(ParsedQuery);
+            Preprocessor.SetOffset(offset);
         }
 
         /// <summary>
-        /// Returns the query string with generated prefixes and optional definitions for
-        /// the Virtuoso store.
+        /// Returns the query string with generated prefixes and subsituted parameters.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A valid SPARQL string.</returns>
         public override string ToString()
         {
-            return (QueryParserEnabled) ? FixFilterSyntax(ParsedQuery.ToString()) : Query;
-        }
-
-        /// <summary>
-        /// Fix for a bug in dotNetRdf where it replaces valid SPARQL1.1 FILTER NOT EXISTS() expressions with invalid FILTER(NOT EXISTS..).
-        /// </summary>
-        /// <param name="query">A query string.</param>
-        /// <returns>A valid SPARQL query.</returns>
-        internal static string FixFilterSyntax(string query)
-        {
-            return Regex.Replace(query, @"filter\(not\sexists\s*{(?<expression>.+)}\s*\)", delegate(Match match)
-            {
-                return string.Format("FILTER NOT EXISTS {{{0}}}", match.Groups["expression"]);
-            },
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            return Preprocessor.ToString();
         }
 
         #endregion

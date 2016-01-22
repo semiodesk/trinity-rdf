@@ -60,7 +60,7 @@ namespace Semiodesk.Trinity.Store
 
         bool IsSorted
         {
-            get { return _query.IsSorted(); }
+            get { return _query.IsOrdered(); }
         }
 
         #endregion
@@ -420,6 +420,7 @@ namespace Semiodesk.Trinity.Store
         public int Count()
         {
             string countQuery = SparqlSerializer.SerializeCount(_model, _query);
+
             SparqlQuery query = new SparqlQuery(countQuery);
             query.InferenceEnabled = _query.InferenceEnabled;
 

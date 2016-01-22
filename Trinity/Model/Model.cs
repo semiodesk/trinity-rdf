@@ -52,7 +52,7 @@ namespace Semiodesk.Trinity
         // for implementing the GetResource(Uri, Type) method that supports runtime type specification.
         private MethodInfo _getResourceMethod;
 
-        Dictionary<string, List<Resource>> _currentResources = new Dictionary<string, List<Resource>>();
+        private Dictionary<string, List<Resource>> _currentResources = new Dictionary<string, List<Resource>>();
 
         /// <summary>
         /// The Uniform Resource Identifier which provides a name for the model.
@@ -67,6 +67,7 @@ namespace Semiodesk.Trinity
             get
             {
                 SparqlQuery query = new SparqlQuery(string.Format(@"ASK FROM {0} {{ ?s ?p ?o . }}", SparqlSerializer.SerializeUri(Uri)));
+
                 return !ExecuteQuery(query).GetAnwser();
             }
         }
@@ -89,9 +90,9 @@ namespace Semiodesk.Trinity
         /// <param name="graphManager">RDF backend to manage the models RDF graph.</param>
         public Model(IStore store, UriRef uri)
         {
-            Uri = uri;
             _store = store;
 
+            Uri = uri;
 
             // Searches for the generic method T GetResource<T>(Uri) and saves a handle
             // for later use within GetResource(Uri, Type);
@@ -99,8 +100,7 @@ namespace Semiodesk.Trinity
             {
                 if (methodInfo.Name == "GetResource" && methodInfo.IsGenericMethod)
                 {
-                    _getResourceMethod = methodInfo;
-                    break;
+                    _getResourceMethod = methodInfo; break;
                 }
             }
         }
@@ -130,10 +130,12 @@ namespace Semiodesk.Trinity
         public IResource AddResource(IResource resource, ITransaction transaction = null)
         {
             Resource result = CreateResource<Resource>(resource.Uri, transaction);
+
             foreach (var v in resource.ListValues())
             {
                 result.AddProperty(v.Item1, v.Item2);
             }
+
             result.Commit();
 
             return result;
@@ -150,10 +152,12 @@ namespace Semiodesk.Trinity
         public T AddResource<T>(T resource, ITransaction transaction = null) where T : Resource
         {
             T result = CreateResource<T>(resource.Uri, transaction);
+
             foreach (var v in resource.ListValues())
             {
                 result.AddProperty(v.Item1, v.Item2);
             }
+
             result.Commit();
 
             return result;
@@ -268,11 +272,21 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">ransaction associated with this action.</param>
         public void DeleteResource(Uri uri, ITransaction transaction = null)
         {
-            string updateString = string.Format(@"WITH {0} DELETE {{ {1} ?p ?o. ?s1 ?p1 {1} . }} WHERE {{ {1} ?p ?o. OPTIONAL {{ ?s1 ?p1 {1} . }} }}",
-                SparqlSerializer.SerializeUri(Uri),
-                SparqlSerializer.SerializeUri(uri));
-            SparqlUpdate update = new SparqlUpdate(updateString);
-            _store.ExecuteNonQuery(update, transaction);
+            // NOTE: Regrettably, dotNetRDF does not support the full SPARQL 1.1 update syntax. To be precise,
+            // it does not support FILTERs or OPTIONAL in Modify clauses. This requires us to formulate the
+            // deletion of the resource in subject and object of any triples in two statements.
+
+            SparqlUpdate deleteSubject = new SparqlUpdate(@"DELETE WHERE { GRAPH @graph { @subject ?p ?o . } }");
+            deleteSubject.Bind("@graph", Uri);
+            deleteSubject.Bind("@subject", uri);
+
+            _store.ExecuteNonQuery(deleteSubject, transaction);
+
+            SparqlUpdate deleteObject = new SparqlUpdate(@"DELETE WHERE { GRAPH @graph { ?s ?p @object . } }");
+            deleteObject.Bind("@graph", Uri);
+            deleteObject.Bind("@object", uri);
+
+            _store.ExecuteNonQuery(deleteObject, transaction);
         }
 
         /// <summary>
@@ -293,25 +307,26 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">ransaction associated with this action.</param>
         public void UpdateResource(Resource resource, ITransaction transaction = null)
         {
+            string updateString;
+
             if (resource.IsNew)
             {
-                string updateString = string.Format(@"WITH {0} INSERT {{ {1} }} WHERE {{}}",
+                updateString = string.Format(@"WITH {0} INSERT {{ {1} }} WHERE {{}}",
                     SparqlSerializer.SerializeUri(Uri),
                     SparqlSerializer.SerializeResource(resource));
-                SparqlUpdate update = new SparqlUpdate(updateString);
-                update.Resource = resource;
-                ExecuteUpdate(update, transaction);
             }
             else
             {
-                string updateString = string.Format(@"WITH {0} DELETE {{ {1} ?p ?o. }} INSERT {{ {2} }} WHERE {{ {1} ?p ?o. }} ",
+                updateString = string.Format(@"WITH {0} DELETE {{ {1} ?p ?o. }} INSERT {{ {2} }} WHERE {{ {1} ?p ?o. }} ",
                     SparqlSerializer.SerializeUri(Uri),
                     SparqlSerializer.SerializeUri(resource.Uri),
                     SparqlSerializer.SerializeResource(resource));
-                SparqlUpdate update = new SparqlUpdate(updateString);
-                update.Resource = resource;
-                ExecuteUpdate(update, transaction);
             }
+
+            SparqlUpdate update = new SparqlUpdate(updateString);
+            update.Resource = resource;
+
+            ExecuteUpdate(update, transaction);
 
             resource.IsNew = false;
         }
@@ -324,9 +339,11 @@ namespace Semiodesk.Trinity
         /// <returns>True if the resource is part of the model, False if not.</returns>
         public bool ContainsResource(Uri uri, ITransaction transaction = null)
         {
-            return ExecuteQuery(new SparqlQuery(string.Format(@"ASK FROM {0} {{ {1} ?p ?o . }}",
-                SparqlSerializer.SerializeUri(Uri),
-                SparqlSerializer.SerializeUri(uri))), transaction:transaction).GetAnwser();
+            SparqlQuery query = new SparqlQuery("ASK FROM @graph { @subject ?p ?o . }");
+            query.Bind("@graph", this.Uri);
+            query.Bind("@subject", uri);
+
+            return ExecuteQuery(query, transaction:transaction).GetAnwser();
         }
 
         /// <summary>
@@ -389,7 +406,6 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(Uri uri, ITransaction transaction = null)
         {
-            //SparqlQuery query = new SparqlQuery(String.Format("DESCRIBE {0} FROM {1}", SparqlSerializer.SerializeUri(uri), SparqlSerializer.SerializeUri(this.Uri)));
             SparqlQuery query = new SparqlQuery(String.Format("SELECT ?s ?p ?o FROM {0} WHERE {{ ?s ?p ?o. FILTER (?s ={0}) }}", SparqlSerializer.SerializeUri(uri), SparqlSerializer.SerializeUri(this.Uri)));
             ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);
 
@@ -401,11 +417,13 @@ namespace Semiodesk.Trinity
                 res.IsNew = false;
                 res.IsSynchronized = true;
                 res.SetModel(this);
-                return (IResource) resources[0];
+
+                return (IResource)resources[0];
             }
             else
             {
                 string msg = "Error: Could not find resource {0}.";
+
                 throw new ArgumentException(string.Format(msg, uri));
             }
         }
@@ -664,9 +682,5 @@ namespace Semiodesk.Trinity
 
 
         #endregion
-
-
-
-
     }
 }
