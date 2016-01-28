@@ -132,6 +132,9 @@ namespace Semiodesk.Trinity
                     {
                         _nestingLevel -= 1;
 
+                        // Do not parse variables which are being used in solution modifiers.
+                        _parseVariables &= _nestingLevel > 0;
+
                         if (_parseVariables)
                         {
                             ProcessInScopeVariables(token);
@@ -158,21 +161,24 @@ namespace Semiodesk.Trinity
                     }
                 case Token.VARIABLE:
                     {
-                        if (_nestingLevel == 0)
+                        if(_parseVariables)
                         {
-                            GlobalScopeVariables.Add(token.Value);
-                        }
-                        else if (_parseVariables)
-                        {
-                            if (_variableScope == SparqlQueryVariableScope.Global)
+                            if (_nestingLevel == 0)
                             {
-                                // If we have a wildcard selector '*', we accumulate all variables of 
-                                // the query as global variables. After parsing, there must only be 
-                                // three for providing triples.
                                 GlobalScopeVariables.Add(token.Value);
                             }
+                            else
+                            {
+                                InScopeVariables.Add(token.Value);
 
-                            InScopeVariables.Add(token.Value);
+                                if (_variableScope == SparqlQueryVariableScope.Global)
+                                {
+                                    // If we have a wildcard selector '*', we accumulate all variables of 
+                                    // the query as global variables. After parsing, there must only be 
+                                    // three for providing triples.
+                                    GlobalScopeVariables.Add(token.Value);
+                                }
+                            }
                         }
 
                         break;
@@ -211,15 +217,19 @@ namespace Semiodesk.Trinity
 
         private void ProcessInScopeVariables(IToken token)
         {
-            // We compare the in-scope variables with the global variables. The query only
-            // provides statements if there is one triple pattern that contains the global
-            // variables in excactly the same order.
-            if (GlobalScopeVariables.Count == 3 && GlobalScopeVariables.Count == InScopeVariables.Count)
+            if(GlobalScopeVariables.Count == 3)
             {
-                QueryProvidesStatements = Enumerable.SequenceEqual(GlobalScopeVariables, InScopeVariables);
-
-                // We're done if we found a triple pattern that provides statement variables of global scope.
-                _parseVariables = !QueryProvidesStatements;
+                if (!QueryProvidesStatements)
+                {
+                    // We compare the in-scope variables with the global variables. The query only
+                    // provides statements if there is one triple pattern that contains the global
+                    // variables in excactly the same order.
+                    QueryProvidesStatements = Enumerable.SequenceEqual(GlobalScopeVariables, InScopeVariables);
+                }
+            }
+            else
+            {
+                QueryProvidesStatements = false;
             }
 
             // After parsing a triple pattern, clear the in-scope variable cache.

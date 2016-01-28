@@ -289,7 +289,9 @@ namespace Semiodesk.Trinity.Test
         public void UpdateResourceTest()
         {
             Property property = new Property(new Uri("http://example.org/MyProperty"));
+
             Uri resourceUri = new Uri("http://example.org/MyResource");
+
             IResource resource = _model.GetResource(resourceUri);
             resource.RemoveProperty(property, 123);
             resource.Commit();
