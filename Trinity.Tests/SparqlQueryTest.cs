@@ -189,14 +189,47 @@ namespace Semiodesk.Trinity.Test
             SparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o . }");
 
             Assert.IsTrue(query.ProvidesStatements());
+            Assert.AreEqual("s", query.SubjectVariable);
+            Assert.AreEqual("p", query.PredicateVariable);
+            Assert.AreEqual("o", query.ObjectVariable);
 
             query = new SparqlQuery("SELECT * WHERE { ?s ?p ?o . }");
 
             Assert.IsTrue(query.ProvidesStatements());
+            Assert.AreEqual("s", query.SubjectVariable);
+            Assert.AreEqual("p", query.PredicateVariable);
+            Assert.AreEqual("o", query.ObjectVariable);
 
             query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o . ?x ?y ?z . }");
 
             Assert.IsTrue(query.ProvidesStatements());
+            Assert.AreEqual("s", query.SubjectVariable);
+            Assert.AreEqual("p", query.PredicateVariable);
+            Assert.AreEqual("o", query.ObjectVariable);
+
+            query = new SparqlQuery("SELECT * WHERE { ?s ?p ?o . ?x ?y ?z . }");
+
+            Assert.IsFalse(query.ProvidesStatements());
+            Assert.IsNull(query.SubjectVariable);
+            Assert.IsNull(query.PredicateVariable);
+            Assert.IsNull(query.ObjectVariable);
+
+            query = new SparqlQuery(@"
+                PREFIX nie: <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#>
+                PREFIX artpro: <http://semiodesk.com/artivitypro/1.0/>
+
+                SELECT ?s ?p ?o WHERE
+                {
+                       ?s ?p ?o .
+                       ?s a artpro:Project .
+                       ?s nie:lastModified ?lastModified .
+                }
+                ORDER BY DESC(?lastModified)");
+
+            Assert.IsTrue(query.ProvidesStatements());
+            Assert.AreEqual("s", query.SubjectVariable);
+            Assert.AreEqual("p", query.PredicateVariable);
+            Assert.AreEqual("o", query.ObjectVariable);
         }
 
         [Test]
