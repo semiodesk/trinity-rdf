@@ -794,7 +794,11 @@ namespace Semiodesk.Trinity
 
             if (property.Uri.OriginalString == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
             {
+                #if NET_3_5
+                values.AddRange(GetTypes().Cast<object>());
+                #else
                 values.AddRange(GetTypes());
+                #endif
 
                 // We do not need to add mapped values for the RDF type property.
                 return values;
