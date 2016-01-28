@@ -184,6 +184,22 @@ namespace Semiodesk.Trinity.Test
         }
 
         [Test]
+        public void TestSelectProvidesStatements()
+        {
+            SparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o . }");
+
+            Assert.IsTrue(query.ProvidesStatements());
+
+            query = new SparqlQuery("SELECT * WHERE { ?s ?p ?o . }");
+
+            Assert.IsTrue(query.ProvidesStatements());
+
+            query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o . ?x ?y ?z . }");
+
+            Assert.IsTrue(query.ProvidesStatements());
+        }
+
+        [Test]
         public void TestDescribe()
         {
             SparqlQuery query = new SparqlQuery("DESCRIBE <http://example.org/Hans>");
