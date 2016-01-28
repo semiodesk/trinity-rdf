@@ -165,7 +165,11 @@ namespace Semiodesk.Trinity
                         {
                             if (_nestingLevel == 0)
                             {
-                                GlobalScopeVariables.Add(token.Value);
+                                if (!GlobalScopeVariables.Contains(token.Value))
+                                {
+                                    // Do not add global scope variables twice.
+                                    GlobalScopeVariables.Add(token.Value);
+                                }
                             }
                             else
                             {
@@ -176,7 +180,11 @@ namespace Semiodesk.Trinity
                                     // If we have a wildcard selector '*', we accumulate all variables of 
                                     // the query as global variables. After parsing, there must only be 
                                     // three for providing triples.
-                                    GlobalScopeVariables.Add(token.Value);
+                                    if (!GlobalScopeVariables.Contains(token.Value))
+                                    {
+                                        // Do not add global scope variables twice.
+                                        GlobalScopeVariables.Add(token.Value);
+                                    }
                                 }
                             }
                         }

@@ -270,9 +270,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
         {
             StringBuilder result = new StringBuilder();
 
-            string queryString = string.Format("select * where {{ ?s ?p ?o. FILTER isIRI(?s) }}  ", model.Uri.OriginalString);
-
-            SparqlQuery query = new SparqlQuery(queryString);
+            SparqlQuery query = new SparqlQuery("select * where { ?s ?p ?o. FILTER isIRI(?s) }");
 
             List<string> localSymbols = new List<string>();
 

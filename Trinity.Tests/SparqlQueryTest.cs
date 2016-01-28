@@ -223,6 +223,8 @@ namespace Semiodesk.Trinity.Test
                        ?s ?p ?o .
                        ?s a artpro:Project .
                        ?s nie:lastModified ?lastModified .
+
+                       FILTER isIRI(?s)
                 }
                 ORDER BY DESC(?lastModified)");
 
