@@ -54,28 +54,29 @@ namespace Semiodesk.Trinity.Test
         public void SetUp()
         {
             string connectionString = SetupClass.ConnectionString;
+
             _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
             _store.LoadOntologySettings();
-            try
+
+            Uri modelUri = new Uri("http://example.org/TestModel");
+            Uri modelUri2 = new Uri("semiodesk:Trinity:Test");
+
+            if(_store.ContainsModel(modelUri))
             {
-                // Default uri scheme
-                _model = _store.GetModel(new Uri("http://example.org/TestModel"));
-                _model.Clear();
+                _model = _store.GetModel(modelUri);
             }
-            catch (Exception)
+            else
             {
-                _model = _store.CreateModel(new Uri("http://example.org/TestModel"));
+                _model = _store.CreateModel(modelUri);
             }
 
-            try
+            if (_store.ContainsModel(modelUri2))
             {
-                // Urn scheme
-                _model2 = _store.GetModel(new Uri("semiodesk:Trinity:Test"));
-                _model2.Clear();
+                _model2 = _store.GetModel(modelUri2);
             }
-            catch (Exception)
+            else
             {
-                _model2 = _store.CreateModel(new Uri("semiodesk:Trinity:Test"));
+                _model2 = _store.CreateModel(modelUri2);
             }
 
             IResource model_resource = _model.CreateResource(new Uri("http://example.org/MyResource"));
@@ -297,9 +298,11 @@ namespace Semiodesk.Trinity.Test
             resource.Commit();
 
             IResource actual = _model.GetResource(resourceUri);
+
             Assert.AreEqual(resource, actual);
 
             actual = _model.GetResource<Resource>(resourceUri);
+
             Assert.AreEqual(resource, actual);
         }
 
