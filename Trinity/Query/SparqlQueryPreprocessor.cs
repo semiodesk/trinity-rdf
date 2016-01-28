@@ -171,10 +171,8 @@ namespace Semiodesk.Trinity
                                 // three for providing triples.
                                 GlobalScopeVariables.Add(token.Value);
                             }
-                            else
-                            {
-                                InScopeVariables.Add(token.Value);
-                            }
+
+                            InScopeVariables.Add(token.Value);
                         }
 
                         break;
