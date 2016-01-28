@@ -202,6 +202,9 @@
     <Compile Include="..\PropertyValue.cs">
       <Link>PropertyValue.cs</Link>
     </Compile>
+    <Compile Include="..\Query\ISparqlQuery.cs">
+      <Link>Query\ISparqlQuery.cs</Link>
+    </Compile>
     <Compile Include="..\Query\ISparqlQueryResult.cs">
       <Link>Query\ISparqlQueryResult.cs</Link>
     </Compile>
@@ -219,6 +222,12 @@
     </Compile>
     <Compile Include="..\Query\SortDirection.cs">
       <Link>Query\SortDirection.cs</Link>
+    </Compile>
+    <Compile Include="..\Query\SparqlPreprocessor.cs">
+      <Link>Query\SparqlPreprocessor.cs</Link>
+    </Compile>
+    <Compile Include="..\Query\SparqlQueryPreprocessor.cs">
+      <Link>Query\SparqlQueryPreprocessor.cs</Link>
     </Compile>
     <Compile Include="..\Query\StatementPattern.cs">
       <Link>Query\StatementPattern.cs</Link>
