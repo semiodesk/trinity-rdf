@@ -88,6 +88,28 @@
     <Compile Include="..\UriRefTest.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\Ontologies\fo af.rdf">
+      <Link>Ontologies\fo af.rdf</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Ontologies\nco.trig">
+      <Link>Ontologies\nco.trig</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Ontologies\owl.n3">
+      <Link>Ontologies\owl.n3</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Ontologies\rdf.rdf">
+      <Link>Ontologies\rdf.rdf</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Ontologies\rdfs.n3">
+      <Link>Ontologies\rdfs.n3</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
     <None Include="..\Models\rdf-schema.rdf">
       <Link>Models\rdf-schema.rdf</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -110,6 +132,10 @@
     </None>
     <None Include="..\Models\test-vocab.rdf">
       <Link>Models\test-vocab.rdf</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+	<None Include="..\App.config">
+      <Link>App.config</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
@@ -152,6 +178,9 @@
     <Content Include="TinyVirtuoso\virtuoso\win\virtuoso-t.exe">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

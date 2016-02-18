@@ -156,8 +156,8 @@ namespace Semiodesk.Trinity.Store
     {
         #region Members
 
-        private SparqlQuery _query;
         private IModel _model;
+        private ISparqlQuery _query;
         private ITripleProvider _tripleProvider;
         private SparqlResultSet _resultSet;
         private dotNetRDFStore _store;
@@ -165,16 +165,31 @@ namespace Semiodesk.Trinity.Store
         #endregion
 
         #region Constructor
-        public dotNetRDFQueryResult(dotNetRDFStore store, SparqlQuery query, SparqlResultSet resultSet)
+        public dotNetRDFQueryResult(dotNetRDFStore store, ISparqlQuery query, SparqlResultSet resultSet)
         {
+            string s = null;
+            string p = null;
+            string o = null;
+
+            if(query.ProvidesStatements())
+            {
+                // A list of global scope variables without the ?. Used to access the
+                // subject, predicate and object variable in statement providing queries.
+                string[] vars = query.GetGlobalScopeVariableNames();
+
+                s = vars[0];
+                p = vars[1];
+                o = vars[2];
+            }
+
             _query = query;
-            _tripleProvider = new SparqlResultSetTripleProvider(resultSet, _query.SubjectVariable, _query.PredicateVariable, _query.ObjectVariable);
+            _tripleProvider = new SparqlResultSetTripleProvider(resultSet, s, p, o);
             _model = query.Model;
             _resultSet = resultSet;
             _store = store;
         }
 
-        public dotNetRDFQueryResult(dotNetRDFStore store, SparqlQuery query, IGraph graph)
+        public dotNetRDFQueryResult(dotNetRDFStore store, ISparqlQuery query, IGraph graph)
         {
             _query = query;
             _tripleProvider = new GraphTripleProvider(graph);
@@ -186,6 +201,7 @@ namespace Semiodesk.Trinity.Store
         #region Methods
 
         #region ISparqlQueryResult
+
         public bool GetAnwser()
         {
             if (_query.QueryType == SparqlQueryType.Ask)
@@ -239,7 +255,7 @@ namespace Semiodesk.Trinity.Store
                 // A dictionary mapping URIs to the generated resource objects.
                 Dictionary<string, IResource> cache = new Dictionary<string, IResource>();
 
-                Dictionary<string, T> types = FindResourceTypes<T>(_query.InferenceEnabled);
+                Dictionary<string, T> types = FindResourceTypes<T>(_query.IsInferenceEnabled);
                 //Dictionary<string, T> types = new Dictionary<string, T>();
                 _tripleProvider.Reset();
 

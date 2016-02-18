@@ -99,7 +99,7 @@ namespace Semiodesk.Trinity
         /// <param name="query"></param>
         /// <param name="transaction"></param>
         /// <returns></returns>
-        ISparqlQueryResult ExecuteQuery(SparqlQuery query, ITransaction transaction = null);
+        ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null);
 
         /// <summary>
         /// Executes a query on the store which does not expect a result.

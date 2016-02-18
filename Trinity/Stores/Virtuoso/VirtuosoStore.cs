@@ -235,12 +235,14 @@ namespace Semiodesk.Trinity.Store
 
         public IEnumerable<IModel> ListModels()
         {
-            SparqlQuery update = new SparqlQuery(string.Format("SELECT DISTINCT ?g WHERE {{ GRAPH ?g {{ ?s ?p ?o }} }} "));
-            var queryRes = ExecuteQuery(update);
+            SparqlQuery update = new SparqlQuery("SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } }");
 
-            foreach( var bindingSet in queryRes.GetBindings())
+            var result = ExecuteQuery(update);
+
+            foreach(var bindingSet in result.GetBindings())
             {
                 IModel m = null;
+
                 try
                 {
                     var x = bindingSet["g"];
@@ -250,8 +252,11 @@ namespace Semiodesk.Trinity.Store
                 {
                     continue;
                 }
+
                 if (m != null)
+                {
                     yield return m;
+                }
             }
         }
 
@@ -269,12 +274,12 @@ namespace Semiodesk.Trinity.Store
             return transaction;
         }
 
-        public ISparqlQueryResult ExecuteQuery(SparqlQuery query, ITransaction transaction = null)
+        public ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
             return new VirtuosoSparqlQueryResult(query.Model, query, this, transaction);
         }
 
-        internal string CreateQuery(SparqlQuery query)
+        internal string CreateQuery(ISparqlQuery query)
         {
             StringBuilder queryBuilder = new StringBuilder();
 
@@ -291,7 +296,7 @@ namespace Semiodesk.Trinity.Store
             // Add Virtuoso specific inferencing DEFINEs.
             // The models which can be used for inferencing is Virtuoso specific and
             // are therefore added here in the store.
-            if (query.InferenceEnabled)
+            if (query.IsInferenceEnabled)
             {
                 if (string.IsNullOrEmpty(_defaultInferenceRule))
                 {
@@ -558,6 +563,7 @@ namespace Semiodesk.Trinity.Store
         public void LoadOntologySettings(string configPath = null, string sourceDir = "")
         {
             Trinity.Configuration.TrinitySettings settings;
+
             if (!string.IsNullOrEmpty(configPath) && File.Exists(configPath))
             {
                 ExeConfigurationFileMap configMap = new ExeConfigurationFileMap();

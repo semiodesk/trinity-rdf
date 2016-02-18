@@ -330,8 +330,7 @@ namespace Semiodesk.Trinity.Test
             Assert.IsNull(query.Model);
             Assert.IsFalse(query.ToString().Contains("FROM"));
 
-            MethodInfo dynMethod = query.GetType().GetMethod("SetModel", BindingFlags.NonPublic | BindingFlags.Instance);
-            dynMethod.Invoke(query, new object[] { Model });
+            query.Model = Model;
 
             Assert.NotNull(query.Model);
             Assert.IsTrue(query.ToString().Contains("FROM"));
@@ -408,9 +407,7 @@ namespace Semiodesk.Trinity.Test
             query.Bind("@type", rdf.type);
             query.Bind("@class", tmo.Task);
 
-            MethodInfo method = query.GetType().GetMethod("IsOrdered", BindingFlags.NonPublic | BindingFlags.Instance);
-
-            Assert.AreEqual(true, method.Invoke(query, null));
+            Assert.IsTrue(string.IsNullOrEmpty(query.GetRootOrderByClause()));
 
             query = new SparqlQuery(@"
                 SELECT ?s0 ?p0 ?o0
@@ -441,7 +438,7 @@ namespace Semiodesk.Trinity.Test
             query.Bind("@type", rdf.type);
             query.Bind("@class", tmo.Task);
 
-            Assert.AreEqual(false, method.Invoke(query, null));
+            Assert.IsTrue(string.IsNullOrEmpty(query.GetRootOrderByClause()));
 
             query = new SparqlQuery(@"
                 SELECT DISTINCT ?s0 FROM <http://semiodesk.com/id/8083cf10-5f90-40d4-b30a-c18fea31177b/>
@@ -454,7 +451,7 @@ namespace Semiodesk.Trinity.Test
                 ORDER BY ASC(?o1) LIMIT 50
             ");
 
-            Assert.AreEqual(true, method.Invoke(query, null));
+            Assert.IsFalse(string.IsNullOrEmpty(query.GetRootOrderByClause()));
         }
     }
 }

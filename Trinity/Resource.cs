@@ -910,36 +910,40 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void Rollback()
         {
-            Resource resource = (Resource)Model.GetResource(this.Uri);
-
-            _model = resource._model;
-            _properties = resource._properties;
-
-            Uri = resource.Uri;
-
-            IsNew = resource.IsNew;
-            IsSynchronized = resource.IsSynchronized;
-
-            ResourceCache.Clear();
-
-            foreach (KeyValuePair<string, IPropertyMapping> mapping in _mappings)
+            using (Resource resource = Model.GetResource(Uri, GetType()) as Resource)
             {
-                IPropertyMapping persistedMapping = resource._mappings[mapping.Key];
+                _model = resource._model;
+                _properties = resource._properties;
 
-                mapping.Value.CloneFrom(persistedMapping);
+                Uri = resource.Uri;
 
-                if (resource.ResourceCache.HasCachedValues(persistedMapping))
+                IsNew = resource.IsNew;
+                IsSynchronized = resource.IsSynchronized;
+
+                ResourceCache.Clear();
+
+                foreach (KeyValuePair<string, IPropertyMapping> mapping in _mappings)
                 {
-                    ResourceCache.CacheValues(mapping.Value, resource.ResourceCache.ListCachedValues(persistedMapping));
+                    if(!resource._mappings.ContainsKey(mapping.Key))
+                    {
+                        continue;
+                    }
+
+                    IPropertyMapping persistedMapping = resource._mappings[mapping.Key];
+
+                    mapping.Value.CloneFrom(persistedMapping);
+
+                    if (resource.ResourceCache.HasCachedValues(persistedMapping))
+                    {
+                        ResourceCache.CacheValues(mapping.Value, resource.ResourceCache.ListCachedValues(persistedMapping));
+                    }
+                }
+
+                foreach (string name in _notifyingProperties)
+                {
+                    RaisePropertyChanged(name);
                 }
             }
-
-            foreach (string name in _notifyingProperties)
-            {
-                RaisePropertyChanged(name);
-            }
-
-            resource.Dispose();
 
             // NOTE: We do not need to copy the classes, we have to assume the mapped type stays the same.
         }

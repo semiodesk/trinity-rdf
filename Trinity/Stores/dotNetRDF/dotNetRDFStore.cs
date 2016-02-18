@@ -131,9 +131,9 @@ namespace Semiodesk.Trinity.Store
             _updateProcessor.ProcessCommandSet(cmds);
         }
 
-        public ISparqlQueryResult ExecuteQuery(SparqlQuery query, ITransaction transaction = null)
+        public ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
-            if (query.InferenceEnabled && _reasoner != null)
+            if (query.IsInferenceEnabled && _reasoner != null)
             {
                 _store.AddInferenceEngine(_reasoner);
             }
@@ -142,10 +142,7 @@ namespace Semiodesk.Trinity.Store
                 _store.ClearInferenceEngines();
             }
 
-            SparqlQueryParser sparqlparser = new SparqlQueryParser();
-            var q = sparqlparser.ParseFromString(query.ToString());
-
-            object results = _store.ExecuteQuery(q);
+            object results = _store.ExecuteQuery(query.ToString());
 
             if (results is IGraph)
             {

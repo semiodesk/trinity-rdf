@@ -49,18 +49,19 @@ namespace Semiodesk.Trinity.Store
     {
         #region Members
 
-        private readonly IModel _model;
         private readonly VirtuosoStore _store;
 
-        private SparqlQuery _query;
+        private readonly IModel _model;
+
+        private ISparqlQuery _query;
 
         //private DataTable _queryResults;
 
         private readonly ITransaction _transaction;
 
-        bool IsSorted
+        private bool _isOrdered
         {
-            get { return _query.IsOrdered(); }
+            get { return !string.IsNullOrEmpty(_query.GetRootOrderByClause()); }
         }
 
         #endregion
@@ -74,13 +75,12 @@ namespace Semiodesk.Trinity.Store
         /// <param name="store"></param>
         /// <param name="transaction"></param>
         /// <param name="model"></param>
-        internal VirtuosoSparqlQueryResult(IModel model, SparqlQuery query, VirtuosoStore store, ITransaction transaction=null)
+        internal VirtuosoSparqlQueryResult(IModel model, ISparqlQuery query, VirtuosoStore store, ITransaction transaction=null)
         {
             _store = store;
             _transaction = transaction;
             _query = query;
             _model = model;
-
         }
 
         #endregion
@@ -193,6 +193,12 @@ namespace Semiodesk.Trinity.Store
 
             if (0 < queryResults.Columns.Count)
             {
+                // A list of global scope variables without the ?. Used to access the
+                // subject, predicate and object variable in statement providing queries.
+                string[] vars = _query.GetGlobalScopeVariableNames();
+
+                bool providesStatements = _query.ProvidesStatements();
+
                 // A dictionary mapping URIs to the generated resource objects.
                 Dictionary<string, IResource> cache = new Dictionary<string, IResource>();
 
@@ -201,7 +207,7 @@ namespace Semiodesk.Trinity.Store
                     queryResults.Columns[0].ColumnName,
                     queryResults.Columns[1].ColumnName,
                     queryResults.Columns[2].ColumnName,
-                    _query.InferenceEnabled);
+                    _query.IsInferenceEnabled);
 
                 foreach (KeyValuePair<string, T> resourceType in types)
                 {
@@ -225,11 +231,11 @@ namespace Semiodesk.Trinity.Store
                         predUri = new UriRef(row[1].ToString());
                         o = ParseCellValue(row[2]);
                     }
-                    else if (_query.QueryType == SparqlQueryType.Select)
+                    else if (_query.QueryType == SparqlQueryType.Select && providesStatements)
                     {
-                        s = new UriRef(row[_query.SubjectVariable].ToString());
-                        predUri = new UriRef(row[_query.PredicateVariable].ToString());
-                        o = ParseCellValue(row[_query.ObjectVariable]);
+                        s = new UriRef(row[vars[0]].ToString());
+                        predUri = new UriRef(row[vars[1]].ToString());
+                        o = ParseCellValue(row[vars[2]]);
                     }
                     else
                     {
@@ -422,7 +428,7 @@ namespace Semiodesk.Trinity.Store
             string countQuery = SparqlSerializer.SerializeCount(_model, _query);
 
             SparqlQuery query = new SparqlQuery(countQuery);
-            query.InferenceEnabled = _query.InferenceEnabled;
+            query.IsInferenceEnabled = _query.IsInferenceEnabled;
 
             string q = _store.CreateQuery(query);
 
@@ -446,7 +452,7 @@ namespace Semiodesk.Trinity.Store
                 throw new ArgumentException("Error: The given SELECT query cannot be resolved into statements.");
             }
 
-            if (!_query.InferenceEnabled)
+            if (!_query.IsInferenceEnabled)
             {
                 String queryString = SparqlSerializer.SerializeOffsetLimit(_model, _query, offset, limit);
 
@@ -482,7 +488,7 @@ namespace Semiodesk.Trinity.Store
 
                     ISparqlQueryResult queryResult = _model.ExecuteQuery(query);
 
-                    if (IsSorted)
+                    if (_isOrdered)
                     {
                         foreach (T t in queryResult.GetResources<T>().OrderBy(o => uris.IndexOf(o.Uri)))
                         {
@@ -563,7 +569,7 @@ namespace Semiodesk.Trinity.Store
         {
             String queryString = SparqlSerializer.SerializeFetchUris(_model, _query, offset, limit);
 
-            SparqlQuery query = new SparqlQuery(queryString) { InferenceEnabled = _query.InferenceEnabled };
+            SparqlQuery query = new SparqlQuery(queryString) { IsInferenceEnabled = _query.IsInferenceEnabled };
 
             using (DataTable queryResults = _store.ExecuteQuery(_store.CreateQuery(query), _transaction))
             {
@@ -573,7 +579,7 @@ namespace Semiodesk.Trinity.Store
 
                 foreach (BindingSet binding in bindings)
                 {
-                    UriRef currentUri = binding[_query.SubjectVariable] as UriRef;
+                    UriRef currentUri = binding[_query.GetGlobalScopeVariableNames()[0]] as UriRef;
 
                     if (currentUri == null) continue;
 
