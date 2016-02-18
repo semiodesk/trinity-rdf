@@ -33,6 +33,7 @@ namespace Semiodesk.Trinity
     {
         #region Members
         public string Query { get; private set; }
+
         #endregion
 
         #region Constructors

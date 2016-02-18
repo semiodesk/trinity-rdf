@@ -364,14 +364,14 @@ namespace Semiodesk.Trinity
         /// <param name="inferenceEnabled">Indicate that this query should work with enabled inferencing.</param>
         /// <param name="transaction">ransaction associated with this action.</param>
         /// <returns>A SparqlQueryResults object in any case.</returns>
-        public ISparqlQueryResult ExecuteQuery(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
+        public ISparqlQueryResult ExecuteQuery(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
         {
-            if (Uri != null && (query.Model == null || query.IsAgainstDefaultModel()))
+            if (query.Model == null || !query.GetDefaultModels().Any())
             {
-                query.SetModel(this);
+                query.Model = this;
             }
 
-            query.InferenceEnabled = inferenceEnabled;
+            query.IsInferenceEnabled = inferenceEnabled;
 
             return _store.ExecuteQuery(query, transaction);
         }
@@ -406,19 +406,22 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(Uri uri, ITransaction transaction = null)
         {
-            SparqlQuery query = new SparqlQuery(String.Format("SELECT ?s ?p ?o FROM {0} WHERE {{ ?s ?p ?o. FILTER (?s ={0}) }}", SparqlSerializer.SerializeUri(uri), SparqlSerializer.SerializeUri(this.Uri)));
+            ISparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o FROM @model WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
+            query.Bind("@model", this.Uri);
+            query.Bind("@subject", uri);
+
             ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);
 
-            IList resources = result.GetResources().ToList();
+            IEnumerable<Resource> resources = result.GetResources();
 
-            if (resources.Count > 0)
+            if (resources.Any())
             {
-                Resource res = resources[0] as Resource;
-                res.IsNew = false;
-                res.IsSynchronized = true;
-                res.SetModel(this);
+                Resource r = resources.First();
+                r.IsNew = false;
+                r.IsSynchronized = true;
+                r.SetModel(this);
 
-                return (IResource)resources[0];
+                return r;
             }
             else
             {
@@ -436,23 +439,27 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
-            //SparqlQuery query = new SparqlQuery(String.Format("DESCRIBE {0} FROM {1}", SparqlSerializer.SerializeUri(uri), SparqlSerializer.SerializeUri(this.Uri)));
-            SparqlQuery query = new SparqlQuery(String.Format("SELECT ?s ?p ?o FROM {0} WHERE {{ ?s ?p ?o. FILTER (?s ={0}) }}", SparqlSerializer.SerializeUri(uri), SparqlSerializer.SerializeUri(this.Uri)));
+            ISparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o FROM @model WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
+            query.Bind("@model", this.Uri);
+            query.Bind("@subject", uri);
+
             ISparqlQueryResult result = ExecuteQuery(query, transaction:transaction);
 
-            IList resources = result.GetResources<T>().ToList();
+            IEnumerable<T> resources = result.GetResources<T>();
 
-            if (resources.Count > 0)
+            if (resources.Any())
             {
-                T res = resources[0] as T;
-                res.IsNew = false;
-                res.IsSynchronized = true;
-                res.SetModel(this);
-                return res;
+                T r = resources.First();
+                r.IsNew = false;
+                r.IsSynchronized = true;
+                r.SetModel(this);
+
+                return r;
             }
             else
             {
                 string msg = "Error: Could not find resource <{0}>.";
+
                 throw new ArgumentException(string.Format(msg, uri));
             }
         }
@@ -498,7 +505,7 @@ namespace Semiodesk.Trinity
         /// <param name="inferenceEnabled">Indicate that this query should work with enabled inferencing.</param>
         /// <param name="transaction">transaction associated with this action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
-        public IEnumerable<Resource> GetResources(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
+        public IEnumerable<Resource> GetResources(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
         {
             IEnumerable<Resource> result = ExecuteQuery(query, inferenceEnabled, transaction).GetResources<Resource>();
 
@@ -549,7 +556,7 @@ namespace Semiodesk.Trinity
         /// <param name="inferenceEnabled">Indicate that this query should work with enabled inferencing.</param>
         /// <param name="transaction">transaction associated with this action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
-        public IEnumerable<T> GetResources<T>(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
+        public IEnumerable<T> GetResources<T>(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
         {
             IEnumerable<T> result = ExecuteQuery(query, inferenceEnabled, transaction).GetResources<T>();
 
@@ -629,7 +636,7 @@ namespace Semiodesk.Trinity
         /// <param name="inferenceEnabled">Indicate that this query should work with enabled inferencing.</param>
         /// <param name="transaction">ransaction associated with this action.</param>
         /// <returns>An enumeration of bound variables that match the given query.</returns>
-        public IEnumerable<BindingSet> GetBindings(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
+        public IEnumerable<BindingSet> GetBindings(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
         {
             return ExecuteQuery(query, inferenceEnabled, transaction).GetBindings();
         }

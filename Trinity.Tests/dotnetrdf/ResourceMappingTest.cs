@@ -842,7 +842,7 @@ namespace dotNetRDFStore.Test
             t1.uniqueResourceTest = t2;
             t1.Commit();
 
-            IResource tr1 = model.GetResource(testRes1);
+            IResource tr1 = model.GetResource(testRes1, t1.GetType()) as Resource;
             Assert.AreEqual(typeof(MappingTestClass), tr1.GetType());
             MappingTestClass2 p2 = model.GetResource<MappingTestClass2>(testRes2);
 
@@ -962,24 +962,26 @@ namespace dotNetRDFStore.Test
         {
             IModel m = GetModel();
             m.Clear();
+
             Uri t1Uri = new Uri("semio:test:testInstance1");
             SingleResourceMappingTestClass t1 = m.CreateResource<SingleResourceMappingTestClass>(t1Uri);
             t1.Commit();
 
+            Assert.IsTrue(t1.ResourceTest.Count == 0);
+
             Uri t2Uri = new Uri("semio:test:testInstance2");
-            SingleMappingTestClass p = m.CreateResource<SingleMappingTestClass>(t2Uri);
-            p.stringTest.Add("blub");
-            p.Commit();
+            SingleMappingTestClass t2 = m.CreateResource<SingleMappingTestClass>(t2Uri);
+            t2.stringTest.Add("blub");
+            t2.Commit();
 
             var newRef = m.GetResource<SingleResourceMappingTestClass>(t1Uri);
-            newRef.ResourceTest.Add(p);
+            newRef.ResourceTest.Add(t2);
             newRef.Commit();
 
             t1.Rollback();
 
             Assert.IsTrue(t1.ResourceTest.Count == 1);
-            Assert.IsTrue(t1.ResourceTest.Contains(p));
-
+            Assert.IsTrue(t1.ResourceTest.Contains(t2));
         }
 
         [Test]
@@ -1017,14 +1019,18 @@ namespace dotNetRDFStore.Test
         {
             IModel m = GetModel();
             m.Clear();
+
             Uri t1Uri = new Uri("semio:test:testInstance8");
+
             SingleMappingTestClass t1 = m.CreateResource<SingleMappingTestClass>(t1Uri);
             t1.AddProperty(TestOntology.uniqueStringTest, "Hello");
+
             t1.Commit();
             t1.Rollback();
 
             t1.stringTest.Add("Hi");
             t1.stringTest.Add("Blub");
+
             var x = t1.ListValues(TestOntology.stringTest);
             Assert.AreEqual(2, x.Count);
             t1.Commit();

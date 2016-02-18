@@ -72,11 +72,15 @@ namespace Semiodesk.Trinity
     class ModelGroup : IModelGroup
     {
         #region Member
-        private HashSet<IModel> _set = new HashSet<IModel>(new IModelEqualityComparer());
+
         private IStore _store;
+
+        private HashSet<IModel> _set = new HashSet<IModel>(new IModelEqualityComparer());
+
         private MethodInfo _getResourceMethod;
 
         private string _datasetClause = null;
+
         internal string DatasetClause
         {
             get
@@ -87,7 +91,6 @@ namespace Semiodesk.Trinity
             }
         }
 
-        
         #endregion
 
         #region Constructor
@@ -326,10 +329,10 @@ namespace Semiodesk.Trinity
             return ContainsResource(resource.Uri, transaction);
         }
 
-        public ISparqlQueryResult ExecuteQuery(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
+        public ISparqlQueryResult ExecuteQuery(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
         {
-            query.SetModel(this);
-            query.InferenceEnabled = inferenceEnabled;
+            query.Model = this;
+            query.IsInferenceEnabled = inferenceEnabled;
 
             return _store.ExecuteQuery(query, transaction);
         }
@@ -412,7 +415,7 @@ namespace Semiodesk.Trinity
             }
         }
 
-        public IEnumerable<Resource> GetResources(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
+        public IEnumerable<Resource> GetResources(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
         {
             IEnumerable<Resource> result = ExecuteQuery(query, inferenceEnabled, transaction).GetResources<Resource>();
 
@@ -449,7 +452,7 @@ namespace Semiodesk.Trinity
             return result;
         }
 
-        public IEnumerable<T> GetResources<T>(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
+        public IEnumerable<T> GetResources<T>(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
         {
             IEnumerable<T> result = ExecuteQuery(query, inferenceEnabled, transaction).GetResources<T>();
 
@@ -511,7 +514,7 @@ namespace Semiodesk.Trinity
             return null;
         }
 
-        public IEnumerable<BindingSet> GetBindings(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
+        public IEnumerable<BindingSet> GetBindings(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
         {
             return ExecuteQuery(query, inferenceEnabled, transaction).GetBindings();
         }

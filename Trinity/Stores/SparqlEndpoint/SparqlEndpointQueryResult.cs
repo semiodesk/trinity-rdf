@@ -39,11 +39,11 @@ namespace Semiodesk.Trinity.Store
 {
     class SparqlEndpointQueryResult : dotNetRDFQueryResult
     {
-        public SparqlEndpointQueryResult(SparqlResultSet r, SparqlQuery query) : base(null, query, r)
+        public SparqlEndpointQueryResult(SparqlResultSet r, ISparqlQuery query) : base(null, query, r)
         {
         }
 
-        public SparqlEndpointQueryResult(IGraph r1, SparqlQuery query) : base(null, query, r1)
+        public SparqlEndpointQueryResult(IGraph r1, ISparqlQuery query) : base(null, query, r1)
         {
         }
 

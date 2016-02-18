@@ -188,31 +188,37 @@ namespace Semiodesk.Trinity.Test
         {
             SparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o . }");
 
+            string[] vars = query.GetGlobalScopeVariableNames();
+
             Assert.IsTrue(query.ProvidesStatements());
-            Assert.AreEqual("s", query.SubjectVariable);
-            Assert.AreEqual("p", query.PredicateVariable);
-            Assert.AreEqual("o", query.ObjectVariable);
+            Assert.AreEqual("s", vars[0]);
+            Assert.AreEqual("p", vars[1]);
+            Assert.AreEqual("o", vars[2]);
 
             query = new SparqlQuery("SELECT * WHERE { ?s ?p ?o . }");
 
+            vars = query.GetGlobalScopeVariableNames();
+
             Assert.IsTrue(query.ProvidesStatements());
-            Assert.AreEqual("s", query.SubjectVariable);
-            Assert.AreEqual("p", query.PredicateVariable);
-            Assert.AreEqual("o", query.ObjectVariable);
+            Assert.AreEqual("s", vars[0]);
+            Assert.AreEqual("p", vars[1]);
+            Assert.AreEqual("o", vars[2]);
 
             query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o . ?x ?y ?z . }");
 
+            vars = query.GetGlobalScopeVariableNames();
+
             Assert.IsTrue(query.ProvidesStatements());
-            Assert.AreEqual("s", query.SubjectVariable);
-            Assert.AreEqual("p", query.PredicateVariable);
-            Assert.AreEqual("o", query.ObjectVariable);
+            Assert.AreEqual("s", vars[0]);
+            Assert.AreEqual("p", vars[1]);
+            Assert.AreEqual("o", vars[2]);
 
             query = new SparqlQuery("SELECT * WHERE { ?s ?p ?o . ?x ?y ?z . }");
 
+            vars = query.GetGlobalScopeVariableNames();
+
             Assert.IsFalse(query.ProvidesStatements());
-            Assert.IsNull(query.SubjectVariable);
-            Assert.IsNull(query.PredicateVariable);
-            Assert.IsNull(query.ObjectVariable);
+            Assert.AreEqual(6, vars.Length);
 
             query = new SparqlQuery(@"
                 PREFIX nie: <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#>
@@ -228,10 +234,12 @@ namespace Semiodesk.Trinity.Test
                 }
                 ORDER BY DESC(?lastModified)");
 
+            vars = query.GetGlobalScopeVariableNames();
+
             Assert.IsTrue(query.ProvidesStatements());
-            Assert.AreEqual("s", query.SubjectVariable);
-            Assert.AreEqual("p", query.PredicateVariable);
-            Assert.AreEqual("o", query.ObjectVariable);
+            Assert.AreEqual("s", vars[0]);
+            Assert.AreEqual("p", vars[1]);
+            Assert.AreEqual("o", vars[2]);
         }
 
         [Test]
@@ -367,6 +375,18 @@ namespace Semiodesk.Trinity.Test
         }
 
         [Test]
+        public void TestQueryParameters()
+        {
+            SparqlQuery query = new SparqlQuery(@"SELECT ?s WHERE { ?s ?p ?o . ?s ?p @someValue . }");
+
+            query.Bind("@someValue", "Value");
+
+            string queryString = query.ToString();
+
+            Assert.IsFalse(string.IsNullOrEmpty(queryString));
+        }
+
+        [Test]
         public void TestSelectCount()
         {
             SparqlQuery query = new SparqlQuery("SELECT COUNT(?s) AS ?count WHERE { ?s rdf:type nfo:Document. }");
@@ -399,8 +419,7 @@ namespace Semiodesk.Trinity.Test
             Assert.IsNull(query.Model);
             Assert.IsFalse(query.ToString().Contains("FROM"));
 
-            MethodInfo dynMethod = query.GetType().GetMethod("SetModel", BindingFlags.NonPublic | BindingFlags.Instance);
-            dynMethod.Invoke(query, new object[] { Model });
+            query.Model = Model;
 
             Assert.NotNull(query.Model);
             Assert.IsTrue(query.ToString().Contains("FROM"));

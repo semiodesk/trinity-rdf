@@ -32,7 +32,5 @@ namespace Semiodesk.Trinity
     /// <summary>
     /// A dictionary of named value bindings which represents a single query solution.
     /// </summary>
-    public class BindingSet : Dictionary<string, object>
-    {
-    }
+    public class BindingSet : Dictionary<string, object> {}
 }

@@ -48,9 +48,60 @@ namespace Semiodesk.Trinity
         #region Members
 
         /// <summary>
+        /// Cached version of the query string.
+        /// </summary>
+        private string _query;
+
+        /// <summary>
+        /// Indicates if a query parameter value has been changed and the cached query string needs to be regenerated.
+        /// </summary>
+        private bool _isModified;
+
+        /// <summary>
+        /// The SPARQL query processor used to determine the prefixes and statement variables in the query.
+        /// </summary>
+        private SparqlQueryPreprocessor _preprocessor;
+
+        /// <summary>
+        /// Names of the globally defined variables without the preceding '?'.
+        /// </summary>
+        private string[] _globalScopeVariableNames;
+
+        /// <summary>
+        /// The default model of the Query, if there is excactly one.
+        /// </summary>
+        private IModel _model;
+
+        /// <summary>
         /// Get or set the model used for this query.
         /// </summary>
-        public IModel Model { get; private set; }
+        public IModel Model
+        {
+            get { return _model; }
+            set
+            {
+                if(value != _model && _preprocessor != null)
+                {
+                    _model = value;
+
+                    if (value is IModelGroup)
+                    {
+                        IModelGroup group = value as IModelGroup;
+
+                        foreach (IModel m in group)
+                        {
+                            _preprocessor.AddNamedGraph(m.Uri);
+                        }
+                    }
+                    else
+                    {
+                        _preprocessor.AddDefaultGraph(value.Uri);
+                    }
+
+                    _isModified = true;
+                }
+            }
+        }
 
         /// <summary>
         /// The query form as defined in http://www.w3.org/TR/rdf-sparql-query/#QueryForms
@@ -58,35 +109,9 @@ namespace Semiodesk.Trinity
         public SparqlQueryType QueryType { get; protected set; }
 
         /// <summary>
-        /// The SPARQL query processor used to determine the prefixes and statement variables in the query.
-        /// </summary>
-        internal SparqlQueryPreprocessor Preprocessor;
-
-        /// <summary>
-        /// Holds the variable name of the subject for SELECT queries which
-        /// provide triple results. Please check with ProvidesStatements() before
-        /// using this variable.
-        /// </summary>
-        internal string SubjectVariable { get; private set; }
-
-        /// <summary>
-        /// Holds the variable name of the predicate for SELECT queries which
-        /// provide triple results. Please check with ProvidesStatements() before
-        /// using this variable.
-        /// </summary>
-        internal string PredicateVariable { get; private set; }
-
-        /// <summary>
-        /// Holds the variable name of the object for SELECT queries which
-        /// provide triple results. Please check with ProvidesStatements() before
-        /// using this variable.
-        /// </summary>
-        internal string ObjectVariable { get; private set; }
-
-        /// <summary>
         /// Indicates if the query result should be expanded using run-time inferencing.
         /// </summary>
-        public bool InferenceEnabled { get; set; }
+        public bool IsInferenceEnabled { get; set; }
 
         #endregion
 
@@ -105,17 +130,12 @@ namespace Semiodesk.Trinity
             using (TextReader reader = new StringReader(queryString))
             {
                 // Parse the query for namespace prefixes and optionally remove any formatting characters.
-                Preprocessor = new SparqlQueryPreprocessor(reader, SparqlQuerySyntax.Extended);
-                Preprocessor.Process(declarePrefixes);
+                _preprocessor = new SparqlQueryPreprocessor(reader, SparqlQuerySyntax.Extended);
+                _preprocessor.Process(declarePrefixes);
 
-                QueryType = Preprocessor.QueryType;
+                QueryType = _preprocessor.QueryType;
 
-                if (Preprocessor.QueryProvidesStatements && Preprocessor.GlobalScopeVariables.Count == 3)
-                {
-                    SubjectVariable = Preprocessor.GlobalScopeVariables[0].Substring(1);
-                    PredicateVariable = Preprocessor.GlobalScopeVariables[1].Substring(1);
-                    ObjectVariable = Preprocessor.GlobalScopeVariables[2].Substring(1);
-                }
+                _globalScopeVariableNames = _preprocessor.GlobalScopeVariables.Select(v => v.Substring(1)).ToArray();
             }
         }
 
@@ -124,20 +144,11 @@ namespace Semiodesk.Trinity
         #region Methods
 
         /// <summary>
-        /// Indicates if the query will be matched against the background/default graph.
-        /// </summary>
-        /// <returns>True if the query will be matched against the background graph.</returns>
-        internal bool IsAgainstDefaultModel()
-        {
-            return Preprocessor.DefaultGraphs.Count == 0;
-        }
-
-        /// <summary>
         /// Indicates if the query provides a description of one or more resources.
         /// </summary>
         public bool ProvidesStatements()
         {
-            return Preprocessor.QueryProvidesStatements;
+            return _preprocessor.QueryProvidesStatements;
         }
 
         /// <summary>
@@ -147,63 +158,65 @@ namespace Semiodesk.Trinity
         /// <param name="value">The paramter value.</param>
         public void Bind(string parameter, object value)
         {
-            if(Preprocessor == null)
+            if(_preprocessor == null)
             {
                 throw new NotSupportedException("SPARQL query parameters can only be used with a query processor. Try using the default constructor.");
             }
 
-            Preprocessor.Bind(parameter, value);
+            _preprocessor.Bind(parameter, value);
+
+            _isModified = true;
         }
 
         /// <summary>
-        /// Adds a FROM clause to the query in order to restrict it to the given model. 
+        /// Enumerates the graphs which are declared in FROM and FROM NAMED directives at the root level.
         /// </summary>
-        /// <param name="model">A model the query should be executed on.</param>
-        internal void SetModel(IModel model)
+        /// <returns>An enumeration of URI strings.</returns>
+        public IEnumerable<string> GetDefaultModels()
         {
-            if(Model == model)
-            {
-                return;
-            }
+            return _preprocessor.DefaultGraphs;
+        }
 
-            Model = model;
+        public IEnumerable<string> GetDeclaredPrefixes()
+        {
+            return _preprocessor.DeclaredPrefixes;
+        }
 
-            if (Preprocessor == null)
-            {
-                return;
-            }
-            else if (model is IModelGroup)
-            {
-                IModelGroup group = model as IModelGroup;
+        public string[] GetGlobalScopeVariableNames()
+        {
+            return _globalScopeVariableNames;
+        }
 
-                foreach (IModel m in group)
-                {
-                    Preprocessor.AddNamedGraph(m.Uri);
-                }
-            }
-            else
-            {
-                Preprocessor.AddDefaultGraph(model.Uri);
-            }
+        public string GetRootGraphPattern()
+        {
+            return _preprocessor.GetRootGraphPattern();
         }
 
         /// <summary>
         /// Indicates if the query contains an ORDER BY clause in any of its graph patterns.
         /// </summary>
         /// <returns><c>true</c> if the query contains an ORDER BY clause, <c>false</c> otherwise.</returns>
-        internal bool IsOrdered()
+        public string GetRootOrderByClause()
         {
-            return Preprocessor.IsOrdered;
+            return _preprocessor.GetOrderByClause();
         }
 
+        /// <summary>
+        /// Adds a LIMIT &lt;int&gt; clause to the query in order to restrict it to put an upper bound on the number of solutions returned. 
+        /// </summary>
+        /// <param name="model">The number of return values.</param>
         internal void SetLimit(int limit)
         {
-            Preprocessor.SetLimit(limit);
+            _preprocessor.SetLimit(limit);
         }
 
+        /// <summary>
+        /// Adds an Offset &lt;int&gt; clause to the query which causes the solutions generated to start after the specified number of solutions. 
+        /// </summary>
+        /// <param name="model">The number of return values.</param>
         internal void SetOffset(int offset)
         {
-            Preprocessor.SetOffset(offset);
+            _preprocessor.SetOffset(offset);
         }
 
         /// <summary>
@@ -212,7 +225,12 @@ namespace Semiodesk.Trinity
         /// <returns>A valid SPARQL string.</returns>
         public override string ToString()
         {
-            return Preprocessor.ToString();
+            if(_query == null || _isModified)
+            {
+                _query = _preprocessor.ToString();
+            }
+
+            return _query;
         }
 
         #endregion

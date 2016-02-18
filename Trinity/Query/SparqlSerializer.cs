@@ -506,11 +506,11 @@ namespace Semiodesk.Trinity
         /// <param name="model"></param>
         /// <param name="query"></param>
         /// <returns></returns>
-        public static string SerializeCount(IModel model, SparqlQuery query)
+        public static string SerializeCount(IModel model, ISparqlQuery query)
         {
-            string variable = query.Preprocessor.GlobalScopeVariables.FirstOrDefault();
+            string variable = "?" + query.GetGlobalScopeVariableNames()[0];
             string from = GenerateDatasetClause(model);
-            string where = query.Preprocessor.GetRootGraphPattern();
+            string where = query.GetRootGraphPattern();
 
             StringBuilder queryBuilder = new StringBuilder();
 
@@ -525,45 +525,48 @@ namespace Semiodesk.Trinity
             return queryBuilder.ToString();
         }
 
-        internal static string SerializeFetchUris(IModel model, SparqlQuery query, int offset = -1, int limit = -1)
+        internal static string SerializeFetchUris(IModel model, ISparqlQuery query, int offset = -1, int limit = -1)
         {
-            string prefixes = query.Preprocessor.GetPrefixDeclarations();
-            string variable = query.Preprocessor.GlobalScopeVariables.FirstOrDefault();
+            string variable = "?" + query.GetGlobalScopeVariableNames()[0];
             string from = GenerateDatasetClause(model);
-            string where = query.Preprocessor.GetRootGraphPattern();
-            string orderby = query.Preprocessor.GetOrderByClause();
+            string where = query.GetRootGraphPattern();
+            string orderby = query.GetRootOrderByClause();
 
             StringBuilder queryBuilder = new StringBuilder();
+            
+            foreach(string prefix in query.GetDeclaredPrefixes())
+            {
+                queryBuilder.AppendFormat("prefix <{0}> ", prefix);
+            }
 
-            queryBuilder.Append(prefixes);
-            queryBuilder.Append("SELECT DISTINCT ");
+            queryBuilder.Append("select distinct ");
             queryBuilder.Append(variable);
             queryBuilder.Append(from);
-            queryBuilder.Append(" WHERE { ");
+            queryBuilder.Append(" where { ");
             queryBuilder.Append(where);
             queryBuilder.Append(" } ");
             queryBuilder.Append(orderby);
 
             if (offset != -1)
             {
-                queryBuilder.Append(" OFFSET ");
+                queryBuilder.Append(" offset ");
                 queryBuilder.Append(offset);
             }
 
             if (limit != -1)
             {
-                queryBuilder.Append(" LIMIT ");
+                queryBuilder.Append(" limit ");
                 queryBuilder.Append(limit);
             }
 
             return queryBuilder.ToString();
         }
 
-        internal static string SerializeOffsetLimit(IModel model, SparqlQuery query, int offset = -1, int limit = -1)
+        internal static string SerializeOffsetLimit(IModel model, ISparqlQuery query, int offset = -1, int limit = -1)
         {
-            string variable = query.Preprocessor.GlobalScopeVariables.FirstOrDefault();
+            string variable = "?" + query.GetGlobalScopeVariableNames()[0];
             string from = GenerateDatasetClause(model);
-            string where = query.Preprocessor.GetRootGraphPattern();
+            string where = query.GetRootGraphPattern();
 
             StringBuilder resultBuilder = new StringBuilder();
             resultBuilder.AppendFormat("SELECT {0} ?p ?o {1} WHERE {{ {0} ?p ?o {{", variable, from);

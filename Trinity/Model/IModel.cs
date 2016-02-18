@@ -165,7 +165,7 @@ namespace Semiodesk.Trinity
         /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
         /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>A SPARQL query result object.</returns>
-        ISparqlQueryResult ExecuteQuery(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
+        ISparqlQueryResult ExecuteQuery(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
 
         /// <summary>
         /// Execute a ResourceQuery against the model.
@@ -215,7 +215,7 @@ namespace Semiodesk.Trinity
         /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
         /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
-        IEnumerable<Resource> GetResources(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
+        IEnumerable<Resource> GetResources(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
 
         /// <summary>
         /// Executes a resource query and provides an enumeration of matching resources.
@@ -233,7 +233,7 @@ namespace Semiodesk.Trinity
         /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
         /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
-        IEnumerable<T> GetResources<T>(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource;
+        IEnumerable<T> GetResources<T>(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource;
 
         /// <summary>
         /// Executes a resource query and provides an enumeration of matching resources.
@@ -259,7 +259,7 @@ namespace Semiodesk.Trinity
         /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
         /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
-        IEnumerable<BindingSet> GetBindings(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
+        IEnumerable<BindingSet> GetBindings(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
 
         /// <summary>
         /// Imports the contents of a model located by the given URL. The method supports

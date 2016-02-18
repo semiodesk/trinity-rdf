@@ -44,17 +44,11 @@ namespace Semiodesk.Trinity.Test
 {
     public class SingleMappingTestClass : Resource
     {
-        #region Constructors
-
-        public SingleMappingTestClass(Uri uri) : base(uri) {}
-
-        #endregion
-
         #region Mapping
 
         public override IEnumerable<Class> GetTypes()
         {
-            return new List<Class> { TestOntology.SingleMappingTestClass };
+            yield return TestOntology.SingleMappingTestClass;
         }
 
         protected PropertyMapping<ObservableCollection<string>> stringTestMapping =
@@ -65,6 +59,12 @@ namespace Semiodesk.Trinity.Test
             get { return GetValue(stringTestMapping); }
             set { SetValue(stringTestMapping, value); }
         }
+
+        #endregion
+
+        #region Constructors
+
+        public SingleMappingTestClass(Uri uri) : base(uri) {}
 
         #endregion
     }
@@ -1378,7 +1378,7 @@ namespace Semiodesk.Trinity.Test
 
             var queryResult = m.ExecuteQuery(q, true);
 
-            var resources = queryResult.GetResources().ToList();
+            Assert.IsNotEmpty(queryResult.GetResources());
         }
 
         IModel GetModel()
