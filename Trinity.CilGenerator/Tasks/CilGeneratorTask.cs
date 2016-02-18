@@ -40,7 +40,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
         [Required]
         public string TargetFile { get; set; }
 
-        private bool _writeSymbols = true;
+        private bool _writeSymbols = false;
         public bool WriteSymbols { get { return _writeSymbols; } set { _writeSymbols = value; } }
 
         #endregion
