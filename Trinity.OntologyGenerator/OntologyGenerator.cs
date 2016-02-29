@@ -438,6 +438,11 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 result = result.Replace("#", "_");
             }
 
+            if (result.Contains(":"))
+            {
+                result = result.Replace(":", "_");
+            }
+
             return result;
         }
 
