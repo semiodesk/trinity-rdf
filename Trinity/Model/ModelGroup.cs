@@ -308,8 +308,9 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="url"></param>
         /// <param name="format"></param>
+        /// <param name="update"></param>
         /// <returns></returns>
-        public bool Read(Uri url, RdfSerializationFormat format)
+        public bool Read(Uri url, RdfSerializationFormat format, bool update)
         {
             throw new NotSupportedException();
         }
@@ -524,7 +525,7 @@ namespace Semiodesk.Trinity
             throw new NotSupportedException();
         }
 
-        public bool Read(Stream stream, RdfSerializationFormat format)
+        public bool Read(Stream stream, RdfSerializationFormat format, bool update)
         {
             throw new NotSupportedException();
         }

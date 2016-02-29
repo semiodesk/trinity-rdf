@@ -224,7 +224,7 @@ namespace Semiodesk.Trinity.Store
         }
 
 
-        public Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format)
+        public Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
         {
             TextReader reader = new StreamReader(stream);
             IGraph graph = new Graph();
@@ -232,11 +232,13 @@ namespace Semiodesk.Trinity.Store
 
             parser.Load(graph, reader);
             graph.BaseUri = graphUri;
-            _store.Add(graph, true);
+            if (!update)
+                _store.Remove(graphUri);
+            _store.Add(graph, update);
             return graphUri;
         }
 
-        public Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format)
+        public Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update)
         {
             IGraph graph = null;
 
@@ -262,7 +264,9 @@ namespace Semiodesk.Trinity.Store
 
                         foreach (VDS.RDF.Graph g in s.Graphs)
                         {
-                            _store.Add(g, true);
+                            if (!update)
+                                _store.Remove(g.BaseUri);
+                            _store.Add(g, update);
                         }
                     }
                     else
@@ -282,7 +286,9 @@ namespace Semiodesk.Trinity.Store
 
             if (graph != null)
             {
-                _store.Add(graph, true);
+                if (!update)
+                    _store.Remove(graph.BaseUri);
+                _store.Add(graph, update);
 
                 return graphUri;
             }

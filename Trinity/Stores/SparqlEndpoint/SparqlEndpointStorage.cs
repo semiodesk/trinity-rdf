@@ -157,12 +157,12 @@ namespace Semiodesk.Trinity.Store
             return;
         }
 
-        public Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format)
+        public Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update)
         {
             throw new NotSupportedException();
         }
 
-        public Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format)
+        public Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
         {
             throw new NotSupportedException();
         }

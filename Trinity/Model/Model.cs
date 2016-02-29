@@ -660,21 +660,21 @@ namespace Semiodesk.Trinity
         /// <param name="url">A uniform resource locator.</param>
         /// <param name="format">Serialization format <see cref="RdfSerializationFormat"/></param>
         /// <returns>True if the contents of the model were imported, False if not.</returns>
-        public bool Read(Uri url, RdfSerializationFormat format)
+        public bool Read(Uri url, RdfSerializationFormat format, bool update)
         {
             if (format == RdfSerializationFormat.Trig)
                 throw new ArgumentException("Quadruple serialization formats are not supported by this method. Use IStore.Read() instead.");
 
-            return (_store.Read(Uri, url, format) != null);
+            return (_store.Read(Uri, url, format, update) != null);
         }
 
 
-        public bool Read(Stream stream, RdfSerializationFormat format)
+        public bool Read(Stream stream, RdfSerializationFormat format, bool update)
         {
             if (format == RdfSerializationFormat.Trig)
                 throw new ArgumentException("Quadruple serialization formats are not supported by this method. Use IStore.Read() instead.");
 
-            return (_store.Read(stream, Uri, format) != null);
+            return (_store.Read(stream, Uri, format, update) != null);
         }
 
         /// <summary>

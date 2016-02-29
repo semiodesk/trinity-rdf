@@ -267,16 +267,18 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="url">A uniform resource locator.</param>
         /// <param name="format">The serialization format.</param>
+        /// <param name="update">True to update the model, false to replace the data.</param>
         /// <returns>True if the contents of the model were imported, False if not.</returns>
-        bool Read(Uri url, RdfSerializationFormat format);
+        bool Read(Uri url, RdfSerializationFormat format, bool update);
 
         /// <summary>
         /// Imports the contents of a graph serialized in the stream to this model.
         /// </summary>
         /// <param name="stream">The stream containing the serialization</param>
         /// <param name="format">Format of the serialization</param>
+        /// <param name="update">True to update the model, false to replace the data.</param>
         /// <returns>True if the contents of the model were imported, False if not.</returns>
-        bool Read(Stream stream, RdfSerializationFormat format);
+        bool Read(Stream stream, RdfSerializationFormat format, bool update);
 
         /// <summary>
         /// Serializes the contents of the model and provides a memory stream.

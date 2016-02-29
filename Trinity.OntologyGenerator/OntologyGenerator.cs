@@ -131,7 +131,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
             try
             {
-                _store.Read(graphUri, location, format);
+                _store.Read(graphUri, location, format, false);
 
                 return true;
             }
