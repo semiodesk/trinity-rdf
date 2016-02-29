@@ -457,13 +457,13 @@ namespace Semiodesk.Trinity.Test
             UriRef fileUri = fi.ToUriRef();
 
             Assert.IsTrue(_model.IsEmpty);
-            Assert.IsTrue(_model.Read(fileUri, RdfSerializationFormat.NTriples));
+            Assert.IsTrue(_model.Read(fileUri, RdfSerializationFormat.NTriples, false));
             Assert.IsFalse(_model.IsEmpty);
 
             _model.Clear();
 
             Assert.IsTrue(_model.IsEmpty);
-            Assert.IsTrue(_model.Read(new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#"), RdfSerializationFormat.RdfXml));
+            Assert.IsTrue(_model.Read(new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#"), RdfSerializationFormat.RdfXml, false));
             Assert.IsFalse(_model.IsEmpty);
 
             _model.Clear();
@@ -472,8 +472,79 @@ namespace Semiodesk.Trinity.Test
             fileUri = fi.ToUriRef();
 
             Assert.IsTrue(_model.IsEmpty);
-            Assert.Throws(typeof(ArgumentException), () => { _model.Read(fileUri, RdfSerializationFormat.Trig); });
+            Assert.Throws(typeof(ArgumentException), () => { _model.Read(fileUri, RdfSerializationFormat.Trig, false); });
             
+        }
+
+        [Test]
+        public void ReadFromStringTest()
+        {
+            _model.Clear();
+
+            string turtle = @"@base <http://example.org/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rel: <http://www.perceive.net/schemas/relationship/> .
+
+<#green-goblin>
+    rel:enemyOf <#spiderman> ;
+    a foaf:Person ;    # in the context of the Marvel universe
+    foaf:name ""Green Goblin"" .
+<#spiderman>
+    rel:enemyOf <#green-goblin> ;
+    a foaf:Person ;
+    foaf:name ""Spiderman"", ""Человек-паук""@ru .";
+
+            using (Stream s = GenerateStreamFromString(turtle))
+            {
+                Assert.IsTrue(_model.Read(s, RdfSerializationFormat.Turtle, false));
+            }
+
+            IResource r = _model.GetResource(new Uri("http://example.org/#green-goblin"));
+            string name = r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/name"))) as string;
+            Assert.AreEqual("Green Goblin", name);
+
+            string turtle2 = @"@base <http://example.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+
+<#green-goblin> foaf:age ""27""^^xsd:int .";
+
+            using (Stream s = GenerateStreamFromString(turtle2))
+            {
+                Assert.IsTrue(_model.Read(s, RdfSerializationFormat.Turtle, true));
+            }
+
+            r = _model.GetResource(new Uri("http://example.org/#green-goblin"));
+            int age = (int)r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/age")));
+            name = r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/name"))) as string;
+            Assert.AreEqual(27, age);
+
+            turtle = @"@base <http://example.org/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rel: <http://www.perceive.net/schemas/relationship/> .
+
+<#green-goblin>
+    rel:enemyOf <#spiderman> ;
+    a foaf:Person ;    # in the context of the Marvel universe
+    foaf:name ""Green Gobo"" .
+<#spiderman>
+    rel:enemyOf <#green-goblin> ;
+    a foaf:Person ;
+    foaf:name ""Spiderman"", ""Человек-паук""@ru .";
+
+            using (Stream s = GenerateStreamFromString(turtle))
+            {
+                Assert.IsTrue(_model.Read(s, RdfSerializationFormat.Turtle, false));
+            }
+
+            r = _model.GetResource(new Uri("http://example.org/#green-goblin"));
+            name = r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/name"))) as string;
+            Assert.AreEqual("Green Gobo", name);
         }
 
         [Test]
@@ -493,6 +564,16 @@ namespace Semiodesk.Trinity.Test
                 }
 
             }
+        }
+
+        public Stream GenerateStreamFromString(string s)
+        {
+            MemoryStream stream = new MemoryStream();
+            StreamWriter writer = new StreamWriter(stream);
+            writer.Write(s);
+            writer.Flush();
+            stream.Position = 0;
+            return stream;
         }
 
 

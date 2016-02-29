@@ -259,13 +259,52 @@ namespace dotNetRDFStore.Test
 
             using( Stream s = GenerateStreamFromString(turtle))
             {
-                Assert.IsTrue(Model.Read(s, RdfSerializationFormat.Turtle));
+                Assert.IsTrue(Model.Read(s, RdfSerializationFormat.Turtle, false));
             }
 
             IResource r = Model.GetResource(new Uri("http://example.org/#green-goblin"));
             string name = r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/name"))) as string;
             Assert.AreEqual("Green Goblin", name);
 
+            string turtle2 = @"@base <http://example.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+
+<#green-goblin> foaf:age ""27""^^xsd:int .";
+
+            using (Stream s = GenerateStreamFromString(turtle2))
+            {
+                Assert.IsTrue(Model.Read(s, RdfSerializationFormat.Turtle, true));
+            }
+
+            r = Model.GetResource(new Uri("http://example.org/#green-goblin"));
+            int age = (int) r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/age")));
+            Assert.AreEqual(27, age);
+
+            turtle = @"@base <http://example.org/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rel: <http://www.perceive.net/schemas/relationship/> .
+
+<#green-goblin>
+    rel:enemyOf <#spiderman> ;
+    a foaf:Person ;    # in the context of the Marvel universe
+    foaf:name ""Green Gobo"" .
+<#spiderman>
+    rel:enemyOf <#green-goblin> ;
+    a foaf:Person ;
+    foaf:name ""Spiderman"", ""Человек-паук""@ru .";
+
+            using (Stream s = GenerateStreamFromString(turtle))
+            {
+                Assert.IsTrue(Model.Read(s, RdfSerializationFormat.Turtle, false));
+            }
+
+            r = Model.GetResource(new Uri("http://example.org/#green-goblin"));
+            name = r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/name"))) as string;
+            Assert.AreEqual("Green Gobo", name);
         }
 
         public Stream GenerateStreamFromString(string s)

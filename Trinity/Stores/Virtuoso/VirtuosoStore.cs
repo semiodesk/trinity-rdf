@@ -425,7 +425,7 @@ namespace Semiodesk.Trinity.Store
             return path;
         }
 
-        public Uri Read(Uri graph, Uri url, RdfSerializationFormat format)
+        public Uri Read(Uri graph, Uri url, RdfSerializationFormat format, bool update)
         {
             // Note: Accessing the file scheme here throws an exception in case the URL is relative..
             if (url.IsFile)
@@ -436,11 +436,11 @@ namespace Semiodesk.Trinity.Store
                 {
                     if (format == RdfSerializationFormat.Trig)
                     {
-                        return ReadQuadFormat(reader, graph, format);
+                        return ReadQuadFormat(reader, graph, format, update);
                     }
                     else
                     {
-                        return ReadTripleFormat(reader, graph, format);
+                        return ReadTripleFormat(reader, graph, format, update);
                     }
                 } 
             }
@@ -462,22 +462,22 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-        public Uri Read(Stream stream, Uri graph, RdfSerializationFormat format)
+        public Uri Read(Stream stream, Uri graph, RdfSerializationFormat format, bool update)
         {
             using (TextReader reader = new StreamReader(stream))
             {
                 if (format == RdfSerializationFormat.Trig)
                 {
-                    return ReadQuadFormat(reader, graph, format);
+                    return ReadQuadFormat(reader, graph, format, update);
                 }
                 else
                 {
-                    return ReadTripleFormat(reader, graph, format);
+                    return ReadTripleFormat(reader, graph, format, update);
                 }
             }
         }
 
-        private Uri ReadQuadFormat(TextReader reader, Uri graph, RdfSerializationFormat format)
+        private Uri ReadQuadFormat(TextReader reader, Uri graph, RdfSerializationFormat format, bool update)
         {
             using (VDS.RDF.Storage.VirtuosoManager m = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
             {
@@ -487,7 +487,11 @@ namespace Semiodesk.Trinity.Store
                     p.Load(store, reader);
                     foreach (var x in store.Graphs)
                     {
-                        m.SaveGraph(x);
+                        if (update)
+                            m.UpdateGraph(x.BaseUri, x.Triples, new Triple[] { });
+                        else
+                            m.SaveGraph(x);
+                        
                     }
                 }
             }
@@ -495,7 +499,7 @@ namespace Semiodesk.Trinity.Store
             return graph;
         }
 
-        private Uri ReadTripleFormat(TextReader reader, Uri graphUri, RdfSerializationFormat format)
+        private Uri ReadTripleFormat(TextReader reader, Uri graphUri, RdfSerializationFormat format, bool update)
         {
             using (VDS.RDF.Storage.VirtuosoManager m = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
             {
@@ -504,7 +508,10 @@ namespace Semiodesk.Trinity.Store
                     IRdfReader parser = dotNetRDFStore.GetReader(format);
                     parser.Load(graph, reader);
                     graph.BaseUri = graphUri;
-                    m.SaveGraph(graph);
+                    if (update)
+                        m.UpdateGraph(graphUri, graph.Triples, new Triple[]{});
+                    else
+                        m.SaveGraph(graph);
                 }
             }
 

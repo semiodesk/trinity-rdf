@@ -347,7 +347,7 @@ namespace Semiodesk.Trinity
             {
                 if (ThreadDictionary.ContainsKey(Thread.CurrentThread))
                 {
-                    Uri t = ThreadDictionary[Thread.CurrentThread].Read(graphUri, location, format);
+                    Uri t = ThreadDictionary[Thread.CurrentThread].Read(graphUri, location, format, false);
                 }
             }
             return null;

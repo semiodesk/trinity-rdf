@@ -71,7 +71,7 @@ namespace Semiodesk.Trinity.OntologyDeployment
 
                 RdfSerializationFormat format = GetSerializationFormatFromUri(path);
 
-                _store.Read(onto.Uri, path, format);
+                _store.Read(onto.Uri, path, format, false);
             }
         }
 

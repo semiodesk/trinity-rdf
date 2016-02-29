@@ -129,7 +129,7 @@ namespace Semiodesk.Trinity
         /// <param name="url">Location</param>
         /// <param name="format">Allowed formats</param>
         /// <returns></returns>
-        Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format);
+        Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update);
 
         /// <summary>
         /// Loads a serialized graph from the given stream into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
@@ -138,7 +138,7 @@ namespace Semiodesk.Trinity
         /// <param name="graphUri">Uri of the graph in this store</param>
         /// <param name="format">Allowed formats</param>
         /// <returns></returns>
-        Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format);
+        Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update);
 
         /// <summary>
         /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.
