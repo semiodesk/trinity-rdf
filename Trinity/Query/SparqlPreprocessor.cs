@@ -180,7 +180,7 @@ namespace Semiodesk.Trinity
                 next = Peek();
             }
 
-            if(next == '@')
+            if(next == '@' && LastTokenType != Token.LITERAL)
             {
                 StartNewToken();
 
@@ -343,16 +343,18 @@ namespace Semiodesk.Trinity
             // The current iteration depth.
             int level = 0;
 
-            foreach (IToken token in Tokens)
+            for (int i = 0; i < Tokens.Count; i++)
             {
-                if(token.TokenType == Token.LEFTCURLYBRACKET)
+                IToken token = Tokens[i];
+
+                if (token.TokenType == Token.LEFTCURLYBRACKET)
                 {
                     level += 1;
 
                     // Do not output the brackets at the output level.
                     if (level == outputLevel) continue;
                 }
-                else if(token.TokenType == Token.RIGHTCURLYBRACKET)
+                else if (token.TokenType == Token.RIGHTCURLYBRACKET)
                 {
                     level -= 1;
                 }
@@ -379,14 +381,27 @@ namespace Semiodesk.Trinity
                         }
                     case Token.LITERAL:
                         {
+                            IToken next = i < Tokens.Count ? Tokens[i + 1] : null;
+
                             if (token.Value.Contains('\n') || token.Value.Contains("'"))
                             {
-                                outputBuilder.AppendFormat("'''{0}''' ", token.Value);
+                                outputBuilder.AppendFormat("'''{0}'''", token.Value);
                             }
                             else
                             {
-                                outputBuilder.AppendFormat("'{0}' ", token.Value);
+                                outputBuilder.AppendFormat("'{0}'", token.Value);
                             }
+
+                            if(next.TokenType != Token.LANGSPEC)
+                            {
+                                outputBuilder.Append(' ');
+                            }
+
+                            break;
+                        }
+                    case Token.LANGSPEC:
+                        {
+                            outputBuilder.AppendFormat("@{0} ", token.Value);
 
                             break;
                         }
@@ -414,7 +429,7 @@ namespace Semiodesk.Trinity
                 }
             }
 
-            return outputBuilder.ToString();
+            return outputBuilder.ToString().Trim();
         }
 
         public override string ToString()
