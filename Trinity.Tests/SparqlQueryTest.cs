@@ -384,6 +384,18 @@ namespace Semiodesk.Trinity.Test
             string queryString = query.ToString();
 
             Assert.IsFalse(string.IsNullOrEmpty(queryString));
+
+            query = new SparqlQuery(@"SELECT ?s WHERE { ?s ?p 'Hallo'@de . }");
+
+            queryString = query.ToString();
+
+            Assert.AreEqual(queryString, @"SELECT ?s WHERE { ?s ?p 'Hallo'@de . }");
+
+            query = new SparqlQuery(@"SELECT ?s WHERE { ?s ?p 'Hallo'@de-de . }");
+
+            queryString = query.ToString();
+
+            Assert.AreEqual(queryString, @"SELECT ?s WHERE { ?s ?p 'Hallo'@de-de . }");
         }
 
         [Test]
