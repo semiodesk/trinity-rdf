@@ -1576,6 +1576,7 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(englishText, p.uniqueStringTest);
 
             p.Language = null;
+            Assert.AreEqual(null, p.uniqueStringTest);
         }
 
         [Test]

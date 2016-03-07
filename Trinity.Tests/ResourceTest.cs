@@ -448,10 +448,10 @@ namespace Semiodesk.Trinity.Test
             var ci = CultureInfo.CreateSpecificCulture("EN");
             r.AddProperty(myProperty, val, ci);
             object res = r.ListValues(myProperty).First();
-            Assert.AreEqual(typeof(Tuple<string, CultureInfo>), res.GetType());
-            Tuple<string, CultureInfo> v = res as Tuple<string, CultureInfo>;
+            Assert.AreEqual(typeof(Tuple<string, string>), res.GetType());
+            Tuple<string, string> v = res as Tuple<string, string>;
             Assert.AreEqual(val, v.Item1);
-            Assert.AreEqual(ci, v.Item2);
+            Assert.AreEqual(ci.Name.ToLower(), v.Item2.ToLower());
             r.RemoveProperty(myProperty, val, ci);
         }
 

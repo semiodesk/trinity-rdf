@@ -1095,8 +1095,12 @@ namespace Semiodesk.Trinity
         {
             foreach (var mapping in _mappings.Where( x => x.Value.DataType == typeof(string) || x.Value.GenericType == typeof(string)))
             {
-                TransferMappingToProperties(mapping.Value);
-                mapping.Value.Clear();
+                if (!mapping.Value.IsUnsetValue)
+                {
+                    TransferMappingToProperties(mapping.Value);
+                    mapping.Value.Clear();
+                }
+                mapping.Value.Language = Language;
                 foreach(var value in ListValues(mapping.Value.Property) )
                 {
                     if(string.IsNullOrEmpty(Language))
@@ -1104,18 +1108,19 @@ namespace Semiodesk.Trinity
                         if (value is string)
                         {
                             mapping.Value.SetOrAddMappedValue(value);
-                            //this._properties[]
+                            _properties[mapping.Value.Property].Remove(value);
                         }
 
-                    }
-
-                    if (Language.Length > 0)
+                    }else
                     {
                         if (value is Tuple<string, string> )
                         {
                             var localizedString = value as Tuple<string, string>;
-                            if( string.Compare(localizedString.Item2, Language, true) == 0 )
+                            if (string.Compare(localizedString.Item2, Language, true) == 0)
+                            {
                                 mapping.Value.SetOrAddMappedValue(localizedString.Item1);
+                                _properties[mapping.Value.Property].Remove(localizedString);
+                            }
                         }
                     }
                     
@@ -1125,7 +1130,21 @@ namespace Semiodesk.Trinity
 
         private void TransferMappingToProperties(IPropertyMapping mapping)
         {
+            if (!_properties.ContainsKey(mapping.Property))
+            {
+                _properties.Add(mapping.Property, new HashSet<object>());
+            }
 
+            if( mapping.IsList )
+            {
+                foreach (var x in mapping.GetValueObject() as IList)
+                    _properties[mapping.Property].Add(x);
+            }
+            else
+            {
+                _properties[mapping.Property].Add(mapping.GetValueObject());
+            }
+            
         }
 
         /// <summary>

@@ -19,6 +19,8 @@ namespace Semiodesk.Trinity
 
         bool IsUnsetValue { get; }
 
+        string Language { get; set; }
+
         bool IsTypeCompatible(Type type);
 
         object GetValueObject();
