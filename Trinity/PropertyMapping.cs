@@ -78,6 +78,8 @@ namespace Semiodesk.Trinity
             }
         }
 
+        public string Language { get; set; }
+
         private Property _property;
 
         Property IPropertyMapping.Property
@@ -266,7 +268,30 @@ namespace Semiodesk.Trinity
 
         object IPropertyMapping.GetValueObject()
         {
-            return _value;
+            if (string.IsNullOrEmpty(Language) && _dataType != typeof(string) && _genericType != typeof(string))
+                return _value;
+            else
+            {
+                if (_isList)
+                {
+                    return ToLanguageList();
+                }
+                else
+                {
+                    return new Tuple<string, string>(_value as string, Language);
+                }
+            }
+        }
+
+        IList ToLanguageList()
+        {
+            List<Tuple<string, string>> res = new List<Tuple<string, string>>();
+            foreach (string x in _value as IList<string>)
+            {
+                res.Add(new Tuple<string, string>(x, Language));
+            }
+
+            return res;
         }
 
         bool IPropertyMapping.IsTypeCompatible(Type type)

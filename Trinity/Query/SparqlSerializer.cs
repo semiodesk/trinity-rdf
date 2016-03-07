@@ -135,6 +135,12 @@ namespace Semiodesk.Trinity
                     Tuple<string, CultureInfo> array = obj as Tuple<string, CultureInfo>;
                     return SerializeTranslatedString(array.Item1, array.Item2.Name);
                 }
+                else if (obj is Tuple<string, string>)
+                {
+                    // string + language
+                    Tuple<string, string> array = obj as Tuple<string, string>;
+                    return SerializeTranslatedString(array.Item1, array.Item2);
+                }
                 else if (obj is Uri || typeof(Uri).IsSubclassOf(obj.GetType()))
                 {
                     return SerializeUri(obj as Uri);
