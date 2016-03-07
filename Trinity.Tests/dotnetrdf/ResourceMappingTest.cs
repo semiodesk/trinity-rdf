@@ -405,6 +405,25 @@ namespace dotNetRDFStore.Test
         }
 
         [Test]
+        public void AddRemoveLocalizedStringTest()
+        {
+            IModel m = GetModel();
+            m.Clear();
+            Uri t1Uri = new Uri("semio:test:testInstance1");
+            MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
+
+            var ci = CultureInfo.CreateSpecificCulture("DE");
+
+            t1.AddProperty(TestOntology.uniqueStringTest, "Hallo Welt", ci);
+            t1.Commit();
+
+            var tt = m.GetResource<MappingTestClass>(t1Uri);
+
+
+        }
+
+
+        [Test]
         public void AddRemoveStringListTest()
         {
             IModel m = GetModel();

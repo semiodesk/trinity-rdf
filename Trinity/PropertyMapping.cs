@@ -172,6 +172,19 @@ namespace Semiodesk.Trinity
 
         #region Methods
 
+        void IPropertyMapping.Clear()
+        {
+            if (_isList)
+            {
+                (_value as IList).Clear();
+            }
+            else
+            {
+                _value = default(T);
+            }
+            _isUnsetValue = true;
+        }
+
         internal void SetValue(T value)
         {
             _isUnsetValue = false;

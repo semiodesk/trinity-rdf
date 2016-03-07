@@ -1555,5 +1555,57 @@ namespace Semiodesk.Trinity.Test
             x = p.GetValue(new Property(new Uri("http://www.example.com/property")));
             Assert.AreEqual(p.RandomProperty, x);
         }
+
+        [Test]
+        public void TestLocalizedStringPropertyMapping()
+        {
+            IModel m = GetModel();
+            m.Clear();
+            var resUri = new Uri("http://test.example.com");
+            StringMappingTestClass p = m.CreateResource<StringMappingTestClass>(resUri);
+
+            string germanText = "Hallo Welt";
+            string englishText = "Hello World";
+            p.AddProperty(TestOntology.uniqueStringTest, germanText, "DE");
+            p.AddProperty(TestOntology.uniqueStringTest, englishText, "EN");
+            Assert.AreEqual(null, p.uniqueStringTest);
+            p.Language = "DE";
+            Assert.AreEqual(germanText, p.uniqueStringTest);
+            var x = p.ListValues(TestOntology.uniqueStringTest);
+            p.Language = "EN";
+            Assert.AreEqual(englishText, p.uniqueStringTest);
+
+            p.Language = null;
+        }
+
+        [Test]
+        public void TestSetLocalizedStringPropertyMapping()
+        {
+            IModel m = GetModel();
+            m.Clear();
+            var resUri = new Uri("http://test.example.com");
+            StringMappingTestClass p = m.CreateResource<StringMappingTestClass>(resUri);
+
+            string germanText = "Hallo Welt";
+            //string englishText = "Hello World";
+            p.Language = "DE";
+            p.uniqueStringTest = germanText;
+            var x = p.ListValues(TestOntology.uniqueStringTest);
+
+
+            //p.Language = "EN";
+            //Assert.AreEqual(englishText, p.uniqueStringTest);
+
+            //p.uniqueStringTest = "Test string";
+
+
+            //p.Commit();
+
+            //StringMappingTestClass p1 = m.GetResource<StringMappingTestClass>(resUri);
+            //var x = p.ListValues(TestOntology.uniqueStringTest);
+            //Assert.AreEqual(p.uniqueStringTest, x);
+
+
+        }
     }
 }
