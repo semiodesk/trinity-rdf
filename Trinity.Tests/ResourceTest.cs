@@ -438,6 +438,23 @@ namespace Semiodesk.Trinity.Test
             r.RemoveProperty(myProperty, val);
         }
 
+
+        [Test]
+        public void TestLocalizedString()
+        {
+            Property myProperty = new Property(new Uri("ex:myProperty"));
+            Resource r = new Resource(new Uri("ex:myResource"));
+            string val = "Hello World!";
+            var ci = CultureInfo.CreateSpecificCulture("EN");
+            r.AddProperty(myProperty, val, ci);
+            object res = r.ListValues(myProperty).First();
+            Assert.AreEqual(typeof(Tuple<string, CultureInfo>), res.GetType());
+            Tuple<string, CultureInfo> v = res as Tuple<string, CultureInfo>;
+            Assert.AreEqual(val, v.Item1);
+            Assert.AreEqual(ci, v.Item2);
+            r.RemoveProperty(myProperty, val, ci);
+        }
+
         [Test]
         public void TestDateTime()
         {

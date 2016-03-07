@@ -28,5 +28,7 @@ namespace Semiodesk.Trinity
         void RemoveOrResetValue(object value);
 
         void CloneFrom(IPropertyMapping other);
+
+        void Clear();
     }
 }
