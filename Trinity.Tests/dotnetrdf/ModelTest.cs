@@ -71,7 +71,7 @@ namespace dotNetRDFStore.Test
 
             IResource result = Model.GetResource(resourceUri);
             Assert.AreEqual(resourceUri, result.Uri);
-            List<Property> properties = result.ListProperties();
+            List<Property> properties = result.ListProperties().ToList();
             Assert.AreEqual(1, properties.Count);
             Assert.AreEqual(property, properties[0]);
             Assert.AreEqual(literal, result.GetValue(property));
@@ -97,7 +97,7 @@ namespace dotNetRDFStore.Test
             result = Model.GetResource(resourceUri);
 
             Assert.AreEqual(resourceUri, result.Uri);
-            List<Property> properties = result.ListProperties();
+            List<Property> properties = result.ListProperties().ToList();
             Assert.AreEqual(1, properties.Count);
             Assert.AreEqual(property, properties[0]);
             Assert.AreEqual(literal, result.GetValue(property));
@@ -134,7 +134,7 @@ namespace dotNetRDFStore.Test
 
             IResource result = Model.GetResource(resourceUri);
             Assert.AreEqual(resourceUri, result.Uri);
-            List<Property> properties = result.ListProperties();
+            List<Property> properties = result.ListProperties().ToList();
             Assert.AreEqual(1, properties.Count);
             Assert.AreEqual(property, properties[0]);
             Assert.AreEqual(literal, result.GetValue(property));
@@ -158,7 +158,7 @@ namespace dotNetRDFStore.Test
             Assert.AreEqual(1, result.Count());
             var resultResource = result.First();
             Assert.AreEqual(resourceUri, resultResource.Uri);
-            List<Property> properties = resultResource.ListProperties();
+            List<Property> properties = resultResource.ListProperties().ToList();
             Assert.AreEqual(1, properties.Count);
             Assert.AreEqual(property, properties[0]);
             Assert.AreEqual(literal, resultResource.GetValue(property));

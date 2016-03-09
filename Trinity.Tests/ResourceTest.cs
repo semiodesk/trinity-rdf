@@ -445,14 +445,15 @@ namespace Semiodesk.Trinity.Test
             Property myProperty = new Property(new Uri("ex:myProperty"));
             Resource r = new Resource(new Uri("ex:myResource"));
             string val = "Hello World!";
-            var ci = CultureInfo.CreateSpecificCulture("EN");
+            var ci = "en";
             r.AddProperty(myProperty, val, ci);
             object res = r.ListValues(myProperty).First();
             Assert.AreEqual(typeof(Tuple<string, string>), res.GetType());
             Tuple<string, string> v = res as Tuple<string, string>;
             Assert.AreEqual(val, v.Item1);
-            Assert.AreEqual(ci.Name.ToLower(), v.Item2.ToLower());
+            Assert.AreEqual(ci.ToLower(), v.Item2.ToLower());
             r.RemoveProperty(myProperty, val, ci);
+           
         }
 
         [Test]
@@ -524,7 +525,7 @@ namespace Semiodesk.Trinity.Test
             target.AddProperty(property, v4);
             list.Add(v4);
 
-            Tuple<string, CultureInfo> v5 = new Tuple<string, CultureInfo>("Hallo Welt!", CultureInfo.GetCultureInfo("DE"));
+            Tuple<string, string> v5 = new Tuple<string, string>("Hallo Welt!", "de");
             target.AddProperty(property, v5.Item1, v5.Item2);
             list.Add(v5);
 
@@ -548,7 +549,7 @@ namespace Semiodesk.Trinity.Test
             {
                 if (obj.GetType() == typeof(string[]))
                 {
-                    Tuple<string, CultureInfo> tmp = (Tuple<string, CultureInfo>)obj;
+                    Tuple<string, string> tmp = (Tuple<string, string>)obj;
                     Assert.AreEqual(v5, tmp);
 
                 }
@@ -763,12 +764,12 @@ namespace Semiodesk.Trinity.Test
             target.AddProperty(property, value, language);
 
             Assert.IsTrue(target.HasProperty(property));
-            Assert.AreEqual(typeof(Tuple<string, CultureInfo>), target.ListValues(property).First().GetType());
-            Tuple<string, CultureInfo> res = (Tuple<string, CultureInfo>)target.ListValues(property).First();
+            Assert.AreEqual(typeof(Tuple<string, string>), target.ListValues(property).First().GetType());
+            Tuple<string, string> res = (Tuple<string, string>)target.ListValues(property).First();
             Assert.AreEqual(value, res.Item1);
-            Assert.AreEqual(language, res.Item2);
+            Assert.AreEqual(language.Name.ToLower(), res.Item2.ToLower());
             Assert.AreEqual(value.GetType(), res.Item1.GetType());
-            Assert.AreEqual(language.GetType(), res.Item2.GetType());
+            Assert.AreEqual(typeof(string), res.Item2.GetType());
         }
 
         /// <summary>

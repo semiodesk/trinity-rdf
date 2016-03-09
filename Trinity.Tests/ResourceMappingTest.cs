@@ -384,6 +384,15 @@ namespace Semiodesk.Trinity.Test
             set { SetValue(uniqueStringTestMapping, value); }
         }
 
+        public PropertyMapping<List<string>> stringListTestMapping =
+    new PropertyMapping<List<string>>("stringListTest", TestOntology.stringTest);
+
+        public List<string> stringListTest
+        {
+            get { return GetValue(stringListTestMapping); }
+            set { SetValue(stringListTestMapping, value); }
+        }
+
         public PropertyMapping<ObservableCollection<int>> intTestMapping =
             new PropertyMapping<ObservableCollection<int>>("intTest", "semio:test:intTest", new ObservableCollection<int>());
 
@@ -491,7 +500,7 @@ namespace Semiodesk.Trinity.Test
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties();
             Assert.False(l.Contains(TestOntology.uniqueIntTest));
 
             // Test if ListValues works
@@ -561,7 +570,7 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(1, t_actual.intTest.Count());
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties().ToList();
             Assert.True(l.Contains(TestOntology.intTest));
 
             // Test if first added property is still present
@@ -572,7 +581,7 @@ namespace Semiodesk.Trinity.Test
             t1.Commit();
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties();
             Assert.False(l.Contains(TestOntology.intTest));
 
             // Test if ListValues works
@@ -718,7 +727,7 @@ namespace Semiodesk.Trinity.Test
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties();
             Assert.False(l.Contains(TestOntology.uniqueStringTest));
 
             x = t_actual.HasProperty(TestOntology.uniqueStringTest);
@@ -779,7 +788,7 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(0, t_actual.boolTest.Count());
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties();
             Assert.False(l.Contains(TestOntology.stringTest));
 
             x = t_actual.HasProperty(TestOntology.stringTest);
@@ -831,7 +840,7 @@ namespace Semiodesk.Trinity.Test
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties().ToList();
             Assert.False(l.Contains(TestOntology.uniqueBoolTest));
 
             // Test if ListValues works
@@ -880,7 +889,7 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(0, t_actual.boolTest.Count());
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties().ToList();
 
             Assert.False(l.Contains(TestOntology.boolTest));
 
@@ -912,7 +921,7 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(floatValue, storedResource.uniqueFloatTest);
 
             // Test if property is present
-            List<Property> properties = storedResource.ListProperties();
+            List<Property> properties = storedResource.ListProperties().ToList();
 
             Assert.True(properties.Contains(TestOntology.uniqueFloatTest));
             Assert.AreEqual(2, properties.Count());
@@ -928,7 +937,7 @@ namespace Semiodesk.Trinity.Test
             storedResource = m.GetResource<MappingTestClass>(uri);
 
             // Test if ListProperties works
-            properties = storedResource.ListProperties();
+            properties = storedResource.ListProperties().ToList();
 
             Assert.False(properties.Contains(TestOntology.uniqueFloatTest));
 
@@ -960,7 +969,7 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(doubleValue, storedResource.uniqueDoubleTest);
 
             // Test if property is present
-            List<Property> properties = storedResource.ListProperties();
+            List<Property> properties = storedResource.ListProperties().ToList();
 
             Assert.True(properties.Contains(TestOntology.uniqueDoubleTest));
             Assert.AreEqual(2, properties.Count());
@@ -976,7 +985,7 @@ namespace Semiodesk.Trinity.Test
             storedResource = m.GetResource<MappingTestClass>(uri);
 
             // Test if ListProperties works
-            properties = storedResource.ListProperties();
+            properties = storedResource.ListProperties().ToList();
 
             Assert.False(properties.Contains(TestOntology.uniqueDoubleTest));
 
@@ -1008,7 +1017,7 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(decimalValue, storedResource.uniqueDecimalTest);
 
             // Test if property is present
-            List<Property> properties = storedResource.ListProperties();
+            List<Property> properties = storedResource.ListProperties().ToList();
 
             Assert.True(properties.Contains(TestOntology.uniqueDecimalTest));
             Assert.AreEqual(2, properties.Count());
@@ -1024,7 +1033,7 @@ namespace Semiodesk.Trinity.Test
             storedResource = m.GetResource<MappingTestClass>(uri);
 
             // Test if ListProperties works
-            properties = storedResource.ListProperties();
+            properties = storedResource.ListProperties().ToList();
 
             Assert.False(properties.Contains(TestOntology.uniqueDecimalTest));
 
@@ -1075,7 +1084,7 @@ namespace Semiodesk.Trinity.Test
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties().ToList();
             Assert.False(l.Contains(TestOntology.uniqueBoolTest));
 
             // Test if ListValues works
@@ -1151,7 +1160,7 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(0, t_actual.dateTimeTest.Count());
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties().ToList();
             Assert.False(l.Contains(TestOntology.datetimeTest));
 
             // Test if ListValues works
@@ -1176,7 +1185,7 @@ namespace Semiodesk.Trinity.Test
 
             Assert.AreEqual(t2, t_actual.uniqueResourceTest);
 
-            var l = t_actual.ListProperties();
+            var l = t_actual.ListProperties().ToList();
             Assert.Contains(TestOntology.uniqueResourceTest, l);
             Assert.AreEqual(2, l.Count());
 
@@ -1199,7 +1208,7 @@ namespace Semiodesk.Trinity.Test
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
 
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties().ToList();
             Assert.False(l.Contains(TestOntology.uniqueResourceTest));
 
             x = t_actual.HasProperty(TestOntology.uniqueResourceTest);
@@ -1494,10 +1503,10 @@ namespace Semiodesk.Trinity.Test
             t1.stringTest.Add("Blub");
             t1.Commit();
 
-            var x = t1.ListValues(TestOntology.stringTest);
+            var x = t1.ListValues(TestOntology.stringTest).ToList();
 
             MappingTestClass actual = m.GetResource<MappingTestClass>(t1.Uri);
-            var x2 = actual.ListValues(TestOntology.stringTest);
+            var x2 = actual.ListValues(TestOntology.stringTest).ToList().ToList();
 
             Assert.AreEqual(x.Count, x2.Count);
             Assert.IsTrue(x2.Contains(x[0]));
@@ -1517,13 +1526,13 @@ namespace Semiodesk.Trinity.Test
 
             t1.stringTest.Add("Hi");
             t1.stringTest.Add("Blub");
-            var x = t1.ListValues(TestOntology.stringTest);
+            var x = t1.ListValues(TestOntology.stringTest).ToList();
             Assert.AreEqual(2, x.Count);
             t1.Commit();
 
             SingleMappingTestClass t2 = m.GetResource<SingleMappingTestClass>(t1Uri);
 
-            var x2 = t2.ListValues(TestOntology.stringTest);
+            var x2 = t2.ListValues(TestOntology.stringTest).ToList();
 
             Assert.AreEqual(x.Count, x2.Count);
             Assert.IsTrue(x2.Contains(x[0]));
@@ -1577,10 +1586,24 @@ namespace Semiodesk.Trinity.Test
 
             p.Language = null;
             Assert.AreEqual(null, p.uniqueStringTest);
+
         }
 
         [Test]
-        public void TestSetLocalizedStringPropertyMapping()
+        public void TestLocalizedStringInvariancy()
+        {
+            IModel m = GetModel();
+            m.Clear();
+            Uri peterUri = new Uri("http://test.example.com/peter");
+            PersonContact contact = m.CreateResource<PersonContact>(peterUri);
+            contact.NameGiven = "Peter";
+            contact.Language = "DE";
+            Assert.AreEqual("Peter", contact.NameGiven);
+        }
+
+
+        [Test]
+        public void TestLocalizedStringListPropertyMapping()
         {
             IModel m = GetModel();
             m.Clear();
@@ -1588,23 +1611,69 @@ namespace Semiodesk.Trinity.Test
             StringMappingTestClass p = m.CreateResource<StringMappingTestClass>(resUri);
 
             string germanText = "Hallo Welt";
-            //string englishText = "Hello World";
+            string englishText = "Hello World";
+            p.AddProperty(TestOntology.stringTest, germanText+1, "DE");
+            p.AddProperty(TestOntology.stringTest, germanText+2, "de");
+            p.AddProperty(TestOntology.stringTest, germanText+3, "DE");
+            p.AddProperty(TestOntology.stringTest, englishText+1, "EN");
+            p.AddProperty(TestOntology.stringTest, englishText+2, "EN");
+            p.AddProperty(TestOntology.stringTest, englishText+3, "EN");
+            p.AddProperty(TestOntology.stringTest, englishText+4, "EN");
+            Assert.AreEqual(0, p.stringListTest.Count);
+            var x = p.ListValues(TestOntology.stringTest);
+            Assert.AreEqual(7, x.Count());
+            p.AddProperty(TestOntology.stringTest, "Hello interanational World"+1);
+            p.AddProperty(TestOntology.stringTest, "Hello interanational World"+2);
+            Assert.AreEqual(2, p.stringListTest.Count);
+            Assert.AreEqual(9, p.ListValues(TestOntology.stringTest).Count());
             p.Language = "DE";
-            p.uniqueStringTest = germanText;
-            var x = p.ListValues(TestOntology.uniqueStringTest);
+            Assert.AreEqual(3, p.stringListTest.Count);
+            Assert.AreEqual(9, p.ListValues(TestOntology.stringTest).Count());
+            p.Language = "EN";
+            Assert.AreEqual(4, p.stringListTest.Count);
+            Assert.AreEqual(9, p.ListValues(TestOntology.stringTest).Count());
+            p.RemoveProperty(TestOntology.stringTest, germanText + 1, "DE");
+            Assert.AreEqual(8, p.ListValues(TestOntology.stringTest).Count());
+
+            p.RemoveProperty(TestOntology.stringTest, englishText + 1, "en");
+            Assert.AreEqual(8, p.ListValues(TestOntology.stringTest).Count());
+
+            p.RemoveProperty(TestOntology.stringTest, "Hello interanational World" + 1);
+        }
+
+        [Test]
+        public void TestLocalizedStringListPropertyMapping2()
+        {
+            IModel m = GetModel();
+            m.Clear();
+            var resUri = new Uri("http://test.example.com");
+            StringMappingTestClass p = m.CreateResource<StringMappingTestClass>(resUri);
+
+            p.stringListTest.Add("Hello interanational World" + 1);
+            p.stringListTest.Add("Hello interanational World" + 2);
+            string germanText = "Hallo Welt";
+            string englishText = "Hello World";
+            p.Language = "DE";
+            p.stringListTest.Add(germanText + 1);
+            p.stringListTest.Add(germanText + 2);
+            p.stringListTest.Add(germanText + 3);
+            Assert.AreEqual(3, p.stringListTest.Count);
+            Assert.AreEqual(5, p.ListValues(TestOntology.stringTest).Count());
+
+            p.Language = "EN";
+            p.stringListTest.Add(englishText + 1);
+            p.stringListTest.Add(englishText + 2);
+            p.stringListTest.Add(englishText + 3);
+            p.stringListTest.Add(englishText + 4);
+            Assert.AreEqual(4, p.stringListTest.Count);
+            Assert.AreEqual(9, p.ListValues(TestOntology.stringTest).Count());
+
+            p.Language = null;
+            Assert.AreEqual(2, p.stringListTest.Count);
+            Assert.AreEqual(9, p.ListValues(TestOntology.stringTest).Count());
 
 
-            //p.Language = "EN";
-            //Assert.AreEqual(englishText, p.uniqueStringTest);
 
-            //p.uniqueStringTest = "Test string";
-
-
-            //p.Commit();
-
-            //StringMappingTestClass p1 = m.GetResource<StringMappingTestClass>(resUri);
-            //var x = p.ListValues(TestOntology.uniqueStringTest);
-            //Assert.AreEqual(p.uniqueStringTest, x);
 
 
         }
