@@ -333,7 +333,7 @@ namespace Semiodesk.Trinity
         /// </summary>
 
         /// <returns></returns>
-        List<Property> ListProperties();
+        IEnumerable<Property> ListProperties();
 
         /// <summary>
         /// Enumerates all properties associated with this resource in form 
@@ -348,7 +348,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="property"></param>
         /// <returns></returns>
-        List<object> ListValues(Property property);
+        IEnumerable<object> ListValues(Property property);
 
         /// <summary>
         /// Gets the value of a uniquely asserted property.
