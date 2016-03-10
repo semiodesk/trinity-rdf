@@ -758,7 +758,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public virtual bool HasProperty(Property property, string value, CultureInfo language)
         {
-            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.Name);
+            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.Name.ToLower());
 
             return HasProperty(property, aggregation);
         }
@@ -858,7 +858,8 @@ namespace Semiodesk.Trinity
             if (property.Uri.OriginalString == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
             {
 #if NET_3_5
-                values.AddRange(GetTypes().Cast<object>());
+                foreach (object type in GetTypes().Cast<object>())
+                    yield return type;
 #else
                 foreach (object type in GetTypes())
                     yield return type;

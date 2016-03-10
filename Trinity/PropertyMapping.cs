@@ -31,6 +31,9 @@ using System.Linq;
 using System.Text;
 using System.Collections;
 using System.Collections.Specialized;
+#if NET_3_5
+using Semiodesk.Trinity.Utility;
+#endif
 
 namespace Semiodesk.Trinity
 {
