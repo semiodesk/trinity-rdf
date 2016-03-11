@@ -122,7 +122,7 @@ namespace Semiodesk.Trinity.Test
             t_actual = m.GetResource<CilgMappingTestClass>(t1Uri);
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties();
             Assert.False(l.Contains(TestOntology.uniqueIntTest));
 
             // Test if ListValues works
@@ -168,7 +168,7 @@ namespace Semiodesk.Trinity.Test
             t_actual = m.GetResource<CilgSubMappingTestClass>(t1Uri);
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties();
             Assert.False(l.Contains(TestOntology.uniqueIntTest));
 
             // Test if ListValues works
@@ -239,7 +239,7 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(1, t_actual.intTest.Count());
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties().ToList();
             Assert.True(l.Contains(TestOntology.intTest));
 
             // Test if first added property is still present
@@ -250,7 +250,7 @@ namespace Semiodesk.Trinity.Test
             t1.Commit();
             t_actual = m.GetResource<CilgMappingTestClass>(t1Uri);
 
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties();
             Assert.False(l.Contains(TestOntology.intTest));
 
             // Test if ListValues works

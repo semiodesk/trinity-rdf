@@ -80,10 +80,10 @@ namespace Semiodesk.Trinity.Test
             if (_model.IsEmpty)
             {
                 IResource q = null;
-
+                string uriTemplate = "http://example.com/counter/{0}";
                 for (int i = 1; i < 51; i++)
                 {
-                    IResource r = _model.CreateResource<Resource>();
+                    IResource r = _model.CreateResource<Resource>(new Uri(string.Format(uriTemplate, i)));
                     r.AddProperty(nco.fullname, (char)(i % 26));
                     r.AddProperty(nco.gender, (i % 2 == 1) ? nco.female : nco.male);
 
