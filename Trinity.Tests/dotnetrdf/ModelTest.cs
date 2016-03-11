@@ -71,7 +71,7 @@ namespace dotNetRDFStore.Test
 
             IResource result = Model.GetResource(resourceUri);
             Assert.AreEqual(resourceUri, result.Uri);
-            List<Property> properties = result.ListProperties();
+            List<Property> properties = result.ListProperties().ToList();
             Assert.AreEqual(1, properties.Count);
             Assert.AreEqual(property, properties[0]);
             Assert.AreEqual(literal, result.GetValue(property));
@@ -97,7 +97,7 @@ namespace dotNetRDFStore.Test
             result = Model.GetResource(resourceUri);
 
             Assert.AreEqual(resourceUri, result.Uri);
-            List<Property> properties = result.ListProperties();
+            List<Property> properties = result.ListProperties().ToList();
             Assert.AreEqual(1, properties.Count);
             Assert.AreEqual(property, properties[0]);
             Assert.AreEqual(literal, result.GetValue(property));
@@ -134,7 +134,7 @@ namespace dotNetRDFStore.Test
 
             IResource result = Model.GetResource(resourceUri);
             Assert.AreEqual(resourceUri, result.Uri);
-            List<Property> properties = result.ListProperties();
+            List<Property> properties = result.ListProperties().ToList();
             Assert.AreEqual(1, properties.Count);
             Assert.AreEqual(property, properties[0]);
             Assert.AreEqual(literal, result.GetValue(property));
@@ -158,7 +158,7 @@ namespace dotNetRDFStore.Test
             Assert.AreEqual(1, result.Count());
             var resultResource = result.First();
             Assert.AreEqual(resourceUri, resultResource.Uri);
-            List<Property> properties = resultResource.ListProperties();
+            List<Property> properties = resultResource.ListProperties().ToList();
             Assert.AreEqual(1, properties.Count);
             Assert.AreEqual(property, properties[0]);
             Assert.AreEqual(literal, resultResource.GetValue(property));
@@ -305,6 +305,29 @@ namespace dotNetRDFStore.Test
             r = Model.GetResource(new Uri("http://example.org/#green-goblin"));
             name = r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/name"))) as string;
             Assert.AreEqual("Green Gobo", name);
+        }
+
+        [Test]
+        public void ReadLocalizedFromStringTest()
+        {
+            string turtle = @"@base <http://example.org/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+
+<#spiderman> a foaf:Person ;
+    foaf:name ""Spiderman"", ""Человек-паук""@ru .";
+
+            using (Stream s = GenerateStreamFromString(turtle))
+            {
+                Assert.IsTrue(Model.Read(s, RdfSerializationFormat.Turtle, false));
+            }
+
+            IResource r = Model.GetResource(new Uri("http://example.org/#spiderman"));
+            string name = r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/name"))) as string;
+
+          
         }
 
         public Stream GenerateStreamFromString(string s)

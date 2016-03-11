@@ -41,6 +41,11 @@ namespace Semiodesk.Trinity
         /// </summary>
         public readonly Uri MappedUri;
 
+        /// <summary>
+        /// Flag determining if property is language invariant. Only valid for string or string collections.
+        /// </summary>
+        public bool LanguageInvariant;
+
         #endregion
 
         #region Constructors
@@ -49,18 +54,20 @@ namespace Semiodesk.Trinity
         /// Constructor
         /// </summary>
         /// <param name="uri"></param>
-        public RdfPropertyAttribute(Uri uri)
+        public RdfPropertyAttribute(Uri uri, bool languageInvariant = false)
         {
             MappedUri = uri;
+            LanguageInvariant = languageInvariant;
         }
 
         /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="uriString"></param>
-        public RdfPropertyAttribute(string uriString)
+        public RdfPropertyAttribute(string uriString, bool languageInvariant = false)
         {
             MappedUri = new Uri(uriString);
+            LanguageInvariant = languageInvariant;
         }
 
         /// <summary>
@@ -68,9 +75,10 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="baseUri"></param>
         /// <param name="relativeUri"></param>
-        public RdfPropertyAttribute(Uri baseUri, string relativeUri)
+        public RdfPropertyAttribute(Uri baseUri, string relativeUri, bool languageInvariant = false)
         {
             MappedUri = new Uri(baseUri, relativeUri);
+            LanguageInvariant = languageInvariant;
         }
 
         /// <summary>
@@ -78,18 +86,20 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="baseUri"></param>
         /// <param name="relativeUri"></param>
-        public RdfPropertyAttribute(Uri baseUri, Uri relativeUri)
+        public RdfPropertyAttribute(Uri baseUri, Uri relativeUri, bool languageInvariant = false)
         {
             MappedUri = new Uri(baseUri, relativeUri);
+            LanguageInvariant = languageInvariant;
         }
 
         /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="resource"></param>
-        public RdfPropertyAttribute(IResource resource)
+        public RdfPropertyAttribute(IResource resource, bool languageInvariant = false)
         {
             MappedUri = resource.Uri;
+            LanguageInvariant = languageInvariant;
         }
 
         #endregion

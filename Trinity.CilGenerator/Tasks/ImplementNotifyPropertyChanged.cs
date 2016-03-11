@@ -93,7 +93,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
             if (backingField == null)
             {
-                Log.LogError("{0}.{1}: Unabled to find property backing field. May be the file has already been instrumented?", property.DeclaringType.FullName, property.Name);
+                Log.LogError("{0}.{1}: Unabled to find property backing field. Maybe the file has already been instrumented?", property.DeclaringType.FullName, property.Name);
 
                 return false;
             }

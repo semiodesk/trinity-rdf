@@ -111,6 +111,7 @@
     <Compile Include="ResourceMappingTest.cs" />
     <Compile Include="ResourceQueryTest.cs" />
     <Compile Include="SparqlQueryItemsProviderTest.cs" />
+    <Compile Include="SparqlSerializerTest.cs" />
     <Compile Include="SparqlUpdateTest.cs" />
     <Compile Include="ModelTest.cs" />
     <Compile Include="Program.cs" />

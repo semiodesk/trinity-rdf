@@ -64,6 +64,7 @@ namespace Semiodesk.Trinity.Test
             if(_store.ContainsModel(modelUri))
             {
                 _model = _store.GetModel(modelUri);
+                _model.Clear();
             }
             else
             {
@@ -73,6 +74,7 @@ namespace Semiodesk.Trinity.Test
             if (_store.ContainsModel(modelUri2))
             {
                 _model2 = _store.GetModel(modelUri2);
+                _model2.Clear();
             }
             else
             {
@@ -380,7 +382,7 @@ namespace Semiodesk.Trinity.Test
             IResource actual = _model.GetResource(uriResource);
 
             Assert.AreEqual(uriResource, uriResource);
-            Assert.AreEqual(resource.ListValues(property).Count, actual.ListValues(property).Count);
+            Assert.AreEqual(resource.ListValues(property).Count(), actual.ListValues(property).Count());
 
 
             uriResource = new Uri("http://example.org/AddResourceTest2");
