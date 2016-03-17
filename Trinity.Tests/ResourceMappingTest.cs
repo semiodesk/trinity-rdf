@@ -202,6 +202,15 @@ namespace Semiodesk.Trinity.Test
             set { SetValue(uniqueDoubleTestMapping, value); }
         }
 
+        protected PropertyMapping<ObservableCollection<double>> doubleTestMapping =
+    new PropertyMapping<ObservableCollection<double>>("doubleTest", TestOntology.doubleTest);
+
+        public ObservableCollection<double> DoubleTest
+        {
+            get { return GetValue(doubleTestMapping); }
+            set { SetValue(doubleTestMapping, value); }
+        }
+
         protected PropertyMapping<decimal> uniqueDecimalTestMapping =
             new PropertyMapping<decimal>("uniqueDecimalTest", TestOntology.uniqueDecimalTest);
 
@@ -991,6 +1000,16 @@ namespace Semiodesk.Trinity.Test
 
             // Test if ListValues works
             Assert.AreEqual(0, storedResource.ListValues(TestOntology.uniqueDoubleTest).Count());
+
+            testResource.DoubleTest.Add(1);
+            testResource.DoubleTest.Add(3);
+            testResource.DoubleTest.Add(6);
+            testResource.DoubleTest.Add(17);
+            testResource.DoubleTest.Add(19.111);
+            testResource.Commit();
+
+            storedResource = m.GetResource<MappingTestClass>(uri);
+            Assert.AreEqual(5, testResource.DoubleTest.Count);
 
             m.Clear();
         }
