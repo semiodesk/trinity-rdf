@@ -25,6 +25,7 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -47,6 +48,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// True if the model is empty.
         /// </summary>
+        [JsonIgnore]
         bool IsEmpty { get; }
 
         #endregion

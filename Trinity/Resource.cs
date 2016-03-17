@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Linq;
 using System.Collections;
+using Newtonsoft.Json;
 #if NET_3_5
 using Semiodesk.Trinity.Utility;
 #endif
@@ -96,25 +97,29 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// New resource which have never been committed need to be treated differently.
         /// </summary>
+        [JsonIgnore]
         public bool IsNew { get; set; }
 
         /// <summary>
         /// Indicates if the resources has been disposed.
         /// </summary>
+        [JsonIgnore]
         protected bool IsDisposed;
 
         /// <summary>
         /// True if the properties of the resources has been committed to the model.
         /// </summary>
-        [Browsable(false)]
+        [Browsable(false), JsonIgnore]
         public bool IsSynchronized { get; set; }
 
         /// <summary>
         /// Indicates this resource is read-only.
         /// </summary>
+        [JsonIgnore]
         public bool IsReadOnly { get; internal set; }
 
         private string _language;
+        [JsonIgnore]
         public string Language
         {
             get

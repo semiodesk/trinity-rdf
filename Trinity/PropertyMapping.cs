@@ -274,18 +274,18 @@ namespace Semiodesk.Trinity
         {
             if (_isList)
             {
-                if (_value != null && value.GetType().IsAssignableFrom(_genericType))
+                if (_value != null && ((IPropertyMapping)this).IsTypeCompatible(value.GetType()))
                 {
-                    (_value as IList).Add(value);
+                    (_value as IList).Add(Convert.ChangeType(value, this._genericType));
                     _isUnsetValue = false;
                     return;
                 }
             }
             else
             {
-                if (typeof(T).IsAssignableFrom(value.GetType()))
-                {
-                    _value = (T)value;
+                if (((IPropertyMapping)this).IsTypeCompatible(value.GetType()))
+                {                    
+                    _value = (T)Convert.ChangeType(value, typeof(T));
                     _isUnsetValue = false;
                     return;
                 }
@@ -380,14 +380,62 @@ namespace Semiodesk.Trinity
         /// <returns>True if the type is compatible</returns>
         bool IPropertyMapping.IsTypeCompatible(Type type)
         {
+            Type mappingType = _dataType;
             if (_isList)
+                mappingType = _genericType;
+
+            if( IsNumericType(type) )
             {
-                return (_genericType.IsAssignableFrom(type) || typeof(Resource).IsAssignableFrom(_genericType) && typeof(Resource).IsAssignableFrom(type));
-            }
-            else
+                return IsPrecisionCompatible(type, mappingType);
+            }else
             {
-                return (_dataType.IsAssignableFrom(type) || typeof(Resource).IsAssignableFrom(_dataType) && typeof(Resource).IsAssignableFrom(type));
+                return (mappingType.IsAssignableFrom(type) || typeof(Resource).IsAssignableFrom(mappingType) && typeof(Resource).IsAssignableFrom(type));
             }
+
+        }
+
+        public static bool IsNumericType(Type type)
+        {
+            switch (Type.GetTypeCode(type))
+            {
+                case TypeCode.Byte:
+                case TypeCode.SByte:
+                case TypeCode.UInt16:
+                case TypeCode.UInt32:
+                case TypeCode.UInt64:
+                case TypeCode.Int16:
+                case TypeCode.Int32:
+                case TypeCode.Int64:
+                case TypeCode.Decimal:
+                case TypeCode.Double:
+                case TypeCode.Single:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public bool IsPrecisionCompatible(Type source, Type target)
+        {
+            if (target == typeof(Double))
+                return true;
+            
+            if (target == typeof(Single))
+            {
+                if (source == typeof(Double))
+                    return false;
+                else
+                    return true;
+            }
+
+            if (target == typeof(Decimal))
+            {
+                if (source == typeof(Double) || source == typeof(Single))
+                    return false;
+                else
+                    return true;
+            }
+            return true;   
         }
 
         /// <summary>
