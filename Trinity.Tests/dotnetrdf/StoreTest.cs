@@ -148,7 +148,7 @@ namespace dotNetRDFStore.Test
             Assert.IsFalse(Store.ContainsModel(testModel));
 
             model2 = Store.GetModel(testModel);
-            Assert.IsNull(model2);
+            Assert.IsTrue(model2.IsEmpty);
         }
 
     }

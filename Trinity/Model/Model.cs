@@ -119,7 +119,7 @@ namespace Semiodesk.Trinity
             if (_store != null)
             {
                 _store.RemoveModel(Uri);
-                _store.CreateModel(Uri);
+                //_store.CreateModel(Uri);
             }
         }
 
