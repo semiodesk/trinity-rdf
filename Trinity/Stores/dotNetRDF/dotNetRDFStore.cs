@@ -165,10 +165,7 @@ namespace Semiodesk.Trinity.Store
 
         public IModel GetModel(Uri uri)
         {
-            if (ContainsModel(uri))
-                return new Model(this, new UriRef(uri));
-            else
-                return null;
+            return new Model(this, new UriRef(uri));
         }
 
         public bool IsReady

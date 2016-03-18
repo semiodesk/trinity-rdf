@@ -156,22 +156,24 @@ namespace Semiodesk.Trinity.Store
             return "Server=" + Hostname + ":" + Port + ";uid=" + Username + ";pwd=" + Password + ";Charset=utf-8";
         }
 
+        [Obsolete("It is not necessary to create models explicitly. Use GetModel() instead, if the model does not exist, it will be created implicitly.")]
         public IModel CreateModel(Uri uri)
         {
-            Model model = null;
+            //Model model = null;
 
-            using (ITransaction transaction = this.BeginTransaction(IsolationLevel.ReadCommitted))
-            {
-                model = new Model(this, uri.ToUriRef());
+            //using (ITransaction transaction = this.BeginTransaction(IsolationLevel.ReadCommitted))
+            //{
+            //    model = new Model(this, uri.ToUriRef());
 
-                SparqlUpdate update = new SparqlUpdate(string.Format("CREATE GRAPH <{0}>", uri.OriginalString));
+            //    SparqlUpdate update = new SparqlUpdate(string.Format("CREATE GRAPH <{0}>", uri.AbsoluteUri));
 
-                ExecuteNonQuery(update, transaction);
+            //    ExecuteNonQuery(update, transaction);
 
-                transaction.Commit();
-            }
+            //    transaction.Commit();
+            //}
 
-            return model;
+            //return model;
+            return GetModel(uri);
         }
 
         public void RemoveModel(Uri uri)
@@ -180,9 +182,9 @@ namespace Semiodesk.Trinity.Store
             {
                 try
                 {
-                    SparqlUpdate update = new SparqlUpdate(string.Format("CLEAR GRAPH <{0}>", uri.OriginalString));
+                    SparqlUpdate update = new SparqlUpdate(string.Format("CLEAR GRAPH <{0}>", uri.AbsoluteUri));
                     ExecuteNonQuery(update, transaction);
-                    update = new SparqlUpdate(string.Format("DROP GRAPH <{0}>", uri.OriginalString));
+                    update = new SparqlUpdate(string.Format("DROP GRAPH <{0}>", uri.AbsoluteUri));
                     ExecuteNonQuery(update, transaction);
                     transaction.Commit();
                 }
@@ -197,6 +199,7 @@ namespace Semiodesk.Trinity.Store
             RemoveModel(model.Uri);
         }
 
+        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
         public bool ContainsModel(Uri uri)
         {
           if (uri == null)
@@ -206,7 +209,7 @@ namespace Semiodesk.Trinity.Store
 
             using (ITransaction transaction = this.BeginTransaction(IsolationLevel.ReadCommitted))
             {
-                string query = string.Format("SELECT GRAPH_IRI from DB.DBA.SPARQL_SELECT_KNOWN_GRAPHS()(GRAPH_IRI VARCHAR) GRAPH_IRI WHERE GRAPH_IRI = '{0}'", uri.OriginalString);
+                string query = string.Format("SPARQL ASK {{ GRAPH <{0}> {{ ?s ?p ?o . }} }}", uri.AbsoluteUri);
 
                 var res = ExecuteQuery(query, transaction);
                 result = res.Rows.Count > 0;
@@ -216,6 +219,7 @@ namespace Semiodesk.Trinity.Store
             return result;
         }
 
+        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
         public bool ContainsModel(IModel model)
         {
             return ContainsModel(model.Uri);
@@ -223,14 +227,7 @@ namespace Semiodesk.Trinity.Store
 
         public IModel GetModel(Uri uri)
         {
-            if (ContainsModel(uri))
-            {
-                return new Model(this, uri.ToUriRef());
-            }
-            else
-            {
-                throw new ArgumentException(string.Format("Error: The model <{0}> does not exist.", uri.OriginalString));
-            }
+            return new Model(this, uri.ToUriRef());
         }
 
         public IEnumerable<IModel> ListModels()
