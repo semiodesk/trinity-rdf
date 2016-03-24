@@ -558,5 +558,18 @@ namespace Semiodesk.Trinity.Test
             isOrdered = query.GetType().GetMethod("IsOrdered", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.AreEqual(true, isOrdered.Invoke(query, null));
         }
+
+        [Test]
+        public void TestModelGroup()
+        {
+            Uri modelUri1 = new Uri("http://example.org/TestModel1");
+            Uri modelUri2 = new Uri("http://example.org/TestModel2");
+            IModelGroup g = _store.CreateModelGroup(modelUri1, modelUri2);
+            var query = new SparqlQuery("PREFIX nco: <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#> SELECT ?s ?p ?o WHERE { ?s ?p ?o. ?s nco:fullname 'Hans Wurscht'. }");
+            query.Model = g;
+            var x = query.ToString();
+
+
+        }
     }
 }

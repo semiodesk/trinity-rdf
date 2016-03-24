@@ -90,7 +90,7 @@ namespace Semiodesk.Trinity
 
                         foreach (IModel m in group)
                         {
-                            _preprocessor.AddNamedGraph(m.Uri);
+                            _preprocessor.AddDefaultGraph(m.Uri);
                         }
                     }
                     else
