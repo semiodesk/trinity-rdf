@@ -271,6 +271,11 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                 }
             }
 
+            if (p.LanguageInvariant)
+                yield return processor.Create(OpCodes.Ldc_I4_1);
+            else
+                yield return processor.Create(OpCodes.Ldc_I4_0);
+
             yield return processor.Create(OpCodes.Newobj, ctor);
             yield return processor.Create(OpCodes.Stfld, p.BackingField);
         }
@@ -278,9 +283,10 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
         private MethodDefinition GetPropertyMappingConstructorDefinition(TypeReference mappingType)
         {
             return mappingType.Resolve().GetConstructors().FirstOrDefault(
-                m => m.Parameters.Count == 2
+                m => m.Parameters.Count == 3
                     && m.Parameters[0].ParameterType.MetadataType == MetadataType.String
-                    && m.Parameters[1].ParameterType.MetadataType == MetadataType.String);
+                    && m.Parameters[1].ParameterType.MetadataType == MetadataType.String
+                    && m.Parameters[2].ParameterType.MetadataType == MetadataType.Boolean);
         }
 
         private MethodDefinition GetPropertyMappingConstructorDefinition(TypeReference mappingType, CustomAttributeArgument defaultValue)
@@ -288,10 +294,11 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             IEnumerable<MethodDefinition> ctors = mappingType.Resolve().GetConstructors();
 
             return ctors.FirstOrDefault(
-                m => m.Parameters.Count == 3
+                m => m.Parameters.Count == 4
                 && m.Parameters[0].ParameterType.MetadataType == MetadataType.String
                 && m.Parameters[1].ParameterType.MetadataType == MetadataType.String
-                && m.Parameters[2].ParameterType.MetadataType == MetadataType.Var);
+                && m.Parameters[2].ParameterType.MetadataType == MetadataType.Var
+                && m.Parameters[3].ParameterType.MetadataType == MetadataType.Boolean);
         }
 
         private IEnumerable<Instruction> GetLdX(ILProcessor processor, CustomAttributeArgument defaultValue)

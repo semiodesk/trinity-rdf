@@ -35,6 +35,7 @@ using System.Text;
 using System.IO;
 using System.Reflection;
 using OpenLink.Data.Virtuoso;
+using Newtonsoft.Json;
 
 namespace Semiodesk.Trinity
 {
@@ -62,6 +63,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Indicates if the model contains statements.
         /// </summary>
+        [JsonIgnore]
         public bool IsEmpty
         {
             get
@@ -75,8 +77,8 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Indicates if all changes in the model have been written back to its backing RDF store(s).
         /// </summary>
-        [DefaultValue(false)]
-        public bool IsSynchronized { get; private set; }
+        [JsonIgnore]
+        private bool IsSynchronized { get; set; }
 
         #endregion
 
@@ -117,7 +119,7 @@ namespace Semiodesk.Trinity
             if (_store != null)
             {
                 _store.RemoveModel(Uri);
-                _store.CreateModel(Uri);
+                //_store.CreateModel(Uri);
             }
         }
 

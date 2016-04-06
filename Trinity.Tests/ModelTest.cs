@@ -64,6 +64,7 @@ namespace Semiodesk.Trinity.Test
             if(_store.ContainsModel(modelUri))
             {
                 _model = _store.GetModel(modelUri);
+                _model.Clear();
             }
             else
             {
@@ -73,6 +74,7 @@ namespace Semiodesk.Trinity.Test
             if (_store.ContainsModel(modelUri2))
             {
                 _model2 = _store.GetModel(modelUri2);
+                _model2.Clear();
             }
             else
             {
@@ -147,26 +149,26 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void ModelNameTest()
         {
-            Assert.Inconclusive("Reevaluate with more recent version of virtuoso client library.");
             Uri modelUri = new Uri("http://www.example.com");
             Uri modelUri2 = new Uri("http://www.example.com/");
-            _store.RemoveModel(modelUri);
-            _store.RemoveModel(modelUri2);
-            Assert.IsFalse(_store.ContainsModel(modelUri));
-            Assert.IsFalse(_store.ContainsModel(modelUri2));
+            IModel m1 = _store.GetModel(modelUri);
+            m1.Clear();
+            IModel m2 = _store.GetModel(modelUri2);
 
+            Assert.IsTrue(m1.IsEmpty);
+            Assert.IsTrue(m2.IsEmpty);
             
-            IModel model = _store.CreateModel(modelUri);
-            Assert.IsTrue(_store.ContainsModel(modelUri));
-            Assert.IsFalse(_store.ContainsModel(modelUri2));
-
-            PersonContact c = model.CreateResource<PersonContact>(new Uri("http://www.example.com/testResource"));
+            PersonContact c = m1.CreateResource<PersonContact>(new Uri("http://www.example.com/testResource"));
             c.NameFamily = "Doe";
             c.Commit();
 
-            model.Clear();
+            Assert.IsFalse(m1.IsEmpty);
+            Assert.IsFalse(m2.IsEmpty);
 
-            Assert.IsTrue(model.IsEmpty);
+            m1.Clear();
+
+            Assert.IsTrue(m1.IsEmpty);
+            Assert.IsTrue(m2.IsEmpty);
 
         }
 
@@ -380,7 +382,7 @@ namespace Semiodesk.Trinity.Test
             IResource actual = _model.GetResource(uriResource);
 
             Assert.AreEqual(uriResource, uriResource);
-            Assert.AreEqual(resource.ListValues(property).Count, actual.ListValues(property).Count);
+            Assert.AreEqual(resource.ListValues(property).Count(), actual.ListValues(property).Count());
 
 
             uriResource = new Uri("http://example.org/AddResourceTest2");

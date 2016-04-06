@@ -68,16 +68,20 @@ namespace Semiodesk.Trinity
 
         /// <summary>
         /// Query if the model exists in the store.
+        /// OBSOLETE: This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()
         /// </summary>
         /// <param name="uri">Uri of the model which is to be queried.</param>
         /// <returns></returns>
+        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
         bool ContainsModel(Uri uri);
 
         /// <summary>
         /// Query if the model exists in the store.
+        /// OBSOLETE: This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()
         /// </summary>
         /// <param name="uri">Handle to the model which is to be queried.</param>
         /// <returns></returns>
+        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
         bool ContainsModel(IModel model);
 
         /// <summary>

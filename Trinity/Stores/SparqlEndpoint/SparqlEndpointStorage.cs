@@ -121,6 +121,11 @@ namespace Semiodesk.Trinity.Store
             return new Model(this, uri.ToUriRef());
         }
 
+        public IModel GetOrCreateModel(Uri uri)
+        {
+            throw new NotSupportedException();
+        }
+
         public IEnumerable<IModel> ListModels()
         {
             throw new NotSupportedException();

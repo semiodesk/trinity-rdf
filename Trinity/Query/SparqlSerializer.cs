@@ -82,10 +82,17 @@ namespace Semiodesk.Trinity
         {
             // We need to escape specrial characters: http://www.w3.org/TeamSubmission/turtle/#sec-strings
             string s = str.Replace(@"\", @"\\");
-            s = s.Replace("\"", "\\\"");
-            s = s.Replace("\n", "\\n");
 
-            return string.Format("\"{0}\"", s);
+            if(s.Contains('\n'))
+            {
+                return string.Format("'''{0}'''", s);
+            }
+            else
+            {
+                s = s.Replace("'", "\\'");
+
+                return string.Format("'{0}'", s);
+            }
         }
 
         /// <summary>
@@ -96,7 +103,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string SerializeTranslatedString(string str, string lang)
         {
-            return string.Format("\"{0}\"@{1}", SerializeString(str), lang);
+            return string.Format("{0}@{1}", SerializeString(str), lang);
         }
 
         /// <summary>
@@ -133,7 +140,13 @@ namespace Semiodesk.Trinity
                 {
                     // string + language
                     Tuple<string, CultureInfo> array = obj as Tuple<string, CultureInfo>;
-                    return SerializeTranslatedString(array.Item1, array.Item2.IetfLanguageTag);
+                    return SerializeTranslatedString(array.Item1, array.Item2.Name);
+                }
+                else if (obj is Tuple<string, string>)
+                {
+                    // string + language
+                    Tuple<string, string> array = obj as Tuple<string, string>;
+                    return SerializeTranslatedString(array.Item1, array.Item2);
                 }
                 else if (obj is Uri || typeof(Uri).IsSubclassOf(obj.GetType()))
                 {
