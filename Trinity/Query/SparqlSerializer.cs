@@ -82,10 +82,17 @@ namespace Semiodesk.Trinity
         {
             // We need to escape specrial characters: http://www.w3.org/TeamSubmission/turtle/#sec-strings
             string s = str.Replace(@"\", @"\\");
-            s = s.Replace("\"", "\\\"");
-            s = s.Replace("\n", "\\n");
 
-            return string.Format("\"{0}\"", s);
+            if(s.Contains('\n'))
+            {
+                return string.Format("'''{0}'''", s);
+            }
+            else
+            {
+                s = s.Replace("'", "\\'");
+
+                return string.Format("'{0}'", s);
+            }
         }
 
         /// <summary>

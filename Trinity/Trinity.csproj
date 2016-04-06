@@ -122,6 +122,8 @@
     <Compile Include="Query\SparqlPreprocessor.cs" />
     <Compile Include="Query\SparqlQueryPreprocessor.cs" />
     <Compile Include="Query\StatementPattern.cs" />
+    <Compile Include="Serialization\JsonResourceConverter.cs" />
+    <Compile Include="Serialization\JsonResourceSerializerSettings.cs" />
     <Compile Include="Stores\StoreProvider.cs" />
     <Compile Include="Stores\StoreFactory.cs" />
     <Compile Include="Stores\dotNetRDF\dotNetRDFQueryResult.cs" />
