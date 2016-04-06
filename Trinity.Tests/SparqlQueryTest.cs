@@ -361,6 +361,26 @@ namespace Semiodesk.Trinity.Test
         }
 
         [Test]
+        public void TestEscaping()
+        {
+            SparqlQuery query = new SparqlQuery(@"
+                SELECT ?s ?p ?o WHERE
+                {
+                    ?s ?p ""Hello World"" .
+                    ?s ?p ""'Hello World'"" .
+                    ?s ?p '''Hello 
+                             World''' .
+                    ?s ?p 'C:\\Directory\\file.ext' .
+                }");
+
+            string queryString = query.ToString();
+
+            Assert.IsTrue(queryString.Contains('\n'));
+            Assert.IsTrue(queryString.Contains("\\\\"));
+            Assert.IsTrue(queryString.Contains("\\'"));
+        }
+
+        [Test]
         public void TestUriEscaping()
         {
             Uri uri = new Uri("file:///F:/test/02%20-%20Take%20Me%20Somewhere%20Nice.mp3");

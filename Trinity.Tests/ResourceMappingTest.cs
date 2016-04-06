@@ -36,6 +36,8 @@ using Semiodesk.Trinity.Ontologies;
 using System.Reflection;
 using NUnit.Framework;
 using Semiodesk.Trinity.Test;
+using Semiodesk.Trinity.Serialization;
+using Newtonsoft.Json;
 #if NET_3_5
 using Semiodesk.Trinity.Utility;
 #endif
@@ -411,6 +413,33 @@ namespace Semiodesk.Trinity.Test
             set { SetValue(intTestMapping, value); }
         }
         
+        #endregion
+    }
+
+    public class JsonMappingTestClass : Resource
+    {
+        #region Mapping
+
+        public override IEnumerable<Class> GetTypes()
+        {
+            yield return TestOntology.JsonTestClass;
+        }
+
+        protected PropertyMapping<ObservableCollection<string>> stringTestMapping =
+            new PropertyMapping<ObservableCollection<string>>("stringTest", TestOntology.stringTest, new ObservableCollection<string>());
+
+        public ObservableCollection<string> stringTest
+        {
+            get { return GetValue(stringTestMapping); }
+            set { SetValue(stringTestMapping, value); }
+        }
+
+        #endregion
+
+        #region Constructors
+
+        public JsonMappingTestClass(Uri uri) : base(uri) { }
+
         #endregion
     }
 
@@ -1690,11 +1719,28 @@ namespace Semiodesk.Trinity.Test
             p.Language = null;
             Assert.AreEqual(2, p.stringListTest.Count);
             Assert.AreEqual(9, p.ListValues(TestOntology.stringTest).Count());
+        }
 
+        [Test]
+        public void TestJsonSerialization()
+        {
+            IModel model = GetModel();
+            model.Clear();
 
+            JsonMappingTestClass expected = model.CreateResource<JsonMappingTestClass>();
+            expected.stringTest.Add("Hello World!");
+            expected.stringTest.Add("Hallo Welt!");
+            expected.Commit();
 
+            string json = JsonConvert.SerializeObject(expected);
 
+            JsonResourceSerializerSettings settings = new JsonResourceSerializerSettings(_store);
 
+            JsonMappingTestClass actual = JsonConvert.DeserializeObject<JsonMappingTestClass>(json, settings);
+
+            Assert.AreEqual(expected.Uri, actual.Uri);
+            Assert.AreEqual(expected.Model.Uri, actual.Model.Uri);
+            Assert.AreEqual(2, actual.stringTest.Count);
         }
     }
 }

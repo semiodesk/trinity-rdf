@@ -380,17 +380,11 @@ namespace Semiodesk.Trinity
                             break;
                         }
                     case Token.LITERAL:
+                    case Token.LONGLITERAL:
                         {
                             IToken next = i < Tokens.Count ? Tokens[i + 1] : null;
 
-                            if (token.Value.Contains('\n') || token.Value.Contains("'"))
-                            {
-                                outputBuilder.AppendFormat("'''{0}'''", token.Value);
-                            }
-                            else
-                            {
-                                outputBuilder.AppendFormat("'{0}'", token.Value);
-                            }
+                            outputBuilder.AppendFormat(SparqlSerializer.SerializeString(token.Value));
 
                             if(next.TokenType != Token.LANGSPEC)
                             {

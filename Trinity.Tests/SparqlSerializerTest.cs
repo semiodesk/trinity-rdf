@@ -16,14 +16,14 @@ namespace Semiodesk.Trinity.Test
             r.AddProperty(Ontologies.dc.title, "MyResource");
 
             string res = SparqlSerializer.SerializeResource(r);
-            string expected = "<http://example.com/ex> <http://purl.org/dc/elements/1.1/title> \"MyResource\". ";
+            string expected = "<http://example.com/ex> <http://purl.org/dc/elements/1.1/title> 'MyResource'. ";
             Assert.AreEqual(expected, res);
 
 
             PersonContact contact = new PersonContact(new Uri("http://example.com/ex"));
             contact.NameGiven = "Peter";
             res = SparqlSerializer.SerializeResource(contact);
-            expected = "<http://example.com/ex> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#nameGiven> \"Peter\"; <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact>. ";
+            expected = "<http://example.com/ex> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#nameGiven> 'Peter'; <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact>. ";
             Assert.AreEqual(expected, res);
 
             contact.Language = "DE";
