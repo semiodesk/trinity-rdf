@@ -130,6 +130,12 @@
     <Compile Include="..\Configuration\VirtuosoStoreSettings.cs">
       <Link>Configuration\VirtuosoStoreSettings.cs</Link>
     </Compile>
+	<Compile Include="..\Serialization\JsonResourceConverter.cs">
+      <Link>Serialization\JsonResourceConverter.cs</Link>
+    </Compile>
+	<Compile Include="..\Serialization\JsonResourceSerializerSettings.cs">
+      <Link>Serialization\JsonResourceSerializerSettings.cs</Link>
+    </Compile>
     <Compile Include="..\Exceptions.cs">
       <Link>Exceptions.cs</Link>
     </Compile>
