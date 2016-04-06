@@ -161,5 +161,23 @@ namespace Semiodesk.Trinity.Test
 
             Assert.AreEqual(false, _model.ExecuteQuery(query).GetAnwser());
         }
+
+        [Test]
+        public void TestUpdateParameters()
+        {
+            SparqlUpdate update = new SparqlUpdate(@"
+                DELETE { ?s ?p @oldValue . }
+                INSERT { ?s ?p @newValue . }
+                WHERE { ?s ?p ?o . }");
+
+            update.Bind("@oldValue", "Fail");
+            update.Bind("@newValue", "Success");
+
+            string updateString = update.ToString();
+
+            Assert.IsFalse(string.IsNullOrEmpty(updateString));
+
+            _model.ExecuteUpdate(update);
+        }
     }
 }
