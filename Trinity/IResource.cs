@@ -57,6 +57,11 @@ namespace Semiodesk.Trinity
         /// </summary>
         bool IsReadOnly { get; }
 
+        /// <summary>
+        /// Set the language of this resource. This will change te mapped strings to this language.
+        /// </summary>
+        string Language { get; set; }
+
         #endregion
 
         #region Methods
@@ -80,8 +85,16 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="property">Property the value should be associated with.</param>
         /// <param name="value">A string literal.</param>
-        /// <param name="language">The language of the string literal.</param>
+        /// <param name="language">The culture of the string literal.</param>
         void AddProperty(Property property, string value, CultureInfo language);
+
+        /// <summary>
+        /// Adds a new property with the given value to the resource.
+        /// </summary>
+        /// <param name="property">Property the value should be associated with.</param>
+        /// <param name="value">A string literal.</param>
+        /// <param name="language">The language of the string literal.</param>
+        void AddProperty(Property property, string value, string language);
 
         /// <summary>
         /// Adds a new property with the given value to the resource.
@@ -186,7 +199,17 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="property">Property the given value is associated with.</param>
         /// <param name="value">A string literal.</param>
+        /// <param name="language">The culture of the string</param>
         void RemoveProperty(Property property, string value, CultureInfo language);
+
+
+        /// <summary>
+        /// Removes an associated property from the resource.
+        /// </summary>
+        /// <param name="property">Property the given value is associated with.</param>
+        /// <param name="value">A string literal.</param>
+        /// <param name="language">The language of the string.</param>
+        void RemoveProperty(Property property, string value, string language);
 
         /// <summary>
         /// Removes an associated property from the resource.
@@ -297,11 +320,20 @@ namespace Semiodesk.Trinity
         bool HasProperty(Property property, string value, CultureInfo language);
 
         /// <summary>
+        /// Indicates if the resource has a property with the given translated string value.
+        /// </summary>
+        /// <param name="property"></param>
+        /// <param name="value"></param>
+        /// <param name="language"></param>
+        /// <returns>True on success, False otherwise.</returns>
+        bool HasProperty(Property property, string value, string language);
+
+        /// <summary>
         /// Enumerates all properties associated with this resource.
         /// </summary>
 
         /// <returns></returns>
-        List<Property> ListProperties();
+        IEnumerable<Property> ListProperties();
 
         /// <summary>
         /// Enumerates all properties associated with this resource in form 
@@ -316,7 +348,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="property"></param>
         /// <returns></returns>
-        List<object> ListValues(Property property);
+        IEnumerable<object> ListValues(Property property);
 
         /// <summary>
         /// Gets the value of a uniquely asserted property.

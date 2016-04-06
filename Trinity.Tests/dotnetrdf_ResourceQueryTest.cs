@@ -80,10 +80,10 @@ namespace Semiodesk.Trinity.Test
             if (_model.IsEmpty)
             {
                 IResource q = null;
-
+                string uriTemplate = "http://example.com/counter/{0}";
                 for (int i = 1; i < 51; i++)
                 {
-                    IResource r = _model.CreateResource<Resource>();
+                    IResource r = _model.CreateResource<Resource>(new Uri(string.Format(uriTemplate, i)));
                     r.AddProperty(nco.fullname, (char)(i % 26));
                     r.AddProperty(nco.gender, (i % 2 == 1) ? nco.female : nco.male);
 
@@ -180,6 +180,8 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestSort()
         {
+
+            Assert.Inconclusive("Test with newer version of dotNetRDF");
             ResourceQuery b = new ResourceQuery(nco.PersonContact);
             b.Where(nco.birthDate).LessThan(new DateTime(1990, 1, 1)).SortAscending();
 

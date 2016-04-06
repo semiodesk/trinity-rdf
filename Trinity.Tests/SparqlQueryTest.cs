@@ -361,6 +361,26 @@ namespace Semiodesk.Trinity.Test
         }
 
         [Test]
+        public void TestEscaping()
+        {
+            SparqlQuery query = new SparqlQuery(@"
+                SELECT ?s ?p ?o WHERE
+                {
+                    ?s ?p ""Hello World"" .
+                    ?s ?p ""'Hello World'"" .
+                    ?s ?p '''Hello 
+                             World''' .
+                    ?s ?p 'C:\\Directory\\file.ext' .
+                }");
+
+            string queryString = query.ToString();
+
+            Assert.IsTrue(queryString.Contains('\n'));
+            Assert.IsTrue(queryString.Contains("\\\\"));
+            Assert.IsTrue(queryString.Contains("\\'"));
+        }
+
+        [Test]
         public void TestUriEscaping()
         {
             Uri uri = new Uri("file:///F:/test/02%20-%20Take%20Me%20Somewhere%20Nice.mp3");
@@ -384,6 +404,18 @@ namespace Semiodesk.Trinity.Test
             string queryString = query.ToString();
 
             Assert.IsFalse(string.IsNullOrEmpty(queryString));
+
+            query = new SparqlQuery(@"SELECT ?s WHERE { ?s ?p 'Hallo'@de . }");
+
+            queryString = query.ToString();
+
+            Assert.AreEqual(queryString, @"SELECT ?s WHERE { ?s ?p 'Hallo'@de . }");
+
+            query = new SparqlQuery(@"SELECT ?s WHERE { ?s ?p 'Hallo'@de-de . }");
+
+            queryString = query.ToString();
+
+            Assert.AreEqual(queryString, @"SELECT ?s WHERE { ?s ?p 'Hallo'@de-de . }");
         }
 
         [Test]
@@ -545,6 +577,19 @@ namespace Semiodesk.Trinity.Test
 
             isOrdered = query.GetType().GetMethod("IsOrdered", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.AreEqual(true, isOrdered.Invoke(query, null));
+        }
+
+        [Test]
+        public void TestModelGroup()
+        {
+            Uri modelUri1 = new Uri("http://example.org/TestModel1");
+            Uri modelUri2 = new Uri("http://example.org/TestModel2");
+            IModelGroup g = _store.CreateModelGroup(modelUri1, modelUri2);
+            var query = new SparqlQuery("PREFIX nco: <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#> SELECT ?s ?p ?o WHERE { ?s ?p ?o. ?s nco:fullname 'Hans Wurscht'. }");
+            query.Model = g;
+            var x = query.ToString();
+
+
         }
     }
 }

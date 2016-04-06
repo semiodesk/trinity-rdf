@@ -32,6 +32,9 @@ using System.Linq;
 using System.Text;
 using VDS.RDF;
 using VDS.RDF.Query;
+#if NET_3_5
+using Semiodesk.Trinity.Utility;
+#endif
 
 
 namespace Semiodesk.Trinity.Store
@@ -365,7 +368,13 @@ namespace Semiodesk.Trinity.Store
             {
                 ILiteralNode literalNode = p as ILiteralNode;
                 if (literalNode.DataType == null)
-                    return literalNode.Value;
+                {
+                    if(string.IsNullOrEmpty(literalNode.Language))
+                        return literalNode.Value;
+                    else
+                        return new Tuple<string, string>(literalNode.Value, literalNode.Language);
+                }
+
                 return XsdTypeMapper.DeserializeString(literalNode.Value, literalNode.DataType);
             }
             return null;
