@@ -256,6 +256,17 @@ namespace Semiodesk.Trinity
             }
         }
 
+        internal void ClearListPropertyMappings()
+        {
+            foreach (var mapping in _mappings)
+            {
+                if(mapping.Value.IsList)
+                {
+                    mapping.Value.Clear();
+                }
+            }
+        }
+
         /// <summary>
         /// Overwrite this method to return the RDF classes of your resource type.
         /// </summary>
