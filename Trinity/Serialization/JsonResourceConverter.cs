@@ -76,7 +76,7 @@ namespace Semiodesk.Trinity.Serialization
             // We could load the resource from the model here, however this would
             // initialize all the list-type properties of the resource. This is a problem
             // since the JSON serializer does not clear the lists and simply adds the new values.
-            Resource resource = Activator.CreateInstance(objectType, resourceUri) as Resource;
+            Resource resource = model.GetResource<Resource>(resourceUri);
 
             if (resource == null)
             {
@@ -85,6 +85,9 @@ namespace Semiodesk.Trinity.Serialization
 
             // Set the model so the resource can be committed.
             resource.Model = model;
+
+            // Clear the lists to prevent the serializer to add duplicate entries.
+            resource.ClearListPropertyMappings();
 
             // Do not let the serializer set the model or URI..
             resourceJson.Remove("Model");
