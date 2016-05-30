@@ -154,10 +154,10 @@ namespace Semiodesk.Trinity.Store
                 return res;
             }
 
-            //else if (cellValue is VirtuosoDateTimeOffset)
-            //{
-            //    return ((VirtuosoDateTimeOffset)cellValue).Value.UtcDateTime.ToUniversalTime();
-            //}
+            else if (cellValue is VirtuosoDateTimeOffset)
+            {
+                return ((VirtuosoDateTimeOffset)cellValue).Value.UtcDateTime.ToUniversalTime();
+            }
             
 
             return cellValue;
