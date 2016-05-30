@@ -15,8 +15,7 @@
     <copyright>Copyright 2015 Semiodesk</copyright>
     <tags>RDF SPARQL Database Semantic Object Mapping Linked Data</tags>
     <dependencies>
-      <dependency id="dotNetRDF" version="1.0.9.3683" />
-	  <dependency id="dotNetRDF.Data.Virtuoso" version="1.0.9.3683" />
+      <dependency id="Newtonsoft.Json" version="8.0.3" />
     </dependencies>
   </metadata>
 </package>
