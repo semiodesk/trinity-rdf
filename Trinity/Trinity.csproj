@@ -37,15 +37,15 @@
   <ItemGroup>
     <Reference Include="dotNetRDF, Version=1.0.9.3683, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\dotNetRDF.dll</HintPath>
+      <HintPath>..\Dependencies\Net40\dotNetRDF.dll</HintPath>
     </Reference>
     <Reference Include="dotNetRDF.Data.Virtuoso, Version=1.0.9.3683, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\dotNetRDF.Data.Virtuoso.dll</HintPath>
+      <HintPath>..\Dependencies\Net40\dotNetRDF.Data.Virtuoso.dll</HintPath>
     </Reference>
     <Reference Include="HtmlAgilityPack, Version=1.4.9.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\HtmlAgilityPack.dll</HintPath>
+      <HintPath>..\Dependencies\Net40\HtmlAgilityPack.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\Net40\packages\Newtonsoft.Json.8.0.3\lib\net40\Newtonsoft.Json.dll</HintPath>
@@ -65,7 +65,7 @@
     <Reference Include="System.Configuration" />
     <Reference Include="VDS.Common, Version=1.6.0.0, Culture=neutral, PublicKeyToken=ab5f4eb908061bf0, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\VDS.Common.dll</HintPath>
+      <HintPath>..\Dependencies\Net40\VDS.Common.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
