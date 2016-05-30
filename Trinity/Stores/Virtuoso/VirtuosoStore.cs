@@ -336,14 +336,16 @@ namespace Semiodesk.Trinity.Store
             {
                 string msg = string.Format("Error: Caught {0} exception.", ex.GetType());
                 Debug.WriteLine(msg);
-            }
+            } /* This seems to be different in 7.x version of Openlink.Virtuoso.dll
             catch (VirtuosoException e)
             {
+               
                 if (e.ErrorCode == 40001)
                     throw new ResourceLockedException(e);
                 else
+                
                     throw;
-            }
+            } */
             finally
             {
                 if (adapter != null)
