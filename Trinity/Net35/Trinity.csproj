@@ -35,32 +35,32 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="dotNetRDF, Version=1.0.9.3683, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
-      <HintPath>..\..\Net35\packages\dotNetRDF.1.0.9.3683\lib\net35\dotNetRDF.dll</HintPath>
-      <Private>True</Private>
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Dependencies\Net35\dotNetRDF.dll</HintPath>
     </Reference>
     <Reference Include="dotNetRDF.Data.Virtuoso, Version=1.0.9.3683, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
-      <HintPath>..\..\Net35\packages\dotNetRDF.Data.Virtuoso.1.0.9.3683\lib\net35\dotNetRDF.Data.Virtuoso.dll</HintPath>
-      <Private>True</Private>
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Dependencies\Net35\dotNetRDF.Data.Virtuoso.dll</HintPath>
     </Reference>
     <Reference Include="HtmlAgilityPack, Version=1.4.9.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Net35\packages\HtmlAgilityPack.1.4.9\lib\Net20\HtmlAgilityPack.dll</HintPath>
+      <HintPath>..\..\Dependencies\Net35\HtmlAgilityPack.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Net35\packages\Newtonsoft.Json.6.0.8\lib\net35\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\Newtonsoft.Json.8.0.3\lib\net35\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="OpenLink.Data.Virtuoso, Version=6.2.3128.1, Culture=neutral, PublicKeyToken=6654f6917d07cb95, processorArchitecture=MSIL">
-      <HintPath>..\..\Net35\packages\dotNetRDF.Data.Virtuoso.1.0.9.3683\lib\net35\OpenLink.Data.Virtuoso.dll</HintPath>
-      <Private>True</Private>
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Dependencies\OpenLink.Data.Virtuoso.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.XML" />
     <Reference Include="VDS.Common, Version=1.6.0.0, Culture=neutral, PublicKeyToken=ab5f4eb908061bf0, processorArchitecture=MSIL">
-      <HintPath>..\..\Net35\packages\VDS.Common.1.6.0\lib\net35-client\VDS.Common.dll</HintPath>
-      <Private>True</Private>
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Dependencies\Net35\VDS.Common.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -130,10 +130,10 @@
     <Compile Include="..\Configuration\VirtuosoStoreSettings.cs">
       <Link>Configuration\VirtuosoStoreSettings.cs</Link>
     </Compile>
-	<Compile Include="..\Serialization\JsonResourceConverter.cs">
+    <Compile Include="..\Serialization\JsonResourceConverter.cs">
       <Link>Serialization\JsonResourceConverter.cs</Link>
     </Compile>
-	<Compile Include="..\Serialization\JsonResourceSerializerSettings.cs">
+    <Compile Include="..\Serialization\JsonResourceSerializerSettings.cs">
       <Link>Serialization\JsonResourceSerializerSettings.cs</Link>
     </Compile>
     <Compile Include="..\Exceptions.cs">
@@ -316,9 +316,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="packages.config">
-      <SubType>Designer</SubType>
-    </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
