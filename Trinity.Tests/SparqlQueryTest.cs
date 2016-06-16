@@ -37,6 +37,7 @@ using Semiodesk.Trinity;
 using Semiodesk.Trinity.Ontologies;
 
 using NUnit.Framework;
+using System.Text.RegularExpressions;
 
 namespace Semiodesk.Trinity.Test
 {
@@ -446,15 +447,45 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestSetModel()
         {
+            Regex expression = new Regex(Regex.Escape("FROM"));
+
             SparqlQuery query = new SparqlQuery("SELECT COUNT(?s) AS ?count WHERE { ?s ?p ?o . }");
 
             Assert.IsNull(query.Model);
-            Assert.IsFalse(query.ToString().Contains("FROM"));
+            Assert.AreEqual(0, expression.Matches(query.ToString()).Count);
 
             query.Model = Model;
 
             Assert.NotNull(query.Model);
-            Assert.IsTrue(query.ToString().Contains("FROM"));
+            Assert.AreEqual(1, expression.Matches(query.ToString()).Count);
+
+            SparqlQuery query2 = new SparqlQuery("ASK FROM <http://example.org/TestModel> WHERE { ?s ?p ?o . }");
+
+            Assert.IsNull(query2.Model);
+            Assert.AreEqual(1, expression.Matches(query2.ToString()).Count);
+
+            query2.Model = Model;
+
+            Assert.IsNotNull(query2.Model);
+            Assert.AreEqual(1, expression.Matches(query2.ToString()).Count);
+
+            SparqlQuery query3 = new SparqlQuery("ASK FROM @graph WHERE { ?s ?p ?o . }");
+            query3.Bind("@graph", Model);
+
+            Assert.IsNull(query3.Model);
+            Assert.AreEqual(1, expression.Matches(query3.ToString()).Count);
+
+            query3.Model = Model;
+
+            Assert.IsNotNull(query3.Model);
+            Assert.AreEqual(1, expression.Matches(query3.ToString()).Count);
+
+            SparqlQuery query4 = new SparqlQuery("ASK FROM @graph WHERE { ?s ?p ?o . }");
+            query4.Model = Model;
+
+            Assert.IsNotNull(query4.Model);
+
+            Assert.Throws<ArgumentException>(delegate { query4.Bind("@graph", Model); });
         }
 
         [Test]

@@ -64,6 +64,8 @@ namespace Semiodesk.Trinity
 
         public readonly Dictionary<string, string> ParameterValues = new Dictionary<string, string>();
 
+        public readonly Dictionary<string, int> ParameterTypes = new Dictionary<string, int>();
+
         #endregion
 
         #region Constructors
@@ -194,9 +196,23 @@ namespace Semiodesk.Trinity
                 // Add the parameter name to the list of parameters.
                 Parameters.Add(Value);
 
-                LastTokenType = CustomToken.PARAMETER;
+                int parameterType = CustomToken.PARAMETER;
 
-                return new ParameterToken(CustomToken.PARAMETER, Value, CurrentLine, StartPosition, EndPosition);
+                switch (LastTokenType)
+                {
+                    case Token.FROM:
+                    case Token.FROMNAMED:
+                    {
+                        parameterType = CustomToken.GRAPHPARAMETER;
+
+                        break;
+                    }
+                }
+
+                // Remember the parameter type.
+                ParameterTypes[Value] = parameterType;
+
+                return new ParameterToken(parameterType, Value, CurrentLine, StartPosition, EndPosition);
             }
 
             return null;
@@ -332,8 +348,31 @@ namespace Semiodesk.Trinity
             {
                 throw new ArgumentNullException("SPARQL query parameter values may not be null.");
             }
+            else if (ParameterTypes[parameter] == CustomToken.GRAPHPARAMETER)
+            {
+                if (ParameterValues.ContainsKey(parameter))
+                {
+                    string g = ParameterValues[parameter];
 
-            ParameterValues[parameter] = SparqlSerializer.SerializeValue(value);
+                    DefaultGraphs.Remove(g);
+                }
+
+                string uri = SparqlSerializer.SerializeValue(value);
+                string url = uri.TrimStart('<').TrimEnd('>');
+
+                if (DefaultGraphs.Contains(url))
+                {
+                    throw new ArgumentException("FROM parameter value {0} is already set. Have you previously set the model property of the query?", uri);
+                }
+
+                DefaultGraphs.Add(url);
+
+                ParameterValues[parameter] = uri;
+            }
+            else
+            {
+                ParameterValues[parameter] = SparqlSerializer.SerializeValue(value);
+            }
         }
 
         protected string Serialize(int outputLevel = 0)
@@ -406,6 +445,7 @@ namespace Semiodesk.Trinity
                             break;
                         }
                     case CustomToken.PARAMETER:
+                    case CustomToken.GRAPHPARAMETER:
                         {
                             string key = token.Value;
 
@@ -417,6 +457,11 @@ namespace Semiodesk.Trinity
                             }
 
                             outputBuilder.Append(ParameterValues[key]);
+
+                            if(token.TokenType == CustomToken.GRAPHPARAMETER)
+                            {
+                                outputBuilder.Append(' ');
+                            }
 
                             break;
                         }
@@ -460,6 +505,7 @@ namespace Semiodesk.Trinity
     internal static class CustomToken
     {
         public const int PARAMETER = 1001;
+        public const int GRAPHPARAMETER = 1002;
     }
 
     public enum SparqlQueryVariableScope { Global, Default }

@@ -156,6 +156,10 @@ namespace Semiodesk.Trinity
                 {
                     return SerializeUri((obj as IResource).Uri);
                 }
+                else if (obj.GetType().GetInterface("IModel") != null)
+                {
+                    return SerializeUri((obj as IModel).Uri);
+                }
                 else
                 {
                     return SerializeTypedLiteral(obj, XsdTypeMapper.GetXsdTypeUri(obj.GetType()));
