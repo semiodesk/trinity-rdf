@@ -1100,9 +1100,9 @@ namespace Semiodesk.Trinity.Test
         {
             IModel m = GetModel();
             m.Clear();
+
             Uri t1Uri = new Uri("semio:test:testInstance1");
             MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
-
 
             // Add value using the mapping interface
             DateTime Value = new DateTime(2012, 8, 15, 12, 3, 55, DateTimeKind.Local);
@@ -1113,7 +1113,6 @@ namespace Semiodesk.Trinity.Test
 
             // Test if value was stored
             Assert.AreEqual(Value.ToUniversalTime(), t_actual.uniqueDateTimeTest.ToUniversalTime());
-
 
             // Test if property is present
             var l = t_actual.ListProperties();
@@ -1220,16 +1219,21 @@ namespace Semiodesk.Trinity.Test
         {
             IModel m = GetModel();
             m.Clear();
+
             Uri t1Uri = new Uri("semio:test:testInstance1");
             MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
 
             Uri testClass2Uri = new Uri("semio:test:testInstance2");
             MappingTestClass2 t2 = new MappingTestClass2(testClass2Uri);
 
+            Uri testClass3Uri = new Uri("semio:test:testInstance3");
+            MappingTestClass3 t3 = m.CreateResource<MappingTestClass3>(testClass3Uri);
+            t3.Commit(); // Force loading the resource from the model with the appropriate (derived) type.
+
             t1.uniqueResourceTest = t2;
             t1.Commit();
-            MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
+            MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
             Assert.AreEqual(t2, t_actual.uniqueResourceTest);
 
@@ -1267,6 +1271,14 @@ namespace Semiodesk.Trinity.Test
 
             // Test if ListValues works
             Assert.AreEqual(0, t_actual.ListValues(TestOntology.uniqueResourceTest).Count());
+
+            // Test if derived types get properly mapped.
+            t1.uniqueResourceTest = t3;
+            t1.Commit();
+
+            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+
+            Assert.AreEqual(t3, t_actual.uniqueResourceTest);
         }
 
         [Test]
@@ -1274,20 +1286,26 @@ namespace Semiodesk.Trinity.Test
         {
             IModel m = GetModel();
             m.Clear();
+
             Uri t1Uri = new Uri("semio:test:testInstance1");
             MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
 
-
             // Add value using the mapping interface
             MappingTestClass2 t2 = new MappingTestClass2(new Uri("semio:test:testInstance2"));
+            MappingTestClass3 t3 = new MappingTestClass3(new Uri("semio:test:testInstance3"));
+
             t1.resourceTest.Add(t2);
+            t1.resourceTest.Add(t3);
             t1.Commit();
+
             MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
-            Assert.AreEqual(1, t_actual.resourceTest.Count);
-            Assert.AreEqual(t2, t_actual.resourceTest[0]);
+            Assert.AreEqual(2, t_actual.resourceTest.Count);
+            Assert.Contains(t2, t_actual.resourceTest);
+            Assert.Contains(t3, t_actual.resourceTest);
 
             var l = t_actual.ListProperties();
+
             Assert.AreEqual(2, l.Count());
             Assert.IsTrue(l.Contains(TestOntology.resourceTest));
 
@@ -1297,14 +1315,19 @@ namespace Semiodesk.Trinity.Test
             x = t_actual.HasProperty(TestOntology.resourceTest, t2);
             Assert.IsTrue(x);
 
+            x = t_actual.HasProperty(TestOntology.resourceTest, t3);
+            Assert.IsTrue(x);
+
             var v = t_actual.ListValues(TestOntology.resourceTest);
+
             Assert.AreEqual(2, l.Count());
             Assert.IsTrue(v.Contains(t2));
-
-            Assert.AreEqual(t2.GetType(), v.First().GetType());
+            Assert.IsTrue(v.Contains(t3));
 
             t1.resourceTest.Remove(t2);
+            t1.resourceTest.Remove(t3);
             t1.Commit();
+
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
             x = t_actual.HasProperty(TestOntology.resourceTest);

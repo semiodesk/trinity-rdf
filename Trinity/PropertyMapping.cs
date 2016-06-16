@@ -274,19 +274,44 @@ namespace Semiodesk.Trinity
         {
             if (_isList)
             {
-                if (_value != null && ((IPropertyMapping)this).IsTypeCompatible(value.GetType()))
+                IList list = _value as IList;
+
+                if (list != null)
                 {
-                    (_value as IList).Add(Convert.ChangeType(value, this._genericType));
-                    _isUnsetValue = false;
-                    return;
+                    Type t = value.GetType();
+
+                    if (t == _genericType || _genericType.IsAssignableFrom(t))
+                    {
+                        list.Add(value);
+                        _isUnsetValue = false;
+
+                        return;
+                    }
+                    else if (t.IsValueType && ((IPropertyMapping)this).IsTypeCompatible(t))
+                    {
+                        list.Add(Convert.ChangeType(value, _genericType));
+                        _isUnsetValue = false;
+
+                        return;
+                    }
                 }
             }
             else
             {
-                if (((IPropertyMapping)this).IsTypeCompatible(value.GetType()))
-                {                    
-                    _value = (T)Convert.ChangeType(value, typeof(T));
+                Type t = value.GetType();
+
+                if (t == _dataType || _dataType.IsAssignableFrom(t))
+                {
+                    _value = (T)value;
                     _isUnsetValue = false;
+
+                    return;
+                }
+                else if(t.IsValueType && ((IPropertyMapping)this).IsTypeCompatible(t))
+                {
+                    _value = (T)Convert.ChangeType(value, _dataType);
+                    _isUnsetValue = false;
+
                     return;
                 }
             }
@@ -294,13 +319,17 @@ namespace Semiodesk.Trinity
             string typeString;
 
             if (_isList)
+            {
                 typeString = _genericType.ToString();
+            }
             else
+            {
                 typeString = typeof(T).ToString();
+            }
 
-            string exceptionMessage = string.Format("Provided argument value was not of type {0}", typeString);
-            
-            throw new Exception(exceptionMessage);
+            string msg = string.Format("Provided argument value was not of type {0}", typeString);
+
+            throw new Exception(msg);
         }
 
         /// <summary>
