@@ -44,9 +44,9 @@ namespace Semiodesk.Trinity.Test
     [TestFixture]
     public class SparqlQueryTest
     {
-        IStore _store;
+        protected IStore Store;
 
-        protected IModel Model = null;
+        protected IModel Model;
 
         protected NamespaceManager NamespaceManager = new NamespaceManager();
 
@@ -56,17 +56,12 @@ namespace Semiodesk.Trinity.Test
         {
             string connectionString = SetupClass.ConnectionString;
 
-            _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+            Store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+            Model = Store.GetModel(new Uri("http://example.org/TestModel"));
 
-            Uri modelUri = new Uri("http://example.org/TestModel");
-
-            if (_store.ContainsModel(modelUri))
+            if (!Model.IsEmpty)
             {
-                Model = _store.GetModel(modelUri);
-            }
-            else
-            {
-                Model = _store.CreateModel(modelUri);
+                Model.Clear();
             }
 
             OntologyDiscovery.AddNamespace("ex", new Uri("http://example.org/"));
@@ -121,9 +116,9 @@ namespace Semiodesk.Trinity.Test
         {
             Model.Clear();
 
-            if (_store != null)
+            if (Store != null)
             {
-                _store.Dispose();
+                Store.Dispose();
             }
         }
 
@@ -615,7 +610,7 @@ namespace Semiodesk.Trinity.Test
         {
             Uri modelUri1 = new Uri("http://example.org/TestModel1");
             Uri modelUri2 = new Uri("http://example.org/TestModel2");
-            IModelGroup g = _store.CreateModelGroup(modelUri1, modelUri2);
+            IModelGroup g = Store.CreateModelGroup(modelUri1, modelUri2);
             var query = new SparqlQuery("PREFIX nco: <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#> SELECT ?s ?p ?o WHERE { ?s ?p ?o. ?s nco:fullname 'Hans Wurscht'. }");
             query.Model = g;
             var x = query.ToString();

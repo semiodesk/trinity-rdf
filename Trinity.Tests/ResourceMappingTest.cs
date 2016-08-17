@@ -268,15 +268,14 @@ namespace Semiodesk.Trinity.Test
             set { SetValue(uniqueResourceTestMapping, value); }
         }
 
-        /*
-        protected MappingProperty uriProperty = new MappingProperty("UriProperty", typeof(Resource), TestOntology.uriTest);
-         * 
-        public Resource UriProperty
+        protected PropertyMapping<Resource> uriPropertyMapping =
+            new PropertyMapping<Resource>("uriProperty", TestOntology.uriTest);
+
+        public Resource uriProperty
         {
-            get { return (Resource)GetValue(uriProperty); }
-            set { SetValue(uriProperty, value); }
+            get { return (Resource)GetValue(uriPropertyMapping); }
+            set { SetValue(uriPropertyMapping, value); }
         }
-        */
 
         #endregion
 
@@ -1148,6 +1147,42 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(t1.uniqueDateTimeTest, t_actual.uniqueDateTimeTest.ToLocalTime());
 
             m.Clear();
+        }
+
+        [Test]
+        public void AddRemoveUriTest()
+        {
+            IModel model = GetModel();
+
+            if (!model.IsEmpty)
+            {
+                model.Clear();
+            }
+
+            Uri uri1 = new Uri("urn:1");
+            Uri uri2 = new Uri("urn:2");
+            Uri uri3 = new Uri("urn:3");
+
+            // 1. Create a new instance of the test class and commit it to the model.
+            MappingTestClass test1 = model.CreateResource<MappingTestClass>(uri1);
+            test1.uriProperty = new Resource(uri2);
+            test1.Commit();
+
+            // 2. Retrieve a new copy of the instance and validate the mapped URI property.
+            test1 = model.GetResource<MappingTestClass>(uri1);
+
+            Assert.NotNull(test1.uriProperty);
+            Assert.AreEqual(test1.uriProperty.Uri, uri2);
+
+            // 3. Change the property and commit the resource.
+            test1.uriProperty = new Resource(uri3);
+            test1.Commit();
+
+            // 4. Retrieve a new copy of the instance and validate the changed URI property.
+            test1 = model.GetResource<MappingTestClass>(uri1);
+
+            Assert.NotNull(test1.uriProperty);
+            Assert.AreEqual(test1.uriProperty.Uri, uri3);
         }
 
         [Test]

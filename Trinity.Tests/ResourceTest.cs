@@ -104,7 +104,9 @@ namespace Semiodesk.Trinity.Test
 
         public static readonly Property resourceTest = new Property(new Uri("semio:test:resourceTest"));
         public static readonly Property uniqueResourceTest = new Property(new Uri("semio:test:uniqueResourceTest"));
-        public static readonly Property uriTest = new Property(new Uri("semio:test:uriTest"));
+
+        public const string uriTestString = "semio:test:uriTest";
+        public static readonly Property uriTest = new Property(new Uri(uriTestString));
 
         public const string JsonTestClassUri = "http://localhost/JsonTestClass";
         public static readonly Class JsonTestClass = new Class(new Uri(JsonTestClassUri));

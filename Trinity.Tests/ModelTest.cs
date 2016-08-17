@@ -42,9 +42,10 @@ namespace Semiodesk.Trinity.Test
     [TestFixture]
     public class ModelTest
     {
-        private IModel _model = null;
-        private IModel _model2 = null;
-        private IStore _store = null;
+        private IStore Store;
+
+        private IModel Model;
+        private IModel Model2;
 
         public ModelTest()
         {
@@ -55,33 +56,24 @@ namespace Semiodesk.Trinity.Test
         {
             string connectionString = SetupClass.ConnectionString;
 
-            _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
-            _store.LoadOntologySettings();
+            Store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+            Store.LoadOntologySettings();
 
-            Uri modelUri = new Uri("http://example.org/TestModel");
-            Uri modelUri2 = new Uri("semiodesk:Trinity:Test");
+            Model = Store.GetModel(new Uri("http://example.org/TestModel"));
 
-            if(_store.ContainsModel(modelUri))
+            if (!Model.IsEmpty)
             {
-                _model = _store.GetModel(modelUri);
-                _model.Clear();
-            }
-            else
-            {
-                _model = _store.CreateModel(modelUri);
+                Model.Clear();
             }
 
-            if (_store.ContainsModel(modelUri2))
+            Model2 = Store.GetModel(new Uri("semiodesk:Trinity:Test"));
+
+            if (!Model.IsEmpty)
             {
-                _model2 = _store.GetModel(modelUri2);
-                _model2.Clear();
-            }
-            else
-            {
-                _model2 = _store.CreateModel(modelUri2);
+                Model.Clear();
             }
 
-            IResource model_resource = _model.CreateResource(new Uri("http://example.org/MyResource"));
+            IResource model_resource = Model.CreateResource(new Uri("http://example.org/MyResource"));
 
             Property property = new Property(new Uri("http://example.org/MyProperty"));
             model_resource.AddProperty(property, "in the jungle");
@@ -89,20 +81,20 @@ namespace Semiodesk.Trinity.Test
             model_resource.AddProperty(property, DateTime.Now);
             model_resource.Commit();
 
-            IResource model_resource2 = _model.CreateResource(new Uri("ex:Resource"));
+            IResource model_resource2 = Model.CreateResource(new Uri("ex:Resource"));
             model_resource2.AddProperty(property, "in the jungle");
             model_resource2.AddProperty(property, 123);
             model_resource2.AddProperty(property, DateTime.Now);
             model_resource2.Commit();
 
 
-            IResource model2_resource = _model2.CreateResource(new Uri("http://example.org/MyResource"));
+            IResource model2_resource = Model2.CreateResource(new Uri("http://example.org/MyResource"));
             model2_resource.AddProperty(property, "in the jungle");
             model2_resource.AddProperty(property, 123);
             model2_resource.AddProperty(property, DateTime.Now);
             model2_resource.Commit();
 
-            IResource model2_resource2 = _model2.CreateResource(new Uri("ex:Resource"));
+            IResource model2_resource2 = Model2.CreateResource(new Uri("ex:Resource"));
             model2_resource2.AddProperty(property, "in the jungle");
             model2_resource2.AddProperty(property, 123);
             model2_resource2.AddProperty(property, DateTime.Now);
@@ -112,9 +104,9 @@ namespace Semiodesk.Trinity.Test
         [TearDown]
         public void TearDown()
         {
-            _model.Clear();
-            _model2.Clear();
-            _store.Dispose();
+            Model.Clear();
+            Model2.Clear();
+            Store.Dispose();
         }
 
         public class Contact : Resource
@@ -151,9 +143,9 @@ namespace Semiodesk.Trinity.Test
         {
             Uri modelUri = new Uri("http://www.example.com");
             Uri modelUri2 = new Uri("http://www.example.com/");
-            IModel m1 = _store.GetModel(modelUri);
+            IModel m1 = Store.GetModel(modelUri);
             m1.Clear();
-            IModel m2 = _store.GetModel(modelUri2);
+            IModel m2 = Store.GetModel(modelUri2);
 
             Assert.IsTrue(m1.IsEmpty);
             Assert.IsTrue(m2.IsEmpty);
@@ -176,9 +168,9 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void ConnectTest()
         {
-            Assert.NotNull(_model);
-            Assert.NotNull(_model2);
-            IModel model = _model;
+            Assert.NotNull(Model);
+            Assert.NotNull(Model2);
+            IModel model = Model;
 
             ResourceQuery contact = new ResourceQuery(nco.PersonContact);
             contact.Where(nco.birthDate).LessThan(new DateTime(1990, 1, 1));
@@ -204,16 +196,16 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void ContainsResourceTest()
         {
-            Assert.IsTrue(_model.ContainsResource(new Uri("http://example.org/MyResource")));
-            Assert.IsTrue(_model.ContainsResource(new Uri("ex:Resource")));
-            Assert.IsTrue(_model2.ContainsResource(new Uri("http://example.org/MyResource")));
-            Assert.IsTrue(_model2.ContainsResource(new Uri("ex:Resource")));
+            Assert.IsTrue(Model.ContainsResource(new Uri("http://example.org/MyResource")));
+            Assert.IsTrue(Model.ContainsResource(new Uri("ex:Resource")));
+            Assert.IsTrue(Model2.ContainsResource(new Uri("http://example.org/MyResource")));
+            Assert.IsTrue(Model2.ContainsResource(new Uri("ex:Resource")));
         }
         
         [Test]
         public void CreateResourceTest()
         {
-            Assert.IsTrue(_model.ContainsResource(new Uri("http://example.org/MyResource")));
+            Assert.IsTrue(Model.ContainsResource(new Uri("http://example.org/MyResource")));
         }
 
         [Test]
@@ -222,35 +214,35 @@ namespace Semiodesk.Trinity.Test
             Uri uri0 = new Uri("http://example.org/MyResource");
             Uri uri1 = new Uri("http://example.org/MyResource1");
 
-            Assert.IsTrue(_model.ContainsResource(uri0));
+            Assert.IsTrue(Model.ContainsResource(uri0));
 
-            _model.DeleteResource(uri0);
+            Model.DeleteResource(uri0);
 
-            Assert.IsFalse(_model.ContainsResource(uri0));
+            Assert.IsFalse(Model.ContainsResource(uri0));
 
             Property p0 = new Property(new Uri("http://example.org/MyProperty"));
             Property p1 = new Property(new Uri("http://example.org/MyProperty1"));
 
-            IResource r0 = _model.CreateResource(uri0);
+            IResource r0 = Model.CreateResource(uri0);
             r0.AddProperty(p0, "in the jungle");
             r0.AddProperty(p0, 123);
             r0.Commit();
 
-            IResource r1 = _model.CreateResource(uri1);
+            IResource r1 = Model.CreateResource(uri1);
             r1.AddProperty(p0, 123);
             r1.AddProperty(p1, r0);
             r1.Commit();
 
-            Assert.IsTrue(_model.ContainsResource(r0));
-            Assert.IsTrue(_model.ContainsResource(r1));
+            Assert.IsTrue(Model.ContainsResource(r0));
+            Assert.IsTrue(Model.ContainsResource(r1));
 
-            _model.DeleteResource(r0);
+            Model.DeleteResource(r0);
 
-            Assert.IsFalse(_model.ContainsResource(r0));
-            Assert.IsTrue(_model.ContainsResource(r1));
+            Assert.IsFalse(Model.ContainsResource(r0));
+            Assert.IsTrue(Model.ContainsResource(r1));
 
             // Update the resource from the model.
-            r1 = _model.GetResource(uri1);
+            r1 = Model.GetResource(uri1);
 
             Assert.IsTrue(r1.HasProperty(p0, 123));
             Assert.IsFalse(r1.HasProperty(p1, r0));
@@ -259,15 +251,15 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void GetResourceTest()
         {
-            IResource hans = _model.GetResource(new Uri("http://example.org/MyResource"));
+            IResource hans = Model.GetResource(new Uri("http://example.org/MyResource"));
             Assert.NotNull(hans);
             Assert.NotNull(hans.Model);
 
-            hans = _model.GetResource<Resource>(new Uri("http://example.org/MyResource"));
+            hans = Model.GetResource<Resource>(new Uri("http://example.org/MyResource"));
             Assert.NotNull(hans);
             Assert.NotNull(hans.Model);
 
-            hans = _model.GetResource(new Uri("http://example.org/MyResource"), typeof(Resource)) as Resource;
+            hans = Model.GetResource(new Uri("http://example.org/MyResource"), typeof(Resource)) as Resource;
             Assert.NotNull(hans);
             Assert.NotNull(hans.Model);
         }
@@ -278,7 +270,7 @@ namespace Semiodesk.Trinity.Test
             SparqlQuery query = new SparqlQuery("DESCRIBE <http://example.org/MyResource>");
 
             List<Resource> resources = new List<Resource>();
-            resources.AddRange(_model.GetResources(query));
+            resources.AddRange(Model.GetResources(query));
 
             Assert.Greater(resources.Count, 0);
 
@@ -295,15 +287,15 @@ namespace Semiodesk.Trinity.Test
 
             Uri resourceUri = new Uri("http://example.org/MyResource");
 
-            IResource resource = _model.GetResource(resourceUri);
+            IResource resource = Model.GetResource(resourceUri);
             resource.RemoveProperty(property, 123);
             resource.Commit();
 
-            IResource actual = _model.GetResource(resourceUri);
+            IResource actual = Model.GetResource(resourceUri);
 
             Assert.AreEqual(resource, actual);
 
-            actual = _model.GetResource<Resource>(resourceUri);
+            actual = Model.GetResource<Resource>(resourceUri);
 
             Assert.AreEqual(resource, actual);
         }
@@ -312,7 +304,7 @@ namespace Semiodesk.Trinity.Test
         public void DateTimeResourceTest()
         {
             Uri resUri = new Uri("http://example.org/DateTimeTest");
-            IResource res = _model.CreateResource(resUri);
+            IResource res = Model.CreateResource(resUri);
 
             Property property = new Property(new Uri("http://example.org/MyProperty"));
 
@@ -322,7 +314,7 @@ namespace Semiodesk.Trinity.Test
             res.AddProperty(property, t);
             res.Commit();
 
-            IResource actual = _model.GetResource(resUri);
+            IResource actual = Model.GetResource(resUri);
             object o = actual.GetValue(property);
             Assert.AreEqual(typeof(DateTime), o.GetType());
             DateTime actualDateTime = (DateTime)actual.GetValue(property);
@@ -333,15 +325,15 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void LiteralWithHyphenTest()
         {
-            _model.Clear();
+            Model.Clear();
 
             Property property = new Property(new Uri("http://example.org/MyProperty"));
 
-            IResource model2_resource2 = _model.CreateResource(new Uri("ex:Resource"));
+            IResource model2_resource2 = Model.CreateResource(new Uri("ex:Resource"));
             model2_resource2.AddProperty(property, "\"in the jungle\"");
             model2_resource2.Commit();
 
-            IResource r = _model.GetResource(new Uri("ex:Resource"));
+            IResource r = Model.GetResource(new Uri("ex:Resource"));
             object o = r.GetValue(property);
             Assert.AreEqual(typeof(string), o.GetType());
             Assert.AreEqual("\"in the jungle\"", o);
@@ -350,15 +342,15 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void LiteralWithNewLineTest()
         {
-            _model.Clear();
+            Model.Clear();
 
             Property p0 = new Property(new Uri("http://example.org/MyProperty"));
 
-            IResource r0 = _model.CreateResource(new Uri("ex:Resource"));
+            IResource r0 = Model.CreateResource(new Uri("ex:Resource"));
             r0.AddProperty(p0, "in the\n jungle");
             r0.Commit();
 
-            r0 = _model.GetResource(new Uri("ex:Resource"));
+            r0 = Model.GetResource(new Uri("ex:Resource"));
 
             object o = r0.GetValue(p0);
 
@@ -377,9 +369,9 @@ namespace Semiodesk.Trinity.Test
             resource.AddProperty(property, 123);
             resource.AddProperty(property, DateTime.Now);
 
-            _model.AddResource(resource);
+            Model.AddResource(resource);
 
-            IResource actual = _model.GetResource(uriResource);
+            IResource actual = Model.GetResource(uriResource);
 
             Assert.AreEqual(uriResource, uriResource);
             Assert.AreEqual(resource.ListValues(property).Count(), actual.ListValues(property).Count());
@@ -389,9 +381,9 @@ namespace Semiodesk.Trinity.Test
             Contact contact = new Contact(uriResource);
             contact.Fullname = "Peter";
 
-            _model.AddResource<Contact>(contact);
+            Model.AddResource<Contact>(contact);
 
-            Contact actualContact = _model.GetResource<Contact>(uriResource);
+            Contact actualContact = Model.GetResource<Contact>(uriResource);
 
             Assert.AreEqual(uriResource, uriResource);
             Assert.AreEqual(contact.Fullname, actualContact.Fullname);
@@ -401,35 +393,35 @@ namespace Semiodesk.Trinity.Test
         public void GetTypedResourcesTest()
         {
             Uri uriResource = new Uri("http://example.org/Peter");
-            Contact contact = _model.CreateResource<Contact>(uriResource);
+            Contact contact = Model.CreateResource<Contact>(uriResource);
             contact.Fullname = "Peter";
             contact.Commit();
 
             uriResource = new Uri("http://example.org/Hans");
-            Contact contact2 = _model.CreateResource<Contact>(uriResource);
+            Contact contact2 = Model.CreateResource<Contact>(uriResource);
             contact2.Fullname = "Hans";
             contact2.Commit();
 
-            var res = _model.GetResources<Contact>();
+            var res = Model.GetResources<Contact>();
 
             Assert.AreEqual(2, res.Count());
             Assert.IsTrue(res.Contains(contact));
             Assert.IsTrue(res.Contains(contact2));
 
 
-            _model.Clear();
+            Model.Clear();
 
-            PersonContact personContact = _model.CreateResource<PersonContact>(uriResource);
+            PersonContact personContact = Model.CreateResource<PersonContact>(uriResource);
             personContact.Fullname = "Peter";
             personContact.Commit();
 
-            res = _model.GetResources<Contact>();
+            res = Model.GetResources<Contact>();
             Assert.AreEqual(0, res.Count());
 
-            res = _model.GetResources<Contact>(true);
+            res = Model.GetResources<Contact>(true);
             Assert.AreEqual(1, res.Count());
 
-            var x = _model.GetResource(uriResource);
+            var x = Model.GetResource(uriResource);
             Assert.AreEqual(typeof(PersonContact), x.GetType());
 
         }
@@ -437,51 +429,51 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void WriteTest()
         {
-            _model.Clear();
+            Model.Clear();
 
             Property property = new Property(new Uri("http://example.org/MyProperty"));
 
-            IResource model2_resource2 = _model.CreateResource(new Uri("ex:Resource"));
+            IResource model2_resource2 = Model.CreateResource(new Uri("ex:Resource"));
             model2_resource2.AddProperty(property, "in the\n jungle");
             model2_resource2.Commit();
 
             MemoryStream wr = new MemoryStream();
-            _model.Write(wr, RdfSerializationFormat.RdfXml);
+            Model.Write(wr, RdfSerializationFormat.RdfXml);
             var myString = Encoding.UTF8.GetString(wr.ToArray());
         }
 
         [Test]
         public void ReadTest()
         {
-            _model.Clear();
+            Model.Clear();
 
             FileInfo fi = new FileInfo("Models\\test-ntriples.nt");
             UriRef fileUri = fi.ToUriRef();
 
-            Assert.IsTrue(_model.IsEmpty);
-            Assert.IsTrue(_model.Read(fileUri, RdfSerializationFormat.NTriples, false));
-            Assert.IsFalse(_model.IsEmpty);
+            Assert.IsTrue(Model.IsEmpty);
+            Assert.IsTrue(Model.Read(fileUri, RdfSerializationFormat.NTriples, false));
+            Assert.IsFalse(Model.IsEmpty);
 
-            _model.Clear();
+            Model.Clear();
 
-            Assert.IsTrue(_model.IsEmpty);
-            Assert.IsTrue(_model.Read(new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#"), RdfSerializationFormat.RdfXml, false));
-            Assert.IsFalse(_model.IsEmpty);
+            Assert.IsTrue(Model.IsEmpty);
+            Assert.IsTrue(Model.Read(new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#"), RdfSerializationFormat.RdfXml, false));
+            Assert.IsFalse(Model.IsEmpty);
 
-            _model.Clear();
+            Model.Clear();
 
             fi = new FileInfo("Models\\test-tmo.trig");
             fileUri = fi.ToUriRef();
 
-            Assert.IsTrue(_model.IsEmpty);
-            Assert.Throws(typeof(ArgumentException), () => { _model.Read(fileUri, RdfSerializationFormat.Trig, false); });
+            Assert.IsTrue(Model.IsEmpty);
+            Assert.Throws(typeof(ArgumentException), () => { Model.Read(fileUri, RdfSerializationFormat.Trig, false); });
             
         }
 
         [Test]
         public void ReadFromStringTest()
         {
-            _model.Clear();
+            Model.Clear();
 
             string turtle = @"@base <http://example.org/> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -500,10 +492,10 @@ namespace Semiodesk.Trinity.Test
 
             using (Stream s = GenerateStreamFromString(turtle))
             {
-                Assert.IsTrue(_model.Read(s, RdfSerializationFormat.Turtle, false));
+                Assert.IsTrue(Model.Read(s, RdfSerializationFormat.Turtle, false));
             }
 
-            IResource r = _model.GetResource(new Uri("http://example.org/#green-goblin"));
+            IResource r = Model.GetResource(new Uri("http://example.org/#green-goblin"));
             string name = r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/name"))) as string;
             Assert.AreEqual("Green Goblin", name);
 
@@ -516,10 +508,10 @@ namespace Semiodesk.Trinity.Test
 
             using (Stream s = GenerateStreamFromString(turtle2))
             {
-                Assert.IsTrue(_model.Read(s, RdfSerializationFormat.Turtle, true));
+                Assert.IsTrue(Model.Read(s, RdfSerializationFormat.Turtle, true));
             }
 
-            r = _model.GetResource(new Uri("http://example.org/#green-goblin"));
+            r = Model.GetResource(new Uri("http://example.org/#green-goblin"));
             int age = (int)r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/age")));
             name = r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/name"))) as string;
             Assert.AreEqual(27, age);
@@ -541,10 +533,10 @@ namespace Semiodesk.Trinity.Test
 
             using (Stream s = GenerateStreamFromString(turtle))
             {
-                Assert.IsTrue(_model.Read(s, RdfSerializationFormat.Turtle, false));
+                Assert.IsTrue(Model.Read(s, RdfSerializationFormat.Turtle, false));
             }
 
-            r = _model.GetResource(new Uri("http://example.org/#green-goblin"));
+            r = Model.GetResource(new Uri("http://example.org/#green-goblin"));
             name = r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/name"))) as string;
             Assert.AreEqual("Green Gobo", name);
         }
@@ -553,12 +545,12 @@ namespace Semiodesk.Trinity.Test
         public void TestAddMultipleResources()
         {
             Assert.Inconclusive("Reevaluate with more recent version of virtuoso client library.");
-            _model.Clear();
+            Model.Clear();
             for (int j = 1; j < 7; j++)
             {
                 for (int i = 1; i < 1000; i++)
                 {
-                    using (PersonContact pers = _model.CreateResource<PersonContact>())
+                    using (PersonContact pers = Model.CreateResource<PersonContact>())
                     {
                         pers.Fullname = string.Format("Name {0}", i * j);
                         pers.Commit();
