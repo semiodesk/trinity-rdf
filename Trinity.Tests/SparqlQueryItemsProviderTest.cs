@@ -35,26 +35,21 @@ namespace Semiodesk.Trinity.Test
     [TestFixture]
     class SparqlQueryItemsProviderTest
     {
-        private IStore _store;
+        protected IStore Store;
 
-        protected IModel Model = null;
+        protected IModel Model;
 
         [SetUp]
         public void SetUp()
         {
             string connectionString = SetupClass.ConnectionString;
 
-            _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+            Store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+            Model = Store.GetModel(new Uri("http://example.org/TestModel"));
 
-            Uri modelUri = new Uri("http://example.org/TestModel");
-
-            if (_store.ContainsModel(modelUri))
+            if (!Model.IsEmpty)
             {
-                Model = _store.GetModel(modelUri);
-            }
-            else
-            {
-                Model = _store.CreateModel(modelUri);
+                Model.Clear();
             }
 
             OntologyDiscovery.AddNamespace("ex", new Uri("http://example.org/"));
@@ -87,7 +82,7 @@ namespace Semiodesk.Trinity.Test
         {
             Model.Clear();
 
-            _store.Dispose();
+            Store.Dispose();
         }
 
         [Test]

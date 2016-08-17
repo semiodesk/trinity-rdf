@@ -48,16 +48,19 @@ namespace Semiodesk.Trinity.Test
     public class CilgResourceMappingTest
     {
         public static bool RegisteredOntology = false;
+
         private IStore _store;
 
         IModel GetModel()
         {
             string connectionString = SetupClass.ConnectionString;
+
             _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
 
             Uri testModelUri = new Uri("http://example.org/TestModel");
 
             IModel model;
+
             if (_store.ContainsModel(testModelUri))
             {
                 model = _store.GetModel(testModelUri);
@@ -81,14 +84,15 @@ namespace Semiodesk.Trinity.Test
         public void TearDown()
         {
             if (_store != null)
+            {
                 _store.Dispose();
+            }
         }
 
 
         [Test]
         public void AddRemoveIntegerTest()
         {
-            
             IModel m = GetModel();
             m.Clear();
 
@@ -258,6 +262,43 @@ namespace Semiodesk.Trinity.Test
 
             m.Clear();
         }
+
+        [Test]
+        public void AddRemoveUriTest()
+        {
+            IModel model = GetModel();
+
+            if (!model.IsEmpty)
+            {
+                model.Clear();
+            }
+
+            Uri uri1 = new Uri("urn:1");
+            Uri uri2 = new Uri("file:///a.bc");
+            Uri uri3 = new Uri("file:///x.yz");
+
+            // 1. Create a new instance of the test class and commit it to the model.
+            CilgMappingTestClass test1 = model.CreateResource<CilgMappingTestClass>(uri1);
+            test1.uriProperty = new Resource(uri2);
+            test1.Commit();
+
+            // 2. Retrieve a new copy of the instance and validate the mapped URI property.
+            test1 = model.GetResource<CilgMappingTestClass>(uri1);
+
+            Assert.NotNull(test1.uriProperty);
+            Assert.AreEqual(test1.uriProperty.Uri, uri2);
+
+            // 3. Change the property and commit the resource.
+            test1.uriProperty = new Resource(uri3);
+            test1.Commit();
+
+            // 4. Retrieve a new copy of the instance and validate the changed URI property.
+            test1 = model.GetResource<CilgMappingTestClass>(uri1);
+
+            Assert.NotNull(test1.uriProperty);
+            Assert.AreEqual(test1.uriProperty.Uri, uri3);
+        }
+
         /*
         /// <summary>
         /// This Test fails because the datatype "unsigned int" is not stored correctly in the database. 

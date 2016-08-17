@@ -42,40 +42,40 @@ namespace Semiodesk.Trinity.Test
     [TestFixture]
     class TransactionTest
     {
-        UriRef transactionModel = new UriRef("ex:TransactionTest");
         IStore Store;
-        string providerString = SetupClass.ConnectionString;
 
+        UriRef transactionModel = new UriRef("ex:TransactionTest");
+
+        string providerString = SetupClass.ConnectionString;
 
         [SetUp]
         public void SetUp()
         {
-
             Store = StoreFactory.CreateStore(providerString);
 
-            if (Store.ContainsModel(transactionModel))
+            IModel model = Store.GetModel(transactionModel);
+
+            if(!model.IsEmpty)
             {
-                Store.RemoveModel(transactionModel);
+                model.Clear();
             }
-            IModel m = Store.CreateModel(transactionModel);
-
-            
-
-
         }
 
         [TearDown]
         public void TearDown()
         {
-            if (Store.ContainsModel(transactionModel))
+            IModel model = Store.GetModel(transactionModel);
+
+            if (!model.IsEmpty)
             {
-                Store.RemoveModel(transactionModel);
+                model.Clear();
             }
         }
 
         public IModel GetModel(out IStore store)
         {
             store = StoreFactory.CreateStore(providerString);
+
             return store.GetModel(transactionModel);
         }
 

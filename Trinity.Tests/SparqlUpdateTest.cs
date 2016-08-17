@@ -51,16 +51,11 @@ namespace Semiodesk.Trinity.Test
             string connectionString = SetupClass.ConnectionString;
 
             _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+            _model = _store.GetModel(new Uri("ex:TestModel"));
 
-            Uri modelUri = new Uri("ex:TestModel");
-
-            if (_store.ContainsModel(modelUri))
+            if (!_model.IsEmpty)
             {
-                _model = _store.GetModel(modelUri);
-            }
-            else
-            {
-                _model = _store.CreateModel(modelUri);
+                _model.Clear();
             }
 
             OntologyDiscovery.AddNamespace("vcard", new Uri("http://www.w3.org/2001/vcard-rdf/3.0#"));
