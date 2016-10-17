@@ -102,7 +102,7 @@ namespace Semiodesk.Trinity
 
             if (!mapping.IsList && cachedUris.Count > 1)
             {
-                throw new Exception(string.Format("An error occured while loading the cached resources for property {0}.", mapping.PropertyName));
+                throw new Exception(string.Format("An error occured while loading the cached resources for property {0}. Found {1} elements but it is mapped to a non-list property. Try to map to a list of objects.", mapping.PropertyName, cachedUris.Count));
             }
 
             foreach (Uri u in cachedUris)
