@@ -44,24 +44,19 @@ namespace Semiodesk.Trinity.Test
     [TestFixture]
     public class DotNetRDF_SparqlQueryTest
     {
-        protected IStore _store;
+        protected IStore Store;
 
         protected IModel Model = null;
 
         [SetUp]
         public void SetUp()
         {
-            _store = StoreFactory.CreateStore("provider=dotnetrdf");
+            Store = StoreFactory.CreateStore("provider=dotnetrdf");
+            Model = Store.GetModel(new Uri("http://example.org/TestModel"));
 
-            Uri modelUri = new Uri("http://example.org/TestModel");
-
-            if (_store.ContainsModel(modelUri))
+            if (!Model.IsEmpty)
             {
-                Model = _store.GetModel(modelUri);
-            }
-            else
-            {
-                Model = _store.CreateModel(modelUri);
+                Model.Clear();
             }
 
             OntologyDiscovery.AddNamespace("ex", new Uri("http://example.org/"));
@@ -225,10 +220,10 @@ namespace Semiodesk.Trinity.Test
         public void TestInferencing()
         {
             Assert.Inconclusive("dotnetrdf does not support inferencing.");
-            _store = StoreFactory.CreateStore("provider=dotnetrdf;schema=Models/test-vocab.rdf");
+            Store = StoreFactory.CreateStore("provider=dotnetrdf;schema=Models/test-vocab.rdf");
 
 
-            var model = _store.CreateModel(new Uri("http://example.org/TestModel"));
+            var model = Store.CreateModel(new Uri("http://example.org/TestModel"));
 
             Class horse = new Class(new Uri("http://www.semiodesk.com/ontologies/test#Horse"));
             Class animal = new Class(new Uri("http://www.semiodesk.com/ontologies/test#Animal"));

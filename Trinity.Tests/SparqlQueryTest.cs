@@ -37,15 +37,16 @@ using Semiodesk.Trinity;
 using Semiodesk.Trinity.Ontologies;
 
 using NUnit.Framework;
+using System.Text.RegularExpressions;
 
 namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class SparqlQueryTest
     {
-        IStore _store;
+        protected IStore Store;
 
-        protected IModel Model = null;
+        protected IModel Model;
 
         protected NamespaceManager NamespaceManager = new NamespaceManager();
 
@@ -55,17 +56,12 @@ namespace Semiodesk.Trinity.Test
         {
             string connectionString = SetupClass.ConnectionString;
 
-            _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+            Store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+            Model = Store.GetModel(new Uri("http://example.org/TestModel"));
 
-            Uri modelUri = new Uri("http://example.org/TestModel");
-
-            if (_store.ContainsModel(modelUri))
+            if (!Model.IsEmpty)
             {
-                Model = _store.GetModel(modelUri);
-            }
-            else
-            {
-                Model = _store.CreateModel(modelUri);
+                Model.Clear();
             }
 
             OntologyDiscovery.AddNamespace("ex", new Uri("http://example.org/"));
@@ -120,9 +116,9 @@ namespace Semiodesk.Trinity.Test
         {
             Model.Clear();
 
-            if (_store != null)
+            if (Store != null)
             {
-                _store.Dispose();
+                Store.Dispose();
             }
         }
 
@@ -446,15 +442,45 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestSetModel()
         {
+            Regex expression = new Regex(Regex.Escape("FROM"));
+
             SparqlQuery query = new SparqlQuery("SELECT COUNT(?s) AS ?count WHERE { ?s ?p ?o . }");
 
             Assert.IsNull(query.Model);
-            Assert.IsFalse(query.ToString().Contains("FROM"));
+            Assert.AreEqual(0, expression.Matches(query.ToString()).Count);
 
             query.Model = Model;
 
             Assert.NotNull(query.Model);
-            Assert.IsTrue(query.ToString().Contains("FROM"));
+            Assert.AreEqual(1, expression.Matches(query.ToString()).Count);
+
+            SparqlQuery query2 = new SparqlQuery("ASK FROM <http://example.org/TestModel> WHERE { ?s ?p ?o . }");
+
+            Assert.IsNull(query2.Model);
+            Assert.AreEqual(1, expression.Matches(query2.ToString()).Count);
+
+            query2.Model = Model;
+
+            Assert.IsNotNull(query2.Model);
+            Assert.AreEqual(1, expression.Matches(query2.ToString()).Count);
+
+            SparqlQuery query3 = new SparqlQuery("ASK FROM @graph WHERE { ?s ?p ?o . }");
+            query3.Bind("@graph", Model);
+
+            Assert.IsNull(query3.Model);
+            Assert.AreEqual(1, expression.Matches(query3.ToString()).Count);
+
+            query3.Model = Model;
+
+            Assert.IsNotNull(query3.Model);
+            Assert.AreEqual(1, expression.Matches(query3.ToString()).Count);
+
+            SparqlQuery query4 = new SparqlQuery("ASK FROM @graph WHERE { ?s ?p ?o . }");
+            query4.Model = Model;
+
+            Assert.IsNotNull(query4.Model);
+
+            Assert.Throws<ArgumentException>(delegate { query4.Bind("@graph", Model); });
         }
 
         [Test]
@@ -584,7 +610,7 @@ namespace Semiodesk.Trinity.Test
         {
             Uri modelUri1 = new Uri("http://example.org/TestModel1");
             Uri modelUri2 = new Uri("http://example.org/TestModel2");
-            IModelGroup g = _store.CreateModelGroup(modelUri1, modelUri2);
+            IModelGroup g = Store.CreateModelGroup(modelUri1, modelUri2);
             var query = new SparqlQuery("PREFIX nco: <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#> SELECT ?s ?p ?o WHERE { ?s ?p ?o. ?s nco:fullname 'Hans Wurscht'. }");
             query.Model = g;
             var x = query.ToString();
