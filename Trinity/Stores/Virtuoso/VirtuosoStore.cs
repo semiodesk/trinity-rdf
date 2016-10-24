@@ -585,6 +585,9 @@ namespace Semiodesk.Trinity.Store
                 {
                     throw new Exception(string.Format("Could not read config file from {0}. Reason: {1}", configPath, e.Message));
                 }
+
+                if( settings == null )
+                    throw new Exception(string.Format("TrinitySettings sections could not be found. Make sure the configSections element is at the top of the file {0}.", configPath));
             }
             else
             {
