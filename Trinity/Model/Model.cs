@@ -87,9 +87,8 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// This constructor is intended to be used only be the ModelManager.
         /// </summary>
+        /// <param name="store">The underlying triple store implementation to be used.</param>
         /// <param name="uri">Uniform Resource Identifier of the model.</param>
-        /// <param name="graph">Graph containing the RDF statements.</param>
-        /// <param name="graphManager">RDF backend to manage the models RDF graph.</param>
         public Model(IStore store, UriRef uri)
         {
             _store = store;
@@ -119,7 +118,6 @@ namespace Semiodesk.Trinity
             if (_store != null)
             {
                 _store.RemoveModel(Uri);
-                //_store.CreateModel(Uri);
             }
         }
 
@@ -142,8 +140,6 @@ namespace Semiodesk.Trinity
 
             return result;
         }
-
-        
 
         /// <summary>
         /// Adds an existing resource to the model and its backing RDF store. The resulting resource supports the use of the Commit() method.
@@ -188,13 +184,13 @@ namespace Semiodesk.Trinity
         {
             if (ContainsResource(uri, transaction))
             {
-                string msg = "A resource with the given URI already exists.";
-                throw new ArgumentException(msg);
+                throw new ArgumentException("A resource with the given URI already exists.");
             }
 
             Resource resource = new Resource(uri);
             resource.IsNew = true;
             resource.SetModel(this);
+
             return resource;
         }
 
@@ -255,8 +251,7 @@ namespace Semiodesk.Trinity
 
             if (ContainsResource(uri, transaction))
             {
-                string msg = "A resource with the given URI already exists.";
-                throw new ArgumentException(msg);
+                throw new ArgumentException("A resource with the given URI already exists.");
             }
 
             Resource resource = (Resource)Activator.CreateInstance(t, uri);
@@ -341,7 +336,7 @@ namespace Semiodesk.Trinity
         /// <returns>True if the resource is part of the model, False if not.</returns>
         public bool ContainsResource(Uri uri, ITransaction transaction = null)
         {
-            SparqlQuery query = new SparqlQuery("ASK FROM @graph { @subject ?p ?o . }");
+            ISparqlQuery query = new SparqlQuery("ASK FROM @graph { @subject ?p ?o . }");
             query.Bind("@graph", this.Uri);
             query.Bind("@subject", uri);
 
@@ -623,6 +618,7 @@ namespace Semiodesk.Trinity
         public IEnumerable<T> GetResources<T>(bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
         {
             T temp = (T)Activator.CreateInstance(typeof(T), new Uri("semio:desk"));
+
             ResourceQuery query = new ResourceQuery(temp.GetTypes());
             query.InferencingEnabled = inferenceEnabled;
 
@@ -665,16 +661,19 @@ namespace Semiodesk.Trinity
         public bool Read(Uri url, RdfSerializationFormat format, bool update)
         {
             if (format == RdfSerializationFormat.Trig)
+            {
                 throw new ArgumentException("Quadruple serialization formats are not supported by this method. Use IStore.Read() instead.");
+            }
 
             return (_store.Read(Uri, url, format, update) != null);
         }
 
-
         public bool Read(Stream stream, RdfSerializationFormat format, bool update)
         {
             if (format == RdfSerializationFormat.Trig)
+            {
                 throw new ArgumentException("Quadruple serialization formats are not supported by this method. Use IStore.Read() instead.");
+            }
 
             return (_store.Read(stream, Uri, format, update) != null);
         }
@@ -688,7 +687,6 @@ namespace Semiodesk.Trinity
         {
             return _store.BeginTransaction(isolationLevel);
         }
-
 
         #endregion
     }
