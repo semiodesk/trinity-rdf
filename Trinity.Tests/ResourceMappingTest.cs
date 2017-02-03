@@ -98,6 +98,44 @@ namespace Semiodesk.Trinity.Test
         #endregion
     }
 
+    public class ResourceMappingTestClass : Resource
+    {
+        #region Members
+
+        protected PropertyMapping<int> IntegerValueMapping = new PropertyMapping<int>("IntegerValue", TestOntology.intTest);
+
+        public int IntegerValue
+        {
+            get { return GetValue(IntegerValueMapping); }
+            set { SetValue(IntegerValueMapping, value); }
+        }
+
+        protected PropertyMapping<ResourceMappingTestClass> ResourceMapping = new PropertyMapping<ResourceMappingTestClass>("Resource", TestOntology.resourceTest);
+
+        public ResourceMappingTestClass Resource
+        {
+            get { return GetValue(ResourceMapping); }
+            set { SetValue(ResourceMapping, value); }
+        }
+
+        #endregion
+
+        #region Constructors
+
+        public ResourceMappingTestClass(Uri uri) : base(uri) { }
+
+        #endregion
+
+        #region Methods
+
+        public override IEnumerable<Class> GetTypes()
+        {
+            yield return TestOntology.ResourceMappingTestClass;
+        }
+
+        #endregion
+    }
+
     public class MappingTestClass : Resource
     {
         #region Constructors
