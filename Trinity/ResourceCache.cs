@@ -36,11 +36,11 @@ namespace Semiodesk.Trinity
 {
     class ResourceCache
     {
-        #region Fields
-
-        protected Dictionary<IPropertyMapping, List<Uri>> Cache = new Dictionary<IPropertyMapping, List<Uri>>();
+        #region Members
 
         public IModel Model;
+
+        protected Dictionary<IPropertyMapping, HashSet<Uri>> Cache = new Dictionary<IPropertyMapping, HashSet<Uri>>();
 
         #endregion
 
@@ -61,12 +61,16 @@ namespace Semiodesk.Trinity
         {
             if (!Cache.ContainsKey(mapping))
             {
-                Cache.Add(mapping, new List<Uri>());
-                Cache[mapping].AddRange(values);
+                Cache[mapping] = new HashSet<Uri>(values);
             }
             else
             {
-                Cache[mapping].AddRange(values);
+                HashSet<Uri> cache = Cache[mapping];
+
+                foreach (Uri value in values)
+                {
+                    cache.Add(value);
+                }
             }
         }
 
@@ -74,12 +78,13 @@ namespace Semiodesk.Trinity
         {
             if (!Cache.ContainsKey(mapping))
             {
-                Cache[mapping] = new List<Uri>();
-                Cache[mapping].Add(value);
+                Cache[mapping] = new HashSet<Uri>() { value };
             }
             else
             {
-                Cache[mapping].Add(value);
+                HashSet<Uri> cache = Cache[mapping];
+
+                cache.Add(value);
             }
         }
 
@@ -98,7 +103,7 @@ namespace Semiodesk.Trinity
 
             Type baseType = (mapping.IsList) ? mapping.GenericType : mapping.DataType;
 
-            List<Uri> cachedUris = Cache[mapping];
+            HashSet<Uri> cachedUris = Cache[mapping];
 
             if (!mapping.IsList && cachedUris.Count > 1)
             {
@@ -159,11 +164,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public bool HasCachedValues(IPropertyMapping mapping, Uri uri)
         {
-            if (Cache.ContainsKey(mapping))
-            {
-                return Cache[mapping].Contains(uri);
-            }
-            return false;
+            return Cache.ContainsKey(mapping) ? Cache[mapping].Contains(uri) : false;
         }
 
         /// <summary>
@@ -173,22 +174,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public bool HasCachedValue(Uri uri)
         {
-            foreach (List<Uri> l in Cache.Values)
-            {
-                if (l.Contains(uri))
-                    return true;
-            }
-            return false;
-        }
-
-        public IPropertyMapping ValueMappedOn(Uri uri)
-        {
-            foreach (KeyValuePair<IPropertyMapping, List<Uri>> pair in Cache)
-            {
-                if (pair.Value.Contains(uri))
-                    return pair.Key;
-            }
-            return null;
+            return Cache.Values.Any(set => set.Contains(uri));
         }
 
         public IEnumerable<Uri> ListCachedValues(IPropertyMapping mapping)
@@ -196,8 +182,6 @@ namespace Semiodesk.Trinity
             return Cache[mapping];
         }
 
-
         #endregion
-
     }
 }

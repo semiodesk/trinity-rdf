@@ -159,20 +159,6 @@ namespace Semiodesk.Trinity.Store
         [Obsolete("It is not necessary to create models explicitly. Use GetModel() instead, if the model does not exist, it will be created implicitly.")]
         public IModel CreateModel(Uri uri)
         {
-            //Model model = null;
-
-            //using (ITransaction transaction = this.BeginTransaction(IsolationLevel.ReadCommitted))
-            //{
-            //    model = new Model(this, uri.ToUriRef());
-
-            //    SparqlUpdate update = new SparqlUpdate(string.Format("CREATE GRAPH <{0}>", uri.AbsoluteUri));
-
-            //    ExecuteNonQuery(update, transaction);
-
-            //    transaction.Commit();
-            //}
-
-            //return model;
             return GetModel(uri);
         }
 
@@ -182,10 +168,12 @@ namespace Semiodesk.Trinity.Store
             {
                 try
                 {
-                    SparqlUpdate update = new SparqlUpdate(string.Format("CLEAR GRAPH <{0}>", uri.AbsoluteUri));
-                    ExecuteNonQuery(update, transaction);
-                    update = new SparqlUpdate(string.Format("DROP GRAPH <{0}>", uri.AbsoluteUri));
-                    ExecuteNonQuery(update, transaction);
+                    SparqlUpdate clear = new SparqlUpdate(string.Format("CLEAR GRAPH <{0}>", uri.AbsoluteUri));
+                    ExecuteNonQuery(clear, transaction);
+
+                    SparqlUpdate drop = new SparqlUpdate(string.Format("DROP GRAPH <{0}>", uri.AbsoluteUri));
+                    ExecuteNonQuery(drop, transaction);
+
                     transaction.Commit();
                 }
                 catch (Exception)
@@ -202,21 +190,20 @@ namespace Semiodesk.Trinity.Store
         [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
         public bool ContainsModel(Uri uri)
         {
-          if (uri == null)
-            return false;
-
-            bool result = false;
-
-            using (ITransaction transaction = this.BeginTransaction(IsolationLevel.ReadCommitted))
+            if (uri != null)
             {
-                string query = string.Format("SPARQL ASK {{ GRAPH <{0}> {{ ?s ?p ?o . }} }}", uri.AbsoluteUri);
+                using (ITransaction transaction = this.BeginTransaction(IsolationLevel.ReadCommitted))
+                {
+                    string query = string.Format("SPARQL ASK {{ GRAPH <{0}> {{ ?s ?p ?o . }} }}", uri.AbsoluteUri);
 
-                var res = ExecuteQuery(query, transaction);
-                result = res.Rows.Count > 0;
-                res.Dispose();
+                    using(var result = ExecuteQuery(query, transaction))
+                    {
+                        return result.Rows.Count > 0;
+                    }
+                }
             }
 
-            return result;
+            return false;
         }
 
         [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
@@ -232,27 +219,28 @@ namespace Semiodesk.Trinity.Store
 
         public IEnumerable<IModel> ListModels()
         {
-            SparqlQuery update = new SparqlQuery("SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } }");
+            ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } }");
 
-            var result = ExecuteQuery(update);
+            ISparqlQueryResult result = ExecuteQuery(query);
 
-            foreach(var bindingSet in result.GetBindings())
+            foreach(BindingSet b in result.GetBindings())
             {
-                IModel m = null;
+                IModel model = null;
 
                 try
                 {
-                    var x = bindingSet["g"];
-                    m = new Model(this, new UriRef(x.ToString()));
+                    var x = b["g"];
+
+                    model = new Model(this, new UriRef(x.ToString()));
                 }
                 catch (Exception)
                 {
                     continue;
                 }
 
-                if (m != null)
+                if (model != null)
                 {
-                    yield return m;
+                    yield return model;
                 }
             }
         }
@@ -261,6 +249,7 @@ namespace Semiodesk.Trinity.Store
         {
             VirtuosoTransaction transaction = new VirtuosoTransaction(this);
             transaction.Transaction = Connection.BeginTransaction();
+
             return transaction;
         }
 
@@ -268,6 +257,7 @@ namespace Semiodesk.Trinity.Store
         {
             VirtuosoTransaction transaction = new VirtuosoTransaction(this);
             transaction.Transaction = Connection.BeginTransaction(isolationLevel);
+
             return transaction;
         }
 
@@ -317,6 +307,11 @@ namespace Semiodesk.Trinity.Store
 
             try
             {
+                if(Connection.State != ConnectionState.Open)
+                {
+                    throw new Exception("Lost database connection to Virtuoso store.");
+                }
+
                 command = Connection.CreateCommand();
                 command.CommandText = queryString;
 
@@ -336,16 +331,17 @@ namespace Semiodesk.Trinity.Store
             {
                 string msg = string.Format("Error: Caught {0} exception.", ex.GetType());
                 Debug.WriteLine(msg);
-            } /* This seems to be different in 7.x version of Openlink.Virtuoso.dll
-            catch (VirtuosoException e)
-            {
+            }
+            // This seems to be different in 7.x version of Openlink.Virtuoso.dll
+            //catch (VirtuosoException e)
+            //{
                
-                if (e.ErrorCode == 40001)
-                    throw new ResourceLockedException(e);
-                else
+            //    if (e.ErrorCode == 40001)
+            //        throw new ResourceLockedException(e);
+            //    else
                 
-                    throw;
-            } */
+            //        throw;
+            //}
             finally
             {
                 if (adapter != null)
@@ -387,12 +383,16 @@ namespace Semiodesk.Trinity.Store
                 if (e.Errors.Count > 0)
                 {
                     var er = e.Errors[0];
+
                     if (er.SQLState == "40001")
+                    {
                         throw new ResourceLockedException(e);
+                    }
                 }
-               
                 else
+                {
                     throw;
+                }
             }
             finally
             {
@@ -413,6 +413,7 @@ namespace Semiodesk.Trinity.Store
         private string GetLocalPathFromUrl(Uri url)
         {
             string path;
+
             if (url.IsAbsoluteUri)
             {
                 path = url.LocalPath;
@@ -421,6 +422,7 @@ namespace Semiodesk.Trinity.Store
             {
                 path = Path.Combine(Directory.GetCurrentDirectory(), url.OriginalString.Substring(5));
             }
+
             return path;
         }
 
@@ -478,19 +480,24 @@ namespace Semiodesk.Trinity.Store
 
         private Uri ReadQuadFormat(TextReader reader, Uri graph, RdfSerializationFormat format, bool update)
         {
-            using (VDS.RDF.Storage.VirtuosoManager m = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
+            using (VDS.RDF.Storage.VirtuosoManager manager = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
             {
                 using (VDS.RDF.ThreadSafeTripleStore store = new VDS.RDF.ThreadSafeTripleStore())
                 {
-                    VDS.RDF.Parsing.TriGParser p = new TriGParser();
-                    p.Load(store, reader);
-                    foreach (var x in store.Graphs)
+                    VDS.RDF.Parsing.TriGParser parser = new TriGParser();
+
+                    parser.Load(store, reader);
+
+                    foreach (var g in store.Graphs)
                     {
                         if (update)
-                            m.UpdateGraph(x.BaseUri, x.Triples, new Triple[] { });
+                        {
+                            manager.UpdateGraph(g.BaseUri, g.Triples, new Triple[] { });
+                        }
                         else
-                            m.SaveGraph(x);
-                        
+                        {
+                            manager.SaveGraph(g);
+                        }
                     }
                 }
             }
@@ -500,17 +507,24 @@ namespace Semiodesk.Trinity.Store
 
         private Uri ReadTripleFormat(TextReader reader, Uri graphUri, RdfSerializationFormat format, bool update)
         {
-            using (VDS.RDF.Storage.VirtuosoManager m = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
+            using (VDS.RDF.Storage.VirtuosoManager manager = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
             {
                 using (VDS.RDF.Graph graph = new VDS.RDF.Graph())
                 {
                     IRdfReader parser = dotNetRDFStore.GetReader(format);
+
                     parser.Load(graph, reader);
+
                     graph.BaseUri = graphUri;
+
                     if (update)
-                        m.UpdateGraph(graphUri, graph.Triples, new Triple[]{});
+                    {
+                        manager.UpdateGraph(graphUri, graph.Triples, new Triple[] { });
+                    }
                     else
-                        m.SaveGraph(graph);
+                    {
+                        manager.SaveGraph(graph);
+                    }
                 }
             }
 
@@ -519,13 +533,15 @@ namespace Semiodesk.Trinity.Store
 
         private Uri ReadRemoteTripleFormat(Uri graph, Uri location, RdfSerializationFormat format)
         {
-            using (VDS.RDF.Storage.VirtuosoManager m = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
+            using (VDS.RDF.Storage.VirtuosoManager manager = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
             {
                 using (VDS.RDF.Graph g = new VDS.RDF.Graph())
                 {
                     UriLoader.Load(g, location);
+
                     g.BaseUri = graph;
-                    m.SaveGraph(g);
+
+                    manager.SaveGraph(g);
                 }
             }
 
@@ -534,22 +550,24 @@ namespace Semiodesk.Trinity.Store
 
         public void Write(Stream fs, Uri graph, RdfSerializationFormat format)
         {
-            using (VDS.RDF.Storage.VirtuosoManager m = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
+            using (VDS.RDF.Storage.VirtuosoManager manager = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
             {
                 using (VDS.RDF.Graph g = new VDS.RDF.Graph())
                 {
-                    m.LoadGraph(g, graph);
+                    manager.LoadGraph(g, graph);
 
-                    StreamWriter sw = new StreamWriter(fs, Encoding.UTF8);
+                    StreamWriter streamWriter = new StreamWriter(fs, Encoding.UTF8);
 
                     switch (format)
                     {
                         case RdfSerializationFormat.RdfXml:
-                            {
-                                VDS.RDF.Writing.RdfXmlWriter wr = new VDS.RDF.Writing.RdfXmlWriter();
-                                wr.Save(g, sw);
-                                break;
-                            }
+                        {
+                            VDS.RDF.Writing.RdfXmlWriter xmlWriter = new VDS.RDF.Writing.RdfXmlWriter();
+
+                            xmlWriter.Save(g, streamWriter);
+
+                            break;
+                        }
                     }
                 }
             }
@@ -557,13 +575,14 @@ namespace Semiodesk.Trinity.Store
 
         public IModelGroup CreateModelGroup(params Uri[] models)
         {
-            List<IModel> modelList = new List<IModel>();
-            foreach (var x in models)
+            List<IModel> result = new List<IModel>();
+
+            foreach (var model in models)
             {
-                modelList.Add(GetModel(x));
+                result.Add(GetModel(model));
             }
 
-            return new ModelGroup(this, modelList);
+            return new ModelGroup(this, result);
         }
 
         public void LoadOntologySettings(string configPath = null, string sourceDir = "")
@@ -577,6 +596,7 @@ namespace Semiodesk.Trinity.Store
                 configMap.ExeConfigFilename = configPath;
 
                 var configuration = ConfigurationManager.OpenMappedExeConfiguration(configMap, ConfigurationUserLevel.None);
+
                 try
                 {
                     settings = (TrinitySettings)configuration.GetSection("TrinitySettings");
@@ -592,6 +612,7 @@ namespace Semiodesk.Trinity.Store
             }
 
             DirectoryInfo srcDir;
+
             if (string.IsNullOrEmpty(sourceDir))
             {
                 srcDir = new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
@@ -600,6 +621,7 @@ namespace Semiodesk.Trinity.Store
             {
                 srcDir = new DirectoryInfo(sourceDir);
             }
+
             StoreUpdater updater = new StoreUpdater(this, srcDir);
             updater.UpdateOntologies(settings.Ontologies);
 
@@ -610,6 +632,7 @@ namespace Semiodesk.Trinity.Store
             }
             
         }
+
         #endregion
 
         #region Event Handlers
