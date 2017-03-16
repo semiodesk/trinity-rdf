@@ -59,6 +59,7 @@ namespace Semiodesk.Trinity.Test
         public static readonly Class SingleMappingTestClass = new Class(new Uri(SingleMappingTestClassString));
         public const string SingleMappingTestClassString = "semio:test:SingleMappingTestClass";
         public static readonly Class SingleResourceMappingTestClass = new Class(new Uri("semio:test:SingleResourceMappingTestClass"));
+        public static readonly Class ResourceMappingTestClass = new Class(new Uri("semio:test:ResourceMappingTestClass"));
 
         public const string SubMappingTestClassString = "semio:test:SubMappingTestClass";
         public static readonly Class SubMappingTestClass = new Class(new Uri(SubMappingTestClassString));
@@ -111,11 +112,6 @@ namespace Semiodesk.Trinity.Test
         public const string JsonTestClassUri = "http://localhost/JsonTestClass";
         public static readonly Class JsonTestClass = new Class(new Uri(JsonTestClassUri));
     }
-
-    
-
-
-
 
     /// <summary>
     /// 

@@ -198,25 +198,11 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
         private string GetOntologyTitle(IModel model)
         {
-            try
-            {
-                ResourceQuery query = new ResourceQuery();
-                query.Where(rdf.type, owl.Ontology);
+            ISparqlQuery query = new SparqlQuery("SELECT ?title WHERE { ?ontology a owl:Ontology ; dc:title ?title . }");
 
-                IResourceQueryResult result = model.ExecuteQuery(query);
+            IEnumerable<BindingSet> bindings = model.GetBindings(query, true);
 
-                if (result.Count() == 0) return "";
-
-                IResource ontology = result.GetResources().First();
-
-                return ontology.ListValues(dces.Title).OfType<string>().FirstOrDefault();
-            }
-            catch
-            {
-                string msg = "Could not retrieve title of ontology <{0}>";
-                Logger.LogWarning(string.Format(msg, model.Uri.ToString()));
-                return "";
-            }
+            return bindings.Any() ? bindings.First().ToString() : "";
         }
 
         private string GenerateOntology(IModel model, string prefix, string ns, bool stringOnly = false)
@@ -240,27 +226,36 @@ namespace Semiodesk.Trinity.OntologyGenerator
             string title = "";
             string description = "";
 
-            try
+            if(ontology.HasProperty(dces.Title))
             {
-                title = ontology.ListValues(dces.Title).First().ToString().Replace("\r\n", "///\r\n");
+                string t = ontology.GetValue(dces.Title, "") as string;
+
+                if(!string.IsNullOrEmpty(t))
+                {
+                    title = t.Replace("\r\n", "///\r\n");
+                }
             }
-            catch
+            else
             {
-                string msg = "Could not retrieve title of ontology <{0}>";
-                Logger.LogWarning(string.Format(msg, model.Uri.ToString()));
+#if DEBUG
+                Logger.LogWarning("Could not retrieve title of ontology <{0}>", model.Uri);
+#endif
             }
 
-            try
+            if(ontology.HasProperty(dces.Description))
             {
-                string desc = ontology.ListValues(dces.Description).First().ToString();
-                desc = NormalizeLineBreaks(desc);
-                description = desc.Replace("\r\n", "///\r\n");
+                string d = ontology.GetValue(dces.Description, "") as string;
+
+                if(!string.IsNullOrEmpty(d))
+                {
+                    description = NormalizeLineBreaks(d).Replace("\r\n", "///\r\n");
+                }
             }
-            catch
+            else
             {
-                string msg = "Could not retrieve description of ontology <{0}>";
-                Logger.LogWarning(string.Format(msg, model.Uri.ToString()));
-               
+#if DEBUG
+                Logger.LogWarning("Could not retrieve description of ontology <{0}>", model.Uri);
+#endif
             }
 
             return GenerateOntology(model, title, description, ns, nsPrefix, stringOnly);
