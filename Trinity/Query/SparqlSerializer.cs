@@ -317,7 +317,7 @@ namespace Semiodesk.Trinity
             }
             if (onlyUris)
             {
-                string q = "SELECT ?s0 {0} WHERE {{ ?s0 ?p0 ?o0 . {{ SELECT DISTINCT ?s0 WHERE {{{1}}} {2} }}}}";
+                string q = "SELECT DISTINCT ?s0 {0} WHERE {{ ?s0 ?p0 ?o0 . {{ SELECT DISTINCT ?s0 WHERE {{{1}}} {2} }}}}";
                 result.Append(string.Format(q, GenerateDatasetClause(model), whereBlock.ToString(), modifierBlock.ToString()));
             }
             else
