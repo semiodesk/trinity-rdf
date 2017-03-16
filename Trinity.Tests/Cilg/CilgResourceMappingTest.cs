@@ -74,12 +74,7 @@ namespace Semiodesk.Trinity.Test
         }
 
 
-        [SetUp]
-        public void SetUp()
-        {
-
-        }
-
+        
         [TearDown]
         public void TearDown()
         {
