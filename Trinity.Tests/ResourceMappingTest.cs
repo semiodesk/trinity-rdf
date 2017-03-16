@@ -487,11 +487,6 @@ namespace Semiodesk.Trinity.Test
 
         private IStore _store;
 
-        [SetUp]
-        public void SetUp()
-        {
-        }
-
         [TearDown]
         public void TearDown()
         {
