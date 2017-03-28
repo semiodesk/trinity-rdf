@@ -323,6 +323,8 @@ namespace Semiodesk.Trinity
                     return;
                 }
             }
+            if (value == null)
+                return;
 
             IPropertyMapping propertyMapping = GetPropertyMapping(property, value.GetType());
 
