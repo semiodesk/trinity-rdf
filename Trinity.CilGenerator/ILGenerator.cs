@@ -95,6 +95,8 @@ namespace Semiodesk.Trinity.CilGenerator
             {
                 var resolver = new DefaultAssemblyResolver();
                 resolver.AddSearchDirectory(GetAssemblyDirectoryFromType(typeof(Resource)));
+                FileInfo sourceDll = new FileInfo(sourceFile);
+                resolver.AddSearchDirectory(sourceDll.DirectoryName);
 
                 var parameters = new ReaderParameters { AssemblyResolver = resolver };
 
