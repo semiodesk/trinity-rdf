@@ -198,7 +198,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
         private string GetOntologyTitle(IModel model)
         {
-            ISparqlQuery query = new SparqlQuery("SELECT ?title WHERE { ?ontology a owl:Ontology ; dc:title ?title . }");
+            ISparqlQuery query = new SparqlQuery("SELECT ?title WHERE { ?ontology a <http://www.w3.org/2002/07/owl#Ontology> ; <http://purl.org/dc/elements/1.1/title> ?title . }");
 
             IEnumerable<BindingSet> bindings = model.GetBindings(query, true);
 
@@ -238,7 +238,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
             else
             {
 #if DEBUG
-                Logger.LogWarning("Could not retrieve title of ontology <{0}>", model.Uri);
+                Logger.LogMessage("Could not retrieve title of ontology <{0}>", model.Uri);
 #endif
             }
 
@@ -277,7 +277,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 }
                 catch (Exception)
                 {
-                    Logger.LogWarning("Could not write resource <{0}>.", resource.Uri.OriginalString);   
+                    Logger.LogMessage("Could not write resource <{0}>.", resource.Uri.OriginalString);   
                 }
             }
 
