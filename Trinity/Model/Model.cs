@@ -403,7 +403,7 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(Uri uri, ITransaction transaction = null)
         {
-            ISparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o FROM @model WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
+            ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?s ?p ?o FROM @model WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
             query.Bind("@model", this.Uri);
             query.Bind("@subject", uri);
 
@@ -436,7 +436,7 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
-            ISparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o FROM @model WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
+            ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?s ?p ?o FROM @model WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
             query.Bind("@model", this.Uri);
             query.Bind("@subject", uri);
 
