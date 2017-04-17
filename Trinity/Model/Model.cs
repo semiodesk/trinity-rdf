@@ -314,7 +314,7 @@ namespace Semiodesk.Trinity
             }
             else
             {
-                updateString = string.Format(@"WITH {0} DELETE {{ {1} ?p ?o. }} INSERT {{ {2} }} WHERE {{ {1} ?p ?o. }} ",
+                updateString = string.Format(@"WITH {0} DELETE WHERE {{ {1} ?p ?o. }} INSERT {{ {2} }}",
                     SparqlSerializer.SerializeUri(Uri),
                     SparqlSerializer.SerializeUri(resource.Uri),
                     SparqlSerializer.SerializeResource(resource));
