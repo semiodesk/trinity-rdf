@@ -219,7 +219,6 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestInferencing()
         {
-            Assert.Inconclusive("dotnetrdf does not support inferencing.");
             Store = StoreFactory.CreateStore("provider=dotnetrdf;schema=Models/test-vocab.rdf");
 
 

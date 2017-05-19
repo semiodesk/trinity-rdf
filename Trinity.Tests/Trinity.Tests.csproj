@@ -140,7 +140,12 @@
     <None Include="Models\test-tmo.trig">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Ontologies\foaf.rdf" />
+    <None Include="Ontologies\foaf.rdf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Ontologies\fo af.rdf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Ontologies\nco.trig">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
