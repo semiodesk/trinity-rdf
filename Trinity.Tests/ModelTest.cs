@@ -209,6 +209,15 @@ namespace Semiodesk.Trinity.Test
         }
 
         [Test]
+        public void CreateEmptyResourceTest()
+        {
+            var res = Model.CreateResource(new Uri("http://semiodesk.com/emptyResource"));
+            res.Commit();
+
+
+        }
+
+        [Test]
         public void DeleteResourceTest()
         {
             Uri uri0 = new Uri("http://example.org/MyResource");
@@ -298,6 +307,15 @@ namespace Semiodesk.Trinity.Test
             actual = Model.GetResource<Resource>(resourceUri);
 
             Assert.AreEqual(resource, actual);
+
+            // Try to update resource with different properties then persisted
+            Resource r2 = new Resource(resourceUri);
+            r2.AddProperty(property, "in the jengle");
+
+            r2.Model = Model;
+            r2.Commit();
+            actual = Model.GetResource<Resource>(resourceUri);
+            Assert.AreEqual(r2, actual);
         }
 
         [Test]

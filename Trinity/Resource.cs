@@ -801,6 +801,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public virtual IEnumerable<Tuple<Property, object>> ListValues()
         {
+            // List values from properties
             foreach (var key in _properties)
             {
                 foreach (object value in key.Value)
@@ -809,6 +810,7 @@ namespace Semiodesk.Trinity
                 }
             }
 
+            // List values from mapping
             foreach (IPropertyMapping propertyMapping in _mappings.Values)
             {
                 if (!propertyMapping.IsUnsetValue)
@@ -836,8 +838,8 @@ namespace Semiodesk.Trinity
                 }
             }
 
+            // List values from associated types
             var types = GetTypes();
-
             if (types.Any())
             {
                 Property rdfType;
