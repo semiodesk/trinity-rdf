@@ -181,6 +181,13 @@ namespace Semiodesk.Trinity
         void AddProperty(Property property, byte[] value);
 
         /// <summary>
+        /// Adds a new property with the given value to the resource.
+        /// </summary>
+        /// <param name="property">Property the value should be associated with.</param>
+        /// <param name="value">An Uri.</param>
+        void AddProperty(Property property, Uri value);
+
+        /// <summary>
         /// Removes an associated property from the resource.
         /// </summary>
         /// <param name="property">Property the given value is associated with.</param>
@@ -294,6 +301,13 @@ namespace Semiodesk.Trinity
         /// <param name="property">Property the given value is associated with.</param>
         /// <param name="value">Arbitrary data in form of a byte array.</param>
         void RemoveProperty(Property property, byte[] value);
+
+        /// <summary>
+        /// Removes an associated property from the resource.
+        /// </summary>
+        /// <param name="property">Property the given value is associated with.</param>
+        /// <param name="value">An Uri.</param>
+        void RemoveProperty(Property property, Uri value);
 
         /// <summary>
         /// Indicates if the resource has at least one property of the given type.
