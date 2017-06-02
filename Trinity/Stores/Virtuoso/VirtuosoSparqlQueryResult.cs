@@ -285,7 +285,11 @@ namespace Semiodesk.Trinity.Store
                     {
                         UriRef uri = o as UriRef;
 
-                        if (cache.ContainsKey(uri.OriginalString))
+                        if (currentResource.HasPropertyMapping(p, uri.GetType()))
+                        {
+                            currentResource.AddPropertyToMapping(p, uri, false);
+                        }
+                        else if (cache.ContainsKey(uri.OriginalString))
                         {
                             currentResource.AddPropertyToMapping(p, cache[uri.OriginalString], true);
                             currentResource.IsNew = false;
