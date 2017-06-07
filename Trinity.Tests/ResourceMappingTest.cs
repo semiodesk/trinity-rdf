@@ -1262,7 +1262,7 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(2, l.Count());
 
             // Test if ListValues works
-            Assert.AreEqual(typeof(Uri), t_actual.ListValues(TestOntology.uniqueUriTest).First().GetType());
+            Assert.IsTrue( t_actual.ListValues(TestOntology.uniqueUriTest).First() is Uri);
             Uri u = (Uri)t_actual.ListValues(TestOntology.uniqueUriTest).First();
             Assert.AreEqual(Value.ToString(), u.ToString());
 
