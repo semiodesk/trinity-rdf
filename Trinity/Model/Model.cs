@@ -411,21 +411,18 @@ namespace Semiodesk.Trinity
 
             IEnumerable<Resource> resources = result.GetResources();
 
-            if (resources.Any())
+            foreach (Resource r in resources)
             {
-                Resource r = resources.First();
                 r.IsNew = false;
                 r.IsSynchronized = true;
                 r.SetModel(this);
 
                 return r;
             }
-            else
-            {
-                string msg = "Error: Could not find resource {0}.";
 
-                throw new ArgumentException(string.Format(msg, uri));
-            }
+            string msg = "Error: Could not find resource <{0}>.";
+
+            throw new ArgumentException(string.Format(msg, uri));
         }
 
         /// <summary>
