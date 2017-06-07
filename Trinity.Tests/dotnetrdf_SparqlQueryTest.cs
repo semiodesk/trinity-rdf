@@ -198,7 +198,7 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestConstruct()
         {
-            Assert.Inconclusive("Blank nodes are currently problematic.");
+//            Assert.Inconclusive("Blank nodes are currently problematic.");
             SparqlQuery query = new SparqlQuery(@"
                 CONSTRUCT
                 {
