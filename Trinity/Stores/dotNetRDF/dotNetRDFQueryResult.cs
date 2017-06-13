@@ -339,7 +339,11 @@ namespace Semiodesk.Trinity.Store
                     {
                         Uri uri = (o as IUriNode).Uri;
 
-                        if (cache.ContainsKey(uri.OriginalString))
+                        if (currentResource.HasPropertyMapping(p, uri.GetType()))
+                        {
+                            currentResource.AddPropertyToMapping(p, uri, false);
+                        }
+                        else if (cache.ContainsKey(uri.OriginalString))
                         {
                             currentResource.AddPropertyToMapping(p, cache[uri.OriginalString], true);
                             currentResource.IsNew = false;
@@ -414,7 +418,7 @@ namespace Semiodesk.Trinity.Store
 
                 _tripleProvider.SetNext();
 
-                if (o.NodeType == NodeType.Uri && p.ToString() == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+                if (o.NodeType == NodeType.Uri && p == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
                 {
                     if( s is IUriNode)
                     {
