@@ -78,7 +78,7 @@ namespace Semiodesk.Trinity.Test.Cilg
         [RdfProperty(TestOntology.uniqueStringTestString)]
         public string uniqueStringTest { get; set; }
 
-        [RdfProperty(TestOntology.uriTestString)]
+        [RdfProperty(TestOntology.resTestString)]
         public Resource uriProperty { get; set; }
 
         #endregion

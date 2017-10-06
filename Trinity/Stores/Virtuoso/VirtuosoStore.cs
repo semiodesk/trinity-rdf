@@ -93,12 +93,6 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-        public bool ConnectUbiquity
-        {
-            get;
-            set;
-        }
-
         private string _defaultInferenceRule = "urn:semiodesk/ruleset";
         #endregion
 
@@ -126,7 +120,6 @@ namespace Semiodesk.Trinity.Store
         /// <param name="password">Password needed to connect to storage.</param>
         public VirtuosoStore(string hostname, int port, string username, string password)
         {
-            ConnectUbiquity = true;
             Hostname = hostname;
             Port = port.ToString();
             Username = username;

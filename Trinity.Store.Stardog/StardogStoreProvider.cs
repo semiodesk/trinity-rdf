@@ -25,17 +25,47 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
+#if ! NET_3_5
+using System.ComponentModel.Composition;
+#endif
+using System.IO;
+using VDS.RDF.Storage.Management;
 
-namespace Semiodesk.Trinity
+namespace Semiodesk.Trinity.Store
 {
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public interface IStorageSpecific
+    #if ! NET_3_5
+    [Export(typeof(StoreProvider))]
+    #endif
+    public class StardogStoreProvider : StoreProvider
     {
-        void Update(IStore store);
+        #region Constructor
+
+        public StardogStoreProvider()
+        {
+            Name = "Stardog";
+        }
+
+        #endregion
+
+        
+
+        public override IStore GetStore(Dictionary<string, string> configurationDictionary)
+        {
+            string schemaKey = "schema";
+            string[] schema = null;
+            if (configurationDictionary.ContainsKey(schemaKey))
+            schema = GetSchema(configurationDictionary[schemaKey]);
+          
+            return new dotNetRDFStore(schema);
+        }
+
+        private string[] GetSchema(string schemaString)
+        {
+          string[] schema = schemaString.Split(',');
+
+          return schema;
+          
+        }
     }
 }

@@ -39,123 +39,7 @@ using Semiodesk.Trinity.Utility;
 
 namespace Semiodesk.Trinity.Store
 {
-    public interface ITripleProvider
-    {
-        bool HasNext { get; }
-        void SetNext();
-        INode S { get; }
-        Uri P { get; }
-        INode O { get; }
-        int Count { get; }
-        void Reset();
-
-
-    }
-
-    public class GraphTripleProvider : ITripleProvider
-    {
-        IGraph _graph;
-        int counter;
-        public GraphTripleProvider(IGraph graph)
-        {
-            _graph = graph;
-            counter = 0;
-        }
-
-        public int Count
-        {
-            get { return _graph.Triples.Count; }
-        }
-
-        public void Reset()
-        {
-            counter = 0;
-        }
-
-
-        public bool HasNext
-        {
-            get { return counter < _graph.Triples.Count; }
-        }
-
-        public void SetNext()
-        {
-            counter += 1;
-        }
-
-        public INode S
-        {
-            get { return _graph.Triples.ElementAt(counter).Subject; }
-        }
-
-        public Uri P
-        {
-            get { return (_graph.Triples.ElementAt(counter).Predicate as UriNode).Uri; }
-        }
-
-        public INode O
-        {
-            get { return _graph.Triples.ElementAt(counter).Object; }
-        }
-    }
-
-    public class SparqlResultSetTripleProvider : ITripleProvider
-    {
-        SparqlResultSet _set;
-        string _subjectVar;
-        string _predicateVar;
-        string _objectVar;
-
-        int counter;
-        public SparqlResultSetTripleProvider(SparqlResultSet set, string subjectVar, string predicateVar, string objectVar)
-        {
-            _set = set;
-            counter = 0;
-
-            _subjectVar = subjectVar;
-            _predicateVar = predicateVar;
-            _objectVar = objectVar;
-        }
-
-        public int Count
-        {
-            get { return _set.Count; }
-        }
-
-        public void Reset()
-        {
-            counter = 0;
-        }
-
-
-        public bool HasNext
-        {
-            get { return counter < _set.Count; }
-        }
-
-        public void SetNext()
-        {
-            counter += 1;
-        }
-
-        public INode S
-        {
-            get { return _set[counter][_subjectVar]; }
-        }
-
-        public Uri P
-        {
-            get { return (_set[counter][_predicateVar] as UriNode).Uri; }
-        }
-
-        public INode O
-        {
-            get { return _set[counter][_objectVar]; }
-        }
-    }
-
-
-    class dotNetRDFQueryResult : ISparqlQueryResult
+    class StardogQueryResult : ISparqlQueryResult
     {
         #region Members
 
@@ -163,12 +47,12 @@ namespace Semiodesk.Trinity.Store
         private ISparqlQuery _query;
         private ITripleProvider _tripleProvider;
         private SparqlResultSet _resultSet;
-        private dotNetRDFStore _store;
+        private StardogStore _store;
 
         #endregion
 
         #region Constructor
-        public dotNetRDFQueryResult(dotNetRDFStore store, ISparqlQuery query, SparqlResultSet resultSet)
+        public StardogQueryResult(StardogStore store, ISparqlQuery query, SparqlResultSet resultSet)
         {
             string s = null;
             string p = null;
@@ -192,7 +76,7 @@ namespace Semiodesk.Trinity.Store
             _store = store;
         }
 
-        public dotNetRDFQueryResult(dotNetRDFStore store, ISparqlQuery query, IGraph graph)
+        public StardogQueryResult(StardogStore store, ISparqlQuery query, IGraph graph)
         {
             _query = query;
             _tripleProvider = new GraphTripleProvider(graph);

@@ -50,7 +50,8 @@ namespace Semiodesk.Trinity
         {
             {"virtuoso", new VirtuosoStoreProvider()},
             {"dotnetrdf", new dotNetRDFStoreProvider()},
-            {"sparqlendpoint", new SparqlEndpointStoreProvider()}
+            {"sparqlendpoint", new SparqlEndpointStoreProvider()},
+            {"stardog", new StardogStoreProvider()}
         };
 
         #region Factory Methods
