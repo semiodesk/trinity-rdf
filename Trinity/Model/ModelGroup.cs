@@ -28,6 +28,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -69,7 +70,8 @@ namespace Semiodesk.Trinity
     /// <summary>
     /// Implementation of the IModelGroup interface
     /// </summary>
-    class ModelGroup : IModelGroup
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public class ModelGroup : IModelGroup
     {
         #region Member
 

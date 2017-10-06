@@ -37,139 +37,25 @@ using Semiodesk.Trinity.Utility;
 #endif
 
 
-namespace Semiodesk.Trinity.Store
+namespace Semiodesk.Trinity.Store.Stardog
 {
-    public interface ITripleProvider
-    {
-        bool HasNext { get; }
-        void SetNext();
-        INode S { get; }
-        Uri P { get; }
-        INode O { get; }
-        int Count { get; }
-        void Reset();
-
-
-    }
-
-    public class GraphTripleProvider : ITripleProvider
-    {
-        IGraph _graph;
-        int counter;
-        public GraphTripleProvider(IGraph graph)
-        {
-            _graph = graph;
-            counter = 0;
-        }
-
-        public int Count
-        {
-            get { return _graph.Triples.Count; }
-        }
-
-        public void Reset()
-        {
-            counter = 0;
-        }
-
-
-        public bool HasNext
-        {
-            get { return counter < _graph.Triples.Count; }
-        }
-
-        public void SetNext()
-        {
-            counter += 1;
-        }
-
-        public INode S
-        {
-            get { return _graph.Triples.ElementAt(counter).Subject; }
-        }
-
-        public Uri P
-        {
-            get { return (_graph.Triples.ElementAt(counter).Predicate as UriNode).Uri; }
-        }
-
-        public INode O
-        {
-            get { return _graph.Triples.ElementAt(counter).Object; }
-        }
-    }
-
-    public class SparqlResultSetTripleProvider : ITripleProvider
-    {
-        SparqlResultSet _set;
-        string _subjectVar;
-        string _predicateVar;
-        string _objectVar;
-
-        int counter;
-        public SparqlResultSetTripleProvider(SparqlResultSet set, string subjectVar, string predicateVar, string objectVar)
-        {
-            _set = set;
-            counter = 0;
-
-            _subjectVar = subjectVar;
-            _predicateVar = predicateVar;
-            _objectVar = objectVar;
-        }
-
-        public int Count
-        {
-            get { return _set.Count; }
-        }
-
-        public void Reset()
-        {
-            counter = 0;
-        }
-
-
-        public bool HasNext
-        {
-            get { return counter < _set.Count; }
-        }
-
-        public void SetNext()
-        {
-            counter += 1;
-        }
-
-        public INode S
-        {
-            get { return _set[counter][_subjectVar]; }
-        }
-
-        public Uri P
-        {
-            get { return (_set[counter][_predicateVar] as UriNode).Uri; }
-        }
-
-        public INode O
-        {
-            get { return _set[counter][_objectVar]; }
-        }
-    }
-
-
-    class dotNetRDFQueryResult : ISparqlQueryResult
+    class StardogQueryResult : ISparqlQueryResult
     {
         #region Members
 
         private IModel _model;
         private ISparqlQuery _query;
         private ITripleProvider _tripleProvider;
-        private SparqlResultSet _resultSet;
-        private dotNetRDFStore _store;
+        private StardogResultHandler _resultHandler;
+        private StardogStore _store;
 
         #endregion
 
         #region Constructor
-        public dotNetRDFQueryResult(dotNetRDFStore store, ISparqlQuery query, SparqlResultSet resultSet)
+        public StardogQueryResult(StardogStore store, ISparqlQuery query, StardogResultHandler resultHandler)
         {
+            _resultHandler = resultHandler;
+
             string s = null;
             string p = null;
             string o = null;
@@ -186,19 +72,13 @@ namespace Semiodesk.Trinity.Store
             }
 
             _query = query;
-            _tripleProvider = new SparqlResultSetTripleProvider(resultSet, s, p, o);
+            if( _resultHandler.SparqlResultSet != null)
+                _tripleProvider = new SparqlResultSetTripleProvider(_resultHandler.SparqlResultSet, s, p, o);
             _model = query.Model;
-            _resultSet = resultSet;
+            _resultHandler = resultHandler;
             _store = store;
         }
 
-        public dotNetRDFQueryResult(dotNetRDFStore store, ISparqlQuery query, IGraph graph)
-        {
-            _query = query;
-            _tripleProvider = new GraphTripleProvider(graph);
-            _model = query.Model;
-            _store = store;
-        }
         #endregion
 
         #region Methods
@@ -209,7 +89,7 @@ namespace Semiodesk.Trinity.Store
         {
             if (_query.QueryType == SparqlQueryType.Ask)
             {
-                return _resultSet.Result;
+                return _resultHandler.BoolResult;
             }
             else
             {
@@ -222,7 +102,7 @@ namespace Semiodesk.Trinity.Store
             List<BindingSet> result = new List<BindingSet>();
             if (_query.QueryType == SparqlQueryType.Select)
             {
-                foreach (var x in _resultSet)
+                foreach (var x in _resultHandler.SparqlResultSet)
                 {
                     BindingSet r = new BindingSet();
                     foreach (var y in x)
@@ -493,23 +373,18 @@ namespace Semiodesk.Trinity.Store
             SparqlQuery query = new SparqlQuery(countQuery);
             // TODO: Apply inferencing if enabled
 
-            var res = _store.ExecuteQuery(query.ToString());
+            var result =  _store.ExecuteQuery(query.ToString()).SparqlResultSet;
+            
 
-            if (res is SparqlResultSet)
+            if (result.Count > 0 && result[0].Count > 0)
             {
-                SparqlResultSet result = res as SparqlResultSet;
+                var value = ParseCellValue(result[0][0]);
 
-                if (result.Count > 0 && result[0].Count > 0)
+                if (value.GetType() == typeof(int))
                 {
-                    var value = ParseCellValue(result[0][0]);
-
-                    if (value.GetType() == typeof(int))
-                    {
-                        return (int)value;
-                    }
+                    return (int)value;
                 }
             }
-
             return -1;
         }
 

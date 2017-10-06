@@ -32,10 +32,12 @@ using System.Text;
 using OpenLink.Data.Virtuoso;
 using System.IO;
 using Semiodesk.Trinity.Configuration;
+using System.ComponentModel;
 
 namespace Semiodesk.Trinity
 {
-    internal class StoreUpdater
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public class StoreUpdater
     {
         #region Fields
         private DirectoryInfo _sourceDirectory;

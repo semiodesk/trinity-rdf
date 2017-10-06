@@ -312,7 +312,7 @@ namespace Semiodesk.Trinity
         /// <param name="property"></param>
         /// <param name="value"></param>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        internal virtual void AddPropertyToMapping(Property property, object value, bool fromModel)
+        public virtual void AddPropertyToMapping(Property property, object value, bool fromModel)
         {
             if (property.Uri.OriginalString == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
             {
