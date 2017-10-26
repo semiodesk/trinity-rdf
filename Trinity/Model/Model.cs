@@ -426,6 +426,17 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// Retrieves a resource from the model.
+        /// </summary>
+        /// <param name="resource">The instance of IResource to be retrieved.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <returns>A resource with all asserted properties.</returns>
+        public IResource GetResource(IResource resource, ITransaction transaction = null)
+        {
+            return GetResource(resource.Uri, transaction);
+        }
+
+        /// <summary>
         /// Retrieves a resource from the model. Provides a resource object of the given type.
         /// </summary>
         /// <param name="uri">A Uniform Resource Identifier.</param>
@@ -453,6 +464,17 @@ namespace Semiodesk.Trinity
             string msg = "Error: Could not find resource <{0}>.";
 
             throw new ArgumentException(string.Format(msg, uri));
+        }
+
+        /// <summary>
+        /// Retrieves a resource from the model. Provides a resource object of the given type.
+        /// </summary>
+        /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <param name="transaction">ransaction associated with this action.</param>
+        /// <returns>A resource with all asserted properties.</returns>
+        public T GetResource<T>(IResource resource, ITransaction transaction = null) where T : Resource
+        {
+            return GetResource<T>(resource.Uri, transaction);
         }
 
         /// <summary>
