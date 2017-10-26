@@ -42,8 +42,6 @@ using Semiodesk.Trinity.Utility;
 
 namespace Semiodesk.Trinity.Test
 {
-    
-
     [TestFixture]
     public class CilgResourceMappingTest
     {
@@ -72,8 +70,6 @@ namespace Semiodesk.Trinity.Test
 
             return model;
         }
-
-
         
         [TearDown]
         public void TearDown()
@@ -84,26 +80,49 @@ namespace Semiodesk.Trinity.Test
             }
         }
 
+        [Test]
+        public void MultipleRdfClassesTest()
+        {
+            IModel model = GetModel();
+            model.Clear();
+
+            // Test if the GetTypes method was correctly implemented by the CilGenerator.
+            CilgMultipleMappingTestClass t1 = model.CreateResource<CilgMultipleMappingTestClass>();
+            t1.Commit();
+
+            Assert.AreEqual(2, t1.GetTypes().Count());
+
+            // Test if the types were correctly persisted.
+            CilgMultipleMappingTestClass t2 = model.GetResource<CilgMultipleMappingTestClass>(t1);
+
+            Assert.AreEqual(2, t2.ListValues(rdf.type).Count());
+
+            // Test if we can retrieve instances of the class from the model.
+            IEnumerable<CilgMultipleMappingTestClass> classes = model.GetResources<CilgMultipleMappingTestClass>();
+
+            Assert.AreEqual(1, classes.Count());
+
+            model.Clear();
+        }
 
         [Test]
         public void AddRemoveIntegerTest()
         {
-            IModel m = GetModel();
-            m.Clear();
+            IModel model = GetModel();
+            model.Clear();
 
             Uri t1Uri = new Uri("semio:test:testInstance1");
-            CilgMappingTestClass t1 = m.CreateResource<CilgMappingTestClass>(t1Uri);
+            CilgMappingTestClass t1 = model.CreateResource<CilgMappingTestClass>(t1Uri);
+
             // Add value using the mapping interface
             int value = 1;
             t1.uniqueIntTest = value;
-
             t1.Commit();
 
-            CilgMappingTestClass t_actual = m.GetResource<CilgMappingTestClass>(t1Uri);
+            CilgMappingTestClass t_actual = model.GetResource<CilgMappingTestClass>(t1Uri);
 
             // Test if value was stored
             Assert.AreEqual(value, t_actual.uniqueIntTest);
-
 
             // Test if property is present
             IEnumerable<Property> l = t_actual.ListProperties();
@@ -118,7 +137,7 @@ namespace Semiodesk.Trinity.Test
             t1.RemoveProperty(TestOntology.uniqueIntTest, value);
             t1.Commit();
 
-            t_actual = m.GetResource<CilgMappingTestClass>(t1Uri);
+            t_actual = model.GetResource<CilgMappingTestClass>(t1Uri);
 
             // Test if ListProperties works
             l = t_actual.ListProperties();
@@ -127,7 +146,7 @@ namespace Semiodesk.Trinity.Test
             // Test if ListValues works
             Assert.AreEqual(0, t_actual.ListValues(TestOntology.uniqueIntTest).Count());
 
-            m.Clear();
+            model.Clear();
         }
 
         [Test]
@@ -176,7 +195,6 @@ namespace Semiodesk.Trinity.Test
             m.Clear();
         }
 
-        
         [Test]
         public void AddRemoveIntegerListTest()
         {
@@ -1092,5 +1110,4 @@ namespace Semiodesk.Trinity.Test
         }
          * */
     }
-
 }
