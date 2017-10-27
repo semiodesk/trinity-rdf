@@ -57,18 +57,7 @@ namespace Semiodesk.Trinity.Test
 
             Uri testModelUri = new Uri("http://example.org/TestModel");
 
-            IModel model;
-
-            if (_store.ContainsModel(testModelUri))
-            {
-                model = _store.GetModel(testModelUri);
-            }
-            else
-            {
-                model = _store.CreateModel(testModelUri);
-            }
-
-            return model;
+            return _store.GetModel(testModelUri);
         }
         
         [TearDown]
