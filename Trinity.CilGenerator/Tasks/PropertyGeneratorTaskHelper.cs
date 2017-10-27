@@ -74,6 +74,10 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
         /// </summary>
         public readonly string Uri;
 
+        /// <summary>
+        /// Flag if the the property is language invariant.
+        /// </summary>
+        public readonly bool LanguageInvariant;
         #endregion
 
         #region Constructors
@@ -99,6 +103,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
             HasUri = !string.IsNullOrEmpty(Uri);
             Uri = property.TryGetAttributeParameter(typeof(RdfPropertyAttribute));
+            LanguageInvariant = property.TryGetSecondAttributeParameter(typeof(RdfPropertyAttribute), false);
         }
 
         #endregion

@@ -29,7 +29,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using OpenLink.Data.Virtuoso;
 using System.IO;
 using Semiodesk.Trinity.Configuration;
 
@@ -56,14 +55,6 @@ namespace Semiodesk.Trinity.OntologyDeployment
 
         #region Methods
 
-        protected void RemoveGraph(Uri graphUri)
-        {
-            if (_store.ContainsModel(graphUri))
-            {
-                _store.RemoveModel(graphUri);
-            }
-        }
-
         public void UpdateOntologies(IEnumerable<Semiodesk.Trinity.Configuration.Ontology> ontologies)
         {
             foreach (Semiodesk.Trinity.Configuration.Ontology onto in ontologies)
@@ -72,7 +63,7 @@ namespace Semiodesk.Trinity.OntologyDeployment
 
                 RdfSerializationFormat format = GetSerializationFormatFromUri(path);
 
-                _store.Read(onto.Uri, path, format);
+                _store.Read(onto.Uri, path, format, false);
             }
         }
 
@@ -109,6 +100,12 @@ namespace Semiodesk.Trinity.OntologyDeployment
 
             if (ext == ".trig")
                 return RdfSerializationFormat.Trig;
+
+            if (ext == ".ttl")
+                return RdfSerializationFormat.Turtle;
+
+            if (ext == ".nt")
+                return RdfSerializationFormat.NTriples;
 
             return RdfSerializationFormat.RdfXml;
         }

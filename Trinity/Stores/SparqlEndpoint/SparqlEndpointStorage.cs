@@ -53,20 +53,43 @@ namespace Semiodesk.Trinity.Store
         {
             get { throw new NotImplementedException(); }
         }
+
         #endregion
 
         #region Constructor
+
         public SparqlEndpointStorage(Uri endpointUri, IWebProxy proxy = null, ICredentials credentials = null)
         {
             _endpoint = new SparqlRemoteEndpoint(endpointUri);
             
             //_endpoint.Proxy = proxy;
-
-            
         }
+
         #endregion
 
         #region Methods
+
+        public ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IModelGroup CreateModelGroup(params Uri[] models)
+        {
+            List<IModel> modelList = new List<IModel>();
+            foreach (var x in models)
+            {
+                modelList.Add(GetModel(x));
+            }
+
+            return new ModelGroup(this, modelList);
+        }
+
+
+        public void LoadOntologySettings(string configPath = null, string sourceDir = null)
+        {
+            throw new NotSupportedException();
+        }
 
         public IModel CreateModel(Uri uri)
         {
@@ -98,42 +121,53 @@ namespace Semiodesk.Trinity.Store
             return new Model(this, uri.ToUriRef());
         }
 
+        public IModel GetOrCreateModel(Uri uri)
+        {
+            throw new NotSupportedException();
+        }
+
         public IEnumerable<IModel> ListModels()
         {
             throw new NotSupportedException();
         }
 
-        public ISparqlQueryResult ExecuteQuery(SparqlQuery query, ITransaction transaction = null)
+        public ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
-            
             string q = query.ToString();
+
             SparqlQueryParser p = new SparqlQueryParser();
+
             var x = p.ParseFromString(q);
             x.ClearNamedGraphs();
             x.ClearDefaultGraphs();
 
             SparqlEndpointQueryResult result = null;
+
             if (query.QueryType == SparqlQueryType.Describe || query.QueryType == SparqlQueryType.Construct)
             {
                 var r = _endpoint.QueryWithResultGraph(x.ToString());
                 result = new SparqlEndpointQueryResult(r, query); 
-
             }
             else
             {
-                SparqlResultSet r = _endpoint.QueryWithResultSet(x.ToString());
+                var r = _endpoint.QueryWithResultSet(x.ToString());
                 result = new SparqlEndpointQueryResult(r,  query);
             }
+
             return result;
         }
-
 
         public void ExecuteNonQuery(SparqlUpdate queryString, ITransaction transaction = null)
         {
             return;
         }
 
-        public Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format)
+        public Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
         {
             throw new NotSupportedException();
         }
@@ -146,27 +180,6 @@ namespace Semiodesk.Trinity.Store
         public void Dispose()
         {
             return;
-        }
-
-        #endregion
-
-        #region IStore Members
-
-
-        public ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IModelGroup CreateModelGroup(params Uri[] models)
-        {
-            List<IModel> modelList = new List<IModel>();
-            foreach (var x in models)
-            {
-                modelList.Add(GetModel(x));
-            }
-
-            return new ModelGroup(this, modelList);
         }
 
         #endregion

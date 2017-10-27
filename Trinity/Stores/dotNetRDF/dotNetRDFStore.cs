@@ -25,10 +25,13 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
+
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using VDS.RDF;
 using VDS.RDF.Parsing;
@@ -36,7 +39,8 @@ using VDS.RDF.Query;
 using VDS.RDF.Query.Datasets;
 using VDS.RDF.Query.Inference;
 using VDS.RDF.Update;
-
+using VDS.RDF.Writing;
+using TrinitySettings = Semiodesk.Trinity.Configuration.TrinitySettings;
 
 namespace Semiodesk.Trinity.Store
 {
@@ -48,15 +52,18 @@ namespace Semiodesk.Trinity.Store
         #region Members
 
         TripleStore _store;
-        LeviathanUpdateProcessor _updateProcessor;
+
+        ISparqlUpdateProcessor _updateProcessor;
+
         ISparqlQueryProcessor _queryProcessor;
+
         SparqlUpdateParser _parser;
+
         RdfsReasoner _reasoner;
 
         #endregion
 
-        #region Constructor
-
+        #region Constructors
 
         public dotNetRDFStore(string[] schema)
         {
@@ -64,19 +71,24 @@ namespace Semiodesk.Trinity.Store
             _updateProcessor = new LeviathanUpdateProcessor(_store);
             _queryProcessor = new LeviathanQueryProcessor(_store);
             _parser = new SparqlUpdateParser();
-            if (schema != null)
-            {
-                _reasoner = new RdfsReasoner();
-                _store.AddInferenceEngine(_reasoner);
 
-                foreach (string m in schema)
-                {
-                    IGraph schemaGraph = LoadSchema(m);
-                    _store.Add(schemaGraph);
-                    _reasoner.Initialise(schemaGraph);
-                }
+            if (schema == null)
+            {
+                return;
             }
 
+            _reasoner = new RdfsReasoner();
+            _store.AddInferenceEngine(_reasoner);
+
+            foreach (string m in schema)
+            {
+                var x = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory;
+                FileInfo s = new FileInfo( Path.Combine(x.FullName, m));
+                IGraph schemaGraph = LoadSchema(s.FullName);
+
+                _store.Add(schemaGraph);
+                _reasoner.Initialise(schemaGraph);
+            }
         }
 
         #endregion
@@ -85,12 +97,16 @@ namespace Semiodesk.Trinity.Store
 
         private IGraph LoadSchema(string schema)
         {
-            IGraph g = new Graph();
-            g.LoadFromFile(schema);
-            SparqlResultSet res = (SparqlResultSet)g.ExecuteQuery("select ?s where { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Ontology>. }");
-            g.BaseUri = (res[0]["s"] as UriNode).Uri;
+            IGraph graph = new Graph();
+            graph.LoadFromFile(schema);
 
-            return g;
+            string queryString = "SELECT ?s WHERE { ?s a <http://www.w3.org/2002/07/owl#Ontology>. }";
+
+            SparqlResultSet result = (SparqlResultSet)graph.ExecuteQuery(queryString);
+
+            graph.BaseUri = (result[0]["s"] as UriNode).Uri;
+
+            return graph;
         }
 
         #region IStore implementation
@@ -113,31 +129,32 @@ namespace Semiodesk.Trinity.Store
         public void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
         {
             SparqlUpdateCommandSet cmds = _parser.ParseFromString(query.ToString());
+
             _updateProcessor.ProcessCommandSet(cmds);
         }
 
-        public ISparqlQueryResult ExecuteQuery(SparqlQuery query, ITransaction transaction = null)
+        public ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
-            if (query.InferenceEnabled && _reasoner != null)
+            if (query.IsInferenceEnabled && _reasoner != null)
             {
-
                 _store.AddInferenceEngine(_reasoner);
-
             }
             else
             {
-                //_store.RemoveInferenceEngine(_reasoner);
                 _store.ClearInferenceEngines();
             }
 
-            SparqlQueryParser sparqlparser = new SparqlQueryParser();
-            var q = sparqlparser.ParseFromString(query.ToString());
+            object results = _store.ExecuteQuery(query.ToString());
 
-            object results = _store.ExecuteQuery(q);
             if (results is IGraph)
+            {
                 return new dotNetRDFQueryResult(this, query, results as IGraph);
+            }
             else if (results is SparqlResultSet)
+            {
                 return new dotNetRDFQueryResult(this, query, results as SparqlResultSet);
+            }
+
             return null;
         }
 
@@ -150,10 +167,7 @@ namespace Semiodesk.Trinity.Store
 
         public IModel GetModel(Uri uri)
         {
-            if (ContainsModel(uri))
-                return new Model(this, new UriRef(uri));
-            else
-                return null;
+            return new Model(this, new UriRef(uri));
         }
 
         public bool IsReady
@@ -165,11 +179,12 @@ namespace Semiodesk.Trinity.Store
         {
             foreach (var g in _store.Graphs)
             {
-                yield return new Model(this, new UriRef(g.BaseUri));
+                if( g.BaseUri != null)
+                    yield return new Model(this, new UriRef(g.BaseUri));
             }
         }
 
-        public static IRdfReader GetParser(RdfSerializationFormat format)
+        public static IRdfReader GetReader(RdfSerializationFormat format)
         {
             switch (format)
             {
@@ -188,7 +203,41 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-        public Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format)
+        public static IRdfWriter GetWriter(RdfSerializationFormat format)
+        {
+            switch (format)
+            {
+                case RdfSerializationFormat.N3:
+                    return new Notation3Writer();
+
+                case RdfSerializationFormat.NTriples:
+                    return new NTriplesWriter();
+
+                case RdfSerializationFormat.Turtle:
+                    return new CompressingTurtleWriter();
+                default:
+                case RdfSerializationFormat.RdfXml:
+                    return new RdfXmlWriter();
+
+            }
+        }
+
+
+        public Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
+        {
+            TextReader reader = new StreamReader(stream);
+            IGraph graph = new Graph();
+            IRdfReader parser = GetReader(format);
+
+            parser.Load(graph, reader);
+            graph.BaseUri = graphUri;
+            if (!update)
+                _store.Remove(graphUri);
+            _store.Add(graph, update);
+            return graphUri;
+        }
+
+        public Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update)
         {
             IGraph graph = null;
 
@@ -198,7 +247,7 @@ namespace Semiodesk.Trinity.Store
 
                 if (url.IsAbsoluteUri)
                 {
-                    path = url.AbsolutePath;
+                    path = url.LocalPath;
                 }
                 else
                 {
@@ -212,15 +261,17 @@ namespace Semiodesk.Trinity.Store
                         TripleStore s = new TripleStore();
                         s.LoadFromFile(path, new TriGParser());
 
-                        foreach (Graph g in s.Graphs)
+                        foreach (VDS.RDF.Graph g in s.Graphs)
                         {
-                            _store.Add(g, true);
+                            if (!update)
+                                _store.Remove(g.BaseUri);
+                            _store.Add(g, update);
                         }
                     }
                     else
                     {
                         graph = new Graph();
-                        graph.LoadFromFile(path, GetParser(format));
+                        graph.LoadFromFile(path, GetReader(format));
                         graph.BaseUri = graphUri;
                     }
                 }
@@ -234,7 +285,9 @@ namespace Semiodesk.Trinity.Store
 
             if (graph != null)
             {
-                _store.Add(graph, true);
+                if (!update)
+                    _store.Remove(graph.BaseUri);
+                _store.Add(graph, update);
 
                 return graphUri;
             }
@@ -253,9 +306,16 @@ namespace Semiodesk.Trinity.Store
                 _store.Remove(uri);
         }
 
-        public void Write(Stream fs, Uri graphUri, RdfSerializationFormat format)
+        public void Write(Stream stream, Uri graphUri, RdfSerializationFormat format)
         {
-            throw new NotImplementedException();
+            if (_store.HasGraph(graphUri))
+            {
+                IGraph graph = _store.Graphs[graphUri];
+                using (StreamWriter writer = new StreamWriter(stream))
+                {
+                    graph.SaveToStream(writer, GetWriter(format));
+                }
+            }
         }
 
         public ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
@@ -281,6 +341,43 @@ namespace Semiodesk.Trinity.Store
             _store.Dispose();
         }
 
+        public void LoadOntologySettings(string configPath = null, string sourceDir = "")
+        {
+            Trinity.Configuration.TrinitySettings settings;
+            if (!string.IsNullOrEmpty(configPath) && File.Exists(configPath))
+            {
+                ExeConfigurationFileMap configMap = new ExeConfigurationFileMap();
+
+                configMap.ExeConfigFilename = configPath;
+
+                var configuration = ConfigurationManager.OpenMappedExeConfiguration(configMap, ConfigurationUserLevel.None);
+                try
+                {
+                    settings = (TrinitySettings)configuration.GetSection("TrinitySettings");
+                }
+                catch (Exception e)
+                {
+                    throw new Exception(string.Format("Could not read config file from {0}. Reason: {1}", configPath, e.Message));
+                }
+
+            }
+            else
+            {
+                settings = (TrinitySettings)ConfigurationManager.GetSection("TrinitySettings");
+            }
+
+            DirectoryInfo srcDir;
+            if (string.IsNullOrEmpty(sourceDir))
+            {
+                srcDir = new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+            }
+            else
+            {
+                srcDir = new DirectoryInfo(sourceDir);
+            }
+            StoreUpdater updater = new StoreUpdater(this, srcDir);
+            updater.UpdateOntologies(settings.Ontologies);
+        }
         #endregion
         #endregion
     }

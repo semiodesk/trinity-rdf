@@ -35,60 +35,61 @@ using System.Text;
 using System.Threading;
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
-using Semiodesk.Trinity.Tests;
+using Semiodesk.Trinity.Test;
 
 namespace Semiodesk.Trinity.Test
 {
-    [TestFixture]
+    //[TestFixture]
     class TransactionTest
     {
-        UriRef transactionModel = new UriRef("ex:TransactionTest");
-        IStore Store;
-        string providerString = "provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba";
+        #region Members
 
+        private string _connectionString = SetupClass.ConnectionString;
+
+        private IStore _store;
+
+        private UriRef _model = new UriRef("ex:TransactionTest");
+
+        #endregion
+
+        #region Methods
 
         [SetUp]
         public void SetUp()
         {
-            if (ResourceMappingTest.RegisteredOntology == false)
+            _store = StoreFactory.CreateStore(_connectionString);
+
+            IModel model = _store.GetModel(_model);
+
+            if(!model.IsEmpty)
             {
-                OntologyDiscovery.AddAssembly(Assembly.GetExecutingAssembly());
-                MappingDiscovery.RegisterAssembly(Assembly.GetExecutingAssembly());
-                RegisterOntologies.Register();
-                ResourceMappingTest.RegisteredOntology = true;
+                model.Clear();
             }
-
-            Store = StoreFactory.CreateStore(providerString);
-
-            if (Store.ContainsModel(transactionModel))
-            {
-                Store.RemoveModel(transactionModel);
-            }
-            IModel m = Store.CreateModel(transactionModel);
-
-            
-
-
         }
 
         [TearDown]
         public void TearDown()
         {
-            if (Store.ContainsModel(transactionModel))
+            IModel model = _store.GetModel(_model);
+
+            if (!model.IsEmpty)
             {
-                Store.RemoveModel(transactionModel);
+                model.Clear();
             }
         }
 
         public IModel GetModel(out IStore store)
         {
-            store = StoreFactory.CreateStore(providerString);
-            return store.GetModel(transactionModel);
+            store = StoreFactory.CreateStore(_connectionString);
+
+            return store.GetModel(_model);
         }
 
         [Test]
-        public void AddingElements()
+        public void TestAddingElements()
         {
+            Assert.Inconclusive();
+
             List<SingleMappingTestClass> list1 = new List<SingleMappingTestClass>();
             List<SingleMappingTestClass> list2 = new List<SingleMappingTestClass>();
 
@@ -130,6 +131,7 @@ namespace Semiodesk.Trinity.Test
 
             worker1.Start();
             worker2.Start();
+
             sync.SignalAndWait();
 
             worker1.Join();
@@ -138,7 +140,8 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(50, list1.Count());
             Assert.AreEqual(50, list2.Count());
 
-            IModel model = Store.GetModel(transactionModel);
+            IModel model = _store.GetModel(_model);
+
             foreach (var res in list1)
             {
                 var actual = model.GetResource<SingleMappingTestClass>(res.Uri);
@@ -154,11 +157,11 @@ namespace Semiodesk.Trinity.Test
             }
         }
 
-
         [Test]
-        public void ModifyElement()
+        public void TestModifyElement()
         {
-            IModel model = Store.GetModel(transactionModel);
+            Assert.Inconclusive();
+            IModel model = _store.GetModel(_model);
             var newResource = model.CreateResource<SingleMappingTestClass>();
             newResource.stringTest.Add("Hello");
             newResource.stringTest.Add("my");
@@ -233,11 +236,12 @@ namespace Semiodesk.Trinity.Test
 
         }
 
-
         [Test]
-        public void ModifyAndAddElement()
+        public void TestModifyAndAddElement()
         {
-            IModel model = Store.GetModel(transactionModel);
+            Assert.Inconclusive();
+
+            IModel model = _store.GetModel(_model);
             var newResource = model.CreateResource<SingleMappingTestClass>();
             newResource.stringTest.Add("Hello");
             newResource.stringTest.Add("my");
@@ -302,6 +306,100 @@ namespace Semiodesk.Trinity.Test
 
         }
 
+        [Test]
+        public void TestCreateResourceMemberVariables()
+        {
+            Assert.Inconclusive();
+
+            bool faulted = false;
+
+            Barrier sync = new Barrier(2);
+            Barrier sync2 = new Barrier(3);
+
+            Thread createWorker = new Thread(() =>
+            {
+                IStore store;
+                IModel model = GetModel(out store);
+
+                model.Clear();
+
+                using (ITransaction tx = model.BeginTransaction(System.Data.IsolationLevel.ReadCommitted))
+                {
+                    ResourceMappingTestClass r1 = model.CreateResource<ResourceMappingTestClass>(new Uri("ex:r1"), tx);
+                    r1.IntegerValue = 1;
+                    r1.Commit();
+
+                    ResourceMappingTestClass r0 = model.CreateResource<ResourceMappingTestClass>(new Uri("ex:r0"), tx);
+                    r0.Resource = r1;
+                    r0.Commit();
+
+                    tx.Commit();
+                }
+
+                store.Dispose();
+
+                sync.SignalAndWait();
+            });
+
+            Thread getWorker = new Thread(() =>
+            {
+                try
+                {
+                    IStore store;
+                    IModel model = GetModel(out store);
+
+                    ResourceMappingTestClass r3 = model.GetResource<ResourceMappingTestClass>(new Uri("ex:r0"));
+
+                    Assert.NotNull(r3.Resource);
+                    Assert.AreEqual(r3.Resource.IntegerValue, 1);
+
+                    store.Dispose();
+                }
+                catch(Exception)
+                {
+                    faulted = true;
+                }
+
+                sync2.SignalAndWait();
+            });
+
+            Thread getWorkerTx = new Thread(() =>
+            {
+                try
+                {
+                    IStore store;
+                    IModel model = GetModel(out store);
+
+                    using (ITransaction tx = model.BeginTransaction(System.Data.IsolationLevel.ReadCommitted))
+                    {
+                        ResourceMappingTestClass r2 = model.GetResource<ResourceMappingTestClass>(new Uri("ex:r0"), tx);
+
+                        Assert.NotNull(r2.Resource);
+                        Assert.AreEqual(r2.Resource.IntegerValue, 1);
+                    }
+
+                    store.Dispose();
+                }
+                catch(Exception)
+                {
+                    faulted = true;
+                }
+
+                sync2.SignalAndWait();
+            });
+
+            createWorker.Start();
+
+            sync.SignalAndWait();
+
+            getWorker.Start();
+            getWorkerTx.Start();
+
+            sync2.SignalAndWait();
+
+            Assert.IsFalse(faulted);
+        }
+
         protected void ModifyData(IModel m, Uri uri, ITransaction t)
         {
             var res = m.GetResource<SingleMappingTestClass>(uri, t);
@@ -309,5 +407,7 @@ namespace Semiodesk.Trinity.Test
             res.stringTest.Remove("dear");
             res.Commit();
         }
+
+        #endregion
     }
 }

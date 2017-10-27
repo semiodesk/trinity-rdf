@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Linq;
 using System.Collections;
+using Newtonsoft.Json;
 #if NET_3_5
 using Semiodesk.Trinity.Utility;
 #endif
@@ -55,7 +56,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// This dictionary contains the properties and the associated values.
         /// </summary>
-        private Dictionary<Property, List<object>> _properties;
+        private Dictionary<Property, HashSet<object>> _properties;
 
         /// <summary>
         /// Contains a list of all properties which implement the INotifyPropertyChanged interface.
@@ -66,7 +67,7 @@ namespace Semiodesk.Trinity
         /// All mappings as discovered by InitialisePropertyMapping.
         /// </summary>
         private Dictionary<string, IPropertyMapping> _mappings;
-        
+
         /// <summary>
         /// Handle to the model.
         /// </summary>
@@ -96,23 +97,44 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// New resource which have never been committed need to be treated differently.
         /// </summary>
+        [JsonIgnore]
         public bool IsNew { get; set; }
 
         /// <summary>
         /// Indicates if the resources has been disposed.
         /// </summary>
+        [JsonIgnore]
         protected bool IsDisposed;
 
         /// <summary>
         /// True if the properties of the resources has been committed to the model.
         /// </summary>
-        [Browsable(false)]
+        [Browsable(false), JsonIgnore]
         public bool IsSynchronized { get; set; }
 
         /// <summary>
         /// Indicates this resource is read-only.
         /// </summary>
+        [JsonIgnore]
         public bool IsReadOnly { get; internal set; }
+
+        private string _language;
+        [JsonIgnore]
+        public string Language
+        {
+            get
+            {
+                return _language;
+            }
+            set
+            {
+                if (value != null)
+                    _language = value.ToLower();
+                else
+                    _language = null;
+                ReloadLocalizedMappings();
+            }
+        }
 
         #endregion
 
@@ -122,7 +144,8 @@ namespace Semiodesk.Trinity
         /// Private since a Resource cannot be created without a URI.
         /// </summary>
         private Resource()
-        {}
+        {
+        }
 
         /// <summary>
         /// Create a new resource with a given Uri.
@@ -132,7 +155,6 @@ namespace Semiodesk.Trinity
         {
             Initialize(uri);
         }
-
 
         /// <summary>
         /// Create a new resource with a given Uri.
@@ -159,7 +181,7 @@ namespace Semiodesk.Trinity
         public Resource(Resource other)
         {
             _model = other._model;
-            
+
             _properties = other._properties;
             _mappings = other._mappings;
 
@@ -168,7 +190,7 @@ namespace Semiodesk.Trinity
 
             IsNew = other.IsNew;
             IsSynchronized = other.IsSynchronized;
-         }
+        }
 
         #endregion
 
@@ -194,7 +216,7 @@ namespace Semiodesk.Trinity
         private void Initialize(UriRef uri)
         {
             _model = null;
-            _properties = new Dictionary<Property, List<object>>();
+            _properties = new Dictionary<Property, HashSet<object>>();
             _mappings = new Dictionary<string, IPropertyMapping>();
 
             ResourceCache = new ResourceCache();
@@ -212,6 +234,9 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Loads and initialises all mapped properties. 
         /// </summary>
+        /// <remarks>
+        /// TODO: This method could be re-reimplemented and sped up by the CIL generator.
+        /// </remarks>
         private void InitializePropertyMappings()
         {
             Type thisType = GetType();
@@ -222,7 +247,23 @@ namespace Semiodesk.Trinity
 
             foreach (IPropertyMapping mapping in mappings)
             {
-                _mappings.Add(mapping.PropertyName, mapping);
+                if (mapping != null)
+                    _mappings.Add(mapping.PropertyName, mapping);
+#if DEBUG
+                else
+                    Debug.WriteLine(string.Format("Mapping resulted in zero results in {0}", thisType.Name));
+#endif
+            }
+        }
+
+        internal void ClearListPropertyMappings()
+        {
+            foreach (var mapping in _mappings)
+            {
+                if(mapping.Value.IsList)
+                {
+                    mapping.Value.Clear();
+                }
             }
         }
 
@@ -232,7 +273,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public virtual IEnumerable<Class> GetTypes()
         {
-            return new Class[] {};
+            yield break;
         }
 
         /// <summary>
@@ -241,7 +282,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public override string ToString()
         {
-            return string.Format("<{0}>",Uri.OriginalString);
+            return string.Concat('<', Uri.OriginalString, '>');
         }
 
         /// <summary>
@@ -251,7 +292,9 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public override bool Equals(object comparand)
         {
-            return (comparand is Resource) ? Uri == (comparand as Resource).Uri : false;
+            IResource other = comparand as Resource;
+
+            return other != null && other.Uri == Uri;
         }
 
         /// <summary>
@@ -268,22 +311,23 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="property"></param>
         /// <param name="value"></param>
-        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        public virtual void AddProperty(Property property, object value, bool fromModel = false)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public virtual void AddPropertyToMapping(Property property, object value, bool fromModel)
         {
             if (property.Uri.OriginalString == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
             {
-                IResource v = (IResource)value;
-                foreach (Class item in GetTypes())
+                IResource v = value as IResource;
+
+                if (GetTypes().Any(t => t.Uri == v.Uri))
                 {
-                    if (item.Uri == v.Uri)
-                        return;
+                    return;
                 }
             }
+            if (value == null)
+                return;
 
             IPropertyMapping propertyMapping = GetPropertyMapping(property, value.GetType());
 
-            // Is property mapped
             if (propertyMapping != null)
             {
                 // yes, so we try to set or add it
@@ -296,23 +340,15 @@ namespace Semiodesk.Trinity
                 {
                     propertyMapping.SetOrAddMappedValue(value);
                 }
-                return;
+            }
+            // no, we add it to the property
+            else if (_properties.ContainsKey(property))
+            {
+                _properties[property].Add(value);
             }
             else
             {
-                // no, we add it to the property
-                if (_properties.ContainsKey(property))
-                {
-                    if (!_properties[property].Contains(value))
-                        _properties[property].Add(value);
-                }
-                else
-                {
-                    List<object> l = new List<object>();
-                    l.Add(value);
-                    _properties.Add(property, l);
-                }
-
+                _properties.Add(property, new HashSet<object>() { value });
             }
         }
 
@@ -322,29 +358,45 @@ namespace Semiodesk.Trinity
         /// </summary>
         public virtual void AddProperty(Property property, IResource value)
         {
-            AddProperty(property, (object)value);
+            AddPropertyToMapping(property, value, false);
         }
 
         /// <summary>
         /// Add a property with a string as value.
         /// If this property is mapped with a compatible type, it will be filled with the given value.
         /// </summary>
-        public void AddProperty(Property property, String value)
+        public void AddProperty(Property property, string value)
         {
-            AddProperty(property, (object)value);
+            AddPropertyToMapping(property, value, false);
         }
 
         /// <summary>
         /// Add a property with a string and language as value.
         /// If this property is mapped with a compatible type, it will be filled with the given value.
         /// </summary>
-        public void AddProperty(Property property, String value, CultureInfo language)
+        public void AddProperty(Property property, string value, CultureInfo language)
         {
             // TODO: 
             // Write a custom string class with an associated language.
             // Internally the language and string are stored as Tuple containing the string and culture info
-            Tuple<string, CultureInfo> aggregation = new Tuple<string, CultureInfo>(value, language);
-            AddProperty(property, (object)aggregation);
+            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.Name.ToLower());
+
+            AddPropertyToMapping(property, aggregation, false);
+        }
+
+
+        /// <summary>
+        /// Add a property with a string and language as value.
+        /// If this property is mapped with a compatible type, it will be filled with the given value.
+        /// </summary>
+        public void AddProperty(Property property, string value, string language)
+        {
+            // TODO: 
+            // Write a custom string class with an associated language.
+            // Internally the language and string are stored as Tuple containing the string and culture info
+            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.ToLower());
+
+            AddPropertyToMapping(property, aggregation, false);
         }
 
         /// <summary>
@@ -353,7 +405,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void AddProperty(Property property, Int16 value)
         {
-            AddProperty(property, (object)value);
+            AddPropertyToMapping(property, value, false);
         }
 
         /// <summary>
@@ -362,7 +414,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void AddProperty(Property property, Int32 value)
         {
-            AddProperty(property, (object)value);
+            AddPropertyToMapping(property, value, false);
         }
 
         /// <summary>
@@ -371,7 +423,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void AddProperty(Property property, Int64 value)
         {
-            AddProperty(property, (object)value);
+            AddPropertyToMapping(property, value, false);
         }
 
         /// <summary>
@@ -380,7 +432,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void AddProperty(Property property, UInt16 value)
         {
-            AddProperty(property, (object)value);
+            AddPropertyToMapping(property, value, false);
         }
 
         /// <summary>
@@ -389,7 +441,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void AddProperty(Property property, UInt32 value)
         {
-            AddProperty(property, (object)value);
+            AddPropertyToMapping(property, value, false);
         }
 
         /// <summary>
@@ -398,7 +450,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void AddProperty(Property property, UInt64 value)
         {
-            AddProperty(property, (object)value);
+            AddPropertyToMapping(property, value, false);
         }
 
         /// <summary>
@@ -407,7 +459,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void AddProperty(Property property, float value)
         {
-            AddProperty(property, (object)value);
+            AddPropertyToMapping(property, value, false);
         }
 
         /// <summary>
@@ -416,7 +468,16 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void AddProperty(Property property, double value)
         {
-            AddProperty(property, (object)value);
+            AddPropertyToMapping(property, value, false);
+        }
+
+        /// <summary>
+        /// Add a property with a decimal as value.
+        /// If this property is mapped with a compatible type, it will be filled with the given value.
+        /// </summary>
+        public void AddProperty(Property property, decimal value)
+        {
+            AddPropertyToMapping(property, value, false);
         }
 
         /// <summary>
@@ -425,7 +486,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void AddProperty(Property property, bool value)
         {
-            AddProperty(property, (object)value);
+            AddPropertyToMapping(property, value, false);
         }
 
         /// <summary>
@@ -434,7 +495,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void AddProperty(Property property, DateTime value)
         {
-            AddProperty(property, (object)value);
+            AddPropertyToMapping(property, value, false);
         }
 
         /// <summary>
@@ -453,7 +514,16 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void AddProperty(Property property, byte[] value)
         {
-            AddProperty(property, (object)value);
+            AddPropertyToMapping(property, value, false);
+        }
+
+        /// <summary>
+        /// Add a property with an Uri as value.
+        /// If this property is mapped with a compatible type, it will be filled with the given value.
+        /// </summary>
+        public virtual void AddProperty(Property property, Uri value)
+        {
+            AddPropertyToMapping(property, value, false);
         }
 
         /// <summary>
@@ -461,25 +531,21 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="property"></param>
         /// <param name="value"></param>
-        internal virtual void RemoveProperty(Property property, object value)
+        internal virtual void RemovePropertyFromMapping(Property property, object value)
         {
             IPropertyMapping propertyMapping = GetPropertyMapping(property, value.GetType());
 
             if (propertyMapping != null)
             {
                 propertyMapping.RemoveOrResetValue(value);
-                return;
             }
-            else
+            else if (_properties.ContainsKey(property))
             {
-                if (_properties.ContainsKey(property))
-                {
-                    _properties[property].Remove(value);
+                _properties[property].Remove(value);
 
-                    if (_properties[property].Count == 0)
-                    {
-                        _properties.Remove(property);
-                    }
+                if (_properties[property].Count == 0)
+                {
+                    _properties.Remove(property);
                 }
             }
         }
@@ -490,7 +556,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, IResource value)
         {
-            RemoveProperty(property, (object)value);
+            RemovePropertyFromMapping(property, value);
         }
 
         /// <summary>
@@ -499,7 +565,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, string value)
         {
-            RemoveProperty(property, (object)value);
+            RemovePropertyFromMapping(property, value);
         }
 
         /// <summary>
@@ -508,9 +574,20 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, string value, CultureInfo language)
         {
-            Tuple<string, CultureInfo> aggregation = new Tuple<string, CultureInfo>(value, language);
+            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.Name.ToLower());
 
-            RemoveProperty(property, aggregation);
+            RemovePropertyFromMapping(property, aggregation);
+        }
+
+        /// <summary>
+        /// Removes a property with a string value associated with the given language.
+        /// If this property is mapped with a compatible type, the given value will be removed.
+        /// </summary>
+        public void RemoveProperty(Property property, string value, string language)
+        {
+            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.ToLower());
+
+            RemovePropertyFromMapping(property, aggregation);
         }
 
         /// <summary>
@@ -519,7 +596,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, Int16 value)
         {
-            RemoveProperty(property, (object)value);
+            RemovePropertyFromMapping(property, value);
         }
 
         /// <summary>
@@ -528,7 +605,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, Int32 value)
         {
-            RemoveProperty(property, (object)value);
+            RemovePropertyFromMapping(property, value);
         }
 
         /// <summary>
@@ -537,7 +614,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, Int64 value)
         {
-            RemoveProperty(property, (object)value);
+            RemovePropertyFromMapping(property, value);
         }
 
         /// <summary>
@@ -546,7 +623,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, UInt16 value)
         {
-            RemoveProperty(property, (object)value);
+            RemovePropertyFromMapping(property, value);
         }
 
         /// <summary>
@@ -555,7 +632,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, UInt32 value)
         {
-            RemoveProperty(property, (object)value);
+            RemovePropertyFromMapping(property, value);
         }
 
         /// <summary>
@@ -564,7 +641,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, UInt64 value)
         {
-            RemoveProperty(property, (object)value);
+            RemovePropertyFromMapping(property, value);
         }
 
         /// <summary>
@@ -573,7 +650,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, float value)
         {
-            RemoveProperty(property, (object)value);
+            RemovePropertyFromMapping(property, value);
         }
 
         /// <summary>
@@ -582,7 +659,16 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, double value)
         {
-            RemoveProperty(property, (object)value);
+            RemovePropertyFromMapping(property, value);
+        }
+
+        /// <summary>
+        /// Removes a property with a decimal value.
+        /// If this property is mapped with a compatible type, the given value will be removed.
+        /// </summary>
+        public void RemoveProperty(Property property, decimal value)
+        {
+            RemovePropertyFromMapping(property, value);
         }
 
         /// <summary>
@@ -591,7 +677,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, bool value)
         {
-            RemoveProperty(property, (object)value);
+            RemovePropertyFromMapping(property, value);
         }
 
         /// <summary>
@@ -600,7 +686,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, DateTime value)
         {
-            RemoveProperty(property, (object)value);
+            RemovePropertyFromMapping(property, value);
         }
 
         /// <summary>
@@ -609,7 +695,16 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, byte[] value)
         {
-            RemoveProperty(property, (object)value);
+            RemovePropertyFromMapping(property, value);
+        }
+
+        /// <summary>
+        /// Removes a property with an Uri value.
+        /// If this property is mapped with a compatible type, the given value will be removed.
+        /// </summary>
+        public void RemoveProperty(Property property, Uri value)
+        {
+            RemovePropertyFromMapping(property, value);
         }
 
         /// <summary>
@@ -618,7 +713,8 @@ namespace Semiodesk.Trinity
         internal virtual void ClearProperties()
         {
             _properties.Clear();
-            //TODO: clear all mapped properties
+
+            // TODO: Clear all mapped properties.
         }
 
         /// <summary>
@@ -628,15 +724,16 @@ namespace Semiodesk.Trinity
         /// <returns>true if the property is associated, false if not</returns>
         public virtual bool HasProperty(Property property)
         {
-            bool result = false;
-            result = (_properties.ContainsKey(property) && _properties[property].Count > 0);
+            // NOTE: We do not need to check if the value list for the property contains
+            // any values, since the property is removed from the dictionary if there
+            // are no values left.
+            bool result = _properties.ContainsKey(property);
+
             if (!result)
             {
-                var mappings = from x in _mappings.Values where x.Property.Uri.Equals(property.Uri) && ( !x.IsUnsetValue || ResourceCache.HasCachedValues(x) ) select x;
-                if (mappings.Count() > 0)
-                {
-                    result = true;
-                }
+                var mappings = from x in _mappings.Values where x.Property.Uri.Equals(property.Uri) && (!x.IsUnsetValue || ResourceCache.HasCachedValues(x)) select x;
+
+                return mappings.Any();
             }
 
             return result;
@@ -651,20 +748,24 @@ namespace Semiodesk.Trinity
         public virtual bool HasProperty(Property property, object value)
         {
             bool result = false;
-            if( _properties.ContainsKey(property) )
+
+            if (_properties.ContainsKey(property))
             {
                 if (value.GetType() == typeof(IResource))
                 {
-                    result = (_properties[property].Where( x => x.GetType() == typeof(IResource) && ((IResource)x ).Uri.OriginalString == ((IResource)value).Uri.OriginalString).Count() > 0);
+                    result = (_properties[property].Where(x => x.GetType() == typeof(IResource) && ((IResource)x).Uri.OriginalString == ((IResource)value).Uri.OriginalString).Count() > 0);
                 }
                 else
+                {
                     result = (_properties[property].Contains(value));
+                }
             }
+
             if (!result)
             {
                 foreach (IPropertyMapping propertyMapping in _mappings.Values)
                 {
-                    if (propertyMapping.Property.Uri.Equals(property.Uri) && !propertyMapping.IsUnsetValue )
+                    if (propertyMapping.Property.Uri.Equals(property.Uri) && !propertyMapping.IsUnsetValue)
                     {
                         if (propertyMapping.GetValueObject().Equals(value) || (propertyMapping.IsList && (propertyMapping.GetValueObject() as IList).Contains(value)))
                         {
@@ -674,10 +775,13 @@ namespace Semiodesk.Trinity
                     else if (ResourceCache.HasCachedValues(propertyMapping) && value is IResource)
                     {
                         if (ResourceCache.HasCachedValues(propertyMapping, (value as IResource).Uri))
+                        {
                             result = false;
+                        }
                     }
                 }
             }
+
             return result;
         }
 
@@ -690,7 +794,22 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public virtual bool HasProperty(Property property, string value, CultureInfo language)
         {
-            Tuple<string, CultureInfo> aggregation = new Tuple<string, CultureInfo>(value, language);
+            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.Name.ToLower());
+
+            return HasProperty(property, aggregation);
+        }
+
+        /// <summary>
+        /// Returns true if the specified string value with the given language is connected to this resource with the given property.
+        /// </summary>
+        /// <param name="property">The property</param>
+        /// <param name="value">The string value.</param>
+        /// <param name="language">The language the string is in.</param>
+        /// <returns></returns>
+        public virtual bool HasProperty(Property property, string value, string language)
+        {
+            Tuple<string, string> aggregation = new Tuple<string, string>(value, language);
+
             return HasProperty(property, aggregation);
         }
 
@@ -700,21 +819,28 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public virtual IEnumerable<Tuple<Property, object>> ListValues()
         {
-            foreach (var keyValue in _properties)
+            // List values from properties
+            foreach (var key in _properties)
             {
-                foreach (object val in keyValue.Value)
-                    yield return new Tuple<Property, object>(keyValue.Key, val);
+                foreach (object value in key.Value)
+                {
+                    yield return new Tuple<Property, object>(key.Key, value);
+                }
             }
 
+            // List values from mapping
             foreach (IPropertyMapping propertyMapping in _mappings.Values)
             {
-                if (!propertyMapping.IsUnsetValue )
+                if (!propertyMapping.IsUnsetValue)
                 {
                     if (propertyMapping.IsList)
                     {
                         IList values = (IList)propertyMapping.GetValueObject();
-                        foreach (object val in values)
-                            yield return new Tuple<Property, object>(propertyMapping.Property, val);
+
+                        foreach (object value in values)
+                        {
+                            yield return new Tuple<Property, object>(propertyMapping.Property, value);
+                        }
                     }
                     else
                     {
@@ -723,20 +849,28 @@ namespace Semiodesk.Trinity
                 }
                 else if (ResourceCache.HasCachedValues(propertyMapping))
                 {
-                    foreach (var r in ResourceCache.ListCachedValues(propertyMapping))
-                        yield return new Tuple<Property, object>(propertyMapping.Property, new Resource(r));
-
+                    foreach (var resource in ResourceCache.ListCachedValues(propertyMapping))
+                    {
+                        yield return new Tuple<Property, object>(propertyMapping.Property, new Resource(resource));
+                    }
                 }
             }
 
+            // List values from associated types
             var types = GetTypes();
-            if (types.Count ()> 0)
+            if (types.Any())
             {
                 Property rdfType;
-                if( OntologyDiscovery.Properties.ContainsKey("http://www.w3.org/1999/02/22-rdf-syntax-ns#type") )
+
+                if (OntologyDiscovery.Properties.ContainsKey("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"))
+                {
                     rdfType = OntologyDiscovery.Properties["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"];
+                }
                 else
+                {
                     rdfType = new Property(new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"));
+                }
+
                 foreach (Class c in types)
                 {
                     yield return new Tuple<Property, object>(rdfType, c);
@@ -750,53 +884,68 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="property"></param>
         /// <returns></returns>
-        public virtual List<object> ListValues(Property property)
+        public virtual IEnumerable<object> ListValues(Property property)
         {
-            List<object> valueList = new List<object>();
-
             // Add all values of the generic interface
             if (_properties.ContainsKey(property))
             {
-                valueList.AddRange(_properties[property]);
-            }
-
-            // iterate over the mapping and add all values
-            foreach (IPropertyMapping propertyMapping in _mappings.Values)
-            {
-                if(propertyMapping.Property.Equals(property))
-                {
-                    if (!propertyMapping.IsUnsetValue)
-                    {
-                        if (propertyMapping.IsList)
-                        {
-                            IList value = (IList) propertyMapping.GetValueObject();
-                            valueList.AddRange(value.Cast<object>());
-                        }
-                        else
-                        {
-                            valueList.Add(propertyMapping.GetValueObject());
-                        }
-                    }
-                else
-                    if (ResourceCache.HasCachedValues(propertyMapping))
-                    {
-                        foreach (var r in ResourceCache.ListCachedValues(propertyMapping))
-                            valueList.Add(new Resource(r) as object);
-
-                    }
-                }
+                foreach (var value in _properties[property])
+                    yield return value;
             }
 
             if (property.Uri.OriginalString == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
             {
-                foreach (var type in GetTypes())
-                {
-                    valueList.Add(type);
-                }
-                
+#if NET_3_5
+                foreach (object type in GetTypes().Cast<object>())
+                    yield return type;
+#else
+                foreach (object type in GetTypes())
+                    yield return type;
+#endif
+
+                // We do not need to add mapped values for the RDF type property.
+                yield break;
             }
 
-            return valueList;
+            // iterate over the mapping and add all values
+            foreach (IPropertyMapping propertyMapping in _mappings.Values.Where(p => p.Property.Equals(property)))
+            {
+                if (!propertyMapping.IsUnsetValue)
+                {
+                    if (propertyMapping.IsList)
+                    {
+                        IList value = (IList)propertyMapping.GetValueObject();
+                        if (!string.IsNullOrEmpty(Language) && !propertyMapping.LanguageInvariant && propertyMapping.GenericType == typeof(string))
+                        {
+                            foreach (var x in value)
+                                yield return new Tuple<string, string>(x as string, Language);
+                        }
+                        else
+                        {
+                            foreach (object v in value.Cast<object>())
+                                yield return v;
+                        }
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrEmpty(Language) && !propertyMapping.LanguageInvariant && propertyMapping.DataType == typeof(string))
+                        {
+                            yield return new Tuple<string, string>(propertyMapping.GetValueObject() as string, Language);
+                        }
+                        else
+                        {
+                            yield return propertyMapping.GetValueObject();
+                        }
+                    }
+                }
+                else if (ResourceCache.HasCachedValues(propertyMapping))
+                {
+                    foreach (var r in ResourceCache.ListCachedValues(propertyMapping))
+                    {
+                        yield return new Resource(r);
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -804,33 +953,36 @@ namespace Semiodesk.Trinity
         /// This includes mapped properties if they have valid values.
         /// </summary>
         /// <returns></returns>
-        public virtual List<Property> ListProperties()
+        public virtual IEnumerable<Property> ListProperties()
         {
-            List<Property> propertyList = new List<Property>();
+            HashSet<Property> properties = new HashSet<Property>();
 
-            if (GetTypes().Count() > 0)
+            if (GetTypes().Any())
             {
                 Property rdfType = OntologyDiscovery.Properties["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"];
-                propertyList.Add(rdfType);
+
+                properties.Add(rdfType);
             }
 
             // List all properties of the generic interface which have values
             foreach (var keyValue in _properties)
             {
-                if (!propertyList.Contains(keyValue.Key) && keyValue.Value.Count > 0)
-                    propertyList.Add(keyValue.Key);
+                if (keyValue.Value.Count > 0)
+                {
+                    properties.Add(keyValue.Key);
+                }
             }
 
             // List all mapped properties which have values (Listtypes) or have been set
             foreach (IPropertyMapping mappingObject in _mappings.Values)
             {
-                if (!propertyList.Contains(mappingObject.Property) && !mappingObject.IsUnsetValue)
+                if (!mappingObject.IsUnsetValue)
                 {
-                    propertyList.Add(mappingObject.Property);
+                    properties.Add(mappingObject.Property);
                 }
             }
 
-            return propertyList;
+            return properties;
         }
 
         /// <summary>
@@ -850,17 +1002,10 @@ namespace Semiodesk.Trinity
         /// <returns>The value on success, the default value if the object has no such property.</returns>
         public object GetValue(Property property, object defaultValue)
         {
-            List<object> result = ListValues(property);
+            var result = ListValues(property).ToList();
 
-            if (result.Count > 0)
-            {
-                return ListValues(property).First();
-           }
-            else
-            {
-                return defaultValue;
-            }
-         }
+            return result.Count > 0 ? result.First() : defaultValue;
+        }
 
         /// <summary>
         /// Persist changes in the model.
@@ -879,40 +1024,62 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void Rollback()
         {
-            Resource resource = (Resource)Model.GetResource(this.Uri);
-
-            _model = resource._model;
-            _properties = resource._properties;
-
-            Uri = resource.Uri;
-
-            IsNew = resource.IsNew;
-            IsSynchronized = resource.IsSynchronized;
-
-            ResourceCache.Clear();
-
-            foreach (KeyValuePair<string, IPropertyMapping> mapping in _mappings)
+            using (Resource resource = Model.GetResource(Uri, GetType()) as Resource)
             {
-                IPropertyMapping persistedMapping = resource._mappings[mapping.Key];
+                _model = resource._model;
+                _properties = resource._properties;
 
-                mapping.Value.CloneFrom(persistedMapping);
+                Uri = resource.Uri;
 
-                if (resource.ResourceCache.HasCachedValues(persistedMapping))
+                IsNew = resource.IsNew;
+                IsSynchronized = resource.IsSynchronized;
+
+                ResourceCache.Clear();
+
+                foreach (KeyValuePair<string, IPropertyMapping> mapping in _mappings)
                 {
-                    ResourceCache.CacheValues(mapping.Value, resource.ResourceCache.ListCachedValues(persistedMapping));
+                    if (!resource._mappings.ContainsKey(mapping.Key))
+                    {
+                        continue;
+                    }
+
+                    IPropertyMapping persistedMapping = resource._mappings[mapping.Key];
+
+                    mapping.Value.CloneFrom(persistedMapping);
+
+                    if (resource.ResourceCache.HasCachedValues(persistedMapping))
+                    {
+                        ResourceCache.CacheValues(mapping.Value, resource.ResourceCache.ListCachedValues(persistedMapping));
+                    }
+                }
+
+                foreach (string name in _notifyingProperties)
+                {
+                    RaisePropertyChanged(name);
                 }
             }
-
-            foreach (string name in _notifyingProperties)
-            {
-                RaisePropertyChanged(name);
-            }
-
-            resource.Dispose();
 
             // NOTE: We do not need to copy the classes, we have to assume the mapped type stays the same.
         }
 
+        /// <summary>
+        /// This method returns if property is mapped.
+        /// </summary>
+        /// <param name="property">Rdf property to be tested.</param>
+        /// <param name="type">Type of the mapping.</param>
+        /// <returns></returns>
+        public bool HasPropertyMapping(Property property, Type type)
+        {
+            foreach (IPropertyMapping mappingObject in _mappings.Values)
+            {
+                if (mappingObject.Property.Uri.OriginalString == property.Uri.OriginalString && mappingObject.IsTypeCompatible(type))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
         /// <summary>
         /// This method returns the mapped property of the given rdf property and type. It returns null if this mapping is not available.
         /// </summary>
@@ -1000,6 +1167,63 @@ namespace Semiodesk.Trinity
             }
         }
 
+        protected void ReloadLocalizedMappings()
+        {
+            foreach (var mapping in _mappings.Where(x => (x.Value.DataType == typeof(string) || x.Value.GenericType == typeof(string)) && !x.Value.LanguageInvariant))
+            {
+                if (!mapping.Value.IsUnsetValue)
+                {
+                    TransferMappingToProperties(mapping.Value);
+                    mapping.Value.Clear();
+                }
+                mapping.Value.Language = Language;
+                foreach (var value in ListValues(mapping.Value.Property).ToList())
+                {
+                    if (string.IsNullOrEmpty(Language))
+                    {
+                        if (value is string)
+                        {
+                            mapping.Value.SetOrAddMappedValue(value);
+                            _properties[mapping.Value.Property].Remove(value);
+                        }
+
+                    }
+                    else
+                    {
+                        if (value is Tuple<string, string>)
+                        {
+                            var localizedString = value as Tuple<string, string>;
+                            if (string.Compare(localizedString.Item2, Language, true) == 0)
+                            {
+                                mapping.Value.SetOrAddMappedValue(localizedString.Item1);
+                                _properties[mapping.Value.Property].Remove(localizedString);
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
+
+        private void TransferMappingToProperties(IPropertyMapping mapping)
+        {
+            if (!_properties.ContainsKey(mapping.Property))
+            {
+                _properties.Add(mapping.Property, new HashSet<object>());
+            }
+
+            if (mapping.IsList)
+            {
+                foreach (var x in mapping.GetValueObject() as IList)
+                    _properties[mapping.Property].Add(x);
+            }
+            else
+            {
+                _properties[mapping.Property].Add(mapping.GetValueObject());
+            }
+
+        }
+
         /// <summary>
         /// Dispose this resource. 
         /// Does nothing meaningful currently.
@@ -1009,6 +1233,7 @@ namespace Semiodesk.Trinity
             if (!IsDisposed)
             {
                 GC.SuppressFinalize(this);
+
                 IsDisposed = true;
             }
         }
@@ -1041,10 +1266,14 @@ namespace Semiodesk.Trinity
             {
                 string msg = "Invalid property name: " + propertyName;
 
-                if (this.ThrowOnInvalidPropertyName)
+                if (ThrowOnInvalidPropertyName)
+                {
                     throw new Exception(msg);
+                }
                 else
+                {
                     Debug.Fail(msg);
+                }
             }
         }
 

@@ -82,10 +82,17 @@ namespace Semiodesk.Trinity
         {
             // We need to escape specrial characters: http://www.w3.org/TeamSubmission/turtle/#sec-strings
             string s = str.Replace(@"\", @"\\");
-            s = s.Replace("\"", "\\\"");
-            s = s.Replace("\n", "\\n");
 
-            return string.Format("\"{0}\"", s);
+            if(s.Contains('\n'))
+            {
+                return string.Format("'''{0}'''", s);
+            }
+            else
+            {
+                s = s.Replace("'", "\\'");
+
+                return string.Format("'{0}'", s);
+            }
         }
 
         /// <summary>
@@ -96,7 +103,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string SerializeTranslatedString(string str, string lang)
         {
-            return string.Format("\"{0}\"@{1}", SerializeString(str), lang);
+            return string.Format("{0}@{1}", SerializeString(str), lang);
         }
 
         /// <summary>
@@ -133,7 +140,13 @@ namespace Semiodesk.Trinity
                 {
                     // string + language
                     Tuple<string, CultureInfo> array = obj as Tuple<string, CultureInfo>;
-                    return SerializeTranslatedString(array.Item1, array.Item2.IetfLanguageTag);
+                    return SerializeTranslatedString(array.Item1, array.Item2.Name);
+                }
+                else if (obj is Tuple<string, string>)
+                {
+                    // string + language
+                    Tuple<string, string> array = obj as Tuple<string, string>;
+                    return SerializeTranslatedString(array.Item1, array.Item2);
                 }
                 else if (obj is Uri || typeof(Uri).IsSubclassOf(obj.GetType()))
                 {
@@ -142,6 +155,10 @@ namespace Semiodesk.Trinity
                 else if (obj.GetType().GetInterface("IResource") != null)
                 {
                     return SerializeUri((obj as IResource).Uri);
+                }
+                else if (obj.GetType().GetInterface("IModel") != null)
+                {
+                    return SerializeUri((obj as IModel).Uri);
                 }
                 else
                 {
@@ -182,19 +199,46 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string SerializeResource(IResource resource)
         {
-            StringBuilder result = new StringBuilder(SerializeUri(resource.Uri));
+            var valueList = resource.ListValues();
+            if (!valueList.Any())
+                return string.Empty;
 
-            foreach (var value in resource.ListValues())
+            StringBuilder result = new StringBuilder(SerializeUri(resource.Uri));
+            result.Append(' ');
+
+            foreach (var value in valueList)
             {
-                if (value.Item2 != null)
+                if (value.Item2 == null)
                 {
-                    result.Append(string.Format("{0} {1};\n", SerializeUri(value.Item1.Uri), SerializeValue(value.Item2)));
+                    continue;
                 }
+
+                result.AppendFormat("{0} {1}; ", SerializeUri(value.Item1.Uri), SerializeValue(value.Item2));
             }
 
             result[result.Length - 2] = '.';
 
             return result.ToString();
+        }
+
+        /// <summary>
+        /// Generate the Dataset for a single model
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        public static string GenerateDatasetClause(IModel model)
+        {
+            if (model == null)
+            {
+                return "";
+            }
+
+            if (model is IModelGroup)
+            {
+                return GenerateDatasetClause(model as IModelGroup);
+            }
+
+            return "FROM " + SparqlSerializer.SerializeUri(model.Uri) + " ";
         }
 
         /// <summary>
@@ -205,8 +249,13 @@ namespace Semiodesk.Trinity
         public static string GenerateDatasetClause(IModelGroup modelGroup)
         {
             if (modelGroup is ModelGroup)
-                return ((ModelGroup)modelGroup).DatasetClause;
-            return GenerateDatasetClause(modelGroup as IEnumerable<IModel>);               
+            {
+                return (modelGroup as ModelGroup).DatasetClause;
+            }
+            else
+            {
+                return GenerateDatasetClause(modelGroup as IEnumerable<IModel>);
+            }
         }
 
         /// <summary>
@@ -216,25 +265,21 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string GenerateDatasetClause(IEnumerable<IModel> models)
         {
-            StringBuilder builder = new StringBuilder();
-            foreach (var x in models)
+            if (!models.Any())
             {
-                builder.AppendFormat("FROM {0} ", SparqlSerializer.SerializeUri(x.Uri));
+                return "";
             }
-            return builder.ToString();
-        }
 
-        /// <summary>
-        /// Generate the Dataset for a single model
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        public static string GenerateDatasetClause(IModel model)
-        {
-            if (model is IModelGroup)
-                return GenerateDatasetClause(model as IModelGroup);
+            StringBuilder resultBuilder = new StringBuilder();
 
-            return string.Format("FROM {0}", SparqlSerializer.SerializeUri(model.Uri));
+            foreach (var model in models)
+            {
+                resultBuilder.Append("FROM ");
+                resultBuilder.Append(SparqlSerializer.SerializeUri(model.Uri));
+                resultBuilder.Append(" ");
+            }
+
+            return resultBuilder.ToString();
         }
 
         /// <summary>
@@ -276,7 +321,7 @@ namespace Semiodesk.Trinity
             }
             if (onlyUris)
             {
-                string q = "SELECT ?s0 {0} WHERE {{ ?s0 ?p0 ?o0 . {{ SELECT DISTINCT ?s0 WHERE {{{1}}} {2} }}}}";
+                string q = "SELECT DISTINCT ?s0 {0} WHERE {{ ?s0 ?p0 ?o0 . {{ SELECT DISTINCT ?s0 WHERE {{{1}}} {2} }}}}";
                 result.Append(string.Format(q, GenerateDatasetClause(model), whereBlock.ToString(), modifierBlock.ToString()));
             }
             else
@@ -460,17 +505,17 @@ namespace Semiodesk.Trinity
         public static string SerializeCount(IModel model, ResourceQuery query)
         {
             StringBuilder result = new StringBuilder();
-            StringBuilder whereBlock = new StringBuilder();
+            StringBuilder where = new StringBuilder();
 
-            Serialize(model, query, whereBlock, new SortedList<int, string>(), new List<ResourceQuery>());
+            Serialize(model, query, where, new SortedList<int, string>(), new List<ResourceQuery>());
 
             if (query.Uri == null)
             {
-                result.Append(string.Format("SELECT (COUNT(DISTINCT ?s0) AS ?count) {0} WHERE {{{1}}}", GenerateDatasetClause(model), whereBlock.ToString()));
+                result.Append(string.Format("SELECT (COUNT(DISTINCT ?s0) AS ?count) {0} WHERE {{{1}}}", GenerateDatasetClause(model), where.ToString()));
             }
             else
             {
-                result.Append(string.Format("SELECT (COUNT(DISTINCT <{2}>) AS ?count) {0} WHERE {{{1}}}", GenerateDatasetClause(model), whereBlock.ToString(), query.Uri));
+                result.Append(string.Format("SELECT (COUNT(DISTINCT <{2}>) AS ?count) {0} WHERE {{{1}}}", GenerateDatasetClause(model), where.ToString(), query.Uri));
             }
 
             return result.ToString();
@@ -482,67 +527,87 @@ namespace Semiodesk.Trinity
         /// <param name="model"></param>
         /// <param name="query"></param>
         /// <returns></returns>
-        public static string SerializeCount(IModel model, SparqlQuery query)
+        public static string SerializeCount(IModel model, ISparqlQuery query)
         {
-            StringBuilder result = new StringBuilder();
+            string variable = "?" + query.GetGlobalScopeVariableNames()[0];
+            string from = GenerateDatasetClause(model);
+            string where = query.GetRootGraphPattern();
 
-            result.Append(string.Format("SELECT COUNT(DISTINCT {2}) AS ?count {0} WHERE {{{1}}}", GenerateDatasetClause(model), query.ParsedQuery.RootGraphPattern, query.ParsedQuery.Variables.FirstOrDefault()));
-
-            return result.ToString();
-        }
-
-
-        internal static string SerializeFetchUris(IModel model, SparqlQuery query, int offset = -1, int limit = -1)
-        {
             StringBuilder queryBuilder = new StringBuilder();
 
-            string modifierBlock = "";
-
-            if (query.ParsedQuery.OrderBy != null && query.ParsedQuery.OrderBy.Variables.Count() > 0)
-            {
-                string order = query.ParsedQuery.OrderBy.ToString();
-                modifierBlock = string.Format("{0} ORDER BY {1}", modifierBlock, order);
-            }
-
-            if (offset != -1)
-            {
-                modifierBlock = string.Format("{0} OFFSET {1}", modifierBlock, offset);
-            }
-
-            if (limit != -1)
-            {
-                modifierBlock = string.Format("{0} LIMIT {1}", modifierBlock, limit);
-            }
-
-            foreach (string prefix in query.ParsedQuery.NamespaceMap.Prefixes)
-            {
-                queryBuilder.AppendLine("PREFIX " + prefix + ": <" + query.ParsedQuery.NamespaceMap.GetNamespaceUri(prefix).OriginalString + ">");
-            }
-
-            queryBuilder.Append(string.Format("SELECT DISTINCT {2} {0} WHERE {{ {1} }} {3}", GenerateDatasetClause(model), query.ParsedQuery.RootGraphPattern, query.ParsedQuery.Variables.FirstOrDefault(), modifierBlock));
+            queryBuilder.Append("SELECT COUNT(DISTINCT ");
+            queryBuilder.Append(variable);
+            queryBuilder.Append(") AS ?count ");
+            queryBuilder.Append(from);
+            queryBuilder.Append(" WHERE { ");
+            queryBuilder.Append(where);
+            queryBuilder.Append(" }");
 
             return queryBuilder.ToString();
         }
 
-        internal static string SerializeOffsetLimit(IModel model, SparqlQuery query, int offset = -1, int limit = -1)
+        internal static string SerializeFetchUris(IModel model, ISparqlQuery query, int offset = -1, int limit = -1)
         {
-            StringBuilder result = new StringBuilder();
+            string variable = "?" + query.GetGlobalScopeVariableNames()[0];
+            string from = GenerateDatasetClause(model);
+            string where = query.GetRootGraphPattern();
+            string orderby = query.GetRootOrderByClause();
 
-            string modifierBlock = "";
+            StringBuilder queryBuilder = new StringBuilder();
+            
+            foreach(string prefix in query.GetDeclaredPrefixes())
+            {
+                queryBuilder.AppendFormat("prefix <{0}> ", prefix);
+            }
+
+            queryBuilder.Append("select distinct ");
+            queryBuilder.Append(variable);
+            queryBuilder.Append(from);
+            queryBuilder.Append(" where { ");
+            queryBuilder.Append(where);
+            queryBuilder.Append(" } ");
+            queryBuilder.Append(orderby);
+
             if (offset != -1)
             {
-                modifierBlock = string.Format(" OFFSET {0}", offset);
+                queryBuilder.Append(" offset ");
+                queryBuilder.Append(offset);
             }
 
             if (limit != -1)
             {
-                modifierBlock = string.Format("{0} LIMIT {1}", modifierBlock, limit);
+                queryBuilder.Append(" limit ");
+                queryBuilder.Append(limit);
             }
 
-            result.Append(string.Format("SELECT {2} ?p ?o {0} WHERE {{ {2} ?p ?o. {{ SELECT DISTINCT {2} WHERE {{ {1} }} {3} }} }}", GenerateDatasetClause(model), query.ParsedQuery.RootGraphPattern, query.ParsedQuery.Variables.FirstOrDefault(), modifierBlock));
+            return queryBuilder.ToString();
+        }
 
+        internal static string SerializeOffsetLimit(IModel model, ISparqlQuery query, int offset = -1, int limit = -1)
+        {
+            string variable = "?" + query.GetGlobalScopeVariableNames()[0];
+            string from = GenerateDatasetClause(model);
+            string where = query.GetRootGraphPattern();
 
-            return result.ToString();
+            StringBuilder resultBuilder = new StringBuilder();
+            resultBuilder.AppendFormat("SELECT {0} ?p ?o {1} WHERE {{ {0} ?p ?o {{", variable, from);
+            resultBuilder.AppendFormat("SELECT DISTINCT {0} WHERE {{ {1} }}", variable, where);
+
+            if (offset != -1)
+            {
+                resultBuilder.Append(" OFFSET ");
+                resultBuilder.Append(offset);
+            }
+
+            if (limit != -1)
+            {
+                resultBuilder.Append(" LIMIT ");
+                resultBuilder.Append(limit);
+            }
+
+            resultBuilder.Append(" } }");
+
+            return resultBuilder.ToString();
         }
 
         #endregion

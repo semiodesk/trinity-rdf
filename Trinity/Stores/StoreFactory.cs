@@ -50,7 +50,8 @@ namespace Semiodesk.Trinity
         {
             {"virtuoso", new VirtuosoStoreProvider()},
             {"dotnetrdf", new dotNetRDFStoreProvider()},
-            {"sparqlendpoint", new SparqlEndpointStoreProvider()}
+            {"sparqlendpoint", new SparqlEndpointStoreProvider()},
+            {"stardog", new StardogStoreProvider()}
         };
 
         #region Factory Methods
@@ -115,6 +116,9 @@ namespace Semiodesk.Trinity
                 if (setting.ProviderName == "Semiodesk.Trinity" && StoreFactory.TestConnectionString(conString))
                     return CreateStore(conString);
             }
+            if( !string.IsNullOrEmpty(name) )
+                throw new ArgumentException(string.Format("Connection string with given name \"{0}\" not found.", name));
+
             return null;
         }
 

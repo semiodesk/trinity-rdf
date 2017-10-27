@@ -28,6 +28,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -41,6 +42,7 @@ namespace Semiodesk.Trinity
     class IModelEqualityComparer : IEqualityComparer<IModel>
     {
         #region IEqualityComparer<IModel> Members
+
         /// <summary>
         /// Equals
         /// </summary>
@@ -68,14 +70,19 @@ namespace Semiodesk.Trinity
     /// <summary>
     /// Implementation of the IModelGroup interface
     /// </summary>
-    class ModelGroup : IModelGroup
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public class ModelGroup : IModelGroup
     {
         #region Member
-        private HashSet<IModel> _set = new HashSet<IModel>(new IModelEqualityComparer());
+
         private IStore _store;
+
+        private HashSet<IModel> _set = new HashSet<IModel>(new IModelEqualityComparer());
+
         private MethodInfo _getResourceMethod;
 
         private string _datasetClause = null;
+
         internal string DatasetClause
         {
             get
@@ -86,7 +93,6 @@ namespace Semiodesk.Trinity
             }
         }
 
-        
         #endregion
 
         #region Constructor
@@ -304,8 +310,9 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="url"></param>
         /// <param name="format"></param>
+        /// <param name="update"></param>
         /// <returns></returns>
-        public bool Read(Uri url, RdfSerializationFormat format)
+        public bool Read(Uri url, RdfSerializationFormat format, bool update)
         {
             throw new NotSupportedException();
         }
@@ -315,7 +322,6 @@ namespace Semiodesk.Trinity
 
         public bool ContainsResource(Uri uri, ITransaction transaction = null)
         {
-            
             return ExecuteQuery(new SparqlQuery(string.Format(@"ASK {0} {{ {1} ?p ?o . }}",
                 DatasetClause,
                 SparqlSerializer.SerializeUri(uri))), transaction: transaction).GetAnwser();
@@ -326,11 +332,10 @@ namespace Semiodesk.Trinity
             return ContainsResource(resource.Uri, transaction);
         }
 
-        public ISparqlQueryResult ExecuteQuery(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
+        public ISparqlQueryResult ExecuteQuery(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
         {
-            query.SetModel(this);
-
-            query.InferenceEnabled = inferenceEnabled;
+            query.Model = this;
+            query.IsInferenceEnabled = inferenceEnabled;
 
             return _store.ExecuteQuery(query, transaction);
         }
@@ -363,6 +368,11 @@ namespace Semiodesk.Trinity
             }
         }
 
+        public IResource GetResource(IResource resource, ITransaction transaction = null)
+        {
+            return GetResource(resource.Uri, transaction);
+        }
+
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
             SparqlQuery query = new SparqlQuery(String.Format("DESCRIBE {0} {1}", SparqlSerializer.SerializeUri(uri), DatasetClause));
@@ -384,6 +394,11 @@ namespace Semiodesk.Trinity
                 string msg = "Error: Could not find resource <{0}>.";
                 throw new ArgumentException(string.Format(msg, uri));
             }
+        }
+
+        public T GetResource<T>(IResource resource, ITransaction transaction = null) where T : Resource
+        {
+            return GetResource<T>(resource.Uri, transaction);
         }
 
         public object GetResource(Uri uri, Type type, ITransaction transaction = null)
@@ -413,7 +428,7 @@ namespace Semiodesk.Trinity
             }
         }
 
-        public IEnumerable<Resource> GetResources(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
+        public IEnumerable<Resource> GetResources(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
         {
             IEnumerable<Resource> result = ExecuteQuery(query, inferenceEnabled, transaction).GetResources<Resource>();
 
@@ -450,7 +465,7 @@ namespace Semiodesk.Trinity
             return result;
         }
 
-        public IEnumerable<T> GetResources<T>(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
+        public IEnumerable<T> GetResources<T>(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
         {
             IEnumerable<T> result = ExecuteQuery(query, inferenceEnabled, transaction).GetResources<T>();
 
@@ -512,14 +527,19 @@ namespace Semiodesk.Trinity
             return null;
         }
 
-        public IEnumerable<BindingSet> GetBindings(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
+        public IEnumerable<BindingSet> GetBindings(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
         {
             return ExecuteQuery(query, inferenceEnabled, transaction).GetBindings();
         }
 
         public void Write(Stream fs, RdfSerializationFormat format)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
+        }
+
+        public bool Read(Stream stream, RdfSerializationFormat format, bool update)
+        {
+            throw new NotSupportedException();
         }
 
         #endregion

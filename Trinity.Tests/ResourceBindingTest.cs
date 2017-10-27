@@ -37,7 +37,7 @@ using Semiodesk.Trinity.Ontologies;
 using System.Collections.ObjectModel;
 using System.Threading;
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     class ContactList : Resource
     {
@@ -129,7 +129,7 @@ namespace Semiodesk.Trinity.Tests
             return new List<Class> { nco.Contact };
         }
 
-        protected PropertyMapping<string> fullnameProperty = new PropertyMapping<string>("Fullname", nco.fullname);
+        protected PropertyMapping<string> fullnameProperty = new PropertyMapping<string>("Fullname", nco.fullname, true);
 
         public string Fullname
         {
@@ -172,21 +172,21 @@ namespace Semiodesk.Trinity.Tests
             return new List<Class> { nco.PersonContact };
         }
 
-        protected PropertyMapping<string> nameGivenProperty = new PropertyMapping<string>("NameGiven", nco.nameGiven);
+        protected PropertyMapping<string> nameGivenProperty = new PropertyMapping<string>("NameGiven", nco.nameGiven, true);
         public string NameGiven
         {
             get { return GetValue(nameGivenProperty); }
             set { SetValue(nameGivenProperty, value); }
         }
 
-        protected PropertyMapping<ObservableCollection<string>> nameAdditonalProperty = new PropertyMapping<ObservableCollection<string>>("NameAdditional", nco.nameAdditional, new ObservableCollection<string>());
+        protected PropertyMapping<ObservableCollection<string>> nameAdditonalProperty = new PropertyMapping<ObservableCollection<string>>("NameAdditional", nco.nameAdditional, new ObservableCollection<string>(), true);
         public ObservableCollection<string> NameAdditional
         {
             get { return GetValue(nameAdditonalProperty); }
             set { SetValue(nameAdditonalProperty, value); }
         }
 
-        protected PropertyMapping<string> nameFamilyProperty = new PropertyMapping<string>("NameFamily", nco.nameFamily);
+        protected PropertyMapping<string> nameFamilyProperty = new PropertyMapping<string>("NameFamily", nco.nameFamily, true);
         public string NameFamily
         {
             get { return GetValue(nameFamilyProperty); }
@@ -210,14 +210,8 @@ namespace Semiodesk.Trinity.Tests
         [SetUp]
         public void SetUp()
         {
-            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
+            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba;rule=urn:semiodesk/test/ruleset");
 
-            if (ResourceMappingTest.RegisteredOntology == false)
-            {
-                OntologyDiscovery.AddAssembly(Assembly.GetExecutingAssembly());
-                MappingDiscovery.RegisterAssembly(Assembly.GetExecutingAssembly());
-                ResourceMappingTest.RegisteredOntology = true;
-            }
 
         }
 

@@ -36,17 +36,14 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Build.Framework" />
-    <Reference Include="OpenLink.Data.Virtuoso">
-      <HintPath>..\Net40\packages\OpenLink.Data.Virtuoso.6.2.3128.1\lib\net35\OpenLink.Data.Virtuoso.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
-    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="System.Configuration" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IStorageSpecific.cs" />
@@ -62,11 +59,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Trinity\Trinity.csproj">
-      <Project>{0d10d2ad-ca61-46e3-88c8-0ab8318647ba}</Project>
+      <Project>{0D10D2AD-CA61-46E3-88C8-0AB8318647BA}</Project>
       <Name>Trinity</Name>
     </ProjectReference>
   </ItemGroup>

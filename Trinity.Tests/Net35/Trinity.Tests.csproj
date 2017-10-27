@@ -44,9 +44,33 @@
     <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="INIFileParser, Version=2.2.2.0, Culture=neutral, PublicKeyToken=79af7b307b65cf3c, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\ini-parser.2.2.2\lib\net20\INIFileParser.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\Newtonsoft.Json.8.0.3\lib\net35\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="nunit.core, Version=2.6.4.14350, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\NUnitTestAdapter.2.0.0\lib\nunit.core.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="nunit.core.interfaces, Version=2.6.4.14350, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\NUnitTestAdapter.2.0.0\lib\nunit.core.interfaces.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="nunit.framework, Version=2.6.4.14350, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Net35\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.util, Version=2.6.4.14350, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\NUnitTestAdapter.2.0.0\lib\nunit.util.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="NUnit.VisualStudio.TestAdapter, Version=2.0.0.0, Culture=neutral, PublicKeyToken=4cb40d35494691ac, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\NUnitTestAdapter.2.0.0\lib\NUnit.VisualStudio.TestAdapter.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ServiceProcess" />
@@ -54,12 +78,19 @@
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="TinyVirtuoso, Version=0.3.25.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\TinyVirtuoso.0.3.25\lib\Net35\TinyVirtuoso.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\dotnetrdf_ResourceQueryTest.cs" />
     <Compile Include="..\dotnetrdf_SparqlQueryTest.cs" />
     <Compile Include="..\Ontologies.cs" />
+    <Compile Include="..\SetupClass.cs">
+      <Link>SetupClass.cs</Link>
+    </Compile>
     <Compile Include="..\SparqlEndpointTest.cs" />
     <Compile Include="..\PathProjectionTest.cs" />
     <Compile Include="..\OntologyTest.cs" />
@@ -67,6 +98,9 @@
     <Compile Include="..\ResourceMappingTest.cs" />
     <Compile Include="..\ResourceQueryTest.cs" />
     <Compile Include="..\SparqlQueryItemsProviderTest.cs" />
+    <Compile Include="..\SparqlSerializerTest.cs">
+      <Link>SparqlSerializerTest.cs</Link>
+    </Compile>
     <Compile Include="..\SparqlUpdateTest.cs" />
     <Compile Include="..\ModelTest.cs" />
     <Compile Include="..\Program.cs" />
@@ -75,6 +109,28 @@
     <Compile Include="..\SparqlQueryTest.cs" />
     <Compile Include="..\StoreProviderTest.cs" />
     <Compile Include="..\UriRefTest.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Ontologies\fo af.rdf">
+      <Link>Ontologies\fo af.rdf</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Ontologies\nco.trig">
+      <Link>Ontologies\nco.trig</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Ontologies\owl.n3">
+      <Link>Ontologies\owl.n3</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Ontologies\rdf.rdf">
+      <Link>Ontologies\rdf.rdf</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Ontologies\rdfs.n3">
+      <Link>Ontologies\rdfs.n3</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Models\rdf-schema.rdf">
@@ -101,13 +157,53 @@
       <Link>Models\test-vocab.rdf</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="..\App.config">
+      <Link>App.config</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
+    <None Include="TinyVirtuoso\database\virtuoso.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TinyVirtuoso\virtuoso\doc\AUTHORS" />
+    <None Include="TinyVirtuoso\virtuoso\doc\COPYING" />
+    <None Include="TinyVirtuoso\virtuoso\doc\CREDITS" />
+    <None Include="TinyVirtuoso\virtuoso\doc\INSTALL" />
+    <None Include="TinyVirtuoso\virtuoso\doc\LICENSE" />
+    <None Include="TinyVirtuoso\virtuoso\doc\NEWS" />
+    <None Include="TinyVirtuoso\virtuoso\doc\README" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Trinity\Net35\Trinity.csproj">
       <Project>{0d10d2ad-ca61-46e3-88c8-0ab8318647ba}</Project>
       <Name>Trinity</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="TinyVirtuoso\virtuoso\win\CtrlCSender.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TinyVirtuoso\virtuoso\win\isql.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TinyVirtuoso\virtuoso\win\libeay32.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TinyVirtuoso\virtuoso\win\libexpat.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TinyVirtuoso\virtuoso\win\libwbxml2.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TinyVirtuoso\virtuoso\win\ssleay32.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TinyVirtuoso\virtuoso\win\virtuoso-t.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -25,16 +25,15 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
 
-
 namespace Semiodesk.Trinity
 {
-
     /// <summary>
     /// An interface for classes which provide functionality to manage a set of resources.
     /// </summary>
@@ -50,6 +49,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// True if the model is empty.
         /// </summary>
+        [JsonIgnore]
         bool IsEmpty { get; }
 
         #endregion
@@ -168,7 +168,7 @@ namespace Semiodesk.Trinity
         /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
         /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>A SPARQL query result object.</returns>
-        ISparqlQueryResult ExecuteQuery(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
+        ISparqlQueryResult ExecuteQuery(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
 
         /// <summary>
         /// Execute a ResourceQuery against the model.
@@ -203,6 +203,14 @@ namespace Semiodesk.Trinity
         T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource;
 
         /// <summary>
+        /// Retrieves a resource from the model.
+        /// </summary>
+        /// <param name="resource">The instance of IResource to be retrieved.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <returns>A resource with all asserted properties.</returns>
+        T GetResource<T>(IResource resource, ITransaction transaction = null) where T : Resource;
+
+        /// <summary>
         /// Retrieves a resource from the model. Provides a resource object of the given type.
         /// </summary>
         /// <param name="uri">A Uniform Resource Identifier.</param>
@@ -212,13 +220,21 @@ namespace Semiodesk.Trinity
         object GetResource(Uri uri, Type type, ITransaction transaction = null);
 
         /// <summary>
+        /// Retrieves a resource from the model.
+        /// </summary>
+        /// <param name="resource">The instance of IResource to be retrieved.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <returns>A resource with all asserted properties.</returns>
+        IResource GetResource(IResource resource, ITransaction transaction = null);
+
+        /// <summary>
         /// Executes a SPARQL query and provides an enumeration of matching resources.
         /// </summary>
         /// <param name="query">A SparqlQuery object.</param>
         /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
         /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
-        IEnumerable<Resource> GetResources(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
+        IEnumerable<Resource> GetResources(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
 
         /// <summary>
         /// Executes a resource query and provides an enumeration of matching resources.
@@ -236,7 +252,7 @@ namespace Semiodesk.Trinity
         /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
         /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
-        IEnumerable<T> GetResources<T>(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource;
+        IEnumerable<T> GetResources<T>(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource;
 
         /// <summary>
         /// Executes a resource query and provides an enumeration of matching resources.
@@ -262,7 +278,7 @@ namespace Semiodesk.Trinity
         /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
         /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
-        IEnumerable<BindingSet> GetBindings(SparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
+        IEnumerable<BindingSet> GetBindings(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
 
         /// <summary>
         /// Imports the contents of a model located by the given URL. The method supports
@@ -270,8 +286,18 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="url">A uniform resource locator.</param>
         /// <param name="format">The serialization format.</param>
+        /// <param name="update">True to update the model, false to replace the data.</param>
         /// <returns>True if the contents of the model were imported, False if not.</returns>
-        bool Read(Uri url, RdfSerializationFormat format);
+        bool Read(Uri url, RdfSerializationFormat format, bool update);
+
+        /// <summary>
+        /// Imports the contents of a graph serialized in the stream to this model.
+        /// </summary>
+        /// <param name="stream">The stream containing the serialization</param>
+        /// <param name="format">Format of the serialization</param>
+        /// <param name="update">True to update the model, false to replace the data.</param>
+        /// <returns>True if the contents of the model were imported, False if not.</returns>
+        bool Read(Stream stream, RdfSerializationFormat format, bool update);
 
         /// <summary>
         /// Serializes the contents of the model and provides a memory stream.
@@ -305,33 +331,4 @@ namespace Semiodesk.Trinity
 
         IQueryable<T> ListResources<T>() where T : Resource;
     }
-
-    /// <summary>
-    /// Enumerates all supported RDF serialization formats.
-    /// </summary>
-    
-    public enum RdfSerializationFormat 
-    { 
-        /// <summary>
-        /// RDF/XML <see href="http://www.w3.org/TR/REC-rdf-syntax/">http://www.w3.org/TR/REC-rdf-syntax/</see>
-        /// </summary>
-        RdfXml,
-        /// <summary>
-        /// N3 <see href="http://www.w3.org/TeamSubmission/n3/">http://www.w3.org/TeamSubmission/n3/</see>
-        /// </summary>
-        N3, 
-        /// <summary>
-        /// NTriples <see href="http://www.w3.org/2001/sw/RDFCore/ntriples/">http://www.w3.org/2001/sw/RDFCore/ntriples/</see>
-        /// </summary>
-        NTriples, 
-        /// <summary>
-        /// TriG <see href="http://www.w3.org/TR/trig/">http://www.w3.org/TR/trig/</see>
-        /// </summary>
-        Trig,
-        /// <summary>
-        /// Turtle <see href="http://www.w3.org/TR/turtle/">http://www.w3.org/TR/turtle/</see>
-        /// </summary>
-        Turtle
-    };
-
 }

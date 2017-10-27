@@ -39,47 +39,42 @@ using Semiodesk.Trinity.Ontologies;
 
 using NUnit.Framework;
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class DotNetRDF_SparqlQueryTest
     {
+        protected IStore Store;
+
         protected IModel Model = null;
-
-        protected NamespaceManager NamespaceManager = new NamespaceManager();
-
-        protected IStore _store;
 
         [SetUp]
         public void SetUp()
         {
-            _store = StoreFactory.CreateStore("provider=dotnetrdf");
-            Uri modelUri = new Uri("http://example.org/TestModel");
+            Store = StoreFactory.CreateStore("provider=dotnetrdf");
+            Model = Store.GetModel(new Uri("http://example.org/TestModel"));
 
-            if( _store.ContainsModel(modelUri) )
-                Model = _store.GetModel(modelUri);
-            else
-                Model = _store.CreateModel(modelUri);
-            
+            if (!Model.IsEmpty)
+            {
+                Model.Clear();
+            }
 
-            NamespaceManager.AddNamespace("ex", "http://example.org/");
-            NamespaceManager.AddNamespace("dc", "http://purl.org/dc/elements/1.1/");
-            NamespaceManager.AddNamespace("vcard", "http://www.w3.org/2001/vcard-rdf/3.0#");
-            NamespaceManager.AddNamespace("foaf", "http://xmlns.com/foaf/0.1/");
-            NamespaceManager.AddNamespace("dbpedia", "http://dbpedia.org/ontology/");
-            NamespaceManager.AddNamespace("dbpprop", "http://dbpedia.org/property/");
-            NamespaceManager.AddNamespace("schema", "http://schema.org/");
-            NamespaceManager.AddNamespace("nie", "http://www.semanticdesktop.org/ontologies/2007/01/19/nie#");
-            NamespaceManager.AddNamespace("nco", "http://www.semanticdesktop.org/ontologies/2007/03/22/nco#");
-            NamespaceManager.AddNamespace("test", "http://www.semiodesk.com/ontologies/test#");
-            NamespaceManager.AddNamespace("sfo", sfo.GetNamespace());
-            NamespaceManager.AddNamespace(nfo.GetPrefix(), nfo.GetNamespace());
+            OntologyDiscovery.AddNamespace("ex", new Uri("http://example.org/"));
+            OntologyDiscovery.AddNamespace("dc", new Uri("http://purl.org/dc/elements/1.1/"));
+            OntologyDiscovery.AddNamespace("vcard", new Uri("http://www.w3.org/2001/vcard-rdf/3.0#"));
+            OntologyDiscovery.AddNamespace("foaf", new Uri("http://xmlns.com/foaf/0.1/"));
+            OntologyDiscovery.AddNamespace("dbpedia", new Uri("http://dbpedia.org/ontology/"));
+            OntologyDiscovery.AddNamespace("dbpprop", new Uri("http://dbpedia.org/property/"));
+            OntologyDiscovery.AddNamespace("schema", new Uri("http://schema.org/"));
+            OntologyDiscovery.AddNamespace("nie", new Uri("http://www.semanticdesktop.org/ontologies/2007/01/19/nie#"));
+            OntologyDiscovery.AddNamespace("nco", new Uri("http://www.semanticdesktop.org/ontologies/2007/03/22/nco#"));
+            OntologyDiscovery.AddNamespace("test", new Uri("http://www.semiodesk.com/ontologies/test#"));
+            OntologyDiscovery.AddNamespace("sfo", sfo.GetNamespace());
+            OntologyDiscovery.AddNamespace(nfo.GetPrefix(), nfo.GetNamespace());
 
             //User u = UserManager.Instance.AddUser(new Uri("http://semiodesk.com/id/TestUser"));
             //u.GetDesktopFolder();
             //u.GetDownloadsFolder();
-
-            MappingDiscovery.RegisterAllCurrentAssemblies();
 
             Model.Clear();
 
@@ -126,12 +121,12 @@ namespace Semiodesk.Trinity.Tests
         public void TestAsk()
         {
             // Checking the model using ASK queries.
-            SparqlQuery query = new SparqlQuery("ASK { ?s nco:fullname 'Hans Wurscht' . }", NamespaceManager);
+            SparqlQuery query = new SparqlQuery("ASK { ?s nco:fullname 'Hans Wurscht' . }");
             ISparqlQueryResult result = Model.ExecuteQuery(query);
 
             Assert.AreEqual(true, result.GetAnwser());
 
-            query = new SparqlQuery("ASK { ?s nco:fullname 'Hans Meier' . }", NamespaceManager);
+            query = new SparqlQuery("ASK { ?s nco:fullname 'Hans Meier' . }");
             result = Model.ExecuteQuery(query);
 
             Assert.AreEqual(false, result.GetAnwser());
@@ -141,13 +136,13 @@ namespace Semiodesk.Trinity.Tests
         public void TestSelect()
         {
             // Retrieving bound variables using the SELECT query form.
-            SparqlQuery query = new SparqlQuery("SELECT ?name ?birthday WHERE { ?x nco:fullname ?name. ?x nco:birthDate ?birthday. }", NamespaceManager);
+            SparqlQuery query = new SparqlQuery("SELECT ?name ?birthday WHERE { ?x nco:fullname ?name. ?x nco:birthDate ?birthday. }");
             ISparqlQueryResult result = Model.ExecuteQuery(query);
 
             Assert.AreEqual(1, result.GetBindings().Count());
 
             // Retrieving resoures using the SELECT or DESCRIBE query form.
-            query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o. ?s nco:fullname 'Hans Wurscht'. }", NamespaceManager);
+            query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o. ?s nco:fullname 'Hans Wurscht'. }");
             result = Model.ExecuteQuery(query);
 
             Assert.AreEqual(1, result.GetResources().Count());
@@ -188,7 +183,7 @@ namespace Semiodesk.Trinity.Tests
             IList resources = result.GetResources().ToList();
             Assert.AreEqual(1, resources.Count);
 
-            query = new SparqlQuery("DESCRIBE ?s WHERE { ?s nco:fullname 'Hans Wurscht'. }", NamespaceManager);
+            query = new SparqlQuery("DESCRIBE ?s WHERE { ?s nco:fullname 'Hans Wurscht'. }");
             result = Model.ExecuteQuery(query);
 
             resources = result.GetResources<PersonContact>().ToList();
@@ -203,7 +198,7 @@ namespace Semiodesk.Trinity.Tests
         [Test]
         public void TestConstruct()
         {
-            Assert.Inconclusive("Blank nodes are currently problematic.");
+//            Assert.Inconclusive("Blank nodes are currently problematic.");
             SparqlQuery query = new SparqlQuery(@"
                 CONSTRUCT
                 {
@@ -213,7 +208,7 @@ namespace Semiodesk.Trinity.Tests
                 WHERE
                 {
                     ?x nco:fullname ?name .
-                }", NamespaceManager);
+                }");
 
             ISparqlQueryResult result = Model.ExecuteQuery(query);
 
@@ -224,11 +219,10 @@ namespace Semiodesk.Trinity.Tests
         [Test]
         public void TestInferencing()
         {
-            Assert.Inconclusive("dotnetrdf does not support inferencing.");
-            _store = StoreFactory.CreateStore("provider=dotnetrdf;schema=Models/test-vocab.rdf");
+            Store = StoreFactory.CreateStore("provider=dotnetrdf;schema=Models/test-vocab.rdf");
 
 
-            var model = _store.CreateModel(new Uri("http://example.org/TestModel"));
+            var model = Store.CreateModel(new Uri("http://example.org/TestModel"));
 
             Class horse = new Class(new Uri("http://www.semiodesk.com/ontologies/test#Horse"));
             Class animal = new Class(new Uri("http://www.semiodesk.com/ontologies/test#Animal"));
@@ -246,7 +240,7 @@ namespace Semiodesk.Trinity.Tests
             ISparqlQueryResult result;
 
             // This fact is not explicitly stated.
-            query = new SparqlQuery("ASK WHERE { <http://www.example.org/Hans> a test:Animal . }", NamespaceManager);
+            query = new SparqlQuery("ASK WHERE { <http://www.example.org/Hans> a test:Animal . }");
 
             result = model.ExecuteQuery(query);
             Assert.IsFalse(result.GetAnwser());
@@ -258,7 +252,7 @@ namespace Semiodesk.Trinity.Tests
             Assert.IsFalse(result.GetAnwser());
 
             // This fact is not explicitly stated.
-            query = new SparqlQuery("SELECT ?food WHERE { ?s test:consumes ?food . }", NamespaceManager);
+            query = new SparqlQuery("SELECT ?food WHERE { ?s test:consumes ?food . }");
 
             result = model.ExecuteQuery(query);
             Assert.AreEqual(0, result.GetBindings().Count());
@@ -299,8 +293,7 @@ namespace Semiodesk.Trinity.Tests
         [Test]
         public void TestSelectCount()
         {
-            
-            SparqlQuery query = new SparqlQuery("SELECT COUNT(?s) AS ?count WHERE { ?s rdf:type nfo:Document. }", NamespaceManager);
+            SparqlQuery query = new SparqlQuery("SELECT COUNT(?s) AS ?count WHERE { ?s rdf:type nfo:Document. }");
             ISparqlQueryResult result = Model.ExecuteQuery(query);
 
             var bindings = result.GetBindings();
@@ -311,13 +304,12 @@ namespace Semiodesk.Trinity.Tests
         [Test]
         public void TestCount()
         {
-            SparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s rdf:type nfo:Document. ?s ?p ?o. }", NamespaceManager);
+            SparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s rdf:type nfo:Document. ?s ?p ?o. }");
             ISparqlQueryResult result = Model.ExecuteQuery(query);
 
             Assert.AreEqual(3, result.Count());
 
-
-            query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s rdf:type nfo:Document. ?s ?p ?o. }", NamespaceManager);
+            query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s rdf:type nfo:Document. ?s ?p ?o. }");
             result = Model.ExecuteQuery(query);
 
             Assert.AreEqual(3, result.Count());
@@ -326,29 +318,13 @@ namespace Semiodesk.Trinity.Tests
         [Test]
         public void TestSetModel()
         {
-
-            // Testing SetModel with a SparqlQuery that uses no query parser, this should fail, because the SparqlQuery class has no way of modfiying the query
-
-            SparqlQuery query = new SparqlQuery(SparqlQueryType.Select, "SELECT COUNT(?s) AS ?count WHERE { ?s ?p ?o . }", NamespaceManager);
-
-            Assert.IsNull(query.Model);
-            Assert.IsFalse(query.ToString().Contains("FROM"));
-
-            MethodInfo dynMethod = query.GetType().GetMethod("SetModel", BindingFlags.NonPublic | BindingFlags.Instance);
-            dynMethod.Invoke(query, new object[] { Model });
-
-            Assert.NotNull(query.Model);
-            Assert.IsFalse(query.ToString().Contains("FROM"));
-
             // Testing SetModel with a SparqlQuery that uses the query parser, this should succeed
-
-            query = new SparqlQuery("SELECT COUNT(?s) AS ?count WHERE { ?s ?p ?o . }", NamespaceManager);
+            SparqlQuery query = new SparqlQuery("SELECT COUNT(?s) AS ?count WHERE { ?s ?p ?o . }");
 
             Assert.IsNull(query.Model);
             Assert.IsFalse(query.ToString().Contains("FROM"));
 
-            dynMethod = query.GetType().GetMethod("SetModel", BindingFlags.NonPublic | BindingFlags.Instance);
-            dynMethod.Invoke(query, new object[] { Model });
+            query.Model = Model;
 
             Assert.NotNull(query.Model);
             Assert.IsTrue(query.ToString().Contains("FROM"));
@@ -357,49 +333,6 @@ namespace Semiodesk.Trinity.Tests
         [Test]
         public void TestComplexQuery()
         {
-            string queryString = "SELECT ?s0 ?p0 ?o0 "+
-                 "WHERE "+
-                 "{{ "+
-                    "?s0 ?p0 ?o0 . "+
-                    "{{ "+
-                     "  SELECT DISTINCT ?s0 "+
-                       "WHERE "+
-                       "{{ "+
-                         " ?s ?p ?o."+
-                          "?s <{0}> <{1}> ."+
-                          "{{"+
-                           "  ?s ?p1 ?o1 ."+
-                             "FILTER ISLITERAL(?o1) . FILTER REGEX(STR(?o1), \"\", \"i\") ."+
-                          "}}"+
-                          "UNION"+
-                          "{{"+
-                             "?s ?p1 ?s1 ."+
-                             "?s1 ?p2 ?o2 ."+
-                             "FILTER ISLITERAL(?o2) . FILTER REGEX(STR(?o2), \"\", \"i\") ."+
-                          "}}"+
-                       "}}"+
-                       "ORDER BY ?o"+
-                    "}}"+
-                 "}}";
-            string q = string.Format(queryString, rdf.type.Uri.OriginalString, tmo.Task.Uri.OriginalString);
-            SparqlQuery query = new SparqlQuery(q);
-            
-            MethodInfo method = query.GetType().GetMethod("SetLimit", BindingFlags.NonPublic | BindingFlags.Instance);
-            method.Invoke(query, new object[] { 10 });
-
-
-
-
-            var x = Model.ExecuteQuery(query);
-            var res = x.GetResources().ToList();
-
-        }
-
-        [Test]
-        public void TestIsSorted()
-        {
-           
-
             string queryString = "SELECT ?s0 ?p0 ?o0 " +
                  "WHERE " +
                  "{{ " +
@@ -424,61 +357,95 @@ namespace Semiodesk.Trinity.Tests
                        "ORDER BY ?o" +
                     "}}" +
                  "}}";
+
             string q = string.Format(queryString, rdf.type.Uri.OriginalString, tmo.Task.Uri.OriginalString);
             SparqlQuery query = new SparqlQuery(q);
-            MethodInfo method = query.GetType().GetMethod("IsSorted", BindingFlags.NonPublic | BindingFlags.Instance);
-            
-            Assert.AreEqual(true, method.Invoke(query, null));
 
+            MethodInfo method = query.GetType().GetMethod("SetLimit", BindingFlags.NonPublic | BindingFlags.Instance);
+            method.Invoke(query, new object[] { 10 });
 
-             queryString = "SELECT ?s0 ?p0 ?o0 " +
-                 "WHERE " +
-                 "{{ " +
-                    "?s0 ?p0 ?o0 . " +
-                    "{{ " +
-                     "  SELECT DISTINCT ?s0 " +
-                       "WHERE " +
-                       "{{ " +
-                         " ?s ?p ?o." +
-                          "?s <{0}> <{1}> ." +
-                          "{{" +
-                           "  ?s ?p1 ?o1 ." +
-                             "FILTER ISLITERAL(?o1) . FILTER REGEX(STR(?o1), \"\", \"i\") ." +
-                          "}}" +
-                          "UNION" +
-                          "{{" +
-                             "?s ?p1 ?s1 ." +
-                             "?s1 ?p2 ?o2 ." +
-                             "FILTER ISLITERAL(?o2) . FILTER REGEX(STR(?o2), \"\", \"i\") ." +
-                          "}}" +
-                       "}}" +
-                    "}}" +
-                 "}}";
-             q = string.Format(queryString, rdf.type.Uri.OriginalString, tmo.Task.Uri.OriginalString);
-             query = new SparqlQuery(q);
-             Assert.AreEqual(false, method.Invoke(query, null));
-
-
-             queryString = @"SELECT DISTINCT ?s0 FROM <http://semiodesk.com/id/8083cf10-5f90-40d4-b30a-c18fea31177b/>
-                WHERE
-                { { 
-
-                  ?s0 a <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#Visual> . 
-
-                  ?s0 <http://www.semanticdesktop.org/ontologies/2007/05/10/nexif#dateTime> ?o1 . 
-
-                  ?s0 ?p0 ?o0 . 
-
-                }}
-                ORDER BY ASC(?o1) LIMIT 50 ";
-             //q = string.Format(queryString, rdf.type.Uri.OriginalString, tmo.Task.Uri.OriginalString);
-             query = new SparqlQuery(queryString);
-             Assert.AreEqual(true, method.Invoke(query, null));
-            
-
+            var x = Model.ExecuteQuery(query);
+            var res = x.GetResources().ToList();
         }
 
+        [Test]
+        public void TestIsOrdered()
+        {
+            SparqlQuery query = new SparqlQuery(@"
+                SELECT ?s0 ?p0 ?o0
+                WHERE
+                {
+                    ?s0 ?p0 ?o0 .
+                    {
+                        SELECT DISTINCT ?s0
+                        WHERE
+                        {
+                            ?s ?p ?o .
+                            ?s @type @class .
+                            {
+                                ?s ?p1 ?o1 .
+                                FILTER ISLITERAL(?o1) . FILTER REGEX(STR(?o1), '', 'i') .
+                            }
+                            UNION
+                            {
+                                ?s ?p1 ?s1 .
+                                ?s1 ?p2 ?o2 .
+                                FILTER ISLITERAL(?o2) . FILTER REGEX(STR(?o2), '', 'i') .
+                            }
+                        }
+                        ORDER BY ?o
+                    }
+                }
+            ");
 
+            query.Bind("@type", rdf.type);
+            query.Bind("@class", tmo.Task);
+
+            Assert.IsTrue(string.IsNullOrEmpty(query.GetRootOrderByClause()));
+
+            query = new SparqlQuery(@"
+                SELECT ?s0 ?p0 ?o0
+                WHERE
+                {
+                    ?s0 ?p0 ?o0 .
+                    {
+                        SELECT DISTINCT ?s0
+                        WHERE
+                        {
+                            ?s ?p ?o .
+                            ?s @type @class .
+                            {
+                                ?s ?p1 ?o1 .
+                                FILTER ISLITERAL(?o1) . FILTER REGEX(STR(?o1), '', 'i') .
+                            }
+                            UNION
+                            {
+                                ?s ?p1 ?s1 .
+                                ?s1 ?p2 ?o2 .
+                                FILTER ISLITERAL(?o2) . FILTER REGEX(STR(?o2), '', 'i') .
+                            }
+                        }
+                    }
+                }
+            ");
+
+            query.Bind("@type", rdf.type);
+            query.Bind("@class", tmo.Task);
+
+            Assert.IsTrue(string.IsNullOrEmpty(query.GetRootOrderByClause()));
+
+            query = new SparqlQuery(@"
+                SELECT DISTINCT ?s0 FROM <http://semiodesk.com/id/8083cf10-5f90-40d4-b30a-c18fea31177b/>
+                WHERE
+                { 
+                  ?s0 ?p0 ?o0 .
+                  ?s0 a <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#Visual> . 
+                  ?s0 <http://www.semanticdesktop.org/ontologies/2007/05/10/nexif#dateTime> ?o1 . 
+                }
+                ORDER BY ASC(?o1) LIMIT 50
+            ");
+
+            Assert.IsFalse(string.IsNullOrEmpty(query.GetRootOrderByClause()));
+        }
     }
-
 }

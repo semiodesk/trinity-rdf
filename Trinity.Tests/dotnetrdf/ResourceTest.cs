@@ -32,6 +32,7 @@ using System.Linq;
 using System.Text;
 using Semiodesk.Trinity;
 using NUnit.Framework;
+using System.Globalization;
 
 namespace dotNetRDFStore.Test
 {
@@ -281,6 +282,25 @@ namespace dotNetRDFStore.Test
 
             Assert.AreEqual(typeof(string), res.GetType());
             Assert.AreEqual(val, res);
+        }
+
+        [Test]
+        public void TestLocalizedString()
+        {
+            Property myProperty = new Property(new Uri("ex:myProperty"));
+            Resource r = Model.CreateResource<Resource>(new Uri("ex:myResource"));
+            string val = "Hello World!";
+            var ci = CultureInfo.CreateSpecificCulture("EN");
+            r.AddProperty(myProperty, val, ci);
+            r.Commit();
+
+            var r1 = Model.GetResource<Resource>(r.Uri);
+            object res = r1.ListValues(myProperty).First();
+            Assert.AreEqual(typeof(Tuple<string, string>), res.GetType());
+            Tuple<string, string> v = res as Tuple<string, string>;
+            Assert.AreEqual(val, v.Item1);
+            Assert.AreEqual(ci.Name.ToLower(), v.Item2.ToLower());
+            r.RemoveProperty(myProperty, val, ci);
         }
 
         [Test]

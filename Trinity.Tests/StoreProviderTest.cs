@@ -66,7 +66,11 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void VirtuosoConfigurationStringTest()
         {
-            IStore anObject = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
+            string[] components = SetupClass.HostAndPort.Split(':');
+            string host = components[0];
+            string port = components[1];
+            string connectionString = string.Format("provider=virtuoso;host={0};port={1};uid=dba;pw=dba;rule=urn:semiodesk/test/ruleset", host, port);
+            IStore anObject = StoreFactory.CreateStore(connectionString);
             Assert.IsNotNull(anObject);
             anObject.Dispose();
         }

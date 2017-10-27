@@ -35,43 +35,48 @@ using System.Collections.ObjectModel;
 using Semiodesk.Trinity.Ontologies;
 using System.Reflection;
 using NUnit.Framework;
+using Semiodesk.Trinity.Test;
+using Semiodesk.Trinity.Serialization;
+using Newtonsoft.Json;
 #if NET_3_5
 using Semiodesk.Trinity.Utility;
 #endif
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     public class SingleMappingTestClass : Resource
     {
-
-        #region Constructors
-        public SingleMappingTestClass(Uri uri) : base(uri) { }
-        #endregion
-
         #region Mapping
 
         public override IEnumerable<Class> GetTypes()
         {
-            return new List<Class> { TestOntology.SingleMappingTestClass };
+            yield return TestOntology.SingleMappingTestClass;
         }
 
+        protected PropertyMapping<ObservableCollection<string>> stringTestMapping =
+            new PropertyMapping<ObservableCollection<string>>("stringTest", TestOntology.stringTest, new ObservableCollection<string>());
 
-        protected PropertyMapping<ObservableCollection<string>> stringTestObject = new PropertyMapping<ObservableCollection<string>>("stringTest", TestOntology.stringTest, new ObservableCollection<string>());
         public ObservableCollection<string> stringTest
         {
-            get { return GetValue(stringTestObject); }
-            set { SetValue(stringTestObject, value); }
+            get { return GetValue(stringTestMapping); }
+            set { SetValue(stringTestMapping, value); }
         }
 
         #endregion
 
+        #region Constructors
+
+        public SingleMappingTestClass(Uri uri) : base(uri) {}
+
+        #endregion
     }
 
     public class SingleResourceMappingTestClass : Resource
     {
-
         #region Constructors
-        public SingleResourceMappingTestClass(Uri uri) : base(uri) { }
+
+        public SingleResourceMappingTestClass(Uri uri) : base(uri) {}
+
         #endregion
 
         #region Mapping
@@ -81,23 +86,62 @@ namespace Semiodesk.Trinity.Tests
             return new List<Class> { TestOntology.SingleResourceMappingTestClass };
         }
 
+        protected PropertyMapping<ObservableCollection<Resource>> resourceTestMapping =
+            new PropertyMapping<ObservableCollection<Resource>>("ResourceTest", TestOntology.resourceTest, new ObservableCollection<Resource>());
 
-        protected PropertyMapping<ObservableCollection<Resource>> resourceTestProperty = new PropertyMapping<ObservableCollection<Resource>>("ResourceTest", TestOntology.resourceTest, new ObservableCollection<Resource>());
         public ObservableCollection<Resource> ResourceTest
         {
-            get { return GetValue(resourceTestProperty); }
-            set { SetValue(resourceTestProperty, value); }
+            get { return GetValue(resourceTestMapping); }
+            set { SetValue(resourceTestMapping, value); }
+        }
+
+        #endregion
+    }
+
+    public class ResourceMappingTestClass : Resource
+    {
+        #region Members
+
+        protected PropertyMapping<int> IntegerValueMapping = new PropertyMapping<int>("IntegerValue", TestOntology.intTest);
+
+        public int IntegerValue
+        {
+            get { return GetValue(IntegerValueMapping); }
+            set { SetValue(IntegerValueMapping, value); }
+        }
+
+        protected PropertyMapping<ResourceMappingTestClass> ResourceMapping = new PropertyMapping<ResourceMappingTestClass>("Resource", TestOntology.resourceTest);
+
+        public ResourceMappingTestClass Resource
+        {
+            get { return GetValue(ResourceMapping); }
+            set { SetValue(ResourceMapping, value); }
         }
 
         #endregion
 
+        #region Constructors
+
+        public ResourceMappingTestClass(Uri uri) : base(uri) { }
+
+        #endregion
+
+        #region Methods
+
+        public override IEnumerable<Class> GetTypes()
+        {
+            yield return TestOntology.ResourceMappingTestClass;
+        }
+
+        #endregion
     }
 
     public class MappingTestClass : Resource
     {
-
         #region Constructors
-        public MappingTestClass(Uri uri) : base(uri) { }
+
+        public MappingTestClass(Uri uri) : base(uri) {}
+
         #endregion
 
         #region Mapping
@@ -107,112 +151,188 @@ namespace Semiodesk.Trinity.Tests
             return new List<Class> { TestOntology.TestClass };
         }
 
-        protected PropertyMapping<ObservableCollection<int>> intTestMapping = new PropertyMapping<ObservableCollection<int>>("intTest", TestOntology.intTest, new ObservableCollection<int>());
+        protected PropertyMapping<ObservableCollection<int>> intTestMapping =
+            new PropertyMapping<ObservableCollection<int>>("intTest", TestOntology.intTest, new ObservableCollection<int>());
+
         public ObservableCollection<int> intTest
         {
             get { return GetValue(intTestMapping); }
             set { SetValue(intTestMapping, value); }
         }
 
-        protected PropertyMapping<int> uniqueIntTestObject = new PropertyMapping<int>("uniqueIntTest", TestOntology.uniqueIntTest);
+        protected PropertyMapping<int> uniqueIntTestMapping =
+            new PropertyMapping<int>("uniqueIntTest", TestOntology.uniqueIntTest);
+
         public int uniqueIntTest
         {
-            get { return GetValue(uniqueIntTestObject); }
-            set { SetValue(uniqueIntTestObject, value); }
+            get { return GetValue(uniqueIntTestMapping); }
+            set { SetValue(uniqueIntTestMapping, value); }
         }
 
-        protected PropertyMapping<ObservableCollection<uint>> uintTestObject = new PropertyMapping<ObservableCollection<uint>>("uintTest", TestOntology.uintTest, new ObservableCollection<uint>());
+        protected PropertyMapping<ObservableCollection<uint>> uintTestMapping =
+            new PropertyMapping<ObservableCollection<uint>>("uintTest", TestOntology.uintTest, new ObservableCollection<uint>());
+
         public ObservableCollection<uint> uintTest
         {
-            get { return GetValue(uintTestObject); }
-            set { SetValue(uintTestObject, value); }
+            get { return GetValue(uintTestMapping); }
+            set { SetValue(uintTestMapping, value); }
         }
 
 
-        protected PropertyMapping<uint> uniqueUintTestObject = new PropertyMapping<uint>("uniqueUintTest", TestOntology.uniqueUintTest);
+        protected PropertyMapping<uint> uniqueUintTestMapping =
+            new PropertyMapping<uint>("uniqueUintTest", TestOntology.uniqueUintTest);
+
         public uint uniqueUintTest
         {
-            get { return GetValue(uniqueUintTestObject); }
-            set { SetValue(uniqueUintTestObject, value); }
+            get { return GetValue(uniqueUintTestMapping); }
+            set { SetValue(uniqueUintTestMapping, value); }
         }
 
+        protected PropertyMapping<ObservableCollection<string>> stringTestMapping =
+            new PropertyMapping<ObservableCollection<string>>("stringTest", TestOntology.stringTest, new ObservableCollection<string>());
 
-
-        protected PropertyMapping<ObservableCollection<string>> stringTestObject = new PropertyMapping<ObservableCollection<string>>("stringTest", TestOntology.stringTest, new ObservableCollection<string>());
         public ObservableCollection<string> stringTest
         {
-            get { return GetValue(stringTestObject); }
-            set { SetValue(stringTestObject, value); }
+            get { return GetValue(stringTestMapping); }
+            set { SetValue(stringTestMapping, value); }
         }
 
+        protected PropertyMapping<string> uniqueStringTestMapping =
+            new PropertyMapping<string>("uniqueStringTest", TestOntology.uniqueStringTest);
 
-        protected PropertyMapping<string> uniqueStringTestObject = new PropertyMapping<string>("uniqueStringTest", TestOntology.uniqueStringTest);
         public string uniqueStringTest
         {
-            get { return GetValue(uniqueStringTestObject); }
-            set { SetValue(uniqueStringTestObject, value); }
+            get { return GetValue(uniqueStringTestMapping); }
+            set { SetValue(uniqueStringTestMapping, value); }
         }
 
+        protected PropertyMapping<ObservableCollection<bool>> boolTestMapping =
+            new PropertyMapping<ObservableCollection<bool>>("boolTest", TestOntology.boolTest, new ObservableCollection<bool>());
 
-        protected PropertyMapping<ObservableCollection<bool>> boolTestObject = new PropertyMapping<ObservableCollection<bool>>("boolTest", TestOntology.boolTest, new ObservableCollection<bool>());
         public ObservableCollection<bool> boolTest
         {
-            get { return GetValue(boolTestObject); }
-            set { SetValue(boolTestObject, value); }
+            get { return GetValue(boolTestMapping); }
+            set { SetValue(boolTestMapping, value); }
         }
 
-        protected PropertyMapping<bool> uniqueBoolTestObject = new PropertyMapping<bool>("uniqueBoolTest", TestOntology.uniqueBoolTest);
+        protected PropertyMapping<bool> uniqueBoolTestMapping =
+            new PropertyMapping<bool>("uniqueBoolTest", TestOntology.uniqueBoolTest);
+
         public bool uniqueBoolTest
         {
-            get { return GetValue(uniqueBoolTestObject); }
-            set { SetValue(uniqueBoolTestObject, value); }
+            get { return GetValue(uniqueBoolTestMapping); }
+            set { SetValue(uniqueBoolTestMapping, value); }
         }
 
+        protected PropertyMapping<float> uniqueFloatTestMapping =
+            new PropertyMapping<float>("uniqueFloatTest", TestOntology.uniqueFloatTest);
 
-        protected PropertyMapping<ObservableCollection<Resource>> _genericPropertyObject = new PropertyMapping<ObservableCollection<Resource>>("genericProperty", TestOntology.genericTest);
+        public float uniqueFloatTest
+        {
+            get { return GetValue(uniqueFloatTestMapping); }
+            set { SetValue(uniqueFloatTestMapping, value); }
+        }
+
+        protected PropertyMapping<double> uniqueDoubleTestMapping =
+            new PropertyMapping<double>("uniqueDoubleTest", TestOntology.uniqueDoubleTest);
+
+        public double uniqueDoubleTest
+        {
+            get { return GetValue(uniqueDoubleTestMapping); }
+            set { SetValue(uniqueDoubleTestMapping, value); }
+        }
+
+        protected PropertyMapping<ObservableCollection<double>> doubleTestMapping =
+    new PropertyMapping<ObservableCollection<double>>("doubleTest", TestOntology.doubleTest);
+
+        public ObservableCollection<double> DoubleTest
+        {
+            get { return GetValue(doubleTestMapping); }
+            set { SetValue(doubleTestMapping, value); }
+        }
+
+        protected PropertyMapping<decimal> uniqueDecimalTestMapping =
+            new PropertyMapping<decimal>("uniqueDecimalTest", TestOntology.uniqueDecimalTest);
+
+        public decimal uniqueDecimalTest
+        {
+            get { return GetValue(uniqueDecimalTestMapping); }
+            set { SetValue(uniqueDecimalTestMapping, value); }
+        }
+
+        protected PropertyMapping<ObservableCollection<Resource>> _genericPropertyMapping =
+            new PropertyMapping<ObservableCollection<Resource>>("genericProperty", TestOntology.genericTest);
+
         public ObservableCollection<Resource> genericProperty
         {
-            get { return GetValue(_genericPropertyObject); }
-            set { SetValue(_genericPropertyObject, value); }
+            get { return GetValue(_genericPropertyMapping); }
+            set { SetValue(_genericPropertyMapping, value); }
         }
 
-        protected PropertyMapping<DateTime> uniqueDateTimeTestObject = new PropertyMapping<DateTime>("uniqueDateTimeTest", TestOntology.uniqueDatetimeTest);
+        protected PropertyMapping<DateTime> uniqueDateTimeTestMapping =
+            new PropertyMapping<DateTime>("uniqueDateTimeTest", TestOntology.uniqueDatetimeTest);
+
         public DateTime uniqueDateTimeTest
         {
-            get { return GetValue(uniqueDateTimeTestObject); }
-            set { SetValue(uniqueDateTimeTestObject, value); }
+            get { return GetValue(uniqueDateTimeTestMapping); }
+            set { SetValue(uniqueDateTimeTestMapping, value); }
         }
 
-        protected PropertyMapping<ObservableCollection<DateTime>> dateTimeTestObject = new PropertyMapping<ObservableCollection<DateTime>>("dateTimeTest", TestOntology.datetimeTest, new ObservableCollection<DateTime>());
+        protected PropertyMapping<ObservableCollection<DateTime>> dateTimeTestMapping =
+            new PropertyMapping<ObservableCollection<DateTime>>("dateTimeTest", TestOntology.datetimeTest, new ObservableCollection<DateTime>());
+
         public ObservableCollection<DateTime> dateTimeTest
         {
-            get { return GetValue(dateTimeTestObject); }
-            set { SetValue(dateTimeTestObject, value); }
+            get { return GetValue(dateTimeTestMapping); }
+            set { SetValue(dateTimeTestMapping, value); }
         }
 
 
-        protected PropertyMapping<ObservableCollection<MappingTestClass2>> resourceTestProperty = new PropertyMapping<ObservableCollection<MappingTestClass2>>("resourceTest", TestOntology.resourceTest, new ObservableCollection<MappingTestClass2>());
+        protected PropertyMapping<ObservableCollection<MappingTestClass2>> resourceTestMapping =
+            new PropertyMapping<ObservableCollection<MappingTestClass2>>("resourceTest", TestOntology.resourceTest, new ObservableCollection<MappingTestClass2>());
+
         public ObservableCollection<MappingTestClass2> resourceTest
         {
-            get { return GetValue(resourceTestProperty); }
-            set { SetValue(resourceTestProperty, value); }
+            get { return GetValue(resourceTestMapping); }
+            set { SetValue(resourceTestMapping, value); }
         }
 
-        protected PropertyMapping<MappingTestClass2> uniqueResourceTestProperty = new PropertyMapping<MappingTestClass2>("uniqueResourceTest", TestOntology.uniqueResourceTest);
+        protected PropertyMapping<MappingTestClass2> uniqueResourceTestMapping =
+            new PropertyMapping<MappingTestClass2>("uniqueResourceTest", TestOntology.uniqueResourceTest);
+
         public MappingTestClass2 uniqueResourceTest
         {
-            get { return GetValue(uniqueResourceTestProperty); }
-            set { SetValue(uniqueResourceTestProperty, value); }
+            get { return GetValue(uniqueResourceTestMapping); }
+            set { SetValue(uniqueResourceTestMapping, value); }
         }
 
-        /*
-        protected MappingProperty uriProperty = new MappingProperty("UriProperty", typeof(Resource), TestOntology.uriTest);
-        public Resource UriProperty
+        protected PropertyMapping<Resource> resPropertyMapping =
+            new PropertyMapping<Resource>("resProperty", TestOntology.resTest);
+
+        public Resource resProperty
         {
-            get { return (Resource)GetValue(uriProperty); }
-            set { SetValue(uriProperty, value); }
+            get { return (Resource)GetValue(resPropertyMapping); }
+            set { SetValue(resPropertyMapping, value); }
         }
-        */
+
+        protected PropertyMapping<ObservableCollection<Uri>> uriTestMapping =
+            new PropertyMapping<ObservableCollection<Uri>>("uriTest", TestOntology.uriTest, new ObservableCollection<Uri>());
+
+        public ObservableCollection<Uri> uriTest
+        {
+            get { return GetValue(uriTestMapping); }
+            set { SetValue(uriTestMapping, value); }
+        }
+
+        protected PropertyMapping<Uri> uniqueUriTestMapping =
+            new PropertyMapping<Uri>("uniqueUriTest", TestOntology.uniqueUriTest);
+
+        public Uri uniqueUriTest
+        {
+            get { return GetValue(uniqueUriTestMapping); }
+            set { SetValue(uniqueUriTestMapping, value); }
+        }
+
 
         #endregion
 
@@ -221,7 +341,9 @@ namespace Semiodesk.Trinity.Tests
     public class MappingTestClass2 : Resource
     {
         #region Constructors
-        public MappingTestClass2(Uri uri) : base(uri) { }
+
+        public MappingTestClass2(Uri uri) : base(uri) {}
+
         #endregion
 
         #region Mapping
@@ -231,11 +353,13 @@ namespace Semiodesk.Trinity.Tests
             return new List<Class> { TestOntology.TestClass2 };
         }
 
-        protected PropertyMapping<string> uniqueStringTestObject = new PropertyMapping<string>("uniqueStringTest", TestOntology.uniqueStringTest);
+        protected PropertyMapping<string> uniqueStringTestMapping =
+            new PropertyMapping<string>("uniqueStringTest", TestOntology.uniqueStringTest);
+
         public string uniqueStringTest
         {
-            get { return GetValue(uniqueStringTestObject); }
-            set { SetValue(uniqueStringTestObject, value); }
+            get { return GetValue(uniqueStringTestMapping); }
+            set { SetValue(uniqueStringTestMapping, value); }
         }
 
         #endregion
@@ -244,7 +368,9 @@ namespace Semiodesk.Trinity.Tests
     public class MappingTestClass3 : MappingTestClass2
     {
         #region Constructors
-        public MappingTestClass3(Uri uri) : base(uri) { }
+
+        public MappingTestClass3(Uri uri) : base(uri) {}
+
         #endregion
 
         #region Mapping
@@ -260,7 +386,9 @@ namespace Semiodesk.Trinity.Tests
     public class MappingTestClass4 : MappingTestClass3
     {
         #region Constructors
-        public MappingTestClass4(Uri uri) : base(uri) { }
+
+        public MappingTestClass4(Uri uri) : base(uri) {}
+
         #endregion
 
         #region Mapping
@@ -272,11 +400,30 @@ namespace Semiodesk.Trinity.Tests
 
         #endregion
     }
+    public class MappingTestClass5 : MappingTestClass3
+    {
+        #region Constructors
+
+        public MappingTestClass5(Uri uri) : base(uri) {}
+
+        #endregion
+
+        #region Mapping
+
+        public override IEnumerable<Class> GetTypes()
+        {
+            return new List<Class> { TestOntology.TestClass4 };
+        }
+
+        #endregion
+    }
 
     public class StringMappingTestClass : Resource
     {
         #region Constructors
-        public StringMappingTestClass(Uri uri) : base(uri) { }
+
+        public StringMappingTestClass(Uri uri) : base(uri) {}
+
         #endregion
 
         #region Mapping
@@ -286,21 +433,36 @@ namespace Semiodesk.Trinity.Tests
             return new List<Class> { TestOntology.TestClass3 };
         }
 
-        public PropertyMapping<string> randomPropertyTestObject = new PropertyMapping<string>("RandomProperty", "http://www.example.com/property");
+        public PropertyMapping<string> randomPropertyTestMapping =
+            new PropertyMapping<string>("RandomProperty", "http://www.example.com/property");
+
         public string RandomProperty
         {
-            get { return GetValue(randomPropertyTestObject); }
-            set { SetValue(randomPropertyTestObject, value); }
+            get { return GetValue(randomPropertyTestMapping); }
+            set { SetValue(randomPropertyTestMapping, value); }
         }
 
-        public PropertyMapping<string> uniqueStringTestObject = new PropertyMapping<string>("uniqueStringTest", TestOntology.uniqueStringTest.Uri.OriginalString);
+        public PropertyMapping<string> uniqueStringTestMapping =
+            new PropertyMapping<string>("uniqueStringTest", TestOntology.uniqueStringTest.Uri.OriginalString);
+
         public string uniqueStringTest
         {
-            get { return GetValue(uniqueStringTestObject); }
-            set { SetValue(uniqueStringTestObject, value); }
+            get { return GetValue(uniqueStringTestMapping); }
+            set { SetValue(uniqueStringTestMapping, value); }
         }
 
-        public PropertyMapping<ObservableCollection<int>> intTestMapping = new PropertyMapping<ObservableCollection<int>>("intTest", "semio:test:intTest", new ObservableCollection<int>());
+        public PropertyMapping<List<string>> stringListTestMapping =
+    new PropertyMapping<List<string>>("stringListTest", TestOntology.stringTest);
+
+        public List<string> stringListTest
+        {
+            get { return GetValue(stringListTestMapping); }
+            set { SetValue(stringListTestMapping, value); }
+        }
+
+        public PropertyMapping<ObservableCollection<int>> intTestMapping =
+            new PropertyMapping<ObservableCollection<int>>("intTest", "semio:test:intTest", new ObservableCollection<int>());
+
         public ObservableCollection<int> intTest
         {
             get { return GetValue(intTestMapping); }
@@ -310,30 +472,47 @@ namespace Semiodesk.Trinity.Tests
         #endregion
     }
 
+    public class JsonMappingTestClass : Resource
+    {
+        #region Mapping
+
+        public override IEnumerable<Class> GetTypes()
+        {
+            yield return TestOntology.JsonTestClass;
+        }
+
+        protected PropertyMapping<ObservableCollection<string>> stringTestMapping =
+            new PropertyMapping<ObservableCollection<string>>("stringTest", TestOntology.stringTest, new ObservableCollection<string>());
+
+        public ObservableCollection<string> stringTest
+        {
+            get { return GetValue(stringTestMapping); }
+            set { SetValue(stringTestMapping, value); }
+        }
+
+        #endregion
+
+        #region Constructors
+
+        public JsonMappingTestClass(Uri uri) : base(uri) { }
+
+        #endregion
+    }
+
     [TestFixture]
     public class ResourceMappingTest
     {
         public static bool RegisteredOntology = false;
+
         private IStore _store;
-
-        [SetUp]
-        public void SetUp()
-        {
-            if (ResourceMappingTest.RegisteredOntology == false)
-            {
-                OntologyDiscovery.AddAssembly(Assembly.GetExecutingAssembly());
-                MappingDiscovery.RegisterAssembly(Assembly.GetExecutingAssembly());
-                RegisterOntologies.Register();
-                ResourceMappingTest.RegisteredOntology = true;
-            }
-
-        }
 
         [TearDown]
         public void TearDown()
         {
             if (_store != null)
+            {
                 _store.Dispose();
+            }
         }
 
         //[Test]
@@ -410,7 +589,7 @@ namespace Semiodesk.Trinity.Tests
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties();
             Assert.False(l.Contains(TestOntology.uniqueIntTest));
 
             // Test if ListValues works
@@ -480,7 +659,7 @@ namespace Semiodesk.Trinity.Tests
             Assert.AreEqual(1, t_actual.intTest.Count());
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties().ToList();
             Assert.True(l.Contains(TestOntology.intTest));
 
             // Test if first added property is still present
@@ -491,7 +670,7 @@ namespace Semiodesk.Trinity.Tests
             t1.Commit();
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties();
             Assert.False(l.Contains(TestOntology.intTest));
 
             // Test if ListValues works
@@ -637,7 +816,7 @@ namespace Semiodesk.Trinity.Tests
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties();
             Assert.False(l.Contains(TestOntology.uniqueStringTest));
 
             x = t_actual.HasProperty(TestOntology.uniqueStringTest);
@@ -698,7 +877,7 @@ namespace Semiodesk.Trinity.Tests
             Assert.AreEqual(0, t_actual.boolTest.Count());
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties();
             Assert.False(l.Contains(TestOntology.stringTest));
 
             x = t_actual.HasProperty(TestOntology.stringTest);
@@ -750,7 +929,7 @@ namespace Semiodesk.Trinity.Tests
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties().ToList();
             Assert.False(l.Contains(TestOntology.uniqueBoolTest));
 
             // Test if ListValues works
@@ -762,26 +941,26 @@ namespace Semiodesk.Trinity.Tests
         [Test]
         public void AddRemoveBoolListTest()
         {
-            IModel m = GetModel();
-            m.Clear();
-            Uri t1Uri = new Uri("semio:test:testInstance1");
-            MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
+            IModel model = GetModel();
+            model.Clear();
 
+            Uri t1Uri = new Uri("semio:test:testInstance1");
+            MappingTestClass t1 = model.CreateResource<MappingTestClass>(t1Uri);
 
             // Add value using the mapping interface
             bool value = true;
             t1.boolTest.Add(value);
-
             t1.Commit();
-            MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
+
+            MappingTestClass t_actual = model.GetResource<MappingTestClass>(t1Uri);
 
             // Test if value was stored
             Assert.AreEqual(1, t_actual.boolTest.Count());
             Assert.AreEqual(value, t_actual.boolTest[0]);
 
-
             // Test if property is present
             var l = t_actual.ListProperties();
+
             Assert.True(l.Contains(TestOntology.boolTest));
             Assert.AreEqual(2, l.Count());
 
@@ -792,17 +971,173 @@ namespace Semiodesk.Trinity.Tests
             // Remove value from mapped list
             t1.boolTest.Remove(value);
             t1.Commit();
-            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+
+            t_actual = model.GetResource<MappingTestClass>(t1Uri);
 
             // Test if removed
             Assert.AreEqual(0, t_actual.boolTest.Count());
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties().ToList();
+
             Assert.False(l.Contains(TestOntology.boolTest));
 
             // Test if ListValues works
             Assert.AreEqual(0, t_actual.ListValues(TestOntology.boolTest).Count());
+
+            model.Clear();
+        }
+
+        [Test]
+        public void AddRemoveFloatTest()
+        {
+            IModel m = GetModel();
+            m.Clear();
+
+            Uri uri = new Uri("semio:test:testInstance1");
+
+            MappingTestClass testResource = m.CreateResource<MappingTestClass>(uri);
+
+            // Add value using the mapping interface
+            float floatValue = 1.0f;
+
+            testResource.uniqueFloatTest = floatValue;
+            testResource.Commit();
+
+            MappingTestClass storedResource = m.GetResource<MappingTestClass>(uri);
+
+            // Test if value was stored
+            Assert.AreEqual(floatValue, storedResource.uniqueFloatTest);
+
+            // Test if property is present
+            List<Property> properties = storedResource.ListProperties().ToList();
+
+            Assert.True(properties.Contains(TestOntology.uniqueFloatTest));
+            Assert.AreEqual(2, properties.Count());
+
+            // Test if ListValues works
+            Assert.AreEqual(typeof(float), storedResource.ListValues(TestOntology.uniqueFloatTest).First().GetType());
+            Assert.AreEqual(floatValue, storedResource.ListValues(TestOntology.uniqueFloatTest).First());
+
+            // Remove with RemoveProperty
+            testResource.RemoveProperty(TestOntology.uniqueFloatTest, floatValue);
+            testResource.Commit();
+
+            storedResource = m.GetResource<MappingTestClass>(uri);
+
+            // Test if ListProperties works
+            properties = storedResource.ListProperties().ToList();
+
+            Assert.False(properties.Contains(TestOntology.uniqueFloatTest));
+
+            // Test if ListValues works
+            Assert.AreEqual(0, storedResource.ListValues(TestOntology.uniqueFloatTest).Count());
+
+            m.Clear();
+        }
+
+        [Test]
+        public void AddRemoveDoubleTest()
+        {
+            IModel m = GetModel();
+            m.Clear();
+
+            Uri uri = new Uri("semio:test:testInstance1");
+
+            MappingTestClass testResource = m.CreateResource<MappingTestClass>(uri);
+
+            // Add value using the mapping interface
+            double doubleValue = 1.0;
+
+            testResource.uniqueDoubleTest = doubleValue;
+            testResource.Commit();
+
+            MappingTestClass storedResource = m.GetResource<MappingTestClass>(uri);
+
+            // Test if value was stored
+            Assert.AreEqual(doubleValue, storedResource.uniqueDoubleTest);
+
+            // Test if property is present
+            List<Property> properties = storedResource.ListProperties().ToList();
+
+            Assert.True(properties.Contains(TestOntology.uniqueDoubleTest));
+            Assert.AreEqual(2, properties.Count());
+
+            // Test if ListValues works
+            Assert.AreEqual(typeof(double), storedResource.ListValues(TestOntology.uniqueDoubleTest).First().GetType());
+            Assert.AreEqual(doubleValue, storedResource.ListValues(TestOntology.uniqueDoubleTest).First());
+
+            // Remove with RemoveProperty
+            testResource.RemoveProperty(TestOntology.uniqueDoubleTest, doubleValue);
+            testResource.Commit();
+
+            storedResource = m.GetResource<MappingTestClass>(uri);
+
+            // Test if ListProperties works
+            properties = storedResource.ListProperties().ToList();
+
+            Assert.False(properties.Contains(TestOntology.uniqueDoubleTest));
+
+            // Test if ListValues works
+            Assert.AreEqual(0, storedResource.ListValues(TestOntology.uniqueDoubleTest).Count());
+
+            testResource.DoubleTest.Add(1);
+            testResource.DoubleTest.Add(3);
+            testResource.DoubleTest.Add(6);
+            testResource.DoubleTest.Add(17);
+            testResource.DoubleTest.Add(19.111);
+            testResource.Commit();
+
+            storedResource = m.GetResource<MappingTestClass>(uri);
+            Assert.AreEqual(5, storedResource.DoubleTest.Count);
+
+            m.Clear();
+        }
+
+        [Test]
+        public void AddRemoveDecimalTest()
+        {
+            IModel m = GetModel();
+            m.Clear();
+
+            Uri uri = new Uri("semio:test:testInstance1");
+
+            MappingTestClass testResource = m.CreateResource<MappingTestClass>(uri);
+
+            // Add value using the mapping interface
+            decimal decimalValue = 1.0m;
+
+            testResource.uniqueDecimalTest = decimalValue;
+            testResource.Commit();
+
+            MappingTestClass storedResource = m.GetResource<MappingTestClass>(uri);
+
+            // Test if value was stored
+            Assert.AreEqual(decimalValue, storedResource.uniqueDecimalTest);
+
+            // Test if property is present
+            List<Property> properties = storedResource.ListProperties().ToList();
+
+            Assert.True(properties.Contains(TestOntology.uniqueDecimalTest));
+            Assert.AreEqual(2, properties.Count());
+
+            // Test if ListValues works
+            Assert.AreEqual(typeof(decimal), storedResource.ListValues(TestOntology.uniqueDecimalTest).First().GetType());
+            Assert.AreEqual(decimalValue, storedResource.ListValues(TestOntology.uniqueDecimalTest).First());
+
+            // Remove with RemoveProperty
+            testResource.RemoveProperty(TestOntology.uniqueDecimalTest, decimalValue);
+            testResource.Commit();
+
+            storedResource = m.GetResource<MappingTestClass>(uri);
+
+            // Test if ListProperties works
+            properties = storedResource.ListProperties().ToList();
+
+            Assert.False(properties.Contains(TestOntology.uniqueDecimalTest));
+
+            // Test if ListValues works
+            Assert.AreEqual(0, storedResource.ListValues(TestOntology.uniqueDecimalTest).Count());
 
             m.Clear();
         }
@@ -816,9 +1151,9 @@ namespace Semiodesk.Trinity.Tests
         {
             IModel m = GetModel();
             m.Clear();
+
             Uri t1Uri = new Uri("semio:test:testInstance1");
             MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
-
 
             // Add value using the mapping interface
             DateTime Value = new DateTime(2012, 8, 15, 12, 3, 55, DateTimeKind.Local);
@@ -829,7 +1164,6 @@ namespace Semiodesk.Trinity.Tests
 
             // Test if value was stored
             Assert.AreEqual(Value.ToUniversalTime(), t_actual.uniqueDateTimeTest.ToUniversalTime());
-
 
             // Test if property is present
             var l = t_actual.ListProperties();
@@ -848,8 +1182,8 @@ namespace Semiodesk.Trinity.Tests
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
-            Assert.False(l.Contains(TestOntology.uniqueBoolTest));
+            l = t_actual.ListProperties().ToList();
+            Assert.False(l.Contains(TestOntology.uniqueDatetimeTest));
 
             // Test if ListValues works
             Assert.AreEqual(0, t_actual.ListValues(TestOntology.uniqueDatetimeTest).Count());
@@ -862,11 +1196,102 @@ namespace Semiodesk.Trinity.Tests
             t1.Commit();
 
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
-            Assert.AreEqual(t1.uniqueDateTimeTest, t_actual.uniqueDateTimeTest);
+            Assert.AreEqual(t1.uniqueDateTimeTest, t_actual.uniqueDateTimeTest.ToLocalTime());
 
             m.Clear();
         }
 
+        [Test]
+        public void AddRemoveUriTest()
+        {
+            IModel model = GetModel();
+
+            if (!model.IsEmpty)
+            {
+                model.Clear();
+            }
+
+            Uri uri1 = new Uri("urn:1");
+            Uri uri2 = new Uri("urn:2");
+            Uri uri3 = new Uri("urn:3");
+
+            // 1. Create a new instance of the test class and commit it to the model.
+            MappingTestClass test1 = model.CreateResource<MappingTestClass>(uri1);
+            test1.resProperty = new Resource(uri2);
+            test1.Commit();
+
+            // 2. Retrieve a new copy of the instance and validate the mapped URI property.
+            test1 = model.GetResource<MappingTestClass>(uri1);
+
+            Assert.NotNull(test1.resProperty);
+            Assert.AreEqual(test1.resProperty.Uri, uri2);
+
+            // 3. Change the property and commit the resource.
+            test1.resProperty = new Resource(uri3);
+            test1.Commit();
+
+            // 4. Retrieve a new copy of the instance and validate the changed URI property.
+            test1 = model.GetResource<MappingTestClass>(uri1);
+
+            Assert.NotNull(test1.resProperty);
+            Assert.AreEqual(test1.resProperty.Uri, uri3);
+        }
+
+        [Test]
+        public void AddRemoveUriPropTest()
+        {
+            IModel m = GetModel();
+            m.Clear();
+
+            Uri t1Uri = new Uri("semio:test:testInstance1");
+            MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
+
+            // Add value using the mapping interface
+            Uri Value = new Uri("urn:test#myUri");
+            t1.uniqueUriTest = Value;
+            t1.Commit();
+
+            MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
+
+            // Test if value was stored
+            Assert.AreEqual(Value.ToString(), t_actual.uniqueUriTest.ToString());
+
+            // Test if property is present
+            var l = t_actual.ListProperties();
+            Assert.True(l.Contains(TestOntology.uniqueUriTest));
+            Assert.AreEqual(2, l.Count());
+
+            // Test if ListValues works
+            Assert.IsTrue( t_actual.ListValues(TestOntology.uniqueUriTest).First() is Uri);
+            Uri u = (Uri)t_actual.ListValues(TestOntology.uniqueUriTest).First();
+            Assert.AreEqual(Value.ToString(), u.ToString());
+
+            // Remove with RemoveProperty
+            t1.RemoveProperty(TestOntology.uniqueUriTest, Value);
+            t1.Commit();
+
+            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+
+            // Test if ListProperties works
+            l = t_actual.ListProperties().ToList();
+            Assert.False(l.Contains(TestOntology.uniqueUriTest));
+
+            // Test if ListValues works
+            Assert.AreEqual(0, t_actual.ListValues(TestOntology.uniqueUriTest).Count());
+
+            t1.uriTest.Add(new Uri("urn:test#myUri1"));
+            t1.uriTest.Add(new Uri("urn:test#myUri2"));
+            t1.uriTest.Add(new Uri("urn:test3"));
+            t1.uriTest.Add(new Uri("urn:test/my#Uri4"));
+            t1.uriTest.Add(new Uri("urn:test#5"));
+            t1.Commit();
+
+            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+            Assert.AreEqual(t1.uriTest.Count, t_actual.uriTest.Count);
+
+
+            m.Clear();
+        }
         [Test]
         public void TimeZoneTest()
         {
@@ -924,7 +1349,7 @@ namespace Semiodesk.Trinity.Tests
             Assert.AreEqual(0, t_actual.dateTimeTest.Count());
 
             // Test if ListProperties works
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties().ToList();
             Assert.False(l.Contains(TestOntology.datetimeTest));
 
             // Test if ListValues works
@@ -936,20 +1361,25 @@ namespace Semiodesk.Trinity.Tests
         {
             IModel m = GetModel();
             m.Clear();
+
             Uri t1Uri = new Uri("semio:test:testInstance1");
             MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
 
             Uri testClass2Uri = new Uri("semio:test:testInstance2");
             MappingTestClass2 t2 = new MappingTestClass2(testClass2Uri);
 
+            Uri testClass3Uri = new Uri("semio:test:testInstance3");
+            MappingTestClass3 t3 = m.CreateResource<MappingTestClass3>(testClass3Uri);
+            t3.Commit(); // Force loading the resource from the model with the appropriate (derived) type.
+
             t1.uniqueResourceTest = t2;
             t1.Commit();
-            MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
+            MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
             Assert.AreEqual(t2, t_actual.uniqueResourceTest);
 
-            var l = t_actual.ListProperties();
+            var l = t_actual.ListProperties().ToList();
             Assert.Contains(TestOntology.uniqueResourceTest, l);
             Assert.AreEqual(2, l.Count());
 
@@ -972,7 +1402,7 @@ namespace Semiodesk.Trinity.Tests
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
 
-            l = (List<Property>)t_actual.ListProperties();
+            l = t_actual.ListProperties().ToList();
             Assert.False(l.Contains(TestOntology.uniqueResourceTest));
 
             x = t_actual.HasProperty(TestOntology.uniqueResourceTest);
@@ -983,6 +1413,14 @@ namespace Semiodesk.Trinity.Tests
 
             // Test if ListValues works
             Assert.AreEqual(0, t_actual.ListValues(TestOntology.uniqueResourceTest).Count());
+
+            // Test if derived types get properly mapped.
+            t1.uniqueResourceTest = t3;
+            t1.Commit();
+
+            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+
+            Assert.AreEqual(t3, t_actual.uniqueResourceTest);
         }
 
         [Test]
@@ -990,20 +1428,26 @@ namespace Semiodesk.Trinity.Tests
         {
             IModel m = GetModel();
             m.Clear();
+
             Uri t1Uri = new Uri("semio:test:testInstance1");
             MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
 
-
             // Add value using the mapping interface
             MappingTestClass2 t2 = new MappingTestClass2(new Uri("semio:test:testInstance2"));
+            MappingTestClass3 t3 = new MappingTestClass3(new Uri("semio:test:testInstance3"));
+
             t1.resourceTest.Add(t2);
+            t1.resourceTest.Add(t3);
             t1.Commit();
+
             MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
-            Assert.AreEqual(1, t_actual.resourceTest.Count);
-            Assert.AreEqual(t2, t_actual.resourceTest[0]);
+            Assert.AreEqual(2, t_actual.resourceTest.Count);
+            Assert.Contains(t2, t_actual.resourceTest);
+            Assert.Contains(t3, t_actual.resourceTest);
 
             var l = t_actual.ListProperties();
+
             Assert.AreEqual(2, l.Count());
             Assert.IsTrue(l.Contains(TestOntology.resourceTest));
 
@@ -1013,14 +1457,19 @@ namespace Semiodesk.Trinity.Tests
             x = t_actual.HasProperty(TestOntology.resourceTest, t2);
             Assert.IsTrue(x);
 
+            x = t_actual.HasProperty(TestOntology.resourceTest, t3);
+            Assert.IsTrue(x);
+
             var v = t_actual.ListValues(TestOntology.resourceTest);
+
             Assert.AreEqual(2, l.Count());
             Assert.IsTrue(v.Contains(t2));
-
-            Assert.AreEqual(t2.GetType(), v.First().GetType());
+            Assert.IsTrue(v.Contains(t3));
 
             t1.resourceTest.Remove(t2);
+            t1.resourceTest.Remove(t3);
             t1.Commit();
+
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
             x = t_actual.HasProperty(TestOntology.resourceTest);
@@ -1029,15 +1478,13 @@ namespace Semiodesk.Trinity.Tests
             x = t_actual.HasProperty(TestOntology.resourceTest, t2);
             Assert.IsFalse(x);
 
-
             Assert.AreEqual(0, t_actual.resourceTest.Count);
         }
-
 
         [Test]
         public void LazyLoadResourceTest()
         {
-            MappingDiscovery.RegisterCallingAssembly();
+            
             IModel model = GetModel();
             model.Clear();
 
@@ -1074,8 +1521,6 @@ namespace Semiodesk.Trinity.Tests
             IResource tr1 = model.GetResource(testRes1);
             Assert.AreEqual(typeof(MappingTestClass), tr1.GetType());
             
-            
-            
             model.Clear();
             _store.RemoveModel(model);
         }
@@ -1109,6 +1554,37 @@ namespace Semiodesk.Trinity.Tests
 
             Resource r3 = m.GetResource<Resource>(t3Uri);
             Assert.AreEqual(t3, r3);
+
+        }
+
+        [Test]
+        public void MultipeTypesMappingTest()
+        {
+            IModel m = GetModel();
+            m.Clear();
+
+            Uri t3Uri = new Uri("semio:test:testInstance3");
+            MappingTestClass5 t3 = m.CreateResource<MappingTestClass5>(t3Uri);
+            t3.uniqueStringTest = "testing 3";
+            t3.AddProperty(rdf.type, nco.Affiliation);
+            t3.Commit();
+
+            Resource r3 = m.GetResource<Resource>(t3Uri);
+            Type tr3 = r3.GetType();
+            Type tt3 = typeof(MappingTestClass5);
+            Assert.AreEqual(typeof(MappingTestClass5), r3.GetType());
+
+            m.Clear();
+            t3 = m.CreateResource<MappingTestClass5>(t3Uri);
+            t3.uniqueStringTest = "testing 3";
+            t3.AddProperty(rdf.type, nco.Contact);
+            t3.Commit();
+
+            r3 = m.GetResource<MappingTestClass5>(t3Uri);
+            Assert.AreEqual(typeof(MappingTestClass5), r3.GetType());
+
+            r3 = m.GetResource<Contact>(t3Uri);
+            Assert.AreEqual(typeof(Contact), r3.GetType());
         }
 
         [Test]
@@ -1126,32 +1602,17 @@ namespace Semiodesk.Trinity.Tests
 
             var queryResult = m.ExecuteQuery(q, true);
 
-            var resources = queryResult.GetResources().ToList();
-
-
-            
-
-            
+            Assert.IsNotEmpty(queryResult.GetResources());
         }
 
         IModel GetModel()
         {
-
-            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
+            string connectionString = SetupClass.ConnectionString;
+            _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
 
             Uri testModelUri = new Uri("http://example.org/TestModel");
 
-            IModel model;
-            if (_store.ContainsModel(testModelUri))
-            {
-                model = _store.GetModel(testModelUri);
-            }
-            else
-            {
-                model = _store.CreateModel(testModelUri);
-            }
-
-            return model;
+            return _store.GetModel(testModelUri); ;
         }
 
         [Test]
@@ -1202,9 +1663,7 @@ namespace Semiodesk.Trinity.Tests
 
             Assert.IsTrue(t1.resourceTest.Count == 1);
             Assert.IsTrue(t1.resourceTest.Contains(p));
-           
         }
-
 
         [Test]
         public void RollbackMappedResourcesTest()
@@ -1228,7 +1687,6 @@ namespace Semiodesk.Trinity.Tests
 
             Assert.IsTrue(t1.ResourceTest.Count == 1);
             Assert.IsTrue(t1.ResourceTest.Contains(p));
-         
         }
 
         [Test]
@@ -1249,17 +1707,15 @@ namespace Semiodesk.Trinity.Tests
             t1.stringTest.Add("Blub");
             t1.Commit();
 
-            var x = t1.ListValues(TestOntology.stringTest);
+            var x = t1.ListValues(TestOntology.stringTest).ToList();
 
             MappingTestClass actual = m.GetResource<MappingTestClass>(t1.Uri);
-            var x2 = actual.ListValues(TestOntology.stringTest);
+            var x2 = actual.ListValues(TestOntology.stringTest).ToList().ToList();
 
             Assert.AreEqual(x.Count, x2.Count);
             Assert.IsTrue(x2.Contains(x[0]));
             Assert.IsTrue(x2.Contains(x[1]));
-
         }
-
 
         [Test]
         public void KeepListsAfterRollbackTest()
@@ -1274,13 +1730,13 @@ namespace Semiodesk.Trinity.Tests
 
             t1.stringTest.Add("Hi");
             t1.stringTest.Add("Blub");
-            var x = t1.ListValues(TestOntology.stringTest);
+            var x = t1.ListValues(TestOntology.stringTest).ToList();
             Assert.AreEqual(2, x.Count);
             t1.Commit();
 
             SingleMappingTestClass t2 = m.GetResource<SingleMappingTestClass>(t1Uri);
 
-            var x2 = t2.ListValues(TestOntology.stringTest);
+            var x2 = t2.ListValues(TestOntology.stringTest).ToList();
 
             Assert.AreEqual(x.Count, x2.Count);
             Assert.IsTrue(x2.Contains(x[0]));
@@ -1298,7 +1754,6 @@ namespace Semiodesk.Trinity.Tests
             Assert.IsFalse(c1 == c2);
         }
 
-
         [Test]
         public void TestStringPropertyMapping()
         {
@@ -1312,8 +1767,136 @@ namespace Semiodesk.Trinity.Tests
 
             x = p.GetValue(new Property(new Uri("http://www.example.com/property")));
             Assert.AreEqual(p.RandomProperty, x);
+        }
+
+        [Test]
+        public void TestLocalizedStringPropertyMapping()
+        {
+            IModel m = GetModel();
+            m.Clear();
+            var resUri = new Uri("http://test.example.com");
+            StringMappingTestClass p = m.CreateResource<StringMappingTestClass>(resUri);
+
+            string germanText = "Hallo Welt";
+            string englishText = "Hello World";
+            p.AddProperty(TestOntology.uniqueStringTest, germanText, "DE");
+            p.AddProperty(TestOntology.uniqueStringTest, englishText, "EN");
+            Assert.AreEqual(null, p.uniqueStringTest);
+            p.Language = "DE";
+            Assert.AreEqual(germanText, p.uniqueStringTest);
+            var x = p.ListValues(TestOntology.uniqueStringTest);
+            p.Language = "EN";
+            Assert.AreEqual(englishText, p.uniqueStringTest);
+
+            p.Language = null;
+            Assert.AreEqual(null, p.uniqueStringTest);
 
         }
-    }
 
+        [Test]
+        public void TestLocalizedStringInvariancy()
+        {
+            IModel m = GetModel();
+            m.Clear();
+            Uri peterUri = new Uri("http://test.example.com/peter");
+            PersonContact contact = m.CreateResource<PersonContact>(peterUri);
+            contact.NameGiven = "Peter";
+            contact.Language = "DE";
+            Assert.AreEqual("Peter", contact.NameGiven);
+        }
+
+
+        [Test]
+        public void TestLocalizedStringListPropertyMapping()
+        {
+            IModel m = GetModel();
+            m.Clear();
+            var resUri = new Uri("http://test.example.com");
+            StringMappingTestClass p = m.CreateResource<StringMappingTestClass>(resUri);
+
+            string germanText = "Hallo Welt";
+            string englishText = "Hello World";
+            p.AddProperty(TestOntology.stringTest, germanText+1, "DE");
+            p.AddProperty(TestOntology.stringTest, germanText+2, "de");
+            p.AddProperty(TestOntology.stringTest, germanText+3, "DE");
+            p.AddProperty(TestOntology.stringTest, englishText+1, "EN");
+            p.AddProperty(TestOntology.stringTest, englishText+2, "EN");
+            p.AddProperty(TestOntology.stringTest, englishText+3, "EN");
+            p.AddProperty(TestOntology.stringTest, englishText+4, "EN");
+            Assert.AreEqual(0, p.stringListTest.Count);
+            var x = p.ListValues(TestOntology.stringTest);
+            Assert.AreEqual(7, x.Count());
+            p.AddProperty(TestOntology.stringTest, "Hello interanational World"+1);
+            p.AddProperty(TestOntology.stringTest, "Hello interanational World"+2);
+            Assert.AreEqual(2, p.stringListTest.Count);
+            Assert.AreEqual(9, p.ListValues(TestOntology.stringTest).Count());
+            p.Language = "DE";
+            Assert.AreEqual(3, p.stringListTest.Count);
+            Assert.AreEqual(9, p.ListValues(TestOntology.stringTest).Count());
+            p.Language = "EN";
+            Assert.AreEqual(4, p.stringListTest.Count);
+            Assert.AreEqual(9, p.ListValues(TestOntology.stringTest).Count());
+            p.RemoveProperty(TestOntology.stringTest, germanText + 1, "DE");
+            Assert.AreEqual(8, p.ListValues(TestOntology.stringTest).Count());
+
+            p.RemoveProperty(TestOntology.stringTest, englishText + 1, "en");
+            Assert.AreEqual(8, p.ListValues(TestOntology.stringTest).Count());
+
+            p.RemoveProperty(TestOntology.stringTest, "Hello interanational World" + 1);
+        }
+
+        [Test]
+        public void TestLocalizedStringListPropertyMapping2()
+        {
+            IModel m = GetModel();
+            m.Clear();
+            var resUri = new Uri("http://test.example.com");
+            StringMappingTestClass p = m.CreateResource<StringMappingTestClass>(resUri);
+
+            p.stringListTest.Add("Hello interanational World" + 1);
+            p.stringListTest.Add("Hello interanational World" + 2);
+            string germanText = "Hallo Welt";
+            string englishText = "Hello World";
+            p.Language = "DE";
+            p.stringListTest.Add(germanText + 1);
+            p.stringListTest.Add(germanText + 2);
+            p.stringListTest.Add(germanText + 3);
+            Assert.AreEqual(3, p.stringListTest.Count);
+            Assert.AreEqual(5, p.ListValues(TestOntology.stringTest).Count());
+
+            p.Language = "EN";
+            p.stringListTest.Add(englishText + 1);
+            p.stringListTest.Add(englishText + 2);
+            p.stringListTest.Add(englishText + 3);
+            p.stringListTest.Add(englishText + 4);
+            Assert.AreEqual(4, p.stringListTest.Count);
+            Assert.AreEqual(9, p.ListValues(TestOntology.stringTest).Count());
+
+            p.Language = null;
+            Assert.AreEqual(2, p.stringListTest.Count);
+            Assert.AreEqual(9, p.ListValues(TestOntology.stringTest).Count());
+        }
+
+        [Test]
+        public void TestJsonSerialization()
+        {
+            IModel model = GetModel();
+            model.Clear();
+
+            JsonMappingTestClass expected = model.CreateResource<JsonMappingTestClass>();
+            expected.stringTest.Add("Hello World!");
+            expected.stringTest.Add("Hallo Welt!");
+            expected.Commit();
+
+            string json = JsonConvert.SerializeObject(expected);
+
+            JsonResourceSerializerSettings settings = new JsonResourceSerializerSettings(_store);
+
+            JsonMappingTestClass actual = JsonConvert.DeserializeObject<JsonMappingTestClass>(json, settings);
+
+            Assert.AreEqual(expected.Uri, actual.Uri);
+            Assert.AreEqual(expected.Model.Uri, actual.Model.Uri);
+            Assert.AreEqual(2, actual.stringTest.Count);
+        }
+    }
 }
