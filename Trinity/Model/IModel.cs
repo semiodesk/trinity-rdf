@@ -272,6 +272,13 @@ namespace Semiodesk.Trinity
         IEnumerable<T> GetResources<T>(bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource;
 
         /// <summary>
+        /// TODO
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        IQueryable<T> QueryResources<T>() where T : Resource;
+
+        /// <summary>
         /// Executes a SPARQL query and provides an enumeration of matching resources.
         /// </summary>
         /// <param name="query">A SparqlQuery object.</param>
@@ -328,7 +335,5 @@ namespace Semiodesk.Trinity
         
 
         #endregion
-
-        IQueryable<T> ListResources<T>() where T : Resource;
     }
 }

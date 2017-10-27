@@ -36,7 +36,11 @@ namespace Semiodesk.Trinity.Query
     {
         #region Members
 
-        private QueryModelVisitor _visitor;
+        protected QueryModelVisitor Visitor;
+
+        protected MemberExpression CurrentMember;
+
+        protected ConstantExpression CurrentConstant;
 
         #endregion
 
@@ -44,7 +48,7 @@ namespace Semiodesk.Trinity.Query
 
         public ExpressionVisitor(QueryModelVisitor visitor)
         {
-            _visitor = visitor;
+            Visitor = visitor;
         }
 
         #endregion
@@ -56,7 +60,31 @@ namespace Semiodesk.Trinity.Query
             VisitExpression(expression.Left);
             VisitExpression(expression.Right);
 
-            return null;
+            if (expression.Left.NodeType == ExpressionType.MemberAccess)
+            {
+                var property = new Property(CurrentMember.GetRdfPropertyAttribute().MappedUri);
+                var value = CurrentConstant.Value;
+
+                switch(expression.NodeType)
+                {
+                    case ExpressionType.Equal:
+                        Visitor.Query.Where(property).Equal(value); break;
+                    case ExpressionType.GreaterThan:
+                        Visitor.Query.Where(property).GreaterThan(value); break;
+                    case ExpressionType.GreaterThanOrEqual:
+                        Visitor.Query.Where(property).GreaterOrEqual(value); break;
+                    case ExpressionType.LessThan:
+                        Visitor.Query.Where(property).LessThan(value); break;
+                    case ExpressionType.LessThanOrEqual:
+                        Visitor.Query.Where(property).LessOrEqual(value); break;
+                    case ExpressionType.NotEqual:
+                        Visitor.Query.Where(property).NotEqual(value); break;
+                    default:
+                        throw new NotSupportedException(expression.NodeType.ToString());
+                }
+            }
+
+            return expression;
         }
 
         protected override Expression VisitConditionalExpression(ConditionalExpression expression)
@@ -86,12 +114,16 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitMemberExpression(MemberExpression expression)
         {
-            ResourceQuery query = _visitor.GetResourceQuery(expression.Expression);
+            CurrentMember = expression;
 
-            IPropertyMapping mapping = _visitor.GetMapping(expression.Expression.Type, expression.Member.Name);
+            return expression;
+        }
 
-            //return base.VisitMemberExpression(expression);
-            return null;
+        protected override Expression VisitConstantExpression(ConstantExpression expression)
+        {
+            CurrentConstant = expression;
+
+            return expression;
         }
 
         protected override Exception CreateUnhandledItemException<T>(T unhandledItem, string visitMethod)

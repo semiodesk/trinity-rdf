@@ -26,16 +26,10 @@
 // Copyright (c) Semiodesk GmbH 2015
 
 using System;
-using System.Globalization;
-using System.ComponentModel;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.IO;
 using System.Reflection;
-using OpenLink.Data.Virtuoso;
-using Remotion.Linq;
 using Newtonsoft.Json;
 using Semiodesk.Trinity.Query;
 using Remotion.Linq.Parsing.Structure;
@@ -45,7 +39,7 @@ namespace Semiodesk.Trinity
     /// <summary>
     /// A set of resources which represent a logical model for a given application domain.
     /// </summary>
-    public class Model :IModel
+    public class Model : IModel
     {
         #region Members
 
@@ -645,6 +639,20 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// TODO
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public IQueryable<T> QueryResources<T>() where T : Resource
+        {
+            ResourceQueryExecutor executor = new ResourceQueryExecutor(this);
+
+            QueryParser queryParser = QueryParser.CreateDefault();
+
+            return new ResourceQuerable<T>(queryParser, executor);
+        }
+
+        /// <summary>
         /// Executes a SPARQL-select query and provides a list of binding sets. This method 
         /// implements transparent type marshalling and delivers the bound variables in C#
         /// native data types.
@@ -708,12 +716,5 @@ namespace Semiodesk.Trinity
         }
 
         #endregion
-
-        public IQueryable<T> ListResources<T>() where T : Resource
-        {
-            ResourceQueryExecutor executor = new ResourceQueryExecutor();
-            var queryParser = QueryParser.CreateDefault();
-            return new ResourceQuerable<T>(queryParser, executor);
-        }
     }
 }

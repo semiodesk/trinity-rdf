@@ -23,56 +23,35 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2017
 
-using Remotion.Linq;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
-namespace Semiodesk.Trinity.Query
+namespace Semiodesk.Trinity.Test.Linq
 {
-    internal class ResourceQueryExecutor : IQueryExecutor
+    [RdfClass(FOAF.Person)]
+    internal class Person : Resource
     {
         #region Members
-        
-        protected IModel Model { get; private set; }
-        
+
+        [RdfProperty(FOAF.firstName)]
+        public string FirstName { get; set; }
+
+        [RdfProperty(FOAF.lastName)]
+        public string LastName { get; set; }
+
+        [RdfProperty(FOAF.age)]
+        public int Age { get; set; }
+
+        [RdfProperty(FOAF.knows)]
+        public List<Person> KnownPeople { get; set; }
+
         #endregion
 
         #region Constructors
 
-        public ResourceQueryExecutor(IModel model)
-        {
-            Model = model;
-        }
-        
-        #endregion
-
-        #region Methods
-
-        public IEnumerable<T> ExecuteCollection<T>(QueryModel queryModel)
-        {
-            QueryModelVisitor visitor = new QueryModelVisitor();
-            visitor.VisitQueryModel(queryModel);
-
-            IEnumerable<T> result = Model.GetResources(visitor.Query).Cast<T>();
-
-            return result;
-        }
-
-        public T ExecuteSingle<T>(QueryModel queryModel, bool returnDefaultWhenEmpty)
-        {
-            var sequence = ExecuteCollection<T>(queryModel);
-
-            return returnDefaultWhenEmpty ? sequence.SingleOrDefault() : sequence.Single();
-        }
-
-        public T ExecuteScalar<T>(QueryModel queryModel)
-        {
-            // We'll get to this one later...
-            throw new NotImplementedException();
-        }
+        public Person(Uri uri) : base(uri) {}
 
         #endregion
     }

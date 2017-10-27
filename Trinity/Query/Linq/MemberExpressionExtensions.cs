@@ -25,55 +25,19 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-using Remotion.Linq;
 using System;
-using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal class ResourceQueryExecutor : IQueryExecutor
+    internal static class MemberExpressionExtensions
     {
-        #region Members
-        
-        protected IModel Model { get; private set; }
-        
-        #endregion
-
-        #region Constructors
-
-        public ResourceQueryExecutor(IModel model)
+        public static RdfPropertyAttribute GetRdfPropertyAttribute(this MemberExpression expression)
         {
-            Model = model;
+            Type attributeType = typeof(RdfPropertyAttribute);
+
+            return expression.Member.GetCustomAttributes(attributeType, true).First() as RdfPropertyAttribute;
         }
-        
-        #endregion
-
-        #region Methods
-
-        public IEnumerable<T> ExecuteCollection<T>(QueryModel queryModel)
-        {
-            QueryModelVisitor visitor = new QueryModelVisitor();
-            visitor.VisitQueryModel(queryModel);
-
-            IEnumerable<T> result = Model.GetResources(visitor.Query).Cast<T>();
-
-            return result;
-        }
-
-        public T ExecuteSingle<T>(QueryModel queryModel, bool returnDefaultWhenEmpty)
-        {
-            var sequence = ExecuteCollection<T>(queryModel);
-
-            return returnDefaultWhenEmpty ? sequence.SingleOrDefault() : sequence.Single();
-        }
-
-        public T ExecuteScalar<T>(QueryModel queryModel)
-        {
-            // We'll get to this one later...
-            throw new NotImplementedException();
-        }
-
-        #endregion
     }
 }
