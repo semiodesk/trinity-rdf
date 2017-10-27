@@ -25,12 +25,10 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
+using System;
+using System.Linq;
 
 namespace Semiodesk.Trinity.Test
 {
