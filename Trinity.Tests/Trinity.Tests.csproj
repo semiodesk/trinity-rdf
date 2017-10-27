@@ -85,14 +85,14 @@
   <ItemGroup>
     <Compile Include="Cilg\CilgResourceMappingTest.cs" />
     <Compile Include="Cilg\MappingClasses.cs" />
-    <Compile Include="dotnetrdf\ModelTest.cs" />
+    <Compile Include="DotNetRdf\ModelTest.cs" />
     <Compile Include="dotnetrdf_ResourceQueryTest.cs" />
     <Compile Include="dotnetrdf_SparqlQueryTest.cs" />
     <Compile Include="ModelGroupTest.cs" />
-    <Compile Include="dotnetrdf\ResourceMappingTest.cs" />
-    <Compile Include="dotnetrdf\ResourceTest.cs" />
-    <Compile Include="dotnetrdf\StoreHandleTest.cs" />
-    <Compile Include="dotnetrdf\StoreTest.cs" />
+    <Compile Include="DotNetRdf\ResourceMappingTest.cs" />
+    <Compile Include="DotNetRdf\ResourceTest.cs" />
+    <Compile Include="DotNetRdf\StoreHandleTest.cs" />
+    <Compile Include="DotNetRdf\StoreTest.cs" />
     <Compile Include="Ontologies.cs" />
     <Compile Include="SetupClass.cs" />
     <Compile Include="SparqlEndpointTest.cs" />
