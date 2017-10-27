@@ -30,12 +30,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
-using Semiodesk.Trinity;
-using System.Diagnostics;
 using Semiodesk.Trinity.Ontologies;
 using System.IO;
-using System.Threading;
-using Semiodesk.Trinity.Test;
 
 namespace Semiodesk.Trinity.Test
 {
