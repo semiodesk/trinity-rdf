@@ -42,9 +42,7 @@ namespace Semiodesk.Trinity.Configuration
         /// <summary>
         /// Namespace of the generated ontology file.
         /// </summary>
-        [ConfigurationProperty("namespace",
-            DefaultValue = "Semiodesk.Trinity.Model",
-            IsRequired = true)]
+        [ConfigurationProperty("namespace", DefaultValue = "Semiodesk.Trinity.Model", IsRequired = true)]
         [StringValidator(InvalidCharacters = "  ~!@#$%^&*()[]{}/;’\"|\\")]
         public string Namespace
         {

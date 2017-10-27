@@ -78,7 +78,7 @@ namespace Semiodesk.Trinity
 
         public int Count()
         {
-            SparqlQuery query = new SparqlQuery(SparqlQueryType.Select, SparqlSerializer.SerializeCount(_model, _query), null);
+            SparqlQuery query = new SparqlQuery(SparqlSerializer.SerializeCount(_model, _query));
 
             ISparqlQueryResult result = _model.ExecuteQuery(query, _inferenceEnabled);
 
@@ -88,8 +88,10 @@ namespace Semiodesk.Trinity
             {
                 foreach (BindingSet b in bindings)
                 {
-                    if( b.ContainsKey("count"))
+                    if (b.ContainsKey("count"))
+                    {
                         return (int)b["count"];
+                    }
                 }
             }
 
@@ -107,19 +109,20 @@ namespace Semiodesk.Trinity
 
             IEnumerable<BindingSet> bindings = _model.ExecuteQuery(query, _inferenceEnabled).GetBindings();
             Uri uri = null;
-
-            foreach (BindingSet binding in bindings)
+            if (bindings != null)
             {
-                Uri u = binding["s0"] as Uri;
-
-                if (u != uri)
+                foreach (BindingSet binding in bindings)
                 {
-                    result.Add(binding["s0"] as Uri);
+                    Uri u = binding["s0"] as Uri;
+
+                    if (u != uri)
+                    {
+                        result.Add(binding["s0"] as Uri);
+                    }
+
+                    uri = u;
                 }
-
-                uri = u;
             }
-
             return result;
         }
 
@@ -131,14 +134,14 @@ namespace Semiodesk.Trinity
             if (_inferenceEnabled)
             {
                 SparqlQuery uriQuery = new SparqlQuery(SparqlSerializer.Serialize(_model, _query, true));
-                uriQuery.SetModel(_model);
 
                 StringBuilder uris = new StringBuilder();
                 var uriList = FetchUris(uriQuery).ToList();
 
                 foreach (Uri u in uriList)
                 {
-                    uris.Append(SparqlSerializer.SerializeUri(u));
+                    if(u != null)
+                        uris.Append(SparqlSerializer.SerializeUri(u));
                 }
 
                 if (!uriList.Any())
@@ -161,10 +164,17 @@ namespace Semiodesk.Trinity
             else
             {
                 SparqlQuery query = new SparqlQuery(SparqlSerializer.Serialize(_model, _query));
-                query.SetModel(_model);
 
                 return _model.ExecuteQuery(query, _inferenceEnabled).GetResources<T>();
             }
+        }
+
+        public override string ToString()
+        {
+            SparqlQuery query = new SparqlQuery(SparqlSerializer.Serialize(_model, _query));
+            query.Model = _model;
+
+            return query.ToString();
         }
 
         #endregion

@@ -57,6 +57,25 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
         }
 
         /// <summary>
+        /// Gets the second constructor argument for a given attribute type, if there are any.
+        /// </summary>
+        /// <param name="property">A property defition.</param>
+        /// <param name="attributeType">An attribute type.</param>
+        /// <returns>On success, the first attribute constructor argument as a string. An empty string otherwise.</returns>
+        public static bool TryGetSecondAttributeParameter(this PropertyDefinition property, Type attributeType, bool fallback)
+        {
+            string attributeName = attributeType.FullName;
+
+            foreach (CustomAttribute a in property.CustomAttributes.Where(a => a.AttributeType.FullName == attributeName))
+            {
+                if( a.ConstructorArguments.Count >= 2)
+                return (bool)a.ConstructorArguments[1].Value;
+            }
+
+            return fallback;
+        }
+
+        /// <summary>
         /// Get the backing field for a given property, if there is one.
         /// </summary>
         /// <param name="property">A property definition.</param>

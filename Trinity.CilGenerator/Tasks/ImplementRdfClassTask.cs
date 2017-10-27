@@ -129,7 +129,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
             foreach (string uri in uris)
             {
-                Log.LogMessage("{0} --> <{1}>", Type.FullName, uri);
+                Log.LogMessage("{0} -> <{1}>", Type.FullName, uri);
             }
 
             return true;

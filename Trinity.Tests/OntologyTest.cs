@@ -33,7 +33,7 @@ using NUnit.Framework;
 using Semiodesk.Trinity;
 using System.Reflection;
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class OntologyTest

@@ -32,7 +32,7 @@ using System.Text;
 using NUnit.Framework;
 using Semiodesk.Trinity;
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class UriRefTest

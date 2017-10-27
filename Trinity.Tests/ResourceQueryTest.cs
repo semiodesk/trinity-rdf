@@ -36,15 +36,16 @@ using System.ComponentModel;
 using System.Text.RegularExpressions;
 using Semiodesk.Trinity.Ontologies;
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class ResourceQueryTest
     {
         #region Members
 
-        IStore _store;
-        IModel _model;
+        protected IStore Store;
+
+        protected IModel Model;
 
         IResource _resource;
 
@@ -60,73 +61,61 @@ namespace Semiodesk.Trinity.Tests
         [SetUp]
         public void SetUp()
         {
-            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
+            string connectionString = SetupClass.ConnectionString;
 
+            Store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
 
-            UriRef uri = new UriRef("http://localhost:8899/models/ResourceQueryTest");
+            Model = Store.GetModel(new Uri("http://localhost:8899/models/ResourceQueryTest"));
 
-            if (_store.ContainsModel(uri))
+            if (!Model.IsEmpty)
             {
-                _model = _store.GetModel(uri);
-                _model.Clear();
-            }
-            else
-            {
-                _model = _store.CreateModel(uri);
+                Model.Clear();
             }
 
-            if (_model == null)
-            {
-                throw new Exception(string.Format("Error: Unable to create model <{0}>.", uri));
-            }
+            IResource q = null;
 
-            if (_model.IsEmpty)
+            for (int i = 1; i < 51; i++)
             {
-                IResource q = null;
+                IResource r = Model.CreateResource<Resource>();
+                r.AddProperty(nco.fullname, (char)(i % 26));
+                r.AddProperty(nco.gender, (i % 2 == 1) ? nco.female : nco.male);
 
-                for (int i = 1; i < 51; i++)
+                if (i % 5 != 0)
                 {
-                    IResource r = _model.CreateResource<Resource>();
-                    r.AddProperty(nco.fullname, (char)(i % 26));
-                    r.AddProperty(nco.gender, (i % 2 == 1) ? nco.female : nco.male);
-
-                    if (i % 5 != 0)
-                    {
-                        r.AddProperty(rdf.type, nco.PersonContact);
-                    }
-                    else
-                    {
-                        r.AddProperty(rdf.type, nco.OrganizationContact);
-                    }
-
-                    if (i <= 30)
-                    {
-                        r.AddProperty(nco.birthDate, new DateTime(1989, 12, i));
-                    }
-                    else
-                    {
-                        r.AddProperty(nco.birthDate, new DateTime(1990, 1, i - 30));
-                    }
-
-                    if (q != null)
-                    {
-                        r.AddProperty(nie.relatedTo, q);
-                    }
-                    else
-                    {
-                        _resource = r;
-                    }
-
-                    r.Commit();
-                    q = r;
+                    r.AddProperty(rdf.type, nco.PersonContact);
                 }
+                else
+                {
+                    r.AddProperty(rdf.type, nco.OrganizationContact);
+                }
+
+                if (i <= 30)
+                {
+                    r.AddProperty(nco.birthDate, new DateTime(1989, 12, i));
+                }
+                else
+                {
+                    r.AddProperty(nco.birthDate, new DateTime(1990, 1, i - 30));
+                }
+
+                if (q != null)
+                {
+                    r.AddProperty(nie.relatedTo, q);
+                }
+                else
+                {
+                    _resource = r;
+                }
+
+                r.Commit();
+                q = r;
             }
         }
 
         [TearDown]
         public void TearDown()
         {
-            _store.Dispose();
+            Store.Dispose();
         }
 
         [Test]
@@ -136,13 +125,13 @@ namespace Semiodesk.Trinity.Tests
             IEnumerable<Resource> result;
 
             query = new ResourceQuery();
-            result = _model.GetResources(query);
+            result = Model.GetResources(query);
 
             query = new ResourceQuery(nco.PersonContact);
-            result = _model.GetResources(query);
+            result = Model.GetResources(query);
 
             query = new ResourceQuery(_resource);
-            result = _model.GetResources(query);
+            result = Model.GetResources(query);
         }
 
         [Test]
@@ -155,7 +144,7 @@ namespace Semiodesk.Trinity.Tests
             a.Where(nco.gender);
             a.Where(nie.relatedTo, b);
 
-            IResourceQueryResult result = _model.ExecuteQuery(b);
+            IResourceQueryResult result = Model.ExecuteQuery(b);
 
             List<Resource> resources = result.GetResources().ToList();
             Assert.AreEqual(18, resources.Count);
@@ -176,7 +165,7 @@ namespace Semiodesk.Trinity.Tests
             a = new ResourceQuery(nco.PersonContact);
             a.Where(nie.relatedTo, _resource);
 
-            result = _model.ExecuteQuery(a);
+            result = Model.ExecuteQuery(a);
 
             resources = result.GetResources().ToList();
 
@@ -193,7 +182,7 @@ namespace Semiodesk.Trinity.Tests
             a.Where(nco.gender);
             a.Where(nie.relatedTo, b);
 
-            IResourceQueryResult result = _model.ExecuteQuery(b);
+            IResourceQueryResult result = Model.ExecuteQuery(b);
 
             List<Resource> resources = result.GetResources().ToList();
             Assert.AreEqual(18, resources.Count);
@@ -212,7 +201,7 @@ namespace Semiodesk.Trinity.Tests
             a.Where(nco.gender);
             a.Where(nie.relatedTo, b);
 
-            result = _model.ExecuteQuery(b, true);
+            result = Model.ExecuteQuery(b, true);
 
             resources = result.GetResources().ToList();
             Assert.AreEqual(18, resources.Count);
@@ -231,12 +220,12 @@ namespace Semiodesk.Trinity.Tests
         public void TestCount()
         {
             ResourceQuery query = new ResourceQuery(nco.PersonContact);
-            IResourceQueryResult result = _model.ExecuteQuery(query);
+            IResourceQueryResult result = Model.ExecuteQuery(query);
 
             Assert.AreEqual(40, result.Count());
 
             query = new ResourceQuery(_resource);
-            result = _model.ExecuteQuery(query);
+            result = Model.ExecuteQuery(query);
 
             Assert.AreEqual(1, result.Count());
         }
@@ -247,7 +236,7 @@ namespace Semiodesk.Trinity.Tests
             ResourceQuery a = new ResourceQuery(nco.PersonContact);
             a.Where(nco.fullname).Contains("0");
 
-            IResourceQueryResult result = _model.ExecuteQuery(a);
+            IResourceQueryResult result = Model.ExecuteQuery(a);
 
             Assert.Greater(result.Count(), 0);
         }
@@ -264,9 +253,9 @@ namespace Semiodesk.Trinity.Tests
 
             ResourceQuery c = b.Clone();
 
-            string q = SparqlSerializer.Serialize(_model, c);
+            string q = SparqlSerializer.Serialize(Model, c);
 
-            IResourceQueryResult result = _model.ExecuteQuery(c);
+            IResourceQueryResult result = Model.ExecuteQuery(c);
 
             int i = 0;
 

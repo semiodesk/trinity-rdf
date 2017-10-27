@@ -25,17 +25,12 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Semiodesk.Trinity
 {
     /// <summary>
     /// A dictionary of named value bindings which represents a single query solution.
     /// </summary>
-    public class BindingSet : Dictionary<string, object>
-    {
-    }
+    public class BindingSet : Dictionary<string, object> {}
 }

@@ -115,7 +115,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                 }
             }
 
-            Log.LogMessage("{0}.{1} --> <{2}>", Type.FullName, property.Name, p.Uri);
+            Log.LogMessage("{0}.{1} -> <{2}>", Type.FullName, property.Name, p.Uri);
 
             return true;
         }
@@ -148,7 +148,10 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
             PropertyGeneratorTaskHelper p = new PropertyGeneratorTaskHelper(property, mappingField);
 
-            Uri uri = new Uri(p.Uri, UriKind.Absolute);
+            if (!Uri.IsWellFormedUriString(p.Uri, UriKind.Absolute))
+            {
+                throw new UriFormatException("Annotated URI must be in absolute format.");
+            }
 
             // Finally, implement the field initializers in the constructors of the class.
             foreach (MethodDefinition ctor in Type.GetConstructors())
@@ -221,23 +224,18 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
         private IEnumerable<Instruction> GetReturnGetValueInstructions(ILProcessor processor, PropertyGeneratorTaskHelper p, MethodReference getValue)
         {
-            Instruction ldloc0 = processor.Create(OpCodes.Ldloc_0);
+            processor.Create(OpCodes.Ldloc_0);
 
             foreach (Instruction i in GetCallGetValueInstructions(processor, p, getValue))
             {
                 yield return i;
             }
-
-            yield return processor.Create(OpCodes.Stloc_0);
-            yield return processor.Create(OpCodes.Br_S, ldloc0);
-            yield return ldloc0;
+                
             yield return processor.Create(OpCodes.Ret);
         }
 
         private IEnumerable<Instruction> GetFieldInitializationInstructions(ILProcessor processor, PropertyGeneratorTaskHelper p, TypeReference mappingType)
         {
-            TypeReference propertyType = Generator.Assembly.MainModule.Import(typeof(Property));
-
             MethodDefinition ctorDef;
 
             if (p.HasDefaultValue)
@@ -273,6 +271,11 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                 }
             }
 
+            if (p.LanguageInvariant)
+                yield return processor.Create(OpCodes.Ldc_I4_1);
+            else
+                yield return processor.Create(OpCodes.Ldc_I4_0);
+
             yield return processor.Create(OpCodes.Newobj, ctor);
             yield return processor.Create(OpCodes.Stfld, p.BackingField);
         }
@@ -280,9 +283,10 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
         private MethodDefinition GetPropertyMappingConstructorDefinition(TypeReference mappingType)
         {
             return mappingType.Resolve().GetConstructors().FirstOrDefault(
-                m => m.Parameters.Count == 2
+                m => m.Parameters.Count == 3
                     && m.Parameters[0].ParameterType.MetadataType == MetadataType.String
-                    && m.Parameters[1].ParameterType.MetadataType == MetadataType.String);
+                    && m.Parameters[1].ParameterType.MetadataType == MetadataType.String
+                    && m.Parameters[2].ParameterType.MetadataType == MetadataType.Boolean);
         }
 
         private MethodDefinition GetPropertyMappingConstructorDefinition(TypeReference mappingType, CustomAttributeArgument defaultValue)
@@ -290,10 +294,11 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             IEnumerable<MethodDefinition> ctors = mappingType.Resolve().GetConstructors();
 
             return ctors.FirstOrDefault(
-                m => m.Parameters.Count == 3
+                m => m.Parameters.Count == 4
                 && m.Parameters[0].ParameterType.MetadataType == MetadataType.String
                 && m.Parameters[1].ParameterType.MetadataType == MetadataType.String
-                && m.Parameters[2].ParameterType.MetadataType == MetadataType.Var);
+                && m.Parameters[2].ParameterType.MetadataType == MetadataType.Var
+                && m.Parameters[3].ParameterType.MetadataType == MetadataType.Boolean);
         }
 
         private IEnumerable<Instruction> GetLdX(ILProcessor processor, CustomAttributeArgument defaultValue)

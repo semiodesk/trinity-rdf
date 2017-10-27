@@ -1,11 +1,11 @@
-﻿using Semiodesk.Trinity.Tests;
+﻿using Semiodesk.Trinity.Test;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 
-namespace Semiodesk.Trinity.Tests.Cilg
+namespace Semiodesk.Trinity.Test.Cilg
 {
     [RdfClass(TestOntology.SingleMappingTestClassString)]
     public class SingleMappingTestClass : Resource
@@ -55,78 +55,61 @@ namespace Semiodesk.Trinity.Tests.Cilg
 
     }
 
-
     [RdfClass(TestOntology.SingleMappingTestClassString)]
     public class CilgMappingTestClass : Resource
     {
-
-        #region Constructors
-        public CilgMappingTestClass(Uri uri) : base(uri) 
-        {
-           
-        }
-        #endregion
-
-
-        #region
+        #region Members
 
         [RdfProperty(TestOntology.intTestString)]
-        public List<int> intTest
-        {
-            get;
-            set;
-        }
+        public List<int> intTest { get; set; }
 
         [RdfProperty(TestOntology.uniqueIntTestString)]
-        public int uniqueIntTest
-        {
-            get;
-            set;
-        }
+        public int uniqueIntTest { get; set; }
 
         [RdfProperty(TestOntology.uintTestString)]
-        public List<uint> uintTest
-        {
-            get;
-            set;
-        }
+        public List<uint> uintTest { get; set; }
 
-
-        
         [RdfProperty(TestOntology.uniqueUintTestString)]
-        public uint uniqueUintTest
-        {
-           get;
-            set;
-        }
-
-
+        public uint uniqueUintTest { get; set; }
 
         [RdfProperty(TestOntology.stringTestString)]
-        public ObservableCollection<string> stringTest
-        {
-            get;
-            set;
-        }
-
+        public ObservableCollection<string> stringTest { get; set; }
 
         [RdfProperty(TestOntology.uniqueStringTestString)]
-        public string uniqueStringTest
-        {
-            get;
-            set;
-        }
+        public string uniqueStringTest { get; set; }
+
+        [RdfProperty(TestOntology.resTestString)]
+        public Resource uriProperty { get; set; }
 
         #endregion
 
+        #region Constructors
+
+        public CilgMappingTestClass(Uri uri) : base(uri) 
+        {
+        }
+
+        #endregion
     }
 
     [RdfClass(TestOntology.SubMappingTestClassString)]
     public class CilgSubMappingTestClass : CilgMappingTestClass
     {
-         #region Constructors
+        #region Constructors
+
         public CilgSubMappingTestClass(Uri uri) : base(uri) { }
+
         #endregion
     }
 
+    [RdfClass(TestOntology.SingleMappingTestClassString)]
+    [RdfClass(TestOntology.SubMappingTestClassString)]
+    public class CilgMultipleMappingTestClass : CilgMappingTestClass
+    {
+        #region Constructors
+
+        public CilgMultipleMappingTestClass(Uri uri) : base(uri) { }
+
+        #endregion
+    }
 }

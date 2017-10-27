@@ -49,18 +49,19 @@ namespace Semiodesk.Trinity.Store
     {
         #region Members
 
-        private readonly IModel _model;
         private readonly VirtuosoStore _store;
 
-        private SparqlQuery _query;
+        private readonly IModel _model;
+
+        private ISparqlQuery _query;
 
         //private DataTable _queryResults;
 
         private readonly ITransaction _transaction;
 
-        bool IsSorted
+        private bool _isOrdered
         {
-            get { return _query.IsSorted(); }
+            get { return !string.IsNullOrEmpty(_query.GetRootOrderByClause()); }
         }
 
         #endregion
@@ -74,13 +75,12 @@ namespace Semiodesk.Trinity.Store
         /// <param name="store"></param>
         /// <param name="transaction"></param>
         /// <param name="model"></param>
-        internal VirtuosoSparqlQueryResult(IModel model, SparqlQuery query, VirtuosoStore store, ITransaction transaction=null)
+        internal VirtuosoSparqlQueryResult(IModel model, ISparqlQuery query, VirtuosoStore store, ITransaction transaction=null)
         {
             _store = store;
             _transaction = transaction;
             _query = query;
             _model = model;
-
         }
 
         #endregion
@@ -129,14 +129,14 @@ namespace Semiodesk.Trinity.Store
                 {
                     return new Tuple<string, CultureInfo>(box.Value.ToString(), new CultureInfo(box.StrLang));
                 }
-                else
+                else if(box.Value != null)
                 {
                     return box.Value.ToString();
                 }
             }
             else if (cellValue is int)
             {
-                //TODO: We need a different approach to store and read boolean s
+                //TODO: We need a different approach to store and read booleans
                 return cellValue;
                 /*
                 if ((int)cellValue == 1)
@@ -150,16 +150,13 @@ namespace Semiodesk.Trinity.Store
             {
                 // Virtuoso delivers the time not as UTC but as "unspecified"
                 // we convert it to local time
-                DateTime res = ((DateTime)cellValue).ToLocalTime();
-                return res;
+                return ((DateTime)cellValue).ToLocalTime();
             }
-            /*
             else if (cellValue is VirtuosoDateTimeOffset)
             {
-                return ((VirtuosoDateTimeOffset)cellValue).Value.UtcDateTime;
+                return ((VirtuosoDateTimeOffset)cellValue).Value.UtcDateTime.ToUniversalTime();
             }
-            */
-
+            
             return cellValue;
         }
 
@@ -193,6 +190,12 @@ namespace Semiodesk.Trinity.Store
 
             if (0 < queryResults.Columns.Count)
             {
+                // A list of global scope variables without the ?. Used to access the
+                // subject, predicate and object variable in statement providing queries.
+                string[] vars = _query.GetGlobalScopeVariableNames();
+
+                bool providesStatements = _query.ProvidesStatements();
+
                 // A dictionary mapping URIs to the generated resource objects.
                 Dictionary<string, IResource> cache = new Dictionary<string, IResource>();
 
@@ -201,7 +204,7 @@ namespace Semiodesk.Trinity.Store
                     queryResults.Columns[0].ColumnName,
                     queryResults.Columns[1].ColumnName,
                     queryResults.Columns[2].ColumnName,
-                    _query.InferenceEnabled);
+                    _query.IsInferenceEnabled);
 
                 foreach (KeyValuePair<string, T> resourceType in types)
                 {
@@ -225,11 +228,11 @@ namespace Semiodesk.Trinity.Store
                         predUri = new UriRef(row[1].ToString());
                         o = ParseCellValue(row[2]);
                     }
-                    else if (_query.QueryType == SparqlQueryType.Select)
+                    else if (_query.QueryType == SparqlQueryType.Select && providesStatements)
                     {
-                        s = new UriRef(row[_query.SubjectVariable].ToString());
-                        predUri = new UriRef(row[_query.PredicateVariable].ToString());
-                        o = ParseCellValue(row[_query.ObjectVariable]);
+                        s = new UriRef(row[vars[0]].ToString());
+                        predUri = new UriRef(row[vars[1]].ToString());
+                        o = ParseCellValue(row[vars[2]]);
                     }
                     else
                     {
@@ -282,9 +285,13 @@ namespace Semiodesk.Trinity.Store
                     {
                         UriRef uri = o as UriRef;
 
-                        if (cache.ContainsKey(uri.OriginalString))
+                        if (currentResource.HasPropertyMapping(p, uri.GetType()))
                         {
-                            currentResource.AddProperty(p, cache[uri.OriginalString], true);
+                            currentResource.AddPropertyToMapping(p, uri, false);
+                        }
+                        else if (cache.ContainsKey(uri.OriginalString))
+                        {
+                            currentResource.AddPropertyToMapping(p, cache[uri.OriginalString], true);
                             currentResource.IsNew = false;
                             currentResource.IsSynchronized = false;
                             currentResource.SetModel(_model);
@@ -295,7 +302,7 @@ namespace Semiodesk.Trinity.Store
                             r.IsNew = false;
 
                             cache.Add(uri.OriginalString, r);
-                            currentResource.AddProperty(p, r, true);
+                            currentResource.AddPropertyToMapping(p, r, true);
                             currentResource.IsNew = false;
                             currentResource.IsSynchronized = false;
                             currentResource.SetModel(_model);
@@ -303,7 +310,7 @@ namespace Semiodesk.Trinity.Store
                     }
                     else
                     {
-                        currentResource.AddProperty(p, o, true);
+                        currentResource.AddPropertyToMapping(p, o, true);
                     }
                 }
             }
@@ -374,9 +381,10 @@ namespace Semiodesk.Trinity.Store
                     }
                     #endif
 
-                    T resource = (T)Activator.CreateInstance(classType[0], new Uri(subject));
+                    T resource = (T)Activator.CreateInstance(classType[0], new UriRef(subject));
                     resource.SetModel(_model);
                     resource.IsNew = false;
+
                     result[subject] = resource;
                 }
                 #if DEBUG
@@ -420,8 +428,9 @@ namespace Semiodesk.Trinity.Store
         public int Count()
         {
             string countQuery = SparqlSerializer.SerializeCount(_model, _query);
+
             SparqlQuery query = new SparqlQuery(countQuery);
-            query.InferenceEnabled = _query.InferenceEnabled;
+            query.IsInferenceEnabled = _query.IsInferenceEnabled;
 
             string q = _store.CreateQuery(query);
 
@@ -445,7 +454,7 @@ namespace Semiodesk.Trinity.Store
                 throw new ArgumentException("Error: The given SELECT query cannot be resolved into statements.");
             }
 
-            if (!_query.InferenceEnabled)
+            if (!_query.IsInferenceEnabled)
             {
                 String queryString = SparqlSerializer.SerializeOffsetLimit(_model, _query, offset, limit);
 
@@ -481,7 +490,7 @@ namespace Semiodesk.Trinity.Store
 
                     ISparqlQueryResult queryResult = _model.ExecuteQuery(query);
 
-                    if (IsSorted)
+                    if (_isOrdered)
                     {
                         foreach (T t in queryResult.GetResources<T>().OrderBy(o => uris.IndexOf(o.Uri)))
                         {
@@ -536,28 +545,23 @@ namespace Semiodesk.Trinity.Store
         /// <returns>An enumeration of bound solution variables (BindingSet).</returns>
         public IEnumerable<BindingSet> GetBindings()
         {
+            string queryString = "";
             try
             {
-                using (DataTable queryResults = _store.ExecuteQuery(_store.CreateQuery(_query), _transaction))
+                queryString = _store.CreateQuery(_query);
+                using (DataTable queryResults = _store.ExecuteQuery(queryString, _transaction))
                 {
                     return GenerateBindings(queryResults);
                 }
             }
-            #if DEBUG
+            
             catch (Exception e)
             {
-                
+                #if DEBUG
                 Debug.WriteLine(e);
-                
-
-                return null;
+                #endif
+                throw new Trinity.InvalidQueryException("The current query led to an error in Virtuoso. See inner exception for more details.", e, queryString);
             }
-            #else
-            catch (Exception)
-            {
-                return null;
-            }
-            #endif
         }
 
         /// <remarks>
@@ -567,7 +571,7 @@ namespace Semiodesk.Trinity.Store
         {
             String queryString = SparqlSerializer.SerializeFetchUris(_model, _query, offset, limit);
 
-            SparqlQuery query = new SparqlQuery(queryString) { InferenceEnabled = _query.InferenceEnabled };
+            SparqlQuery query = new SparqlQuery(queryString) { IsInferenceEnabled = _query.IsInferenceEnabled };
 
             using (DataTable queryResults = _store.ExecuteQuery(_store.CreateQuery(query), _transaction))
             {
@@ -577,7 +581,7 @@ namespace Semiodesk.Trinity.Store
 
                 foreach (BindingSet binding in bindings)
                 {
-                    UriRef currentUri = binding[_query.SubjectVariable] as UriRef;
+                    UriRef currentUri = binding[_query.GetGlobalScopeVariableNames()[0]] as UriRef;
 
                     if (currentUri == null) continue;
 

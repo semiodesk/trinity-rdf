@@ -47,7 +47,7 @@ using Semiodesk.Trinity.Utility;
 //   - Hinzufügen von un-commiteten objecten darf nicht funktionieren
 //   - Beim ändern von gemappten resource listen, wird der komplette Content abgefragt, obwohl vllt. nur ein element hinzugefügt werden muss.
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     public class TestOntology
     {
@@ -59,6 +59,7 @@ namespace Semiodesk.Trinity.Tests
         public static readonly Class SingleMappingTestClass = new Class(new Uri(SingleMappingTestClassString));
         public const string SingleMappingTestClassString = "semio:test:SingleMappingTestClass";
         public static readonly Class SingleResourceMappingTestClass = new Class(new Uri("semio:test:SingleResourceMappingTestClass"));
+        public static readonly Class ResourceMappingTestClass = new Class(new Uri("semio:test:ResourceMappingTestClass"));
 
         public const string SubMappingTestClassString = "semio:test:SubMappingTestClass";
         public static readonly Class SubMappingTestClass = new Class(new Uri(SubMappingTestClassString));
@@ -67,6 +68,7 @@ namespace Semiodesk.Trinity.Tests
         public static readonly Class TestClass = new Class(new Uri(TestClassString));
         public static readonly Class TestClass2 = new Class(new Uri("semio:test:TestClass2"));
         public static readonly Class TestClass3 = new Class(new Uri("semio:test:TestClass3"));
+        public static readonly Class TestClass4 = new Class(new Uri("semio:test:TestClass4"));
 
         public const string genericTestString = "semio:test:genericTest";
         public static readonly Property genericTest = new Property(new Uri(genericTestString));
@@ -92,6 +94,9 @@ namespace Semiodesk.Trinity.Tests
         public static readonly Property doubleTest = new Property(new Uri("semio:test:doubleTest"));
         public static readonly Property uniqueDoubleTest = new Property(new Uri("semio:test:uniqueDoubleTest"));
 
+        public static readonly Property decimalTest = new Property(new Uri("semio:test:decimalTest"));
+        public static readonly Property uniqueDecimalTest = new Property(new Uri("semio:test:uniqueDecimalTest"));
+
         public static readonly Property boolTest = new Property(new Uri("semio:test:boolTest"));
         public static readonly Property uniqueBoolTest = new Property(new Uri("semio:test:uniqueBoolTest"));
 
@@ -100,13 +105,16 @@ namespace Semiodesk.Trinity.Tests
 
         public static readonly Property resourceTest = new Property(new Uri("semio:test:resourceTest"));
         public static readonly Property uniqueResourceTest = new Property(new Uri("semio:test:uniqueResourceTest"));
+
+        public const string resTestString = "semio:test:resTest";
+        public static readonly Property resTest = new Property(new Uri(resTestString));
+
         public static readonly Property uriTest = new Property(new Uri("semio:test:uriTest"));
+        public static readonly Property uniqueUriTest = new Property(new Uri("semio:test:uniqueUriTest"));
+
+        public const string JsonTestClassUri = "http://localhost/JsonTestClass";
+        public static readonly Class JsonTestClass = new Class(new Uri(JsonTestClassUri));
     }
-
-    
-
-
-
 
     /// <summary>
     /// 
@@ -152,6 +160,7 @@ namespace Semiodesk.Trinity.Tests
             double dNegValue = -4.5234;
             DateTime dtValue = new DateTime(2010, 1, 1);
             bool bValue = true;
+            Uri uriValue = new Uri("ex:myUri");
 
             Assert.IsFalse(t1.HasProperty(myProperty));
             Assert.IsFalse(t1.HasProperty(myProperty, sValue));
@@ -182,8 +191,6 @@ namespace Semiodesk.Trinity.Tests
             Assert.IsTrue(t1.HasProperty(myProperty, iValue));
             
             Assert.IsTrue(t1.ListValues(myProperty).Contains(iValue));
-
-
 
             Assert.IsFalse(t1.HasProperty(myProperty, t2));
             t1.AddProperty(myProperty, t2);
@@ -217,10 +224,13 @@ namespace Semiodesk.Trinity.Tests
             t1.AddProperty(myProperty, bValue);
             Assert.IsTrue(t1.HasProperty(myProperty, bValue));
 
+            Assert.IsFalse(t1.HasProperty(myProperty, uriValue));
+            t1.AddProperty(myProperty, uriValue);
+            Assert.IsTrue(t1.HasProperty(myProperty, uriValue));
+
             t1.RemoveProperty(myProperty, t2);
             Assert.IsTrue(t1.HasProperty(myProperty));
             Assert.IsFalse(t1.HasProperty(myProperty, t2));
-
 
             t1.RemoveProperty(myProperty, sValue);
             Assert.IsTrue(t1.HasProperty(myProperty));
@@ -255,7 +265,12 @@ namespace Semiodesk.Trinity.Tests
             Assert.IsFalse(t1.HasProperty(myProperty, dtValue));
 
             t1.RemoveProperty(myProperty, bValue);
+            Assert.IsTrue(t1.HasProperty(myProperty));
             Assert.IsFalse(t1.HasProperty(myProperty, bValue));
+
+            t1.RemoveProperty(myProperty, uriValue);
+            Assert.IsFalse(t1.HasProperty(myProperty, uriValue));
+
             Assert.IsFalse(t1.HasProperty(myProperty));
         }
 
@@ -437,6 +452,24 @@ namespace Semiodesk.Trinity.Tests
             r.RemoveProperty(myProperty, val);
         }
 
+
+        [Test]
+        public void TestLocalizedString()
+        {
+            Property myProperty = new Property(new Uri("ex:myProperty"));
+            Resource r = new Resource(new Uri("ex:myResource"));
+            string val = "Hello World!";
+            var ci = "en";
+            r.AddProperty(myProperty, val, ci);
+            object res = r.ListValues(myProperty).First();
+            Assert.AreEqual(typeof(Tuple<string, string>), res.GetType());
+            Tuple<string, string> v = res as Tuple<string, string>;
+            Assert.AreEqual(val, v.Item1);
+            Assert.AreEqual(ci.ToLower(), v.Item2.ToLower());
+            r.RemoveProperty(myProperty, val, ci);
+           
+        }
+
         [Test]
         public void TestDateTime()
         {
@@ -466,6 +499,18 @@ namespace Semiodesk.Trinity.Tests
 
         }
 
+        [Test]
+        public void TestUri()
+        {
+            Property myProperty = new Property(new Uri("ex:myProperty"));
+            Resource r = new Resource(new Uri("ex:myResource"));
+            Uri val = new Uri("ex:myUri");
+            r.AddProperty(myProperty, val);
+            object res = r.ListValues(myProperty).First();
+            Assert.AreEqual(val.GetType(), res.GetType());
+            Assert.AreEqual(val, res);
+            r.RemoveProperty(myProperty, val);
+        }
 
         #endregion
 
@@ -506,7 +551,7 @@ namespace Semiodesk.Trinity.Tests
             target.AddProperty(property, v4);
             list.Add(v4);
 
-            Tuple<string, CultureInfo> v5 = new Tuple<string, CultureInfo>("Hallo Welt!", CultureInfo.GetCultureInfo("DE"));
+            Tuple<string, string> v5 = new Tuple<string, string>("Hallo Welt!", "de");
             target.AddProperty(property, v5.Item1, v5.Item2);
             list.Add(v5);
 
@@ -522,6 +567,9 @@ namespace Semiodesk.Trinity.Tests
             target.AddProperty(property, v8);
             list.Add(v8);
 
+            Uri v9 = new Uri("ex:myUri");
+            target.AddProperty(property, v9);
+            list.Add(v9);
 
             IEnumerable<object> expected = list;
 
@@ -530,7 +578,7 @@ namespace Semiodesk.Trinity.Tests
             {
                 if (obj.GetType() == typeof(string[]))
                 {
-                    Tuple<string, CultureInfo> tmp = (Tuple<string, CultureInfo>)obj;
+                    Tuple<string, string> tmp = (Tuple<string, string>)obj;
                     Assert.AreEqual(v5, tmp);
 
                 }
@@ -734,6 +782,23 @@ namespace Semiodesk.Trinity.Tests
         ///Ein Test für "AddProperty"
         ///</summary>
         [Test()]
+        public void AddPropertyTest9()
+        {
+            Uri baseUri = new Uri("http://example.com/test");
+            string relativeUri = "#myResource";
+            Resource target = new Resource(new Uri(baseUri, relativeUri));
+            Property property = new Property(new Uri(baseUri, "#related"));
+            Uri value = new Uri(baseUri, "ex:test#myUriProp");
+            target.AddProperty(property, value);
+            Assert.IsTrue(target.HasProperty(property));
+            Assert.AreEqual(value, target.ListValues(property).First());
+            Assert.AreEqual(value.GetType(), target.ListValues(property).First().GetType());
+        }
+
+        /// <summary>
+        ///Ein Test für "AddProperty"
+        ///</summary>
+        [Test()]
         public void AddPropertyTest8()
         {
             Uri baseUri = new Uri("http://example.com/test");
@@ -745,12 +810,12 @@ namespace Semiodesk.Trinity.Tests
             target.AddProperty(property, value, language);
 
             Assert.IsTrue(target.HasProperty(property));
-            Assert.AreEqual(typeof(Tuple<string, CultureInfo>), target.ListValues(property).First().GetType());
-            Tuple<string, CultureInfo> res = (Tuple<string, CultureInfo>)target.ListValues(property).First();
+            Assert.AreEqual(typeof(Tuple<string, string>), target.ListValues(property).First().GetType());
+            Tuple<string, string> res = (Tuple<string, string>)target.ListValues(property).First();
             Assert.AreEqual(value, res.Item1);
-            Assert.AreEqual(language, res.Item2);
+            Assert.AreEqual(language.Name.ToLower(), res.Item2.ToLower());
             Assert.AreEqual(value.GetType(), res.Item1.GetType());
-            Assert.AreEqual(language.GetType(), res.Item2.GetType());
+            Assert.AreEqual(typeof(string), res.Item2.GetType());
         }
 
         /// <summary>
@@ -915,6 +980,24 @@ namespace Semiodesk.Trinity.Tests
 
         #region RemoveProperty() Tests
 
+        /// <summary>
+        ///Ein Test für "RemoveProperty"
+        ///</summary>
+        [Test()]
+        public void RemovePropertyTest8()
+        {
+            Uri baseUri = new Uri("http://example.com/test");
+            string relativeUri = "#myResource";
+            Resource target = new Resource(new Uri(baseUri, relativeUri));
+            Property property = new Property(new Uri(baseUri, "#related"));
+            Uri value = new Uri("ex:test#myUriProp");
+            target.AddProperty(property, value);
+            Assert.AreEqual(true, target.HasProperty(property, value));
+            target.RemoveProperty(property, value);
+            Assert.AreEqual(false, target.HasProperty(property, value));
+            Assert.AreEqual(false, target.HasProperty(property));
+        }
+        
         /// <summary>
         ///Ein Test für "RemoveProperty"
         ///</summary>

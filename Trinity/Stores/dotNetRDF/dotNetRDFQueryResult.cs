@@ -32,15 +32,18 @@ using System.Linq;
 using System.Text;
 using VDS.RDF;
 using VDS.RDF.Query;
+#if NET_3_5
+using Semiodesk.Trinity.Utility;
+#endif
 
 
 namespace Semiodesk.Trinity.Store
 {
-    interface ITripleProvider
+    public interface ITripleProvider
     {
         bool HasNext { get; }
         void SetNext();
-        Uri S { get; }
+        INode S { get; }
         Uri P { get; }
         INode O { get; }
         int Count { get; }
@@ -49,7 +52,7 @@ namespace Semiodesk.Trinity.Store
 
     }
 
-    class GraphTripleProvider : ITripleProvider
+    public class GraphTripleProvider : ITripleProvider
     {
         IGraph _graph;
         int counter;
@@ -80,9 +83,9 @@ namespace Semiodesk.Trinity.Store
             counter += 1;
         }
 
-        public Uri S
+        public INode S
         {
-            get { return (_graph.Triples.ElementAt(counter).Subject as UriNode).Uri; }
+            get { return _graph.Triples.ElementAt(counter).Subject; }
         }
 
         public Uri P
@@ -96,7 +99,7 @@ namespace Semiodesk.Trinity.Store
         }
     }
 
-    class SparqlResultSetTripleProvider : ITripleProvider
+    public class SparqlResultSetTripleProvider : ITripleProvider
     {
         SparqlResultSet _set;
         string _subjectVar;
@@ -135,9 +138,9 @@ namespace Semiodesk.Trinity.Store
             counter += 1;
         }
 
-        public Uri S
+        public INode S
         {
-            get { return (_set[counter][_subjectVar] as UriNode).Uri; }
+            get { return _set[counter][_subjectVar]; }
         }
 
         public Uri P
@@ -156,8 +159,8 @@ namespace Semiodesk.Trinity.Store
     {
         #region Members
 
-        private SparqlQuery _query;
         private IModel _model;
+        private ISparqlQuery _query;
         private ITripleProvider _tripleProvider;
         private SparqlResultSet _resultSet;
         private dotNetRDFStore _store;
@@ -165,16 +168,31 @@ namespace Semiodesk.Trinity.Store
         #endregion
 
         #region Constructor
-        public dotNetRDFQueryResult(dotNetRDFStore store, SparqlQuery query, SparqlResultSet resultSet)
+        public dotNetRDFQueryResult(dotNetRDFStore store, ISparqlQuery query, SparqlResultSet resultSet)
         {
+            string s = null;
+            string p = null;
+            string o = null;
+
+            if(query.ProvidesStatements())
+            {
+                // A list of global scope variables without the ?. Used to access the
+                // subject, predicate and object variable in statement providing queries.
+                string[] vars = query.GetGlobalScopeVariableNames();
+
+                s = vars[0];
+                p = vars[1];
+                o = vars[2];
+            }
+
             _query = query;
-            _tripleProvider = new SparqlResultSetTripleProvider(resultSet, _query.SubjectVariable, _query.PredicateVariable, _query.ObjectVariable);
+            _tripleProvider = new SparqlResultSetTripleProvider(resultSet, s, p, o);
             _model = query.Model;
             _resultSet = resultSet;
             _store = store;
         }
 
-        public dotNetRDFQueryResult(dotNetRDFStore store, SparqlQuery query, IGraph graph)
+        public dotNetRDFQueryResult(dotNetRDFStore store, ISparqlQuery query, IGraph graph)
         {
             _query = query;
             _tripleProvider = new GraphTripleProvider(graph);
@@ -186,6 +204,7 @@ namespace Semiodesk.Trinity.Store
         #region Methods
 
         #region ISparqlQueryResult
+
         public bool GetAnwser()
         {
             if (_query.QueryType == SparqlQueryType.Ask)
@@ -222,25 +241,24 @@ namespace Semiodesk.Trinity.Store
 
         public IEnumerable<T> GetResources<T>() where T : Resource
         {
-
-            if (_query.ProvidesStatements())
+            if (!_query.ProvidesStatements())
             {
-                return GenerateResources<T>();
+                throw new ArgumentException("Error: The given query cannot be resolved into statements.");
             }
 
-            throw new ArgumentException("Error: The given query cannot be resolved into statements.");
-
+            return GenerateResources<T>();
         }
 
         private IEnumerable<T> GenerateResources<T>() where T : Resource
         {
             List<T> result = new List<T>();
+
             if (0 < _tripleProvider.Count)
             {
                 // A dictionary mapping URIs to the generated resource objects.
                 Dictionary<string, IResource> cache = new Dictionary<string, IResource>();
 
-                Dictionary<string, T> types = FindResourceTypes<T>(_query.InferenceEnabled);
+                Dictionary<string, T> types = FindResourceTypes<T>(_query.IsInferenceEnabled);
                 //Dictionary<string, T> types = new Dictionary<string, T>();
                 _tripleProvider.Reset();
 
@@ -254,8 +272,8 @@ namespace Semiodesk.Trinity.Store
 
                 while (_tripleProvider.HasNext)
                 {
-                    Uri s, predUri;
-                    INode o;
+                    Uri predUri;
+                    INode s, o;
                     Property p;
 
 
@@ -266,51 +284,68 @@ namespace Semiodesk.Trinity.Store
 
                     p = OntologyDiscovery.GetProperty(predUri);
 
-                    if (currentResource != null && currentResource.Uri.OriginalString == s.OriginalString)
-                    {
-                        // We already have the handle to the resource which the property should be added to.
-                    }
-                    else if (cache.ContainsKey(s.OriginalString))
-                    {
-                        currentResource = cache[s.OriginalString] as T;
 
-                        // In this case we may have encountered a resource which was 
-                        // added to the cache by the object value handler below.
-                        if (!result.Contains(currentResource))
+                    if (s is IUriNode)
+                    {
+                        Uri sUri = (s as IUriNode).Uri;
+
+                        if (currentResource != null && currentResource.Uri.OriginalString == sUri.OriginalString)
                         {
-                            result.Add(currentResource);
+                            // We already have the handle to the resource which the property should be added to.
                         }
+                        else if (cache.ContainsKey(sUri.OriginalString))
+                        {
+                            currentResource = cache[sUri.OriginalString] as T;
+
+                            // In this case we may have encountered a resource which was 
+                            // added to the cache by the object value handler below.
+                            if (!result.Contains(currentResource))
+                            {
+                                result.Add(currentResource);
+                            }
+                        }
+                        else
+                        {
+                            try
+                            {
+                                currentResource = (T)Activator.CreateInstance(typeof(T), sUri);
+                                currentResource.IsNew = false;
+                                currentResource.IsSynchronized = true;
+                                currentResource.Model = _model;
+
+                                cache.Add(sUri.OriginalString, currentResource);
+                                result.Add(currentResource);
+                            }
+                            catch
+                            {
+#if DEBUG
+                                Debug.WriteLine("[SparqlQueryResult] Info: Could not create resource " +
+                                                sUri.OriginalString);
+#endif
+
+                                continue;
+                            }
+                        }
+                    }
+                    else if(s is BlankNode)
+                    {
+                        //TODO
                     }
                     else
                     {
-                        try
-                        {
-                            currentResource = (T)Activator.CreateInstance(typeof(T), s);
-                            currentResource.IsNew = false;
-                            currentResource.IsSynchronized = true;
-                            currentResource.Model = _model;
-
-                            cache.Add(s.OriginalString, currentResource);
-                            result.Add(currentResource);
-                        }
-                        catch
-                        {
-#if DEBUG
-                            Debug.WriteLine("[SparqlQueryResult] Info: Could not create resource " +
-                                            s.OriginalString);
-#endif
-
-                            continue;
-                        }
                     }
 
                     if (o is IUriNode)
                     {
                         Uri uri = (o as IUriNode).Uri;
 
-                        if (cache.ContainsKey(uri.OriginalString))
+                        if (currentResource.HasPropertyMapping(p, uri.GetType()))
                         {
-                            currentResource.AddProperty(p, cache[uri.OriginalString], true);
+                            currentResource.AddPropertyToMapping(p, uri, false);
+                        }
+                        else if (cache.ContainsKey(uri.OriginalString))
+                        {
+                            currentResource.AddPropertyToMapping(p, cache[uri.OriginalString], true);
                             currentResource.IsNew = false;
                             currentResource.IsSynchronized = false;
                             currentResource.Model = _model;
@@ -321,7 +356,7 @@ namespace Semiodesk.Trinity.Store
                             r.IsNew = false;
 
                             cache.Add(uri.OriginalString, r);
-                            currentResource.AddProperty(p, r, true);
+                            currentResource.AddPropertyToMapping(p, r, true);
                             currentResource.IsNew = false;
                             currentResource.IsSynchronized = false;
                             currentResource.Model = _model;
@@ -331,7 +366,7 @@ namespace Semiodesk.Trinity.Store
                     {
                     }else
                     {
-                        currentResource.AddProperty(p, ParseCellValue(o), true);
+                        currentResource.AddPropertyToMapping(p, ParseCellValue(o), true);
                     }
                 }
             }
@@ -350,51 +385,64 @@ namespace Semiodesk.Trinity.Store
             {
                 ILiteralNode literalNode = p as ILiteralNode;
                 if (literalNode.DataType == null)
-                    return literalNode.Value;
+                {
+                    if(string.IsNullOrEmpty(literalNode.Language))
+                        return literalNode.Value;
+                    else
+                        return new Tuple<string, string>(literalNode.Value, literalNode.Language);
+                }
+
                 return XsdTypeMapper.DeserializeString(literalNode.Value, literalNode.DataType);
             }
             return null;
         }
-
 
         private Dictionary<string, T> FindResourceTypes<T>(bool inferencingEnabled)
             where T : Resource
         {
             Dictionary<string, T> result = new Dictionary<string, T>();
             Dictionary<string, List<Class>> types = new Dictionary<string, List<Class>>();
-            string s, p;
-            INode o;
+            string  p;
+            INode s,o;
+
+           // _tripleProvider.Reset();
 
             // Collect all types for every resource in the types dictionary.
             // I was going to use _queryResults.Select(), but that doesn't work with Virtuoso.
             while (_tripleProvider.HasNext)
             {
-                s = _tripleProvider.S.ToString();
+                s = _tripleProvider.S;
                 p = _tripleProvider.P.ToString();
                 o = _tripleProvider.O;
 
+
                 _tripleProvider.SetNext();
 
-                if (p.ToString() == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+                if (o.NodeType == NodeType.Uri && p == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
                 {
-                    string obj = ((IUriNode)o).Uri.OriginalString;
+                    if( s is IUriNode)
+                    {
+                        string suri = ((IUriNode)s).Uri.OriginalString;
 
-                    if (!types.ContainsKey(s))
-                    {
-                        types.Add(s, new List<Class>());
-                    }
+                        string obj = ((IUriNode)o).Uri.OriginalString;
 
-                    if (OntologyDiscovery.Classes.ContainsKey(obj))
-                    {
-                        types[s].Add(OntologyDiscovery.Classes[obj]);
-                    }
-                    else
-                    {
-                        types[s].Add(new Class(new Uri(obj)));
+                        if (!types.ContainsKey(suri))
+                        {
+                            types.Add(suri, new List<Class>());
+                        }
+
+                        if (OntologyDiscovery.Classes.ContainsKey(obj))
+                        {
+                            types[suri].Add(OntologyDiscovery.Classes[obj]);
+                        }
+                        else
+                        {
+                            types[suri].Add(new Class(new Uri(obj)));
+                        }
                     }
                 }
             }
-
+            
             // Iterate over all types and find the right class and instatiate it.
             foreach (string subject in types.Keys)
             {
@@ -441,20 +489,27 @@ namespace Semiodesk.Trinity.Store
         public virtual int Count()
         {
             string countQuery = SparqlSerializer.SerializeCount(_model, _query);
+
+            SparqlQuery query = new SparqlQuery(countQuery);
             // TODO: Apply inferencing if enabled
 
-            var res = _store.ExecuteQuery(countQuery);
+            var res = _store.ExecuteQuery(query.ToString());
 
             if (res is SparqlResultSet)
             {
                 SparqlResultSet result = res as SparqlResultSet;
+
                 if (result.Count > 0 && result[0].Count > 0)
                 {
                     var value = ParseCellValue(result[0][0]);
+
                     if (value.GetType() == typeof(int))
+                    {
                         return (int)value;
+                    }
                 }
             }
+
             return -1;
         }
 

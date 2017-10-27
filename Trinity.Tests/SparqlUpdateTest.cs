@@ -35,7 +35,7 @@ using NUnit.Framework;
 using Semiodesk.Trinity;
 using System.IO;
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class SparqlUpdateTest
@@ -48,22 +48,20 @@ namespace Semiodesk.Trinity.Tests
         [SetUp]
         public void SetUp()
         {
-            _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
+            string connectionString = SetupClass.ConnectionString;
 
-            Uri modelUri = new Uri("ex:TestModel");
-            if (_store.ContainsModel(modelUri))
+            _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+            _model = _store.GetModel(new Uri("ex:TestModel"));
+
+            if (!_model.IsEmpty)
             {
-                _model = _store.GetModel(modelUri);
-            }
-            else
-            {
-                _model = _store.CreateModel(modelUri);
+                _model.Clear();
             }
 
-            _namespaceManager.AddNamespace("vcard", "http://www.w3.org/2001/vcard-rdf/3.0#");
-            _namespaceManager.AddNamespace("foaf", "http://xmlns.com/foaf/0.1/");
-            _namespaceManager.AddNamespace("dc", "http://purl.org/dc/elements/1.1/");
-            _namespaceManager.AddNamespace("ex", "http://example.org/");
+            OntologyDiscovery.AddNamespace("vcard", new Uri("http://www.w3.org/2001/vcard-rdf/3.0#"));
+            OntologyDiscovery.AddNamespace("foaf", new Uri("http://xmlns.com/foaf/0.1/"));
+            OntologyDiscovery.AddNamespace("dc", new Uri("http://purl.org/dc/elements/1.1/"));
+            OntologyDiscovery.AddNamespace("ex", new Uri("http://example.org/"));
         }
 
         [TearDown]
@@ -76,13 +74,11 @@ namespace Semiodesk.Trinity.Tests
         [Test]
         public void TestInsert()
         {
-            SparqlUpdate update = new SparqlUpdate(@"
-                INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title' . }", _namespaceManager);
+            SparqlUpdate update = new SparqlUpdate(@"INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title' . }");
 
             _model.ExecuteUpdate(update);
 
-            SparqlQuery query = new SparqlQuery(@"
-                ASK WHERE { ?s dc:title 'This is an example title' . }", _namespaceManager);
+            SparqlQuery query = new SparqlQuery(@"ASK WHERE { ?s dc:title 'This is an example title' . }");
 
             ISparqlQueryResult result = _model.ExecuteQuery(query);
 
@@ -93,23 +89,23 @@ namespace Semiodesk.Trinity.Tests
         public void TestModify()
         {
             SparqlUpdate update = new SparqlUpdate(@"
-                INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title' . }", _namespaceManager);
+                INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title' . }");
 
             _model.ExecuteUpdate(update);
 
             update = new SparqlUpdate(@"
                 DELETE DATA FROM <ex:TestModel> { ex:book dc:title 'This is an example title' . }
-                INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title too' . }", _namespaceManager);
+                INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title too' . }");
 
             _model.ExecuteUpdate(update);
 
             SparqlQuery query = new SparqlQuery(@"
-                ASK WHERE { ?s dc:title 'This is an example title' . }", _namespaceManager);
+                ASK WHERE { ?s dc:title 'This is an example title' . }");
 
             Assert.AreEqual(false, _model.ExecuteQuery(query).GetAnwser());
 
             query = new SparqlQuery(@"
-                ASK WHERE { ?s dc:title 'This is an example title too' . }", _namespaceManager);
+                ASK WHERE { ?s dc:title 'This is an example title too' . }");
 
             Assert.AreEqual(true, _model.ExecuteQuery(query).GetAnwser());
         }
@@ -118,17 +114,17 @@ namespace Semiodesk.Trinity.Tests
         public void TestDelete()
         {
             SparqlUpdate update = new SparqlUpdate(@"
-                INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title' . }", _namespaceManager);
+                INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title' . }");
 
             _model.ExecuteUpdate(update);
 
             update = new SparqlUpdate(@"
-                DELETE DATA FROM <ex:TestModel> { ex:book dc:title 'This is an example title' . }", _namespaceManager);
+                DELETE DATA FROM <ex:TestModel> { ex:book dc:title 'This is an example title' . }");
 
             _model.ExecuteUpdate(update);
 
             SparqlQuery query = new SparqlQuery(@"
-                ASK WHERE { ?s dc:title 'This is an example title' . }", _namespaceManager);
+                ASK WHERE { ?s dc:title 'This is an example title' . }");
 
             Assert.AreEqual(false, _model.ExecuteQuery(query).GetAnwser());
         }
@@ -136,12 +132,12 @@ namespace Semiodesk.Trinity.Tests
         [Test]
         public void TestLoad()
         {
-            SparqlUpdate update = new SparqlUpdate(@"LOAD <http://gov.tso.co.uk/research/sparql> INTO <ex:TestModel>");
+            Assert.Inconclusive();
+            SparqlUpdate update = new SparqlUpdate(@"LOAD <http://eurostat.linked-statistics.org/sparql> INTO <ex:TestModel>");
 
             _model.ExecuteUpdate(update);
 
-            SparqlQuery query = new SparqlQuery(@"
-                SELECT * WHERE { ?s ?p ?o . }", _namespaceManager);
+            SparqlQuery query = new SparqlQuery(@"SELECT * WHERE { ?s ?p ?o . }");
 
             Assert.Greater(_model.ExecuteQuery(query).GetBindings().Count(), 0);
         }
@@ -149,8 +145,7 @@ namespace Semiodesk.Trinity.Tests
         [Test]
         public void TestClear()
         {
-            SparqlUpdate update = new SparqlUpdate(@"
-                INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title' . }", _namespaceManager);
+            SparqlUpdate update = new SparqlUpdate(@"INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title' . }");
 
             _model.ExecuteUpdate(update);
 
@@ -158,10 +153,27 @@ namespace Semiodesk.Trinity.Tests
 
             _model.ExecuteUpdate(update);
 
-            SparqlQuery query = new SparqlQuery(@"
-                ASK WHERE { ?s dc:title 'This is an example title' . }", _namespaceManager);
+            SparqlQuery query = new SparqlQuery(@"ASK WHERE { ?s dc:title 'This is an example title' . }");
 
             Assert.AreEqual(false, _model.ExecuteQuery(query).GetAnwser());
+        }
+
+        [Test]
+        public void TestUpdateParameters()
+        {
+            SparqlUpdate update = new SparqlUpdate(@"
+                DELETE { ?s ?p @oldValue . }
+                INSERT { ?s ?p @newValue . }
+                WHERE { ?s ?p ?o . }");
+
+            update.Bind("@oldValue", "Fail");
+            update.Bind("@newValue", "Success");
+
+            string updateString = update.ToString();
+
+            Assert.IsFalse(string.IsNullOrEmpty(updateString));
+
+            _model.ExecuteUpdate(update);
         }
     }
 }

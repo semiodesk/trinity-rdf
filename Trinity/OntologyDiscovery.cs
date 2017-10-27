@@ -43,12 +43,17 @@ namespace Semiodesk.Trinity
         #region Fields
 
         /// <summary>
-        /// All found RDF properties
+        /// All registered RDF ontology prefixes in the current application.
+        /// </summary>
+        public static Dictionary<string, Uri> Namespaces = new Dictionary<string, Uri>();
+
+        /// <summary>
+        /// All registered RDF properties in the current application.
         /// </summary>
         public static Dictionary<string, Property> Properties = new Dictionary<string, Property>();
 
         /// <summary>
-        /// All found RDF classes
+        /// All registered RDF classes in the current application.
         /// </summary>
         public static Dictionary<string, Class> Classes = new Dictionary<string, Class>();
 
@@ -64,30 +69,59 @@ namespace Semiodesk.Trinity
 
         #region Methods
 
-        private static void AddOntologies(IEnumerable<Ontology> list)
+        public static void AddNamespace(string prefix, Uri uri)
         {
-            foreach (Ontology o in list)
-            {
-                FieldInfo[] fieldList = o.GetType().GetFields(BindingFlags.Static | BindingFlags.Public);
+            // TODO: Implement support for adding ontologies without a file source to app.config.
+            Namespaces[prefix] = uri;
+        }
 
-                foreach (FieldInfo info in fieldList)
+        private static void AddOntologies(IEnumerable<Ontology> ontologies)
+        {
+            foreach (Ontology ontology in ontologies)
+            {
+                // The namespace URI of the ontology.
+                Uri uri = null;
+
+                // The registered prefix of the ontology.
+                string prefix = string.Empty;
+
+                FieldInfo[] fields = ontology.GetType().GetFields(BindingFlags.Static | BindingFlags.Public);
+
+                foreach (FieldInfo field in fields)
                 {
-                    if (info.FieldType == typeof(Class))
+                    // Register the Ontology prefix and name with the NamespaceManager.
+                    if(field.Name == "Prefix")
                     {
-                        Class c = (Class)info.GetValue(o);
+                        prefix = field.GetValue(ontology) as string;
+                    }
+                    else if(field.Name == "Namespace")
+                    {
+                        uri = field.GetValue(ontology) as Uri;
+                    }
+
+                    if (field.FieldType == typeof(Class))
+                    {
+                        Class c = field.GetValue(ontology) as Class;
+
                         if (Classes.ContainsKey(c.Uri.OriginalString))
                             continue;
 
                         Classes.Add(c.Uri.OriginalString, c);
                     }
-                    else if (info.FieldType == typeof(Property))
+                    else if (field.FieldType == typeof(Property))
                     {
-                        Property p = (Property)info.GetValue(o);
+                        Property p = field.GetValue(ontology) as Property;
+
                         if (Properties.ContainsKey(p.Uri.OriginalString))
                             continue;
 
                         Properties.Add(p.Uri.OriginalString, p);
                     }
+                }
+
+                if(!string.IsNullOrEmpty(prefix) && uri != null)
+                {
+                    Namespaces[prefix] = uri;
                 }
             }
         }
@@ -115,9 +149,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static Property GetProperty(Uri u)
         {
-            if (Properties.ContainsKey(u.OriginalString))
-                return Properties[u.OriginalString];
-            return new Property(u);
+            return Properties.ContainsKey(u.OriginalString) ? Properties[u.OriginalString] : new Property(u);
         }
 
         /// <summary>
@@ -127,11 +159,9 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static Property GetProperty(string u)
         {
-            if (Properties.ContainsKey(u))
-                return Properties[u];
-            return new Property(new UriRef(u));
+            return Properties.ContainsKey(u) ? Properties[u] : new Property(new UriRef(u));
         }
+
         #endregion
     }
-
 }

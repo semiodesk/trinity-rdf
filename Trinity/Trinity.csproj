@@ -3,8 +3,6 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{0D10D2AD-CA61-46E3-88C8-0AB8318647BA}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -26,8 +24,6 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <GenerateSerializationAssemblies>On</GenerateSerializationAssemblies>
-    <DocumentationFile>
-    </DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -39,25 +35,25 @@
     <DocumentationFile>..\Build\Net40\Release\Semiodesk.Trinity.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="dotNetRDF, Version=1.0.8.3533, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
+    <Reference Include="dotNetRDF, Version=1.0.9.3683, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Net40\packages\dotNetRDF.1.0.8.3533\lib\net40\dotNetRDF.dll</HintPath>
+      <HintPath>..\Dependencies\Net40\dotNetRDF.dll</HintPath>
     </Reference>
-    <Reference Include="dotNetRDF.Data.Virtuoso, Version=1.0.8.3533, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
+    <Reference Include="dotNetRDF.Data.Virtuoso, Version=1.0.9.3683, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Net40\packages\dotNetRDF.Data.Virtuoso.1.0.8.3533\lib\net40\dotNetRDF.Data.Virtuoso.dll</HintPath>
+      <HintPath>..\Dependencies\Net40\dotNetRDF.Data.Virtuoso.dll</HintPath>
     </Reference>
     <Reference Include="HtmlAgilityPack, Version=1.4.9.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Net40\packages\HtmlAgilityPack.1.4.9\lib\Net40\HtmlAgilityPack.dll</HintPath>
+      <HintPath>..\Dependencies\Net40\HtmlAgilityPack.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Net40\packages\Newtonsoft.Json.6.0.8\lib\net40\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\Net40\packages\Newtonsoft.Json.9.0.1\lib\net40\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="OpenLink.Data.Virtuoso, Version=6.2.3128.1, Culture=neutral, PublicKeyToken=6654f6917d07cb95, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Net40\packages\dotNetRDF.Data.Virtuoso.1.0.8.3533\lib\net40\OpenLink.Data.Virtuoso.dll</HintPath>
+      <HintPath>..\Dependencies\OpenLink.Data.Virtuoso.dll</HintPath>
     </Reference>
     <Reference Include="Remotion.Linq, Version=1.13.183.0, Culture=neutral, PublicKeyToken=fee00910d6e5f53b, processorArchitecture=MSIL">
       <HintPath>..\Net40\packages\Remotion.Linq.1.13.183.0\lib\net35\Remotion.Linq.dll</HintPath>
@@ -65,16 +61,15 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
-    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="VDS.Common, Version=1.5.0.0, Culture=neutral, PublicKeyToken=ab5f4eb908061bf0, processorArchitecture=MSIL">
+    <Reference Include="System.Configuration" />
+    <Reference Include="VDS.Common, Version=1.6.0.0, Culture=neutral, PublicKeyToken=ab5f4eb908061bf0, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Net40\packages\VDS.Common.1.5.0\lib\net40-client\VDS.Common.dll</HintPath>
+      <HintPath>..\Dependencies\Net40\VDS.Common.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -95,17 +90,18 @@
     <Compile Include="Configuration\Graph.cs" />
     <Compile Include="Configuration\GraphCollection.cs" />
     <Compile Include="Configuration\Ontology.cs" />
-    <Compile Include="Configuration\OntologySetting.cs" />
+    <Compile Include="Configuration\OntologyCollection.cs" />
     <Compile Include="Configuration\RuleSet.cs" />
     <Compile Include="Configuration\RuleSetCollection.cs" />
     <Compile Include="Configuration\TrinitySettings.cs" />
     <Compile Include="Configuration\VirtuosoStoreSettings.cs" />
     <Compile Include="Exceptions.cs" />
     <Compile Include="IPropertyMapping.cs" />
-    <Compile Include="IResourceQueryResult.cs" />
+    <Compile Include="Query\IResourceQueryResult.cs" />
     <Compile Include="ITransactional.cs" />
     <Compile Include="Model\IModelGroup.cs" />
     <Compile Include="Model\ModelGroup.cs" />
+    <Compile Include="Model\RdfSerializationFormat.cs" />
     <Compile Include="Query\BindingSet.cs" />
     <Compile Include="Class.cs" />
     <Compile Include="Model\IModel.cs" />
@@ -123,6 +119,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PropertyMapping.cs" />
     <Compile Include="PropertyValue.cs" />
+    <Compile Include="Query\ISparqlQuery.cs" />
     <Compile Include="Query\ISparqlQueryResult.cs" />
     <Compile Include="Query\Linq\ExpressionVisitor.cs" />
     <Compile Include="Query\Linq\Extensions.cs" />
@@ -134,17 +131,28 @@
     <Compile Include="Query\ResourceQueryResult.cs" />
     <Compile Include="Query\SortCriterion.cs" />
     <Compile Include="Query\SortDirection.cs" />
+    <Compile Include="Query\SparqlPreprocessor.cs" />
+    <Compile Include="Query\SparqlQueryPreprocessor.cs" />
     <Compile Include="Query\StatementPattern.cs" />
-    <Compile Include="StoreProvider.cs" />
-    <Compile Include="StoreFactory.cs" />
+    <Compile Include="Serialization\JsonResourceConverter.cs" />
+    <Compile Include="Serialization\JsonResourceSerializerSettings.cs" />
+    <Compile Include="Stores\Stardog\StardogQueryResult.cs" />
+    <Compile Include="Stores\Stardog\StardogRdfHandler.cs" />
+    <Compile Include="Stores\Stardog\StardogStore.cs" />
+    <Compile Include="Stores\Stardog\StardogStoreProvider.cs" />
+    <Compile Include="Stores\StoreProvider.cs" />
+    <Compile Include="Stores\StoreFactory.cs" />
     <Compile Include="Stores\dotNetRDF\dotNetRDFQueryResult.cs" />
     <Compile Include="Stores\dotNetRDF\dotNetRDFStore.cs" />
     <Compile Include="Stores\dotNetRDF\dotNetRDFStoreProvider.cs" />
+    <Compile Include="Stores\IStorageSpecific.cs" />
     <Compile Include="Stores\IStore.cs" />
     <Compile Include="Stores\ITransaction.cs" />
+    <Compile Include="Stores\StoreUpdater.cs" />
     <Compile Include="Stores\SparqlEndpoint\SparqlEndpointStoreProvider.cs" />
     <Compile Include="Stores\SparqlEndpoint\SparqlEndpointQueryResult.cs" />
     <Compile Include="Stores\SparqlEndpoint\SparqlEndpointStorage.cs" />
+    <Compile Include="Stores\Virtuoso\VirtuosoSpecific.cs" />
     <Compile Include="Stores\Virtuoso\VirtuosoStoreProvider.cs" />
     <Compile Include="Stores\Virtuoso\VirtuosoTransaction.cs" />
     <Compile Include="Resource.cs" />
@@ -158,6 +166,7 @@
     <Compile Include="XsdTypeMapper.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup />

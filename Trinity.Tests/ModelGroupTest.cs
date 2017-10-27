@@ -32,82 +32,87 @@ using System.Text;
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
 
-namespace Semiodesk.Trinity.Tests
+namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class ModelGroupTest
     {
-        private IModel _model = null;
-        private IModel _model2 = null;
-        private IStore _store;
+        protected IStore Store;
+
+        protected IModel Model = null;
+
+        protected IModel Model2 = null;
 
         [SetUp]
         public void SetUp()
         {
-           _store = StoreFactory.CreateStore("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba");
+            string connectionString = SetupClass.ConnectionString;
 
-           Uri modelUri1 = new Uri("http://example.org/TestModel");
+            Store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
 
-            if( _store.ContainsModel(modelUri1) )
+            Model = Store.GetModel(new Uri("http://example.org/TestModel"));
+
+            if (!Model.IsEmpty)
             {
-                // Default uri scheme
-                _model = _store.GetModel(modelUri1);
-                _model.Clear();
-            }
-            else
-            {
-                _model = _store.CreateModel(modelUri1);
+                Model.Clear();
             }
 
-            Uri modelUri = new Uri("http://example.org/TestModel2");
+            Model2 = Store.GetModel(new Uri("http://example.org/TestModel2"));
 
-            if( _store.ContainsModel(modelUri))
+            if (!Model.IsEmpty)
             {
-                // Urn scheme
-                _model2 = _store.GetModel(modelUri);
-                _model2.Clear();
-            }
-            else
-            {
-                _model2 = _store.CreateModel(modelUri);
+                Model.Clear();
             }
         }
 
         [TearDown]
         public void TearDown()
         {
-            _model.Clear();
-            _model2.Clear();
-            _store.Dispose();
+            Model.Clear();
+            Model2.Clear();
+            Store.Dispose();
         }
 
         [Test]
         public void ContainsResourceTest()
         {
-            Uri resourceUri = new Uri("http://example.com/testResource");
+            Uri uri = new Uri("http://example.com/testResource");
 
-            IModelGroup g = _store.CreateModelGroup(_model.Uri, _model2.Uri);
-            bool res = g.ContainsResource(resourceUri);
-            Assert.IsFalse(res);
+            IModelGroup group = Store.CreateModelGroup(Model.Uri, Model2.Uri);
 
-            IResource resource = _model.CreateResource(resourceUri);
+            Assert.IsFalse(group.ContainsResource(uri));
+
+            IResource resource = Model.CreateResource(uri);
             resource.AddProperty(rdf.type, nco.Contact);
             resource.Commit();
             
-            res = g.ContainsResource(resourceUri);
-            Assert.IsTrue(res);
+            Assert.IsTrue(group.ContainsResource(uri));
 
-            _model.DeleteResource(resource);
+            Model.DeleteResource(resource);
 
-            res = g.ContainsResource(resourceUri);
-            Assert.IsFalse(res);
+            Assert.IsFalse(group.ContainsResource(uri));
 
-            resource = _model2.CreateResource(resourceUri);
+            resource = Model2.CreateResource(uri);
             resource.AddProperty(rdf.type, nco.Contact);
             resource.Commit();
 
-            res = g.ContainsResource(resourceUri);
-            Assert.IsTrue(res);
+            Assert.IsTrue(group.ContainsResource(uri));
+        }
+
+        [Test]
+        public void DeleteResouceTest2()
+        {
+            var uri = new Uri("ex:Resource2");
+
+            IResource resource = Model.CreateResource(uri);
+            resource.AddProperty(rdf.type, nco.Contact);
+            resource.Commit();
+
+            Assert.IsTrue(Model.ContainsResource(uri));
+
+            Model.DeleteResource(resource);
+
+            Assert.IsFalse(Model.ContainsResource(uri));
         }
 
         [Test]
@@ -115,11 +120,11 @@ namespace Semiodesk.Trinity.Tests
         {
             Uri resourceUri = new Uri("http://example.com/testResource");
 
-            IModelGroup g = _store.CreateModelGroup(_model.Uri, _model2.Uri);
+            IModelGroup g = Store.CreateModelGroup(Model.Uri, Model2.Uri);
             
             Assert.Throws(typeof(ArgumentException), new TestDelegate( () => g.GetResource(resourceUri)));
             
-            IResource resource = _model.CreateResource(resourceUri);
+            IResource resource = Model.CreateResource(resourceUri);
             resource.AddProperty(rdf.type, nco.Contact);
             resource.Commit();
 
@@ -127,19 +132,19 @@ namespace Semiodesk.Trinity.Tests
             Assert.IsNotNull(res);
             Assert.IsTrue(res.IsReadOnly);
             Assert.AreEqual(resourceUri, res.Uri);
-            Assert.Contains(nco.Contact, res.ListValues(rdf.type));
+            Assert.Contains(nco.Contact, res.ListValues(rdf.type).ToList());
 
 
-            resource = _model2.CreateResource(resourceUri);
+            resource = Model2.CreateResource(resourceUri);
             resource.AddProperty(rdf.type, nco.Contact);
             resource.Commit();
 
             res = g.GetResource(resourceUri);
             Assert.IsNotNull(res);
-            Assert.AreEqual(1, res.ListValues(rdf.type).Count);
+            Assert.AreEqual(1, res.ListValues(rdf.type).Count());
             Assert.IsTrue(res.IsReadOnly);
             Assert.AreEqual(resourceUri, res.Uri);
-            Assert.Contains(nco.Contact, res.ListValues(rdf.type));
+            Assert.Contains(nco.Contact, res.ListValues(rdf.type).ToList());
 
         }
 
@@ -148,24 +153,22 @@ namespace Semiodesk.Trinity.Tests
         {
             Uri resourceUri = new Uri("http://example.com/testResource");
 
-            IModelGroup g = _store.CreateModelGroup(_model.Uri, _model2.Uri);
+            IModelGroup g = Store.CreateModelGroup(Model.Uri, Model2.Uri);
 
-            Contact resource = _model.CreateResource<Contact>(resourceUri);
+            Contact resource = Model.CreateResource<Contact>(resourceUri);
             resource.Fullname = "Hans Peter";
             resource.Commit();
 
             ResourceQuery q = new ResourceQuery(nco.Contact);
+
             var res = g.GetResources(q);
-
-
         }
 
         [Test]
         public void LazyLoadResourceTest()
         {
-            MappingDiscovery.RegisterCallingAssembly();
-            IModel model = _model;
-            IModelGroup modelGroup = _store.CreateModelGroup(_model.Uri, _model2.Uri);
+            IModel model = Model;
+            IModelGroup modelGroup = Store.CreateModelGroup(Model.Uri, Model2.Uri);
             model.Clear();
 
             Uri testRes1 = new Uri("semio:test:testInstance");
@@ -200,7 +203,6 @@ namespace Semiodesk.Trinity.Tests
 
             IResource tr1 = modelGroup.GetResource(testRes1);
             Assert.AreEqual(typeof(MappingTestClass), tr1.GetType());
-
         }
     }
 }

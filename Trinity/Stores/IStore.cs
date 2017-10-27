@@ -46,6 +46,7 @@ namespace Semiodesk.Trinity
         #endregion
 
         #region Methods
+
         /// <summary>
         /// Adds a new model with the given uri to the storage. 
         /// </summary>
@@ -67,16 +68,20 @@ namespace Semiodesk.Trinity
 
         /// <summary>
         /// Query if the model exists in the store.
+        /// OBSOLETE: This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()
         /// </summary>
         /// <param name="uri">Uri of the model which is to be queried.</param>
         /// <returns></returns>
+        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
         bool ContainsModel(Uri uri);
 
         /// <summary>
         /// Query if the model exists in the store.
+        /// OBSOLETE: This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()
         /// </summary>
         /// <param name="uri">Handle to the model which is to be queried.</param>
         /// <returns></returns>
+        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
         bool ContainsModel(IModel model);
 
         /// <summary>
@@ -98,7 +103,7 @@ namespace Semiodesk.Trinity
         /// <param name="query"></param>
         /// <param name="transaction"></param>
         /// <returns></returns>
-        ISparqlQueryResult ExecuteQuery(SparqlQuery query, ITransaction transaction = null);
+        ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null);
 
         /// <summary>
         /// Executes a query on the store which does not expect a result.
@@ -128,10 +133,31 @@ namespace Semiodesk.Trinity
         /// <param name="url">Location</param>
         /// <param name="format">Allowed formats</param>
         /// <returns></returns>
-        Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format);
+        Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update);
 
+        /// <summary>
+        /// Loads a serialized graph from the given stream into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="stream">Stream containing a serialized graph</param>
+        /// <param name="graphUri">Uri of the graph in this store</param>
+        /// <param name="format">Allowed formats</param>
+        /// <returns></returns>
+        Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update);
+
+        /// <summary>
+        /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="graphUri">Uri of the graph in this store</param>
+        /// <param name="url">Location</param>
+        /// <param name="format">Allowed formats</param>
+        /// <returns></returns>
         void Write(Stream fs, Uri graphUri, RdfSerializationFormat format);
 
+        /// <summary>
+        /// Loads Ontologies defined in the currently loaded config file into the store.
+        /// </summary>
+        /// <param name="sourceDir"></param>
+        void LoadOntologySettings(string configPath = null, string sourceDir = null);
 
 
         #endregion

@@ -206,37 +206,44 @@ namespace Semiodesk.Trinity.OntologyGenerator
             if (!string.IsNullOrEmpty(_generatePath))
             {
                 FileInfo fileInfo = new FileInfo(_generatePath);
-                OntologyGenerator generator = new OntologyGenerator(_config.Namespace);
-                generator.Logger = Logger;
-                if (_config.Ontologies != null)
+                try
                 {
-                    foreach (var ontology in _config.Ontologies)
+                    
+                    OntologyGenerator generator = new OntologyGenerator(_config.Namespace);
+                    generator.Logger = Logger;
+                    if (_config.Ontologies != null)
                     {
-                        UriRef t = GetPathFromSource(ontology.FileSource);
-                        if ( !generator.ImportOntology(ontology.Uri, t) )
+                        foreach (var ontology in _config.Ontologies)
                         {
-                            FileInfo ontologyFile = new FileInfo(t.AbsolutePath);
-                            var info = ontology.ElementInformation;
-                            Logger.LogWarning(string.Format("Could not read ontology <{0}> from path {1}.", ontology.Uri, ontologyFile.FullName), info);
+                            UriRef t = GetPathFromSource(ontology.FileSource);
+                            if (!generator.ImportOntology(ontology.Uri, t))
+                            {
+                                FileInfo ontologyFile = new FileInfo(t.LocalPath);
+                                var info = ontology.ElementInformation;
+                                Logger.LogWarning(string.Format("Could not read ontology <{0}> from path {1}.", ontology.Uri, ontologyFile.FullName), info);
+                            }
+
+
+
+                            if (!generator.AddOntology(ontology.Uri, ontology.MetadataUri, ontology.Prefix))
+                            {
+                                Logger.LogMessage("Ontology with uri <{0}> or uri <{1}> could not be found in store.", ontology.Uri, ontology.MetadataUri);
+                            }
+
                         }
-
-                        
-
-                        if (!generator.AddOntology(ontology.Uri, ontology.MetadataUri, ontology.Prefix))
-                        {
-                            Logger.LogMessage("Ontology with uri <{0}> or uri <{1}> could not be found in store.", ontology.Uri, ontology.MetadataUri);
-                        }
-
                     }
+                    generator.GenerateFile(fileInfo);
+                    generator.Dispose();
+
+                    return 0;
+                }catch(Exception e)
+                {
+                    Logger.LogError(string.Format("Error while generating {0}.\nException:\n{1}", fileInfo.FullName, e.ToString()));
                 }
-                generator.GenerateFile(fileInfo);
-                generator.Dispose();
-                return 0;
             }
-            else
-            {
+
                 return -1;
-            }
+            
         }
 
 

@@ -34,33 +34,33 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="dotNetRDF, Version=1.0.8.3533, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
+    <Reference Include="dotNetRDF, Version=1.0.9.3683, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Net35\packages\dotNetRDF.1.0.8.3533\lib\net35\dotNetRDF.dll</HintPath>
+      <HintPath>..\..\Dependencies\Net35\dotNetRDF.dll</HintPath>
     </Reference>
-    <Reference Include="dotNetRDF.Data.Virtuoso, Version=1.0.8.3533, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
+    <Reference Include="dotNetRDF.Data.Virtuoso, Version=1.0.9.3683, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Net35\packages\dotNetRDF.Data.Virtuoso.1.0.8.3533\lib\net35\dotNetRDF.Data.Virtuoso.dll</HintPath>
+      <HintPath>..\..\Dependencies\Net35\dotNetRDF.Data.Virtuoso.dll</HintPath>
     </Reference>
     <Reference Include="HtmlAgilityPack, Version=1.4.9.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Net35\packages\HtmlAgilityPack.1.4.9\lib\Net20\HtmlAgilityPack.dll</HintPath>
+      <HintPath>..\..\Dependencies\Net35\HtmlAgilityPack.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Net35\packages\Newtonsoft.Json.6.0.8\lib\net35\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\Newtonsoft.Json.8.0.3\lib\net35\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="OpenLink.Data.Virtuoso, Version=6.2.3128.1, Culture=neutral, PublicKeyToken=6654f6917d07cb95, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Net35\packages\dotNetRDF.Data.Virtuoso.1.0.8.3533\lib\net35\OpenLink.Data.Virtuoso.dll</HintPath>
+      <HintPath>..\..\Dependencies\OpenLink.Data.Virtuoso.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.XML" />
-    <Reference Include="VDS.Common, Version=1.5.0.0, Culture=neutral, PublicKeyToken=ab5f4eb908061bf0, processorArchitecture=MSIL">
+    <Reference Include="VDS.Common, Version=1.6.0.0, Culture=neutral, PublicKeyToken=ab5f4eb908061bf0, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Net35\packages\VDS.Common.1.5.0\lib\net35-client\VDS.Common.dll</HintPath>
+      <HintPath>..\..\Dependencies\Net35\VDS.Common.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -130,6 +130,12 @@
     <Compile Include="..\Configuration\VirtuosoStoreSettings.cs">
       <Link>Configuration\VirtuosoStoreSettings.cs</Link>
     </Compile>
+    <Compile Include="..\Serialization\JsonResourceConverter.cs">
+      <Link>Serialization\JsonResourceConverter.cs</Link>
+    </Compile>
+    <Compile Include="..\Serialization\JsonResourceSerializerSettings.cs">
+      <Link>Serialization\JsonResourceSerializerSettings.cs</Link>
+    </Compile>
     <Compile Include="..\Exceptions.cs">
       <Link>Exceptions.cs</Link>
     </Compile>
@@ -142,32 +148,23 @@
     <Compile Include="..\ITransactional.cs">
       <Link>ITransactional.cs</Link>
     </Compile>
-    <Compile Include="..\Model\IModel.cs">
-      <Link>Model\IModel.cs</Link>
-    </Compile>
     <Compile Include="..\Model\IModelGroup.cs">
       <Link>Model\IModelGroup.cs</Link>
-    </Compile>
-    <Compile Include="..\Model\Model.cs">
-      <Link>Model\Model.cs</Link>
-    </Compile>
-    <Compile Include="..\Model\ModelChangedEventArgs.cs">
-      <Link>Model\ModelChangedEventArgs.cs</Link>
     </Compile>
     <Compile Include="..\Model\ModelGroup.cs">
       <Link>Model\ModelGroup.cs</Link>
     </Compile>
-    <Compile Include="..\Model\ModelManager.cs">
-      <Link>Model\ModelManager.cs</Link>
-    </Compile>
-    <Compile Include="..\Ontology.cs">
-      <Link>Ontology.cs</Link>
+    <Compile Include="..\Model\RdfSerializationFormat.cs">
+      <Link>Model\RdfSerializationFormat.cs</Link>
     </Compile>
     <Compile Include="..\Query\BindingSet.cs">
       <Link>Query\BindingSet.cs</Link>
     </Compile>
     <Compile Include="..\Class.cs">
       <Link>Class.cs</Link>
+    </Compile>
+    <Compile Include="..\Model\IModel.cs">
+      <Link>Model\IModel.cs</Link>
     </Compile>
     <Compile Include="..\Query\FilterOperation.cs">
       <Link>Query\FilterOperation.cs</Link>
@@ -178,8 +175,20 @@
     <Compile Include="..\MappingDiscovery.cs">
       <Link>MappingDiscovery.cs</Link>
     </Compile>
+    <Compile Include="..\Model\Model.cs">
+      <Link>Model\Model.cs</Link>
+    </Compile>
+    <Compile Include="..\Model\ModelChangedEventArgs.cs">
+      <Link>Model\ModelChangedEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\Model\ModelManager.cs">
+      <Link>Model\ModelManager.cs</Link>
+    </Compile>
     <Compile Include="..\NamespaceManager.cs">
       <Link>NamespaceManager.cs</Link>
+    </Compile>
+    <Compile Include="..\Ontology.cs">
+      <Link>Ontology.cs</Link>
     </Compile>
     <Compile Include="..\OntologyDiscovery.cs">
       <Link>OntologyDiscovery.cs</Link>
@@ -199,6 +208,9 @@
     <Compile Include="..\PropertyValue.cs">
       <Link>PropertyValue.cs</Link>
     </Compile>
+    <Compile Include="..\Query\ISparqlQuery.cs">
+      <Link>Query\ISparqlQuery.cs</Link>
+    </Compile>
     <Compile Include="..\Query\ISparqlQueryResult.cs">
       <Link>Query\ISparqlQueryResult.cs</Link>
     </Compile>
@@ -217,14 +229,20 @@
     <Compile Include="..\Query\SortDirection.cs">
       <Link>Query\SortDirection.cs</Link>
     </Compile>
+    <Compile Include="..\Query\SparqlPreprocessor.cs">
+      <Link>Query\SparqlPreprocessor.cs</Link>
+    </Compile>
+    <Compile Include="..\Query\SparqlQueryPreprocessor.cs">
+      <Link>Query\SparqlQueryPreprocessor.cs</Link>
+    </Compile>
     <Compile Include="..\Query\StatementPattern.cs">
       <Link>Query\StatementPattern.cs</Link>
     </Compile>
-    <Compile Include="..\StoreFactory.cs">
-      <Link>StoreFactory.cs</Link>
+    <Compile Include="..\Stores\StoreProvider.cs">
+      <Link>Stores\StoreProvider.cs</Link>
     </Compile>
-    <Compile Include="..\StoreProvider.cs">
-      <Link>StoreProvider.cs</Link>
+    <Compile Include="..\Stores\StoreFactory.cs">
+      <Link>Stores\StoreFactory.cs</Link>
     </Compile>
     <Compile Include="..\Stores\dotNetRDF\dotNetRDFQueryResult.cs">
       <Link>Stores\dotNetRDF\dotNetRDFQueryResult.cs</Link>
@@ -235,11 +253,17 @@
     <Compile Include="..\Stores\dotNetRDF\dotNetRDFStoreProvider.cs">
       <Link>Stores\dotNetRDF\dotNetRDFStoreProvider.cs</Link>
     </Compile>
+    <Compile Include="..\Stores\IStorageSpecific.cs">
+      <Link>Stores\IStorageSpecific.cs</Link>
+    </Compile>
     <Compile Include="..\Stores\IStore.cs">
       <Link>Stores\IStore.cs</Link>
     </Compile>
     <Compile Include="..\Stores\ITransaction.cs">
       <Link>Stores\ITransaction.cs</Link>
+    </Compile>
+    <Compile Include="..\Stores\StoreUpdater.cs">
+      <Link>Stores\StoreUpdater.cs</Link>
     </Compile>
     <Compile Include="..\Stores\SparqlEndpoint\SparqlEndpointQueryResult.cs">
       <Link>Stores\SparqlEndpoint\SparqlEndpointQueryResult.cs</Link>
@@ -249,6 +273,9 @@
     </Compile>
     <Compile Include="..\Stores\SparqlEndpoint\SparqlEndpointStoreProvider.cs">
       <Link>Stores\SparqlEndpoint\SparqlEndpointStoreProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\Stores\Virtuoso\VirtuosoSpecific.cs">
+      <Link>Stores\Virtuoso\VirtuosoSpecific.cs</Link>
     </Compile>
     <Compile Include="..\Stores\Virtuoso\VirtuosoStoreProvider.cs">
       <Link>Stores\Virtuoso\VirtuosoStoreProvider.cs</Link>
@@ -288,9 +315,8 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config">
-      <SubType>Designer</SubType>
-    </None>
+    <None Include="app.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
