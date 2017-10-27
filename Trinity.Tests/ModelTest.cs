@@ -416,12 +416,11 @@ namespace Semiodesk.Trinity.Test
             contact2.Fullname = "Hans";
             contact2.Commit();
 
-            var res = Model.GetResources<Contact>();
+            var r = Model.GetResources<Contact>();
 
-            Assert.AreEqual(2, res.Count());
-            Assert.IsTrue(res.Contains(contact));
-            Assert.IsTrue(res.Contains(contact2));
-
+            Assert.AreEqual(2, r.Count());
+            Assert.IsTrue(r.Contains(contact));
+            Assert.IsTrue(r.Contains(contact2));
 
             Model.Clear();
 
@@ -429,15 +428,15 @@ namespace Semiodesk.Trinity.Test
             personContact.Fullname = "Peter";
             personContact.Commit();
 
-            res = Model.GetResources<Contact>();
-            Assert.AreEqual(0, res.Count());
+            r = Model.GetResources<Contact>();
+            Assert.AreEqual(0, r.Count());
 
-            res = Model.GetResources<Contact>(true);
-            Assert.AreEqual(1, res.Count());
+            r = Model.GetResources<Contact>(true);
+            Assert.AreEqual(1, r.Count());
 
             var x = Model.GetResource(uriResource);
-            Assert.AreEqual(typeof(PersonContact), x.GetType());
 
+            Assert.AreEqual(typeof(PersonContact), x.GetType());
         }
 
         [Test]

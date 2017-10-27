@@ -26,45 +26,42 @@
 // Copyright (c) Semiodesk GmbH 2015
 
 using Remotion.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
+using Remotion.Linq.Clauses;
+using Remotion.Linq.Collections;
 
 namespace Semiodesk.Trinity.Query
 {
-    class QueryModelVisitor : QueryModelVisitorBase
+    internal class QueryModelVisitor : QueryModelVisitorBase
     {
         #region Members
 
-        Dictionary<Type, ResourceQuery> _queryType = new Dictionary<Type, ResourceQuery>();
+        public ResourceQuery Query { get; private set; }
 
-        Dictionary<Type, Resource> _instances = new Dictionary<Type, Resource>();
+        #endregion
 
-        public List<IPropertyMapping> PropertyMappings;
+        #region Constructors
+
+        public QueryModelVisitor()
+        {
+            // TODO: This should be a SPARQL query.
+            Query = new ResourceQuery();
+        }
 
         #endregion
 
         #region Methods
 
-        public override void VisitMainFromClause(Remotion.Linq.Clauses.MainFromClause fromClause, QueryModel queryModel)
+        public override void VisitMainFromClause(MainFromClause fromClause, QueryModel queryModel)
         {
-            IList<Class> classes = MappingDiscovery.GetRdfClasses(fromClause.ItemType);
-
-            ResourceQuery query = new ResourceQuery(classes);
-            Resource type = (Resource)Activator.CreateInstance(fromClause.ItemType, new UriRef("semio:empty"));
-
-            _queryType.Add(fromClause.ItemType, query);
-            _instances.Add(fromClause.ItemType, type);
-
-            //PropertyMappings = MappingDiscovery.ListMappings()
+            base.VisitMainFromClause(fromClause, queryModel);
         }
 
-        protected override void VisitBodyClauses(Remotion.Linq.Collections.ObservableCollection<Remotion.Linq.Clauses.IBodyClause> bodyClauses, QueryModel queryModel)
+        protected override void VisitBodyClauses(ObservableCollection<IBodyClause> bodyClauses, QueryModel queryModel)
         {
             base.VisitBodyClauses(bodyClauses, queryModel);
         }
 
-        public override void VisitWhereClause(Remotion.Linq.Clauses.WhereClause whereClause, QueryModel queryModel, int index)
+        public override void VisitWhereClause(WhereClause whereClause, QueryModel queryModel, int index)
         {
             ExpressionVisitor visitor = new ExpressionVisitor(this);
             visitor.VisitExpression(whereClause.Predicate);
@@ -72,27 +69,9 @@ namespace Semiodesk.Trinity.Query
             base.VisitWhereClause(whereClause, queryModel, index);
         }
 
-        public override void VisitSelectClause(Remotion.Linq.Clauses.SelectClause selectClause, QueryModel queryModel)
+        public override void VisitSelectClause(SelectClause selectClause, QueryModel queryModel)
         {
             base.VisitSelectClause(selectClause, queryModel);
-        }
-
-        public ResourceQuery GetResourceQuery(Expression exp)
-        {
-            ResourceQuery query = null;
-
-            _queryType.TryGetValue(exp.Type, out query);
-
-            return query;
-        }
-
-        public IPropertyMapping GetMapping(Type type, string propertyName)
-        {
-            Resource resource = null;
-
-            _instances.TryGetValue(type, out resource);
-
-            return resource.GetPropertyMapping(propertyName);
         }
 
         #endregion

@@ -527,6 +527,16 @@ namespace Semiodesk.Trinity
             return null;
         }
 
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public IQueryable<T> QueryResources<T>() where T : Resource
+        {
+            throw new NotImplementedException();
+        }
+
         public IEnumerable<BindingSet> GetBindings(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
         {
             return ExecuteQuery(query, inferenceEnabled, transaction).GetBindings();
@@ -672,11 +682,5 @@ namespace Semiodesk.Trinity
 
         #endregion
         #endregion
-
-
-        public IQueryable<T> ListResources<T>() where T : Resource
-        {
-            throw new NotImplementedException();
-        }
     }
 }
