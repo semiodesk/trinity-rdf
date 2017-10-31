@@ -649,7 +649,7 @@ namespace Semiodesk.Trinity
 
             QueryParser queryParser = QueryParser.CreateDefault();
 
-            return new ResourceQuerable<T>(queryParser, executor);
+            return new ResourceQueryable<T>(queryParser, executor);
         }
 
         /// <summary>
