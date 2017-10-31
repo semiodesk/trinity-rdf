@@ -98,32 +98,25 @@ namespace Semiodesk.Trinity
             return -1;
         }
 
+        IEnumerable<Uri> FetchUris(SparqlQuery query)
+        {
+            HashSet<Uri> result = new HashSet<Uri>();
+
+            IEnumerable<BindingSet> bindings = _model.ExecuteQuery(query, _inferenceEnabled).GetBindings();
+
+            foreach (BindingSet binding in bindings)
+            {
+                Uri u = binding["s0"] as Uri;
+
+                result.Add(u);
+            }
+
+            return result;
+        }
+
         public IEnumerable<Resource> GetResources(int offset = -1, int limit = -1)
         {
             return GetResources<Resource>(offset, limit);
-        }
-
-        IEnumerable<Uri> FetchUris(SparqlQuery query)
-        {
-            List<Uri> result = new List<Uri>();
-
-            IEnumerable<BindingSet> bindings = _model.ExecuteQuery(query, _inferenceEnabled).GetBindings();
-            Uri uri = null;
-            if (bindings != null)
-            {
-                foreach (BindingSet binding in bindings)
-                {
-                    Uri u = binding["s0"] as Uri;
-
-                    if (u != uri)
-                    {
-                        result.Add(binding["s0"] as Uri);
-                    }
-
-                    uri = u;
-                }
-            }
-            return result;
         }
 
         public IEnumerable<T> GetResources<T>(int offset = -1, int limit = -1) where T : Resource
@@ -136,12 +129,12 @@ namespace Semiodesk.Trinity
                 SparqlQuery uriQuery = new SparqlQuery(SparqlSerializer.Serialize(_model, _query, true));
 
                 StringBuilder uris = new StringBuilder();
+
                 var uriList = FetchUris(uriQuery).ToList();
 
                 foreach (Uri u in uriList)
                 {
-                    if(u != null)
-                        uris.Append(SparqlSerializer.SerializeUri(u));
+                    uris.Append(SparqlSerializer.SerializeUri(u));
                 }
 
                 if (!uriList.Any())
