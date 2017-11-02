@@ -137,6 +137,9 @@
     <Compile Include="Query\StatementPattern.cs" />
     <Compile Include="Serialization\JsonResourceConverter.cs" />
     <Compile Include="Serialization\JsonResourceSerializerSettings.cs" />
+    <Compile Include="Stores\dotNetRDF\ITripleProvider.cs" />
+    <Compile Include="Stores\dotNetRDF\GraphTripleProvider.cs" />
+    <Compile Include="Stores\dotNetRDF\SparqlResultSetTripleProvider.cs" />
     <Compile Include="Stores\Stardog\StardogQueryResult.cs" />
     <Compile Include="Stores\Stardog\StardogRdfHandler.cs" />
     <Compile Include="Stores\Stardog\StardogStore.cs" />
@@ -146,7 +149,7 @@
     <Compile Include="Stores\dotNetRDF\dotNetRDFQueryResult.cs" />
     <Compile Include="Stores\dotNetRDF\dotNetRDFStore.cs" />
     <Compile Include="Stores\dotNetRDF\dotNetRDFStoreProvider.cs" />
-    <Compile Include="Stores\IStorageSpecific.cs" />
+    <Compile Include="Stores\IStoreSpecific.cs" />
     <Compile Include="Stores\IStore.cs" />
     <Compile Include="Stores\ITransaction.cs" />
     <Compile Include="Stores\StoreUpdater.cs" />

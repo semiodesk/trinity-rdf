@@ -23,42 +23,74 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2017
 
-using System.Collections.Generic;
-#if ! NET_3_5
-using System.ComponentModel.Composition;
-#endif
+using System;
+using VDS.RDF;
+using VDS.RDF.Query;
 
 namespace Semiodesk.Trinity.Store
 {
-#if !NET_3_5
-    [Export(typeof(StoreProvider))]
-#endif
-    public class dotNetRDFStoreProvider : StoreProvider
+    internal class SparqlResultSetTripleProvider : ITripleProvider
     {
-        #region Constructor
+        private int _n;
 
-        public dotNetRDFStoreProvider()
+        private SparqlResultSet _set;
+
+        private string _subjectKey;
+
+        public INode S
         {
-            Name = "dotNetRDF";
+            get { return _set[_n][_subjectKey]; }
+        }
+
+        private string _predicateKey;
+
+        public Uri P
+        {
+            get { return (_set[_n][_predicateKey] as UriNode).Uri; }
+        }
+
+        private string _objectKey;
+
+        public INode O
+        {
+            get { return _set[_n][_objectKey]; }
+        }
+
+        public int Count
+        {
+            get { return _set.Count; }
+        }
+
+        public bool HasNext
+        {
+            get { return _n < _set.Count; }
+        }
+
+        #region Constructors
+  
+        public SparqlResultSetTripleProvider(SparqlResultSet set, string subjectKey, string predicateKey, string objectKey)
+        {
+            _n = 0;
+            _set = set;
+            _subjectKey = subjectKey;
+            _predicateKey = predicateKey;
+            _objectKey = objectKey;
         }
 
         #endregion
 
         #region Methods
 
-        public override IStore GetStore(Dictionary<string, string> configurationDictionary)
+        public void Reset()
         {
-            string schemaKey = "schema";
-            string[] schema = null;
+            _n = 0;
+        }
 
-            if (configurationDictionary.ContainsKey(schemaKey))
-            {
-                schema = configurationDictionary[schemaKey].Split(',');
-            }
-
-            return new dotNetRDFStore(schema);
+        public void SetNext()
+        {
+            _n += 1;
         }
 
         #endregion

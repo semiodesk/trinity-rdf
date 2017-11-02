@@ -29,6 +29,7 @@ using Remotion.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -37,7 +38,11 @@ namespace Semiodesk.Trinity.Query
         #region Members
         
         protected IModel Model { get; private set; }
-        
+
+        // A handle to the generic version of the GetResources method which is being used
+        // for implementing the ExecuteCollection(QueryModel) method that supports runtime type specification.
+        private MethodInfo _getResourceMethod;
+
         #endregion
 
         #region Constructors
@@ -45,6 +50,10 @@ namespace Semiodesk.Trinity.Query
         public ResourceQueryExecutor(IModel model)
         {
             Model = model;
+
+            // Searches for the generic method IEnumerable<T> GetResources<T>(ResourceQuery) and saves a handle
+            // for later use within ExecuteCollection(QueryModel);
+            _getResourceMethod = model.GetType().GetMethods().FirstOrDefault(m => m.IsGenericMethod && m.Name == "GetResources" && m.GetParameters().Any(p => p.ParameterType == typeof(ResourceQuery)));
         }
         
         #endregion
@@ -53,12 +62,24 @@ namespace Semiodesk.Trinity.Query
 
         public IEnumerable<T> ExecuteCollection<T>(QueryModel queryModel)
         {
-            QueryModelVisitor visitor = new QueryModelVisitor();
-            visitor.VisitQueryModel(queryModel);
+            MethodInfo getResources = _getResourceMethod.MakeGenericMethod(typeof(T));
 
-            IEnumerable<T> result = Model.GetResources(visitor.Query).Cast<T>();
+            if (getResources != null)
+            {
+                QueryModelVisitor visitor = new QueryModelVisitor();
+                visitor.VisitQueryModel(queryModel);
 
-            return result;
+                object[] args = new object[] { visitor.Query, false, null };
+
+                IEnumerable<T> result = getResources.Invoke(Model, args) as IEnumerable<T>;
+
+                return result;
+            }
+            else
+            {
+                string msg = string.Format("The LINQ result type {0} is currently not supported.", typeof(T));
+                throw new NotSupportedException(msg);
+            }
         }
 
         public T ExecuteSingle<T>(QueryModel queryModel, bool returnDefaultWhenEmpty)

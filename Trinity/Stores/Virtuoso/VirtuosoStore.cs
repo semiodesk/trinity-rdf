@@ -623,7 +623,7 @@ namespace Semiodesk.Trinity.Store
 
             if (settings.VirtuosoStoreSettings != null)
             {
-                IStorageSpecific spec = new VirtuosoSettings(settings.VirtuosoStoreSettings);
+                IStoreSpecific spec = new VirtuosoSettings(settings.VirtuosoStoreSettings);
                 updater.UpdateStorageSpecifics(spec);
             }
             

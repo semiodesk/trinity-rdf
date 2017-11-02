@@ -25,43 +25,13 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-using System;
-using System.Data;
+using System.ComponentModel;
 
 namespace Semiodesk.Trinity
 {
-    public class TransactionEventArgs : EventArgs
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public interface IStoreSpecific
     {
-        public TransactionEventArgs(bool success)
-        {
-            if (success)
-            {
-                FinishedWithCommit = true;
-                FinishedWithRollback = false;
-            }
-            else
-            {
-                FinishedWithRollback = true;
-                FinishedWithCommit = false;
-            }
-
-        }
-
-        public readonly bool FinishedWithCommit;
-        public readonly bool FinishedWithRollback;
-
-    }
-
-    public delegate void TransactionEventHandler(object sender, TransactionEventArgs e);
-
-    public interface ITransaction : IDisposable
-    {
-        IsolationLevel IsolationLevel { get; }
-
-        event TransactionEventHandler OnTransactionFinished;
-
-        void Commit();
-
-        void Rollback();
+        void Update(IStore store);
     }
 }
