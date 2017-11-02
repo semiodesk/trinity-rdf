@@ -36,7 +36,7 @@ using Semiodesk.Trinity.Store;
 
 namespace Semiodesk.Trinity
 {
-    internal class VirtuosoSettings : IStorageSpecific
+    internal class VirtuosoSettings : IStoreSpecific
     {
         #region Members
         public VirtuosoStoreSettings Settings { get; set; }

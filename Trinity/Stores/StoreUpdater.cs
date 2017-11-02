@@ -69,7 +69,7 @@ namespace Semiodesk.Trinity
             }
         }
 
-        public void UpdateStorageSpecifics(IStorageSpecific storageSpecific)
+        public void UpdateStorageSpecifics(IStoreSpecific storageSpecific)
         {
             storageSpecific.Update(_store);
         }

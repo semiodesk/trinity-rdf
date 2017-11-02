@@ -23,45 +23,71 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2017
 
 using System;
-using System.Data;
+using System.Linq;
+using VDS.RDF;
 
-namespace Semiodesk.Trinity
+namespace Semiodesk.Trinity.Store
 {
-    public class TransactionEventArgs : EventArgs
+    internal class GraphTripleProvider : ITripleProvider
     {
-        public TransactionEventArgs(bool success)
-        {
-            if (success)
-            {
-                FinishedWithCommit = true;
-                FinishedWithRollback = false;
-            }
-            else
-            {
-                FinishedWithRollback = true;
-                FinishedWithCommit = false;
-            }
+        #region Members
 
+        private int _n;
+
+        private IGraph _graph;
+
+        public INode S
+        {
+            get { return _graph.Triples.ElementAt(_n).Subject; }
         }
 
-        public readonly bool FinishedWithCommit;
-        public readonly bool FinishedWithRollback;
+        public Uri P
+        {
+            get { return (_graph.Triples.ElementAt(_n).Predicate as UriNode).Uri; }
+        }
 
-    }
+        public INode O
+        {
+            get { return _graph.Triples.ElementAt(_n).Object; }
+        }
 
-    public delegate void TransactionEventHandler(object sender, TransactionEventArgs e);
+        public int Count
+        {
+            get { return _graph.Triples.Count; }
+        }
 
-    public interface ITransaction : IDisposable
-    {
-        IsolationLevel IsolationLevel { get; }
+        public bool HasNext
+        {
+            get { return _n < _graph.Triples.Count; }
+        }
 
-        event TransactionEventHandler OnTransactionFinished;
+        #endregion
 
-        void Commit();
+        #region Constructors
 
-        void Rollback();
+        public GraphTripleProvider(IGraph graph)
+        {
+            _n = 0;
+            _graph = graph;
+        }
+
+        #endregion
+
+        #region Methods
+
+        public void Reset()
+        {
+            _n = 0;
+        }
+
+        public void SetNext()
+        {
+            _n += 1;
+        }
+
+        #endregion
     }
 }

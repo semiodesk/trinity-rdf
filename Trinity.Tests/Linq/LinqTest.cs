@@ -23,33 +23,32 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2017
 
 using NUnit.Framework;
 using System;
 using System.Linq;
-using System.Reflection;
 
 namespace Semiodesk.Trinity.Test.Linq
 {
     [TestFixture]
     class LinqTest
     {
-        protected IStore Store { get; private set; }
-        protected IModel Model { get; private set; }
+        protected IStore Store = StoreFactory.CreateStore("provider=dotnetrdf");
+
+        protected IModel Model;
+
+        public LinqTest()
+        {
+            Model = Store.CreateModel(new Uri("http://test.com/test"));
+        }
 
         [SetUp]
         public void SetUp()
         {
-            if (ResourceMappingTest.RegisteredOntology == false)
-            {
-                OntologyDiscovery.AddAssembly(Assembly.GetExecutingAssembly());
-                MappingDiscovery.RegisterAssembly(Assembly.GetExecutingAssembly());
-                ResourceMappingTest.RegisteredOntology = true;
-            }
+            Model.Clear();
 
-            Store = StoreFactory.CreateStore("provider=dotnetrdf");
-            Model = Store.CreateModel(new Uri("http://test.com/test"));
+            Assert.IsTrue(Model.IsEmpty);
 
             Person p1 = Model.CreateResource<Person>();
             p1.FirstName = "Alice";
@@ -63,31 +62,67 @@ namespace Semiodesk.Trinity.Test.Linq
             p2.Age = 76;
             p2.Commit();
 
+            Person p3 = Model.CreateResource<Person>();
+            p3.FirstName = "Eve";
+            p3.LastName = "Jeffers-Cooper";
+            p3.Age = 38;
+            p3.Commit();
+
+            p1.KnownPeople.Add(p2);
+            p1.Commit();
+
+            p2.KnownPeople.Add(p1);
+            p2.Commit();
+
             Assert.IsFalse(Model.IsEmpty);
         }
 
         [Test]
-        public void LinqTest1()
+        public void TestLinqExecuteCollectionWithIntegerPropertyCondition()
         {
-            foreach(Person p in Model.GetResources<Person>())
-            {
-                Assert.Greater(p.Age, 50);
-            }
+            var persons = from person in Model.QueryResources<Person>() where person.Age == 69 select person;
 
-            var persons = from p in Model.QueryResources<Person>() where p.Age < 50 select p;
+            Assert.AreEqual(1, persons.ToList().Count);
 
-            Assert.AreEqual(0, persons.ToList().Count);
+            persons = from person in Model.QueryResources<Person>() where person.Age != 69 select person;
 
-            persons = from p in Model.QueryResources<Person>() where p.Age > 50 select p;
+            Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.QueryResources<Person>() where person.Age < 50 select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.QueryResources<Person>() where person.Age <= 69 select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.QueryResources<Person>() where person.Age >= 69 select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.QueryResources<Person>() where person.Age > 50 select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
         }
 
         [Test]
-        public void LinqTest2()
+        public void TestLinqExecuteCollectionWithStringPropertyCondition()
         {
-            var x = from r in Model.QueryResources<MappingTestClass>() where r.uniqueIntTest < 5 && r.uniqueResourceTest.uniqueStringTest == "abc" && r.uniqueResourceTest.uniqueStringTest == "Test" || r.uniqueStringTest == "blub" select r;
-            var ret = x.ToList();
+            var persons = from person in Model.QueryResources<Person>() where person.FirstName == "Alice" select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.QueryResources<Person>() where person.FirstName != "Alice" select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+        }
+
+        [Test]
+        public void TestLinqExecuteCollectionWithResourceListCondition()
+        {
+            var persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Count == 1 select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
         }
     }
 }

@@ -23,19 +23,27 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2017
 
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
+using VDS.RDF;
 
-namespace Semiodesk.Trinity
+namespace Semiodesk.Trinity.Store
 {
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public interface IStorageSpecific
+    internal interface ITripleProvider
     {
-        void Update(IStore store);
+        INode S { get; }
+
+        Uri P { get; }
+
+        INode O { get; }
+
+        int Count { get; }
+
+        bool HasNext { get; }
+
+        void SetNext();
+
+        void Reset();
     }
 }

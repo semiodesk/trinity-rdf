@@ -68,8 +68,8 @@ namespace Semiodesk.Trinity.Store
         {
             Transaction.Commit();
 
-            if (OnFinishedTransaction != null)
-                OnFinishedTransaction(this, new TransactionEventArgs(true));
+            if (OnTransactionFinished != null)
+                OnTransactionFinished(this, new TransactionEventArgs(true));
 
             this.Dispose();
         }
@@ -78,8 +78,8 @@ namespace Semiodesk.Trinity.Store
         {
             Transaction.Rollback();
 
-            if (OnFinishedTransaction != null)
-                OnFinishedTransaction(this, new TransactionEventArgs(false));
+            if (OnTransactionFinished != null)
+                OnTransactionFinished(this, new TransactionEventArgs(false));
 
             this.Dispose();
         }
@@ -100,18 +100,18 @@ namespace Semiodesk.Trinity.Store
                 return;
 
             Transaction.Dispose();
-            if (OnFinishedTransaction != null)
+            if (OnTransactionFinished != null)
             {
-                foreach (Delegate e in OnFinishedTransaction.GetInvocationList())
+                foreach (Delegate e in OnTransactionFinished.GetInvocationList())
                 {
-                    OnFinishedTransaction -= (FinishedTransaction)e;
+                    OnTransactionFinished -= (TransactionEventHandler)e;
                 }
             }
 
             Disposed = true;
         }
 
-        public event FinishedTransaction OnFinishedTransaction;
+        public event TransactionEventHandler OnTransactionFinished;
     }
 
 }

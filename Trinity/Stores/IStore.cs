@@ -27,8 +27,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Data;
 using System.IO;
 
@@ -158,7 +156,6 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="sourceDir"></param>
         void LoadOntologySettings(string configPath = null, string sourceDir = null);
-
 
         #endregion
     }

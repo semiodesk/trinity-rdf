@@ -68,7 +68,7 @@ namespace Semiodesk.Trinity.Query
                 switch(expression.NodeType)
                 {
                     case ExpressionType.Equal:
-                        Visitor.Query.Where(property).Equal(value); break;
+                        Visitor.Query.Where(property, value); break;
                     case ExpressionType.GreaterThan:
                         Visitor.Query.Where(property).GreaterThan(value); break;
                     case ExpressionType.GreaterThanOrEqual:
