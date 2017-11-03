@@ -118,7 +118,7 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void TestLinqExecuteCollectionWithResourceListCondition()
+        public void TestLinqExecuteCollectionWithSubQueryAndIntegerCondition()
         {
             var persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Count == 1 select person;
 
