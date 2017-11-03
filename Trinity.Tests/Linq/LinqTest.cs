@@ -123,6 +123,38 @@ namespace Semiodesk.Trinity.Test.Linq
             var persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Count == 1 select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Count != 1 select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Count > 0 select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Count >= 1 select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Count < 1 select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Count <= 1 select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Select(p => p.FirstName).Equals("Alice") select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+        }
+
+        [Test]
+        public void TestLinqExecuteCollectionWithSubQueryAndSelectConstraint()
+        {
+            var persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Select(p => p.FirstName).Equals("Alice") select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
         }
     }
 }

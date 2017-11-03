@@ -25,7 +25,10 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
+using Remotion.Linq;
+using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
+using Remotion.Linq.Clauses.ResultOperators;
 using Remotion.Linq.Parsing;
 using System;
 using System.Linq.Expressions;
@@ -65,7 +68,7 @@ namespace Semiodesk.Trinity.Query
                 var property = new Property(CurrentMember.GetRdfPropertyAttribute().MappedUri);
                 var value = CurrentConstant.Value;
 
-                switch(expression.NodeType)
+                switch (expression.NodeType)
                 {
                     case ExpressionType.Equal:
                         Visitor.Query.Where(property, value); break;
@@ -104,6 +107,23 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitSubQueryExpression(SubQueryExpression expression)
         {
+            QueryModel queryModel = expression.QueryModel;
+
+            if(queryModel.MainFromClause.FromExpression.NodeType == ExpressionType.MemberAccess)
+            {
+                MemberExpression currentMember = queryModel.MainFromClause.FromExpression as MemberExpression;
+
+                var property = new Property(currentMember.GetRdfPropertyAttribute().MappedUri);
+
+                foreach (ResultOperatorBase op in queryModel.ResultOperators)
+                {
+                    if(op is CountResultOperator)
+                    {
+                        // TODO: Add COUNT(?property) and GROUP BY clauses to query.
+                    }
+                }
+            }
+
             return base.VisitSubQueryExpression(expression);
         }
 
