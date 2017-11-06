@@ -26,10 +26,7 @@
 // Copyright (c) Semiodesk GmbH 2015
 
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using VDS.RDF.Parsing;
 
 namespace Semiodesk.Trinity
@@ -76,6 +73,8 @@ namespace Semiodesk.Trinity
         /// <param name="namespaceManager">The optional namespace manager used to declare Sparql PREFIXes.</param>
         public SparqlUpdate(string updateString)
         {
+            _updateString = updateString;
+
             using (TextReader reader = new StringReader(updateString))
             {
                 // Parse the query for namespace prefixes and optionally remove any formatting characters.
