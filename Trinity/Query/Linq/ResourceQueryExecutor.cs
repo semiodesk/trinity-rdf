@@ -53,7 +53,7 @@ namespace Semiodesk.Trinity.Query
 
             // Searches for the generic method IEnumerable<T> GetResources<T>(ResourceQuery) and saves a handle
             // for later use within ExecuteCollection(QueryModel);
-            _getResourceMethod = model.GetType().GetMethods().FirstOrDefault(m => m.IsGenericMethod && m.Name == "GetResources" && m.GetParameters().Any(p => p.ParameterType == typeof(ResourceQuery)));
+            _getResourceMethod = model.GetType().GetMethods().FirstOrDefault(m => m.IsGenericMethod && m.Name == "GetResources" && m.GetParameters().Any(p => p.ParameterType == typeof(ISparqlQuery)));
         }
         
         #endregion
@@ -69,7 +69,7 @@ namespace Semiodesk.Trinity.Query
                 QueryModelVisitor visitor = new QueryModelVisitor();
                 visitor.VisitQueryModel(queryModel);
 
-                object[] args = new object[] { visitor.Query, false, null };
+                object[] args = new object[] { visitor.GetQuery(), false, null };
 
                 IEnumerable<T> result = getResources.Invoke(Model, args) as IEnumerable<T>;
 

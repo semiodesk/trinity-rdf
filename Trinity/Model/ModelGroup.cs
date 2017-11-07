@@ -532,7 +532,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public IQueryable<T> QueryResources<T>() where T : Resource
+        public IQueryable<T> AsQueryable<T>() where T : Resource
         {
             throw new NotImplementedException();
         }

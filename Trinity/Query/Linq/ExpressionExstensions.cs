@@ -25,19 +25,35 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
-using System;
-using System.Linq;
+using Remotion.Linq.Clauses.Expressions;
 using System.Linq.Expressions;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal static class MemberExpressionExtensions
+    internal static class ExpressionExstensions
     {
-        public static RdfPropertyAttribute GetRdfPropertyAttribute(this MemberExpression expression)
+        public static QuerySourceReferenceExpression TryGetQuerySource(this Expression expression)
         {
-            Type attributeType = typeof(RdfPropertyAttribute);
+            if (expression is QuerySourceReferenceExpression)
+            {
+                QuerySourceReferenceExpression sourceExpression = expression as QuerySourceReferenceExpression;
 
-            return expression.Member.GetCustomAttributes(attributeType, true).First() as RdfPropertyAttribute;
+                return sourceExpression;
+            }
+            else if (expression is MemberExpression)
+            {
+                MemberExpression memberExpression = expression as MemberExpression;
+
+                return TryGetQuerySource(memberExpression.Expression);
+            }
+            else if (expression is SubQueryExpression)
+            {
+                SubQueryExpression subQueryExpression = expression as SubQueryExpression;
+
+                return TryGetQuerySource(subQueryExpression.QueryModel.MainFromClause.FromExpression);
+            }
+
+            return null;
         }
     }
 }

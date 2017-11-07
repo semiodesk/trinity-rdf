@@ -643,13 +643,13 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public IQueryable<T> QueryResources<T>() where T : Resource
+        public IQueryable<T> AsQueryable<T>() where T : Resource
         {
             ResourceQueryExecutor executor = new ResourceQueryExecutor(this);
 
             QueryParser queryParser = QueryParser.CreateDefault();
 
-            return new ResourceQuerable<T>(queryParser, executor);
+            return new ResourceQueryable<T>(queryParser, executor);
         }
 
         /// <summary>

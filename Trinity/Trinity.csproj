@@ -121,13 +121,14 @@
     <Compile Include="PropertyValue.cs" />
     <Compile Include="Query\ISparqlQuery.cs" />
     <Compile Include="Query\ISparqlQueryResult.cs" />
-    <Compile Include="Query\Linq\ExpressionVisitor.cs" />
-    <Compile Include="Query\Linq\Extensions.cs" />
+    <Compile Include="Query\Linq\ExpressionExstensions.cs" />
+    <Compile Include="Query\Linq\ExpressionTreeVisitor.cs" />
+    <Compile Include="Query\Linq\ExpressionTreeVisitorNodeContext.cs" />
     <Compile Include="Query\Linq\MemberExpressionExtensions.cs" />
     <Compile Include="Query\Linq\QueryModelVisitor.cs" />
     <Compile Include="Query\Linq\ResourceQueryExecutor.cs" />
     <Compile Include="Query\ResourceProvider.cs" />
-    <Compile Include="Query\Linq\ResourceQuerable.cs" />
+    <Compile Include="Query\Linq\ResourceQueryable.cs" />
     <Compile Include="Query\ResourceQuery.cs" />
     <Compile Include="Query\ResourceQueryResult.cs" />
     <Compile Include="Query\SortCriterion.cs" />

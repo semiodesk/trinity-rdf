@@ -32,16 +32,16 @@ using System.Linq.Expressions;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal class ResourceQuerable<T> : QueryableBase<T> where T : Resource
+    internal class ResourceQueryable<T> : QueryableBase<T> where T : Resource
     {
         #region Constructors
 
-        public ResourceQuerable(IQueryParser queryParser, IQueryExecutor executor)
-            : base(new DefaultQueryProvider(typeof(ResourceQuerable<>), queryParser, executor))
+        public ResourceQueryable(IQueryParser queryParser, IQueryExecutor executor)
+            : base(new DefaultQueryProvider(typeof(ResourceQueryable<>), queryParser, executor))
         {
         }
 
-        public ResourceQuerable(IQueryProvider provider, Expression expression)
+        public ResourceQueryable(IQueryProvider provider, Expression expression)
             : base(provider, expression)
         {
         }
