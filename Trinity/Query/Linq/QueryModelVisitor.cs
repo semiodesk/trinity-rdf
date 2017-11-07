@@ -27,7 +27,12 @@
 
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
+using Remotion.Linq.Clauses.Expressions;
 using Remotion.Linq.Collections;
+using System;
+using System.Diagnostics;
+using System.Linq.Expressions;
+using VDS.RDF.Query.Builder;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -35,7 +40,9 @@ namespace Semiodesk.Trinity.Query
     {
         #region Members
 
-        public ResourceQuery Query { get; private set; }
+        public IQueryBuilder _queryBuilder;
+
+        private ExpressionTreeVisitor _expressionVisitor;
 
         #endregion
 
@@ -43,35 +50,142 @@ namespace Semiodesk.Trinity.Query
 
         public QueryModelVisitor()
         {
-            // TODO: This should be a SPARQL query.
-            Query = new ResourceQuery();
+            _queryBuilder = QueryBuilder.Select("s", "p", "o").Where(t => t.Subject("s").Predicate("p").Object("o"));
+            _expressionVisitor = new ExpressionTreeVisitor(this);
+        }
+
+        public QueryModelVisitor(IQueryBuilder queryBuilder)
+        {
+            _queryBuilder = queryBuilder;
+            _expressionVisitor = new ExpressionTreeVisitor(this);
         }
 
         #endregion
 
         #region Methods
 
+        public override void VisitAdditionalFromClause(AdditionalFromClause fromClause, QueryModel queryModel, int index)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void VisitGroupJoinClause(GroupJoinClause groupJoinClause, QueryModel queryModel, int index)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void VisitJoinClause(JoinClause joinClause, QueryModel queryModel, int index)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void VisitJoinClause(JoinClause joinClause, QueryModel queryModel, GroupJoinClause groupJoinClause)
+        {
+            throw new NotSupportedException();
+        }
+
         public override void VisitMainFromClause(MainFromClause fromClause, QueryModel queryModel)
         {
-            base.VisitMainFromClause(fromClause, queryModel);
+            if (fromClause.FromExpression.NodeType == ExpressionType.MemberAccess)
+            {
+                MemberExpression memberExpression = fromClause.FromExpression as MemberExpression;
+
+                if(memberExpression.Expression is SubQueryExpression)
+                {
+                    _expressionVisitor.VisitExpression(memberExpression.Expression);
+                }
+
+                Debug.WriteLine(fromClause.GetType().ToString() + ": " + fromClause.ItemName);
+
+                _expressionVisitor.VisitExpression(fromClause.FromExpression);
+            }
+            else
+            {
+                Debug.WriteLine(fromClause.GetType().ToString() + ": " + fromClause.ItemName);
+            }
         }
 
-        protected override void VisitBodyClauses(ObservableCollection<IBodyClause> bodyClauses, QueryModel queryModel)
+        public override void VisitQueryModel(QueryModel queryModel)
         {
-            base.VisitBodyClauses(bodyClauses, queryModel);
+            Debug.WriteLine(queryModel.GetType().ToString());
+
+            queryModel.SelectClause.Accept(this, queryModel);
         }
 
-        public override void VisitWhereClause(WhereClause whereClause, QueryModel queryModel, int index)
+        public override void VisitResultOperator(ResultOperatorBase resultOperator, QueryModel queryModel, int index)
         {
-            ExpressionVisitor visitor = new ExpressionVisitor(this);
-            visitor.VisitExpression(whereClause.Predicate);
-
-            base.VisitWhereClause(whereClause, queryModel, index);
+            Debug.WriteLine(resultOperator.GetType().ToString());
         }
 
         public override void VisitSelectClause(SelectClause selectClause, QueryModel queryModel)
         {
-            base.VisitSelectClause(selectClause, queryModel);
+            Debug.WriteLine(selectClause.GetType().ToString());
+
+            queryModel.MainFromClause.Accept(this, queryModel);
+
+            for(int i = 0; i < queryModel.BodyClauses.Count; i++)
+            {
+                IBodyClause c = queryModel.BodyClauses[i];
+
+                c.Accept(this, queryModel, i);
+            }
+
+            for(int i = 0; i < queryModel.ResultOperators.Count; i++)
+            {
+                ResultOperatorBase o = queryModel.ResultOperators[i];
+
+                o.Accept(this, queryModel, i);
+            }
+        }
+
+        public override void VisitWhereClause(WhereClause whereClause, QueryModel queryModel, int index)
+        {
+            if (whereClause.Predicate is BinaryExpression)
+            {
+                BinaryExpression binaryExpression = whereClause.Predicate as BinaryExpression;
+
+                if(binaryExpression.Left is SubQueryExpression)
+                {
+                    _expressionVisitor.VisitExpression(binaryExpression.Left);
+                }
+
+                if(binaryExpression.Right is SubQueryExpression)
+                {
+                    _expressionVisitor.VisitExpression(binaryExpression.Right);
+                }
+
+                Debug.WriteLine(whereClause.GetType().ToString());
+            }
+            else
+            {
+                Debug.WriteLine(whereClause.GetType().ToString());
+            }
+
+            _expressionVisitor.VisitExpression(whereClause.Predicate);
+        }
+
+        public override void VisitOrderByClause(OrderByClause orderByClause, QueryModel queryModel, int index)
+        {
+            Debug.WriteLine(orderByClause.GetType().ToString());
+
+            base.VisitOrderByClause(orderByClause, queryModel, index);
+        }
+
+        public override void VisitOrdering(Ordering ordering, QueryModel queryModel, OrderByClause orderByClause, int index)
+        {
+            Debug.WriteLine(ordering.GetType().ToString());
+
+            base.VisitOrdering(ordering, queryModel, orderByClause, index);
+        }
+
+        public ISparqlQuery GetQuery()
+        {
+            return new SparqlQuery(_queryBuilder.BuildQuery().ToString());
+        }
+
+        internal IQueryBuilder GetQueryBuilder()
+        {
+            return _queryBuilder;
         }
 
         #endregion
