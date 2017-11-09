@@ -28,11 +28,16 @@
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
+using Remotion.Linq.Clauses.ResultOperators;
 using Remotion.Linq.Collections;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Linq.Expressions;
+using VDS.RDF.Query.Aggregates.Sparql;
 using VDS.RDF.Query.Builder;
+using VDS.RDF.Query.Expressions.Primary;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -40,9 +45,11 @@ namespace Semiodesk.Trinity.Query
     {
         #region Members
 
-        public IQueryBuilder _queryBuilder;
-
         private ExpressionTreeVisitor _expressionVisitor;
+
+        private readonly IQueryBuilder _rootQueryBuilder;
+
+        private readonly Stack<QueryBuilderHelper> _queryBuilderHelpers = new Stack<QueryBuilderHelper>();
 
         #endregion
 
@@ -50,13 +57,12 @@ namespace Semiodesk.Trinity.Query
 
         public QueryModelVisitor()
         {
-            _queryBuilder = QueryBuilder.Select("s", "p", "o").Where(t => t.Subject("s").Predicate("p").Object("o"));
-            _expressionVisitor = new ExpressionTreeVisitor(this);
-        }
+            // The root query which selects triples when returning resources.
+            _rootQueryBuilder = QueryBuilder
+                .Select("s_", "p_", "o_")
+                .Where(t => t.Subject("s_").Predicate("p_").Object("o_"));
 
-        public QueryModelVisitor(IQueryBuilder queryBuilder)
-        {
-            _queryBuilder = queryBuilder;
+            // The expression tree visitor needs to be initialized *after* the query builders.
             _expressionVisitor = new ExpressionTreeVisitor(this);
         }
 
@@ -92,7 +98,7 @@ namespace Semiodesk.Trinity.Query
 
                 if(memberExpression.Expression is SubQueryExpression)
                 {
-                    _expressionVisitor.VisitExpression(memberExpression.Expression);
+                    VisitSubQueryExpression(memberExpression.Expression as SubQueryExpression);
                 }
 
                 Debug.WriteLine(fromClause.GetType().ToString() + ": " + fromClause.ItemName);
@@ -115,6 +121,47 @@ namespace Semiodesk.Trinity.Query
         public override void VisitResultOperator(ResultOperatorBase resultOperator, QueryModel queryModel, int index)
         {
             Debug.WriteLine(resultOperator.GetType().ToString());
+
+            QueryBuilderHelper context = GetQueryBuilderHelper();
+
+            if (resultOperator is AnyResultOperator)
+            {
+            }
+            else if (resultOperator is AverageResultOperator)
+            {
+            }
+            else if(resultOperator is CountResultOperator)
+            {
+                context.SelectBuilder.And(e => e.Count(context.ObjectVariable.Name)).As("x");
+                context.QueryBuilder.GroupBy(context.SubjectVariable.Name);
+
+                return;
+            }
+            else if(resultOperator is FirstResultOperator)
+            {
+                context.QueryBuilder.OrderBy(context.ObjectVariable.Name);
+                context.QueryBuilder.Limit(1);
+
+                return;
+            }
+            else if(resultOperator is LastResultOperator)
+            {
+                context.QueryBuilder.OrderByDescending(context.ObjectVariable.Name);
+                context.QueryBuilder.Limit(1);
+
+                return;
+            }
+            else if(resultOperator is OfTypeResultOperator)
+            {
+            }
+            else if(resultOperator is SumResultOperator)
+            {
+            }
+            else if(resultOperator is SkipResultOperator)
+            {
+            }
+
+            throw new NotImplementedException();
         }
 
         public override void VisitSelectClause(SelectClause selectClause, QueryModel queryModel)
@@ -146,12 +193,12 @@ namespace Semiodesk.Trinity.Query
 
                 if(binaryExpression.Left is SubQueryExpression)
                 {
-                    _expressionVisitor.VisitExpression(binaryExpression.Left);
+                    VisitSubQueryExpression(binaryExpression.Left as SubQueryExpression);
                 }
 
                 if(binaryExpression.Right is SubQueryExpression)
                 {
-                    _expressionVisitor.VisitExpression(binaryExpression.Right);
+                    VisitSubQueryExpression(binaryExpression.Right as SubQueryExpression);
                 }
 
                 Debug.WriteLine(whereClause.GetType().ToString());
@@ -162,6 +209,19 @@ namespace Semiodesk.Trinity.Query
             }
 
             _expressionVisitor.VisitExpression(whereClause.Predicate);
+        }
+
+        private void VisitSubQueryExpression(SubQueryExpression expression)
+        {
+            QueryBuilderHelper context = new QueryBuilderHelper(this);
+
+            _queryBuilderHelpers.Push(context);
+
+            _expressionVisitor.VisitExpression(expression);
+
+            Debug.WriteLine(context.BuildQuery());
+
+            _queryBuilderHelpers.Pop();
         }
 
         public override void VisitOrderByClause(OrderByClause orderByClause, QueryModel queryModel, int index)
@@ -180,12 +240,16 @@ namespace Semiodesk.Trinity.Query
 
         public ISparqlQuery GetQuery()
         {
-            return new SparqlQuery(_queryBuilder.BuildQuery().ToString());
+            string query = _rootQueryBuilder.BuildQuery().ToString();
+
+            Debug.WriteLine(query);
+
+            return new SparqlQuery(query);
         }
 
-        internal IQueryBuilder GetQueryBuilder()
+        internal QueryBuilderHelper GetQueryBuilderHelper()
         {
-            return _queryBuilder;
+            return _queryBuilderHelpers.Peek();
         }
 
         #endregion

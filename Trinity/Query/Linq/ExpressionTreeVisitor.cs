@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using VDS.RDF;
+using VDS.RDF.Query;
 using VDS.RDF.Query.Builder;
 using VDS.RDF.Query.Builder.Expressions;
 using VDS.RDF.Query.Expressions.Primary;
@@ -47,13 +48,11 @@ namespace Semiodesk.Trinity.Query
 
         private QueryModelVisitor _queryModelVisitor;
 
-        private IQueryBuilder _queryBuilder;
-
         private ExpressionTreeVisitorNodeContext _subject;
 
-        private ExpressionTreeVisitorNodeContext _predicate;
-
         private ExpressionTreeVisitorNodeContext _object;
+
+        private int _objectCount;
 
         #endregion
 
@@ -62,9 +61,7 @@ namespace Semiodesk.Trinity.Query
         public ExpressionTreeVisitor(QueryModelVisitor queryModelVisitor)
         {
             _queryModelVisitor = queryModelVisitor;
-            _queryBuilder = queryModelVisitor.GetQueryBuilder();
             _subject = ExpressionTreeVisitorNodeContext.FromVariableName("s");
-            _predicate = null;
             _object = null;
         }
 
@@ -96,37 +93,39 @@ namespace Semiodesk.Trinity.Query
 
             if (expression.Left is MemberExpression && expression.Right is ConstantExpression)
             {
+                QueryBuilderHelper context = _queryModelVisitor.GetQueryBuilderHelper();
+
                 MemberExpression member = expression.Left as MemberExpression;
                 ConstantExpression constant = expression.Right as ConstantExpression;
 
-                var property = GetPropertyAttribute(member);
+                var property = member.GetRdfPropertyAttribute();
                 var node = _object.Node;
                 var term = new LiteralExpression(_object.Expression);
 
                 switch (expression.NodeType)
                 {
                     case ExpressionType.Equal:
-                        _queryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object(node));
+                        context.QueryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object(node));
                         break;
                     case ExpressionType.GreaterThan:
-                        _queryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object("l"));
-                        _queryBuilder.Filter(e => e.Variable("l") > term);
+                        context.QueryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object("l"));
+                        context.QueryBuilder.Filter(e => e.Variable("l") > term);
                         break;
                     case ExpressionType.GreaterThanOrEqual:
-                        _queryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object("l"));
-                        _queryBuilder.Filter(e => e.Variable("l") >= term);
+                        context.QueryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object("l"));
+                        context.QueryBuilder.Filter(e => e.Variable("l") >= term);
                         break;
                     case ExpressionType.LessThan:
-                        _queryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object("l"));
-                        _queryBuilder.Filter(e => e.Variable("l") < term);
+                        context.QueryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object("l"));
+                        context.QueryBuilder.Filter(e => e.Variable("l") < term);
                         break;
                     case ExpressionType.LessThanOrEqual:
-                        _queryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object("l"));
-                        _queryBuilder.Filter(e => e.Variable("l") <= term);
+                        context.QueryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object("l"));
+                        context.QueryBuilder.Filter(e => e.Variable("l") <= term);
                         break;
                     case ExpressionType.NotEqual:
-                        _queryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object("l"));
-                        _queryBuilder.Filter(e => e.Variable("l") != term);
+                        context.QueryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object("l"));
+                        context.QueryBuilder.Filter(e => e.Variable("l") != term);
                         break;
                     default:
                         throw new NotSupportedException(expression.NodeType.ToString());
@@ -175,9 +174,26 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitMemberExpression(MemberExpression expression)
         {
-            _predicate = ExpressionTreeVisitorNodeContext.FromMemberExpression(expression);
+            RdfPropertyAttribute attribute = expression.Member.TryGetRdfPropertyAttribute();
 
-            Debug.WriteLine(expression.GetType().ToString() + ": " + _predicate.Node.ToString());
+            if(attribute != null)
+            {
+                INode node = new NodeFactory().CreateUriNode(attribute.MappedUri);
+
+                Debug.WriteLine(expression.GetType().ToString() + ": " + node.ToString());
+
+                QueryBuilderHelper context = _queryModelVisitor.GetQueryBuilderHelper();
+
+                if (context.SetSubjectFromExpression(expression))
+                {
+                    SparqlVariable s = context.SubjectVariable;
+                    SparqlVariable o = GetNextObjectVariable();
+
+                    context.QueryBuilder.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(o.Name));
+
+                    context.SetObject(o);
+                }
+            }
 
             return expression;
         }
@@ -257,11 +273,13 @@ namespace Semiodesk.Trinity.Query
             return null;
         }
 
-        private RdfPropertyAttribute GetPropertyAttribute(MemberExpression expression)
+        private SparqlVariable GetNextObjectVariable()
         {
-            Type attributeType = typeof(RdfPropertyAttribute);
+            string v = "o_" + _objectCount;
 
-            return expression.Member.GetCustomAttributes(attributeType, true).First() as RdfPropertyAttribute;
+            _objectCount += 1;
+
+            return new SparqlVariable(v);
         }
 
         #endregion

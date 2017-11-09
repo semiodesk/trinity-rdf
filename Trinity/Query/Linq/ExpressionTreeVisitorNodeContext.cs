@@ -66,11 +66,9 @@ namespace Semiodesk.Trinity.Query
 
         public static ExpressionTreeVisitorNodeContext FromMemberExpression(MemberExpression memberExpression)
         {
-            Type attributeType = typeof(RdfPropertyAttribute);
-
             MemberInfo member = memberExpression.Member;
 
-            RdfPropertyAttribute attribute = member.GetCustomAttributes(attributeType, true).First() as RdfPropertyAttribute;
+            RdfPropertyAttribute attribute = member.TryGetRdfPropertyAttribute();
 
             INode node = new NodeFactory().CreateUriNode(attribute.MappedUri);
 

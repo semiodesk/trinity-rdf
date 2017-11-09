@@ -32,7 +32,7 @@ using System.Linq;
 namespace Semiodesk.Trinity.Test.Linq
 {
     [TestFixture]
-    class LinqTest
+    public class LinqTest
     {
         protected IStore Store = StoreFactory.CreateStore("provider=dotnetrdf");
 
@@ -78,81 +78,81 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void TestLinqExecuteCollectionWithIntegerPropertyCondition()
+        public void TestExecuteCollectionWithIntegerPropertyCondition()
         {
-            var persons = from person in Model.QueryResources<Person>() where person.Age == 69 select person;
+            var persons = from person in Model.AsQueryable<Person>() where person.Age == 69 select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
 
-            persons = from person in Model.QueryResources<Person>() where person.Age != 69 select person;
+            persons = from person in Model.AsQueryable<Person>() where person.Age != 69 select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
 
-            persons = from person in Model.QueryResources<Person>() where person.Age < 50 select person;
+            persons = from person in Model.AsQueryable<Person>() where person.Age < 50 select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
 
-            persons = from person in Model.QueryResources<Person>() where person.Age <= 69 select person;
+            persons = from person in Model.AsQueryable<Person>() where person.Age <= 69 select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
 
-            persons = from person in Model.QueryResources<Person>() where person.Age >= 69 select person;
+            persons = from person in Model.AsQueryable<Person>() where person.Age >= 69 select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
 
-            persons = from person in Model.QueryResources<Person>() where person.Age > 50 select person;
+            persons = from person in Model.AsQueryable<Person>() where person.Age > 50 select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
         }
 
         [Test]
-        public void TestLinqExecuteCollectionWithStringPropertyCondition()
+        public void TestExecuteCollectionWithStringPropertyCondition()
         {
-            var persons = from person in Model.QueryResources<Person>() where person.FirstName == "Alice" select person;
+            var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" && person.Age > 1 select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
 
-            persons = from person in Model.QueryResources<Person>() where person.FirstName != "Alice" select person;
+            persons = from person in Model.AsQueryable<Person>() where person.FirstName != "Alice" select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
         }
 
         [Test]
-        public void TestLinqExecuteCollectionWithSubQueryAndIntegerCondition()
+        public void TestExecuteCollectionWithSubQueryAndIntegerCondition()
         {
-            var persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Count == 1 select person;
+            var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.First().KnownPeople.Count == 1 select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
 
-            persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Count != 1 select person;
+            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count != 1 select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
 
-            persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Count > 0 select person;
+            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count > 0 select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
 
-            persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Count >= 1 select person;
+            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count >= 1 select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
 
-            persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Count < 1 select person;
+            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count < 1 select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
 
-            persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Count <= 1 select person;
+            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count <= 1 select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
 
-            persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Select(p => p.FirstName).Equals("Alice") select person;
+            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Select(p => p.FirstName).Equals("Alice") select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
         }
 
         [Test]
-        public void TestLinqExecuteCollectionWithSubQueryAndSelectConstraint()
+        public void TestExecuteCollectionWithSubQueryAndSelectConstraint()
         {
-            var persons = from person in Model.QueryResources<Person>() where person.KnownPeople.Select(p => p.FirstName).Equals("Alice") select person;
+            var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Select(p => p.FirstName).Equals("Alice") select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
         }
