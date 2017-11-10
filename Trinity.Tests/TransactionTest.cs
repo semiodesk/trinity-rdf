@@ -355,7 +355,7 @@ namespace Semiodesk.Trinity.Test
 
                     store.Dispose();
                 }
-                catch(Exception ex)
+                catch(Exception)
                 {
                     faulted = true;
                 }

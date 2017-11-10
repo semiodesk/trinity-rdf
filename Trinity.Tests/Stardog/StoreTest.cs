@@ -28,7 +28,6 @@
 using System;
 using System.IO;
 using NUnit.Framework;
-using Semiodesk.Trinity;
 using System.Linq;
 using System.Reflection;
 
@@ -112,18 +111,17 @@ namespace Semiodesk.Trinity.Test.Stardog
         [Test]
         public void ContainsModelTest()
         {
-            
             Uri testModel = new Uri("ex:Test");
             Store.RemoveModel(testModel);
 
             Assert.IsFalse(Store.ContainsModel(testModel));
 
-            IModel m = Store.CreateModel(testModel);
+            IModel m1 = Store.CreateModel(testModel);
 
-            var res = m.CreateResource(new Uri("ex:test:resource"));
+            IResource r = m1.CreateResource(new Uri("ex:test:resource"));
             
-            res.AddProperty(new Property(new Uri("ex:test:property")), "var");
-            res.Commit();
+            r.AddProperty(new Property(new Uri("ex:test:property")), "var");
+            r.Commit();
 
             Assert.IsTrue(Store.ContainsModel(testModel));
             Assert.IsFalse(Store.ContainsModel(new Uri("ex:NoTest")));
@@ -134,49 +132,40 @@ namespace Semiodesk.Trinity.Test.Stardog
         {
             Uri testModel = new Uri("ex:Test");
 
-            Assert.IsFalse(Store.ContainsModel(testModel));
+            IModel m1 = Store.CreateModel(testModel);
 
-            IModel m = Store.CreateModel(testModel);
+            IResource r = m1.CreateResource(new Uri("ex:test:resource"));
+            r.AddProperty(new Property(new Uri("ex:test:property")), "var");
+            r.Commit();
 
-            var res = m.CreateResource(new Uri("ex:test:resource"));
+            IModel m2 = Store.GetModel(testModel);
 
-            res.AddProperty(new Property(new Uri("ex:test:property")), "var");
-            res.Commit();
-
-            Assert.IsTrue(Store.ContainsModel(testModel));
-
-            IModel model2 = Store.GetModel(testModel);
-            Assert.AreEqual(testModel, model2.Uri);
-
-            Assert.IsTrue(model2.ContainsResource(res));
+            Assert.AreEqual(testModel, m2.Uri);
+            Assert.IsTrue(m2.ContainsResource(r));
         }
 
         [Test]
         public void RemoveModelTest()
         {
             Uri testModel = new Uri("ex:Test");
-            Store.RemoveModel(testModel);
-
-            Assert.IsFalse(Store.ContainsModel(testModel));
-
-            IModel m = Store.CreateModel(testModel);
-
-            var res = m.CreateResource(new Uri("ex:test:resource"));
-
-            res.AddProperty(new Property(new Uri("ex:test:property")), "var");
-            res.Commit();
-
-            Assert.IsTrue(Store.ContainsModel(testModel));
-
-            IModel model2 = Store.GetModel(testModel);
-            Assert.AreEqual(testModel, model2.Uri);
 
             Store.RemoveModel(testModel);
-            Assert.IsFalse(Store.ContainsModel(testModel));
 
-            model2 = Store.GetModel(testModel);
-            Assert.IsTrue(model2.IsEmpty);
+            IModel m1 = Store.CreateModel(testModel);
+
+            IResource r = m1.CreateResource(new Uri("ex:test:resource"));
+            r.AddProperty(new Property(new Uri("ex:test:property")), "var");
+            r.Commit();
+
+            IModel m2 = Store.GetModel(testModel);
+
+            Assert.AreEqual(testModel, m2.Uri);
+
+            Store.RemoveModel(testModel);
+
+            m2 = Store.GetModel(testModel);
+
+            Assert.IsTrue(m2.IsEmpty);
         }
-
     }
 }
