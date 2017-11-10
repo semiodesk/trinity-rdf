@@ -32,7 +32,7 @@ namespace Semiodesk.Trinity
     /// <summary>
     /// Decorate a class with this attribute to mark it as mapping for an RDF class of the given type.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Class)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public class RdfClassAttribute : Attribute
     {
         #region Members

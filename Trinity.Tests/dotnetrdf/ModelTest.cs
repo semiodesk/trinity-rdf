@@ -203,6 +203,35 @@ namespace dotNetRDFStore.Test
             
         }
 
+        [Test]
+        public void UpdateResourceTest()
+        {
+            Property property = new Property(new Uri("http://example.org/MyProperty"));
+            Uri resourceUri = new Uri("http://example.org/MyResource");
+            IResource resource = Model.CreateResource(resourceUri);
+            resource.AddProperty(property, 123);
+            resource.AddProperty(property, "in the jungle");
+            resource.Commit();
+
+            // Try to update resource with different properties then persisted
+            Resource r2 = new Resource(resourceUri);
+            r2.AddProperty(property, "in the jengle");
+
+            r2.Model = Model;
+            r2.Commit();
+            var actual = Model.GetResource<Resource>(resourceUri);
+            Assert.AreEqual(r2, actual);
+
+
+            // Try to update resource without properties
+            Resource r3 = new Resource(resourceUri);
+
+            r3.Model = Model;
+            r3.Commit();
+            actual = Model.GetResource<Resource>(resourceUri);
+            Assert.AreEqual(r3, actual);
+        }
+
 
 
         [Test]
