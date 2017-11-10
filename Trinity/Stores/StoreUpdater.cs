@@ -32,10 +32,12 @@ using System.Text;
 using OpenLink.Data.Virtuoso;
 using System.IO;
 using Semiodesk.Trinity.Configuration;
+using System.ComponentModel;
 
 namespace Semiodesk.Trinity
 {
-    internal class StoreUpdater
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public class StoreUpdater
     {
         #region Fields
         private DirectoryInfo _sourceDirectory;
@@ -54,14 +56,6 @@ namespace Semiodesk.Trinity
         #endregion
 
         #region Methods
-
-        protected void RemoveGraph(Uri graphUri)
-        {
-            if (_store.ContainsModel(graphUri))
-            {
-                _store.RemoveModel(graphUri);
-            }
-        }
 
         public void UpdateOntologies(IEnumerable<Semiodesk.Trinity.Configuration.Ontology> ontologies)
         {

@@ -199,10 +199,14 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string SerializeResource(IResource resource)
         {
+            var valueList = resource.ListValues();
+            if (!valueList.Any())
+                return string.Empty;
+
             StringBuilder result = new StringBuilder(SerializeUri(resource.Uri));
             result.Append(' ');
 
-            foreach (var value in resource.ListValues())
+            foreach (var value in valueList)
             {
                 if (value.Item2 == null)
                 {
@@ -317,7 +321,7 @@ namespace Semiodesk.Trinity
             }
             if (onlyUris)
             {
-                string q = "SELECT ?s0 {0} WHERE {{ ?s0 ?p0 ?o0 . {{ SELECT DISTINCT ?s0 WHERE {{{1}}} {2} }}}}";
+                string q = "SELECT DISTINCT ?s0 {0} WHERE {{ ?s0 ?p0 ?o0 . {{ SELECT DISTINCT ?s0 WHERE {{{1}}} {2} }}}}";
                 result.Append(string.Format(q, GenerateDatasetClause(model), whereBlock.ToString(), modifierBlock.ToString()));
             }
             else

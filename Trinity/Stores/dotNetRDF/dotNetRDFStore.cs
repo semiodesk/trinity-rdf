@@ -82,7 +82,9 @@ namespace Semiodesk.Trinity.Store
 
             foreach (string m in schema)
             {
-                IGraph schemaGraph = LoadSchema(m);
+                var x = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory;
+                FileInfo s = new FileInfo( Path.Combine(x.FullName, m));
+                IGraph schemaGraph = LoadSchema(s.FullName);
 
                 _store.Add(schemaGraph);
                 _reasoner.Initialise(schemaGraph);

@@ -282,7 +282,6 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestInferencing()
         {
-            Assert.Inconclusive("dotNetRdf does not support inferencing.");
 
             // Retrieving resources using the model API.
             Assert.AreEqual(true, Model.ContainsResource(new Uri("http://example.org/Hans")));

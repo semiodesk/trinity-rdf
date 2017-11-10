@@ -185,7 +185,7 @@ namespace Semiodesk.Trinity
             HashSet<Type> allowed = new HashSet<Type>{ typeof(string), typeof(bool), typeof(float), typeof(double), typeof(decimal),
                                                  typeof(Int16), typeof(Int32), typeof(Int64), 
                                                  typeof(UInt16),typeof(UInt32), typeof(UInt64), 
-                                                 typeof(DateTime)};
+                                                 typeof(DateTime), typeof(System.Uri)};
 
             if (!allowed.Contains(_dataType) && _dataType.GetInterface("IResource") == null && !typeof(Resource).IsAssignableFrom(_dataType))
             {

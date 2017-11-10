@@ -202,6 +202,14 @@ namespace Semiodesk.Trinity
         T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource;
 
         /// <summary>
+        /// Retrieves a resource from the model.
+        /// </summary>
+        /// <param name="resource">The instance of IResource to be retrieved.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <returns>A resource with all asserted properties.</returns>
+        T GetResource<T>(IResource resource, ITransaction transaction = null) where T : Resource;
+
+        /// <summary>
         /// Retrieves a resource from the model. Provides a resource object of the given type.
         /// </summary>
         /// <param name="uri">A Uniform Resource Identifier.</param>
@@ -209,6 +217,14 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>A resource with all asserted properties.</returns>
         object GetResource(Uri uri, Type type, ITransaction transaction = null);
+
+        /// <summary>
+        /// Retrieves a resource from the model.
+        /// </summary>
+        /// <param name="resource">The instance of IResource to be retrieved.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <returns>A resource with all asserted properties.</returns>
+        IResource GetResource(IResource resource, ITransaction transaction = null);
 
         /// <summary>
         /// Executes a SPARQL query and provides an enumeration of matching resources.

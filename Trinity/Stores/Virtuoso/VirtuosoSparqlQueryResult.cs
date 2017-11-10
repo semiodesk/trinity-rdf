@@ -129,14 +129,14 @@ namespace Semiodesk.Trinity.Store
                 {
                     return new Tuple<string, CultureInfo>(box.Value.ToString(), new CultureInfo(box.StrLang));
                 }
-                else
+                else if(box.Value != null)
                 {
                     return box.Value.ToString();
                 }
             }
             else if (cellValue is int)
             {
-                //TODO: We need a different approach to store and read boolean s
+                //TODO: We need a different approach to store and read booleans
                 return cellValue;
                 /*
                 if ((int)cellValue == 1)
@@ -150,16 +150,13 @@ namespace Semiodesk.Trinity.Store
             {
                 // Virtuoso delivers the time not as UTC but as "unspecified"
                 // we convert it to local time
-                DateTime res = ((DateTime)cellValue).ToLocalTime();
-                return res;
+                return ((DateTime)cellValue).ToLocalTime();
             }
-
             else if (cellValue is VirtuosoDateTimeOffset)
             {
                 return ((VirtuosoDateTimeOffset)cellValue).Value.UtcDateTime.ToUniversalTime();
             }
             
-
             return cellValue;
         }
 
@@ -288,7 +285,11 @@ namespace Semiodesk.Trinity.Store
                     {
                         UriRef uri = o as UriRef;
 
-                        if (cache.ContainsKey(uri.OriginalString))
+                        if (currentResource.HasPropertyMapping(p, uri.GetType()))
+                        {
+                            currentResource.AddPropertyToMapping(p, uri, false);
+                        }
+                        else if (cache.ContainsKey(uri.OriginalString))
                         {
                             currentResource.AddPropertyToMapping(p, cache[uri.OriginalString], true);
                             currentResource.IsNew = false;
@@ -380,9 +381,10 @@ namespace Semiodesk.Trinity.Store
                     }
                     #endif
 
-                    T resource = (T)Activator.CreateInstance(classType[0], new Uri(subject));
+                    T resource = (T)Activator.CreateInstance(classType[0], new UriRef(subject));
                     resource.SetModel(_model);
                     resource.IsNew = false;
+
                     result[subject] = resource;
                 }
                 #if DEBUG

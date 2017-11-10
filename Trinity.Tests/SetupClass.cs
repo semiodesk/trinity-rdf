@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using Semiodesk.TinyVirtuoso;
 using System.Reflection;
+using System.IO;
 
 namespace Semiodesk.Trinity.Test
 {
@@ -17,20 +18,23 @@ namespace Semiodesk.Trinity.Test
 
         public static string HostAndPort;
 
-        [SetUp]
+        [OneTimeSetUp]
         public void Setup()
         {
             OntologyDiscovery.AddAssembly(Assembly.GetExecutingAssembly());
             MappingDiscovery.RegisterAssembly(Assembly.GetExecutingAssembly());
 
-            TinyVirtuoso.TinyVirtuoso v = new TinyVirtuoso.TinyVirtuoso(Environment.CurrentDirectory);
+            FileInfo i = new FileInfo(Assembly.GetExecutingAssembly().Location);
+            DirectoryInfo dir = new DirectoryInfo(Path.Combine(i.DirectoryName, "nunit"));
+
+            TinyVirtuoso.TinyVirtuoso v = new TinyVirtuoso.TinyVirtuoso(dir);
             instance = v.GetOrCreateInstance("NUnit");
             instance.Start(true);
             ConnectionString = instance.GetTrinityConnectionString();
             HostAndPort = instance.Configuration.Parameters.ServerPort;
         }
 
-        [TearDown]
+        [OneTimeTearDown]
         public void TearDown()
         {
             instance.Stop();
