@@ -87,8 +87,8 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="..\Task\GenerateOntology.cs">
-      <Link>Task\GenerateOntology.cs</Link>
+    <Compile Include="..\Task\GenerateOntologyTask.cs">
+      <Link>Task\GenerateOntologyTask.cs</Link>
     </Compile>
   </ItemGroup>
   <ItemGroup>
