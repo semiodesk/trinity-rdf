@@ -48,12 +48,6 @@ namespace Semiodesk.Trinity.Query
 
         private QueryModelVisitor _queryModelVisitor;
 
-        private ExpressionTreeVisitorNodeContext _subject;
-
-        private ExpressionTreeVisitorNodeContext _object;
-
-        private int _objectCount;
-
         #endregion
 
         #region Constructors
@@ -61,8 +55,6 @@ namespace Semiodesk.Trinity.Query
         public ExpressionTreeVisitor(QueryModelVisitor queryModelVisitor)
         {
             _queryModelVisitor = queryModelVisitor;
-            _subject = ExpressionTreeVisitorNodeContext.FromVariableName("s");
-            _object = null;
         }
 
         #endregion
@@ -93,43 +85,43 @@ namespace Semiodesk.Trinity.Query
 
             if (expression.Left is MemberExpression && expression.Right is ConstantExpression)
             {
-                QueryBuilderHelper context = _queryModelVisitor.GetQueryBuilderHelper();
+                QueryBuilderHelper helper = _queryModelVisitor.GetQueryBuilderHelper();
 
                 MemberExpression member = expression.Left as MemberExpression;
                 ConstantExpression constant = expression.Right as ConstantExpression;
 
-                var property = member.GetRdfPropertyAttribute();
-                var node = _object.Node;
-                var term = new LiteralExpression(_object.Expression);
-
                 switch (expression.NodeType)
                 {
                     case ExpressionType.Equal:
-                        context.QueryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object(node));
+                        helper.Equal(member, constant);
                         break;
                     case ExpressionType.GreaterThan:
-                        context.QueryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object("l"));
-                        context.QueryBuilder.Filter(e => e.Variable("l") > term);
+                        helper.GreaterThan(member, constant);
                         break;
                     case ExpressionType.GreaterThanOrEqual:
-                        context.QueryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object("l"));
-                        context.QueryBuilder.Filter(e => e.Variable("l") >= term);
+                        helper.GreaterThanOrEqual(member, constant);
                         break;
                     case ExpressionType.LessThan:
-                        context.QueryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object("l"));
-                        context.QueryBuilder.Filter(e => e.Variable("l") < term);
+                        helper.LessThan(member, constant);
                         break;
                     case ExpressionType.LessThanOrEqual:
-                        context.QueryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object("l"));
-                        context.QueryBuilder.Filter(e => e.Variable("l") <= term);
+                        helper.LessThanOrEqual(member, constant);
                         break;
                     case ExpressionType.NotEqual:
-                        context.QueryBuilder.Where(t => t.Subject("s").PredicateUri(property.MappedUri).Object("l"));
-                        context.QueryBuilder.Filter(e => e.Variable("l") != term);
+                        helper.NotEqual(member, constant);
                         break;
                     default:
                         throw new NotSupportedException(expression.NodeType.ToString());
                 }
+            }
+            else if(expression.Left is SubQueryExpression && expression.Right is ConstantExpression)
+            {
+                QueryBuilderHelper helper = _queryModelVisitor.GetQueryBuilderHelper();
+
+                SubQueryExpression subQuery = expression.Left as SubQueryExpression;
+                ConstantExpression constant = expression.Right as ConstantExpression;
+
+
             }
 
             return expression;
@@ -144,9 +136,7 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitConstantExpression(ConstantExpression expression)
         {
-            _object = ExpressionTreeVisitorNodeContext.FromConstantExpression(expression);
-
-            Debug.WriteLine(expression.GetType().ToString() + ": " + _object.Expression.ToString());
+            Debug.WriteLine(expression.GetType().ToString() + ": " + expression.AsSparqlExpression());
 
             return expression;
         }
@@ -174,7 +164,7 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitMemberExpression(MemberExpression expression)
         {
-            RdfPropertyAttribute attribute = expression.Member.TryGetRdfPropertyAttribute();
+            RdfPropertyAttribute attribute = expression.Member.TryGetCustomAttribute<RdfPropertyAttribute>();
 
             if(attribute != null)
             {
@@ -187,7 +177,7 @@ namespace Semiodesk.Trinity.Query
                 if (context.SetSubjectFromExpression(expression))
                 {
                     SparqlVariable s = context.SubjectVariable;
-                    SparqlVariable o = GetNextObjectVariable();
+                    SparqlVariable o = _queryModelVisitor.VariableBuilder.GenerateObjectVariable();
 
                     context.QueryBuilder.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(o.Name));
 
@@ -271,15 +261,6 @@ namespace Semiodesk.Trinity.Query
         protected override Exception CreateUnhandledItemException<T>(T unhandledItem, string visitMethod)
         {
             return null;
-        }
-
-        private SparqlVariable GetNextObjectVariable()
-        {
-            string v = "o_" + _objectCount;
-
-            _objectCount += 1;
-
-            return new SparqlVariable(v);
         }
 
         #endregion

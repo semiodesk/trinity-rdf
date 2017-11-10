@@ -29,12 +29,12 @@ using Remotion.Linq;
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
 using Remotion.Linq.Clauses.ResultOperators;
-using Remotion.Linq.Collections;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using VDS.RDF.Query;
 using VDS.RDF.Query.Aggregates.Sparql;
 using VDS.RDF.Query.Builder;
 using VDS.RDF.Query.Expressions.Primary;
@@ -51,12 +51,16 @@ namespace Semiodesk.Trinity.Query
 
         private readonly Stack<QueryBuilderHelper> _queryBuilderHelpers = new Stack<QueryBuilderHelper>();
 
+        public VariableBuilder VariableBuilder { get; private set; }
+
         #endregion
 
         #region Constructors
 
         public QueryModelVisitor()
         {
+            VariableBuilder = new VariableBuilder();
+
             // The root query which selects triples when returning resources.
             _rootQueryBuilder = QueryBuilder
                 .Select("s_", "p_", "o_")
@@ -126,42 +130,68 @@ namespace Semiodesk.Trinity.Query
 
             if (resultOperator is AnyResultOperator)
             {
+                VariableTerm o = new VariableTerm(context.ObjectVariable.Name);
+                context.SetObject(o, new SampleAggregate(o));
             }
             else if (resultOperator is AverageResultOperator)
             {
+                VariableTerm o = new VariableTerm(context.ObjectVariable.Name);
+                context.SetObject(o, new AverageAggregate(o));
             }
             else if(resultOperator is CountResultOperator)
             {
-                context.SelectBuilder.And(e => e.Count(context.ObjectVariable.Name)).As("x");
-                context.QueryBuilder.GroupBy(context.SubjectVariable.Name);
-
-                return;
+                VariableTerm o = new VariableTerm(context.ObjectVariable.Name);
+                context.SetObject(o, new CountAggregate(o));
             }
             else if(resultOperator is FirstResultOperator)
             {
                 context.QueryBuilder.OrderBy(context.ObjectVariable.Name);
                 context.QueryBuilder.Limit(1);
-
-                return;
             }
             else if(resultOperator is LastResultOperator)
             {
                 context.QueryBuilder.OrderByDescending(context.ObjectVariable.Name);
                 context.QueryBuilder.Limit(1);
-
-                return;
+            }
+            else if(resultOperator is MaxResultOperator)
+            {
+                VariableTerm o = new VariableTerm(context.ObjectVariable.Name);
+                context.SetObject(o, new MaxAggregate(o));
+            }
+            else if(resultOperator is MinResultOperator)
+            {
+                VariableTerm o = new VariableTerm(context.ObjectVariable.Name);
+                context.SetObject(o, new MinAggregate(o));
             }
             else if(resultOperator is OfTypeResultOperator)
             {
+                Type itemType = queryModel.MainFromClause.ItemType;
+                RdfClassAttribute itemClass = itemType.TryGetCustomAttribute<RdfClassAttribute>();
+
+                if(itemClass == null)
+                {
+                    throw new ArgumentException("No RdfClass attrribute declared on type: " + itemType);
+                }
+
+                SparqlVariable s = context.SubjectVariable;
+                Uri o = itemClass.MappedUri;
+
+                context.QueryBuilder.Where(e => e.Subject(s.Name).PredicateUri("rdf:type").Object(o));
             }
             else if(resultOperator is SumResultOperator)
             {
+                VariableTerm o = new VariableTerm(context.ObjectVariable.Name);
+                context.SetObject(o, new SumAggregate(o));
             }
             else if(resultOperator is SkipResultOperator)
             {
+                SkipResultOperator op = resultOperator as SkipResultOperator;
+                context.QueryBuilder.Offset(int.Parse(op.Count.ToString()));
             }
-
-            throw new NotImplementedException();
+            else
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public override void VisitSelectClause(SelectClause selectClause, QueryModel queryModel)
