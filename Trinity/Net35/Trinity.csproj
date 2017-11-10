@@ -238,6 +238,18 @@
     <Compile Include="..\Query\StatementPattern.cs">
       <Link>Query\StatementPattern.cs</Link>
     </Compile>
+    <Compile Include="..\Stores\Stardog\StardogQueryResult.cs">
+      <Link>Stores\Stardog\StardogQueryResult.cs</Link>
+    </Compile>
+    <Compile Include="..\Stores\Stardog\StardogRdfHandler.cs">
+      <Link>Stores\Stardog\StardogRdfHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\Stores\Stardog\StardogStore.cs">
+      <Link>Stores\Stardog\StardogStore.cs</Link>
+    </Compile>
+    <Compile Include="..\Stores\Stardog\StardogStoreProvider.cs">
+      <Link>Stores\Stardog\StardogStoreProvider.cs</Link>
+    </Compile>
     <Compile Include="..\Stores\StoreProvider.cs">
       <Link>Stores\StoreProvider.cs</Link>
     </Compile>
@@ -316,8 +328,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="packages.config" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
