@@ -368,6 +368,11 @@ namespace Semiodesk.Trinity
             }
         }
 
+        public IResource GetResource(IResource resource, ITransaction transaction = null)
+        {
+            return GetResource(resource.Uri, transaction);
+        }
+
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
             SparqlQuery query = new SparqlQuery(String.Format("DESCRIBE {0} {1}", SparqlSerializer.SerializeUri(uri), DatasetClause));
@@ -389,6 +394,11 @@ namespace Semiodesk.Trinity
                 string msg = "Error: Could not find resource <{0}>.";
                 throw new ArgumentException(string.Format(msg, uri));
             }
+        }
+
+        public T GetResource<T>(IResource resource, ITransaction transaction = null) where T : Resource
+        {
+            return GetResource<T>(resource.Uri, transaction);
         }
 
         public object GetResource(Uri uri, Type type, ITransaction transaction = null)
