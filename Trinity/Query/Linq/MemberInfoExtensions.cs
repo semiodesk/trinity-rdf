@@ -12,5 +12,10 @@ namespace Semiodesk.Trinity.Query
 
             return member.GetCustomAttributes(attributeType, true).FirstOrDefault() as RdfPropertyAttribute;
         }
+
+        public static TAttribute TryGetCustomAttribute<TAttribute>(this MemberInfo member) where TAttribute : Attribute
+        {
+            return member.GetCustomAttributes(typeof(TAttribute), true).FirstOrDefault() as TAttribute;
+        }
     }
 }
