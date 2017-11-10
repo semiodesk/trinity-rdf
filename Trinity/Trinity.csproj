@@ -39,7 +39,7 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Dependencies\Net40\dotNetRDF.dll</HintPath>
     </Reference>
-    <Reference Include="dotNetRDF.Data.Virtuoso, Version=1.0.9.3683, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
+    <Reference Include="dotNetRDF.Data.Virtuoso, Version=1.0.10.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Dependencies\Net40\dotNetRDF.Data.Virtuoso.dll</HintPath>
     </Reference>
