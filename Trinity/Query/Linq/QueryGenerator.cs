@@ -27,6 +27,7 @@
 
 using Remotion.Linq.Clauses.Expressions;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using VDS.RDF;
@@ -40,17 +41,17 @@ using VDS.RDF.Query.Expressions.Primary;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal class QueryBuilderHelper
+    internal class QueryGenerator
     {
         #region Members
 
         public bool IsBound { get; private set; }
 
-        public ISelectBuilder SelectBuilder { get; private set; }
-
         public SparqlVariable SubjectVariable { get; private set; }
 
         public SparqlVariable ObjectVariable { get; private set; }
+
+        public ISelectBuilder SelectBuilder { get; private set; }
 
         public IQueryBuilder QueryBuilder { get; private set; }
 
@@ -60,14 +61,14 @@ namespace Semiodesk.Trinity.Query
 
         #region Constructors
 
-        public QueryBuilderHelper(QueryModelVisitor modelVisitor)
+        public QueryGenerator(QueryModelVisitor modelVisitor)
         {
             SelectBuilder = VDS.RDF.Query.Builder.QueryBuilder.Select(new string[] {});
             QueryBuilder = SelectBuilder.GetQueryBuilder();
             QueryModelVisitor = modelVisitor;
         }
 
-        public QueryBuilderHelper(QueryModelVisitor modelVisitor, ISelectBuilder selectBuilder)
+        public QueryGenerator(QueryModelVisitor modelVisitor, ISelectBuilder selectBuilder)
         {
             SelectBuilder = selectBuilder;
             QueryBuilder = SelectBuilder.GetQueryBuilder();
@@ -82,20 +83,26 @@ namespace Semiodesk.Trinity.Query
         {
             IsBound = true;
 
-            SelectBuilder.And(SubjectVariable);
-
-            if(ObjectVariable.IsAggregate)
+            if(SubjectVariable != null)
             {
-                string name = ObjectVariable.Name;
-                string functor = ObjectVariable.Aggregate.Functor.ToLowerInvariant();
-
-                SelectBuilder.And(e => e.Count(name)).As(string.Format("{0}_{1}", name, functor));
-
-                QueryBuilder.GroupBy(SubjectVariable.Name);
+                SelectBuilder.And(SubjectVariable);
             }
-            else
+
+            if(ObjectVariable != null)
             {
-                SelectBuilder.And(ObjectVariable);
+                if (ObjectVariable.IsAggregate)
+                {
+                    string name = ObjectVariable.Name;
+                    string functor = ObjectVariable.Aggregate.Functor.ToLowerInvariant();
+
+                    SelectBuilder.And(e => e.Count(name)).As(string.Format("{0}_{1}", name, functor));
+
+                    QueryBuilder.GroupBy(SubjectVariable.Name);
+                }
+                else
+                {
+                    SelectBuilder.And(ObjectVariable);
+                }
             }
         }
 
@@ -145,30 +152,34 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public void Equal(VariableExpression variable, ConstantExpression constant)
+        public void Equal(SparqlVariable variable, ConstantExpression constant)
         {
-            string v = variable.Expression.Variables.First();
+            ThrowOnBound();
 
-            QueryBuilder.Filter(e => e.Variable(v) == new LiteralExpression(constant.AsSparqlExpression()));
+            QueryBuilder.Filter(e => e.Variable(variable.Name) == new LiteralExpression(constant.AsSparqlExpression()));
         }
 
         public void Equal(MemberExpression member, ConstantExpression constant)
         {
+            ThrowOnBound();
+
             RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
             INode o = constant.AsNode();
 
             QueryBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(p.MappedUri).Object(o));
         }
 
-        public void NotEqual(VariableExpression variable, ConstantExpression constant)
+        public void NotEqual(SparqlVariable variable, ConstantExpression constant)
         {
-            string v = variable.Expression.Variables.First();
+            ThrowOnBound();
 
-            QueryBuilder.Filter(e => e.Variable(v) != new LiteralExpression(constant.AsSparqlExpression()));
+            QueryBuilder.Filter(e => e.Variable(variable.Name) != new LiteralExpression(constant.AsSparqlExpression()));
         }
 
         public void NotEqual(MemberExpression member, ConstantExpression constant)
         {
+            ThrowOnBound();
+
             RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
             SparqlVariable o = QueryModelVisitor.VariableBuilder.GenerateObjectVariable();
 
@@ -176,15 +187,17 @@ namespace Semiodesk.Trinity.Query
             QueryBuilder.Filter(e => e.Variable(o.Name) != new LiteralExpression(constant.AsSparqlExpression()));
         }
 
-        public void GreaterThan(VariableExpression variable, ConstantExpression constant)
+        public void GreaterThan(SparqlVariable variable, ConstantExpression constant)
         {
-            string v = variable.Expression.Variables.First();
+            ThrowOnBound();
 
-            QueryBuilder.Filter(e => e.Variable(v) > new LiteralExpression(constant.AsSparqlExpression()));
+            QueryBuilder.Filter(e => e.Variable(variable.Name) > new LiteralExpression(constant.AsSparqlExpression()));
         }
 
         public void GreaterThan(MemberExpression member, ConstantExpression constant)
         {
+            ThrowOnBound();
+
             RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
             SparqlVariable o = QueryModelVisitor.VariableBuilder.GenerateObjectVariable();
 
@@ -192,15 +205,17 @@ namespace Semiodesk.Trinity.Query
             QueryBuilder.Filter(e => e.Variable(o.Name) > new LiteralExpression(constant.AsSparqlExpression()));
         }
 
-        public void GreaterThanOrEqual(VariableExpression variable, ConstantExpression constant)
+        public void GreaterThanOrEqual(SparqlVariable variable, ConstantExpression constant)
         {
-            string v = variable.Expression.Variables.First();
+            ThrowOnBound();
 
-            QueryBuilder.Filter(e => e.Variable(v) >= new LiteralExpression(constant.AsSparqlExpression()));
+            QueryBuilder.Filter(e => e.Variable(variable.Name) >= new LiteralExpression(constant.AsSparqlExpression()));
         }
 
         public void GreaterThanOrEqual(MemberExpression member, ConstantExpression constant)
         {
+            ThrowOnBound();
+
             RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
             SparqlVariable o = QueryModelVisitor.VariableBuilder.GenerateObjectVariable();
 
@@ -208,15 +223,17 @@ namespace Semiodesk.Trinity.Query
             QueryBuilder.Filter(e => e.Variable(o.Name) >= new LiteralExpression(constant.AsSparqlExpression()));
         }
 
-        public void LessThan(VariableExpression variable, ConstantExpression constant)
+        public void LessThan(SparqlVariable variable, ConstantExpression constant)
         {
-            string v = variable.Expression.Variables.First();
+            ThrowOnBound();
 
-            QueryBuilder.Filter(e => e.Variable(v) < new LiteralExpression(constant.AsSparqlExpression()));
+            QueryBuilder.Filter(e => e.Variable(variable.Name) < new LiteralExpression(constant.AsSparqlExpression()));
         }
 
         public void LessThan(MemberExpression member, ConstantExpression constant)
         {
+            ThrowOnBound();
+
             RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
             SparqlVariable o = QueryModelVisitor.VariableBuilder.GenerateObjectVariable();
 
@@ -224,15 +241,17 @@ namespace Semiodesk.Trinity.Query
             QueryBuilder.Filter(e => e.Variable(o.Name) < new LiteralExpression(constant.AsSparqlExpression()));
         }
 
-        public void LessThanOrEqual(VariableExpression variable, ConstantExpression constant)
+        public void LessThanOrEqual(SparqlVariable variable, ConstantExpression constant)
         {
-            string v = variable.Expression.Variables.First();
+            ThrowOnBound();
 
-            QueryBuilder.Filter(e => e.Variable(v) <= new LiteralExpression(constant.AsSparqlExpression()));
+            QueryBuilder.Filter(e => e.Variable(variable.Name) <= new LiteralExpression(constant.AsSparqlExpression()));
         }
 
         public void LessThanOrEqual(MemberExpression member, ConstantExpression constant)
         {
+            ThrowOnBound();
+
             RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
             SparqlVariable o = QueryModelVisitor.VariableBuilder.GenerateObjectVariable();
 

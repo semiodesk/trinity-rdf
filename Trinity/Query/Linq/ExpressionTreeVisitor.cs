@@ -25,10 +25,7 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-using Remotion.Linq;
-using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
-using Remotion.Linq.Clauses.ResultOperators;
 using Remotion.Linq.Parsing;
 using System;
 using System.Diagnostics;
@@ -37,8 +34,6 @@ using System.Linq.Expressions;
 using VDS.RDF;
 using VDS.RDF.Query;
 using VDS.RDF.Query.Builder;
-using VDS.RDF.Query.Builder.Expressions;
-using VDS.RDF.Query.Expressions.Primary;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -65,63 +60,67 @@ namespace Semiodesk.Trinity.Query
         {
             Debug.WriteLine(expression.GetType().ToString());
 
-            QuerySourceReferenceExpression leftSource = expression.Left.TryGetQuerySource();
-
-            if (leftSource != null)
-            {
-                string id = leftSource.ReferencedQuerySource.ItemName;
-
-                Console.WriteLine(expression.Left.GetType().ToString() + ": " + id);
-            }
-
-            QuerySourceReferenceExpression rightSource = expression.Right.TryGetQuerySource();
-
-            if (rightSource != null)
-            {
-                string id = rightSource.ReferencedQuerySource.ItemName;
-
-                Console.WriteLine(expression.Right.GetType().ToString() + ": " + id);
-            }
-
             if (expression.Left is MemberExpression && expression.Right is ConstantExpression)
             {
-                QueryBuilderHelper helper = _queryModelVisitor.GetQueryBuilderHelper();
-
                 MemberExpression member = expression.Left as MemberExpression;
                 ConstantExpression constant = expression.Right as ConstantExpression;
+
+                QueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
 
                 switch (expression.NodeType)
                 {
                     case ExpressionType.Equal:
-                        helper.Equal(member, constant);
+                        generator.Equal(member, constant);
                         break;
                     case ExpressionType.GreaterThan:
-                        helper.GreaterThan(member, constant);
+                        generator.GreaterThan(member, constant);
                         break;
                     case ExpressionType.GreaterThanOrEqual:
-                        helper.GreaterThanOrEqual(member, constant);
+                        generator.GreaterThanOrEqual(member, constant);
                         break;
                     case ExpressionType.LessThan:
-                        helper.LessThan(member, constant);
+                        generator.LessThan(member, constant);
                         break;
                     case ExpressionType.LessThanOrEqual:
-                        helper.LessThanOrEqual(member, constant);
+                        generator.LessThanOrEqual(member, constant);
                         break;
                     case ExpressionType.NotEqual:
-                        helper.NotEqual(member, constant);
+                        generator.NotEqual(member, constant);
                         break;
                     default:
                         throw new NotSupportedException(expression.NodeType.ToString());
                 }
             }
-            else if(expression.Left is SubQueryExpression && expression.Right is ConstantExpression)
+            else if (expression.Left is SubQueryExpression && expression.Right is ConstantExpression)
             {
-                QueryBuilderHelper helper = _queryModelVisitor.GetQueryBuilderHelper();
-
                 SubQueryExpression subQuery = expression.Left as SubQueryExpression;
                 ConstantExpression constant = expression.Right as ConstantExpression;
 
+                QueryGenerator generator = _queryModelVisitor.GetQueryGenerator(subQuery.QueryModel);
 
+                switch (expression.NodeType)
+                {
+                    case ExpressionType.Equal:
+                        generator.Equal(generator.ObjectVariable, constant);
+                        break;
+                    case ExpressionType.GreaterThan:
+                        generator.GreaterThan(generator.ObjectVariable, constant);
+                        break;
+                    case ExpressionType.GreaterThanOrEqual:
+                        generator.GreaterThanOrEqual(generator.ObjectVariable, constant);
+                        break;
+                    case ExpressionType.LessThan:
+                        generator.LessThan(generator.ObjectVariable, constant);
+                        break;
+                    case ExpressionType.LessThanOrEqual:
+                        generator.LessThanOrEqual(generator.ObjectVariable, constant);
+                        break;
+                    case ExpressionType.NotEqual:
+                        generator.NotEqual(generator.ObjectVariable, constant);
+                        break;
+                    default:
+                        throw new NotSupportedException(expression.NodeType.ToString());
+                }
             }
 
             return expression;
@@ -172,7 +171,7 @@ namespace Semiodesk.Trinity.Query
 
                 Debug.WriteLine(expression.GetType().ToString() + ": " + node.ToString());
 
-                QueryBuilderHelper context = _queryModelVisitor.GetQueryBuilderHelper();
+                QueryGenerator context = _queryModelVisitor.GetCurrentQueryGenerator();
 
                 if (context.SetSubjectFromExpression(expression))
                 {
@@ -227,17 +226,6 @@ namespace Semiodesk.Trinity.Query
         protected override Expression VisitSubQueryExpression(SubQueryExpression expression)
         {
             QuerySourceReferenceExpression source = expression.TryGetQuerySource();
-
-            if(source != null)
-            {
-                string id = source.ReferencedQuerySource.ItemName;
-
-                Debug.WriteLine(expression.GetType().ToString() + ": " + id);
-            }
-            else
-            {
-                Debug.WriteLine(expression.GetType().ToString());
-            }
 
             expression.QueryModel.Accept(_queryModelVisitor);
 
