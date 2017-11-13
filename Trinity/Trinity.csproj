@@ -126,9 +126,10 @@
     <Compile Include="Query\Linq\ExpressionTreeVisitor.cs" />
     <Compile Include="Query\Linq\MemberExpressionExtensions.cs" />
     <Compile Include="Query\Linq\MemberInfoExtensions.cs" />
+    <Compile Include="Query\Linq\QueryGeneratorTree.cs" />
     <Compile Include="Query\Linq\QueryModelVisitor.cs" />
     <Compile Include="Query\Linq\ResourceQueryExecutor.cs" />
-    <Compile Include="Query\Linq\QueryBuilderHelper.cs" />
+    <Compile Include="Query\Linq\QueryGenerator.cs" />
     <Compile Include="Query\Linq\VariableBuilder.cs" />
     <Compile Include="Query\ResourceProvider.cs" />
     <Compile Include="Query\Linq\ResourceQueryable.cs" />

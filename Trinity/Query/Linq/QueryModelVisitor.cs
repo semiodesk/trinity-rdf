@@ -45,11 +45,15 @@ namespace Semiodesk.Trinity.Query
     {
         #region Members
 
-        private ExpressionTreeVisitor _expressionVisitor;
+        private readonly ExpressionTreeVisitor _expressionVisitor;
 
-        private readonly IQueryBuilder _rootQueryBuilder;
+        private readonly QueryGenerator _rootGenerator;
 
-        private readonly Stack<QueryBuilderHelper> _queryBuilderHelpers = new Stack<QueryBuilderHelper>();
+        private readonly Dictionary<QueryModel, QueryGenerator> _queryGenerators = new Dictionary<QueryModel, QueryGenerator>();
+
+        private QueryGenerator _currentQueryGenerator;
+
+        private readonly QueryGeneratorTree _queryBuilderTree;
 
         public VariableBuilder VariableBuilder { get; private set; }
 
@@ -62,9 +66,11 @@ namespace Semiodesk.Trinity.Query
             VariableBuilder = new VariableBuilder();
 
             // The root query which selects triples when returning resources.
-            _rootQueryBuilder = QueryBuilder
-                .Select("s_", "p_", "o_")
-                .Where(t => t.Subject("s_").Predicate("p_").Object("o_"));
+            _rootGenerator = new QueryGenerator(this, QueryBuilder.Select(new string[] { }));
+            _currentQueryGenerator = _rootGenerator;
+
+            // Add the root query builder to the query tree.
+            _queryBuilderTree = new QueryGeneratorTree(_rootGenerator);
 
             // The expression tree visitor needs to be initialized *after* the query builders.
             _expressionVisitor = new ExpressionTreeVisitor(this);
@@ -126,7 +132,7 @@ namespace Semiodesk.Trinity.Query
         {
             Debug.WriteLine(resultOperator.GetType().ToString());
 
-            QueryBuilderHelper context = GetQueryBuilderHelper();
+            QueryGenerator context = GetCurrentQueryGenerator();
 
             if (resultOperator is AnyResultOperator)
             {
@@ -198,6 +204,21 @@ namespace Semiodesk.Trinity.Query
         {
             Debug.WriteLine(selectClause.GetType().ToString());
 
+            if(_currentQueryGenerator == _rootGenerator)
+            {
+                // Bind the subject variable for queries which return resources.
+                QuerySourceReferenceExpression sourceExpression = selectClause.Selector.TryGetQuerySource();
+
+                if(sourceExpression != null)
+                {
+                    IQuerySource source = sourceExpression.ReferencedQuerySource;
+
+                    _rootGenerator.SelectBuilder.And(source.ItemName, "p_", "o_");
+
+                    _rootGenerator.QueryBuilder.Where(e => e.Subject(source.ItemName).Predicate("p_").Object("o_"));
+                }
+            }
+
             queryModel.MainFromClause.Accept(this, queryModel);
 
             for(int i = 0; i < queryModel.BodyClauses.Count; i++)
@@ -243,15 +264,19 @@ namespace Semiodesk.Trinity.Query
 
         private void VisitSubQueryExpression(SubQueryExpression expression)
         {
-            QueryBuilderHelper context = new QueryBuilderHelper(this);
+            QueryGenerator currentQueryGenerator = _currentQueryGenerator;
+            QueryGenerator subQueryGenerator = new QueryGenerator(this);
 
-            _queryBuilderHelpers.Push(context);
+            _queryGenerators[expression.QueryModel] = subQueryGenerator;
+
+            _currentQueryGenerator = subQueryGenerator;
 
             _expressionVisitor.VisitExpression(expression);
 
-            Debug.WriteLine(context.BuildQuery());
+            _currentQueryGenerator = currentQueryGenerator;
 
-            _queryBuilderHelpers.Pop();
+            // Add the sub query to the query builder tree.
+            _queryBuilderTree.AddQuery(currentQueryGenerator, subQueryGenerator);
         }
 
         public override void VisitOrderByClause(OrderByClause orderByClause, QueryModel queryModel, int index)
@@ -270,16 +295,39 @@ namespace Semiodesk.Trinity.Query
 
         public ISparqlQuery GetQuery()
         {
-            string query = _rootQueryBuilder.BuildQuery().ToString();
+            string queryString = "";
 
-            Debug.WriteLine(query);
+            // Since the dotNetRdf query builder does not support sub queries,
+            // we need to generate the nested query here.
+            _queryBuilderTree.Traverse((builder) =>
+            {
+                string q = builder.BuildQuery().ToString();
 
-            return new SparqlQuery(query);
+                if(!string.IsNullOrEmpty(queryString))
+                {
+                    int n = q.IndexOf("{") + 1;
+
+                    q = q.Insert(n, "{ " + queryString + " }");
+                }
+
+                queryString = q;
+            });
+
+            ISparqlQuery query = new SparqlQuery(queryString);
+
+            Debug.WriteLine(query.ToString());
+
+            return query;
         }
 
-        internal QueryBuilderHelper GetQueryBuilderHelper()
+        internal QueryGenerator GetCurrentQueryGenerator()
         {
-            return _queryBuilderHelpers.Peek();
+            return _currentQueryGenerator;
+        }
+
+        internal QueryGenerator GetQueryGenerator(QueryModel queryModel)
+        {
+            return _queryGenerators[queryModel];
         }
 
         #endregion
