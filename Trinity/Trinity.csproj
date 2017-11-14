@@ -125,10 +125,10 @@
     <Compile Include="Query\Linq\ConstantExpressionExtensions.cs" />
     <Compile Include="Query\Linq\ExpressionExstensions.cs" />
     <Compile Include="Query\Linq\ExpressionTreeVisitor.cs" />
-    <Compile Include="Query\Linq\IAggregateExpression.cs" />
     <Compile Include="Query\Linq\MemberExpressionExtensions.cs" />
     <Compile Include="Query\Linq\MemberInfoExtensions.cs" />
     <Compile Include="Query\Linq\QueryGeneratorTree.cs" />
+    <Compile Include="Query\Linq\QueryModelExtensions.cs" />
     <Compile Include="Query\Linq\QueryModelVisitor.cs" />
     <Compile Include="Query\Linq\ResourceQueryExecutor.cs" />
     <Compile Include="Query\Linq\QueryGenerator.cs" />

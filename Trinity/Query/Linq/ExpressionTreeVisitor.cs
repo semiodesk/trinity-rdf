@@ -25,7 +25,9 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
+using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
+using Remotion.Linq.Clauses.ResultOperators;
 using Remotion.Linq.Parsing;
 using System;
 using System.Diagnostics;
@@ -177,7 +179,22 @@ namespace Semiodesk.Trinity.Query
                     SparqlVariable o = _queryModelVisitor.VariableBuilder.GenerateObjectVariable();
 
                     generator.SetObject(o);
-                    generator.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(o.Name));
+
+                    if(_queryModelVisitor.CurrentQueryModel.HasNumericResultOperator())
+                    {
+                        SparqlVariable p = _queryModelVisitor.VariableBuilder.GeneratePredicateVariable();
+                        SparqlVariable o2 = _queryModelVisitor.VariableBuilder.GenerateObjectVariable();
+
+                        generator.Where(t => t.Subject(s.Name).Predicate(p.Name).Object(o2.Name));
+
+                        // For numeric results, allow to select non existing triple patterns as zero values.
+                        generator.Optional(g => g.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(o.Name)));
+                    }
+                    else
+                    {
+                        // Otherwise make the pattern non-optional.
+                        generator.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(o.Name));
+                    }
                 }
             }
 

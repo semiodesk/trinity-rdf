@@ -32,10 +32,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using VDS.RDF;
 using VDS.RDF.Query;
-using VDS.RDF.Query.Aggregates;
 using VDS.RDF.Query.Builder;
 using VDS.RDF.Query.Builder.Expressions;
-using VDS.RDF.Query.Expressions.Primary;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -294,6 +292,11 @@ namespace Semiodesk.Trinity.Query
         public void OrderByDescending(SparqlVariable variable)
         {
             QueryBuilder.OrderByDescending(variable.Name);
+        }
+
+        public void Optional(Action<IGraphPatternBuilder> buildGraphPattern)
+        {
+            QueryBuilder.Optional(buildGraphPattern);
         }
 
         public void Offset(int offset)
