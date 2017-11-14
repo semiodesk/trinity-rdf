@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using VDS.RDF.Query.Builder;
+﻿using System.Collections.Generic;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -10,7 +8,7 @@ namespace Semiodesk.Trinity.Query
 
         private QueryGenerator _rootQuery;
 
-        private Dictionary<QueryGenerator, List<QueryGenerator>> _subQueries = new Dictionary<QueryGenerator, List<QueryGenerator>>();
+        private Dictionary<QueryGenerator, IList<QueryGenerator>> _subQueries = new Dictionary<QueryGenerator, IList<QueryGenerator>>();
 
         #endregion
 
@@ -37,22 +35,27 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public void Traverse(QueryGeneratorTraversalDelegate visitQuery)
+        public void Traverse(QueryGeneratorTraversalDelegate callback)
         {
-            Traverse(_rootQuery, visitQuery);
+            Traverse(_rootQuery, callback);
         }
 
-        private void Traverse(QueryGenerator generator, QueryGeneratorTraversalDelegate visitQuery)
+        private void Traverse(QueryGenerator generator, QueryGeneratorTraversalDelegate callback)
         {
             if(_subQueries.ContainsKey(generator))
             {
                 foreach(QueryGenerator subQuery in _subQueries[generator])
                 {
-                    Traverse(subQuery, visitQuery);
+                    Traverse(subQuery, callback);
                 }
             }
 
-            visitQuery(generator);
+            callback(generator);
+        }
+
+        public IEnumerable<QueryGenerator> TryGetSubQueries(QueryGenerator query)
+        {
+            return _subQueries.ContainsKey(query) ? _subQueries[query] : null;
         }
 
         #endregion

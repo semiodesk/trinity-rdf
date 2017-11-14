@@ -39,6 +39,11 @@ using VDS.RDF.Query.Aggregates.Sparql;
 using VDS.RDF.Query.Builder;
 using VDS.RDF.Query.Expressions.Primary;
 
+// TODO:
+// - Support scalar query forms.
+// - Establish dynamic look-up of query source reference expressions and sub query expresssions to variable names.
+// - Make selected variables of sub queries more flexible (currently only subject and object).
+
 namespace Semiodesk.Trinity.Query
 {
     internal class QueryModelVisitor : QueryModelVisitorBase
@@ -51,7 +56,9 @@ namespace Semiodesk.Trinity.Query
 
         private readonly Dictionary<QueryModel, QueryGenerator> _queryGenerators = new Dictionary<QueryModel, QueryGenerator>();
 
-        private QueryGenerator _currentQueryGenerator;
+        public QueryGenerator CurrentQueryGenerator { get; private set; }
+
+        public QueryGenerator SubQueryGenerator { get; private set; }
 
         private readonly QueryGeneratorTree _queryBuilderTree;
 
@@ -67,7 +74,9 @@ namespace Semiodesk.Trinity.Query
 
             // The root query which selects triples when returning resources.
             _rootGenerator = new QueryGenerator(this, QueryBuilder.Select(new string[] { }));
-            _currentQueryGenerator = _rootGenerator;
+            _rootGenerator.SetObject(new SparqlVariable("o_"));
+
+            CurrentQueryGenerator = _rootGenerator;
 
             // Add the root query builder to the query tree.
             _queryBuilderTree = new QueryGeneratorTree(_rootGenerator);
@@ -132,42 +141,48 @@ namespace Semiodesk.Trinity.Query
         {
             Debug.WriteLine(resultOperator.GetType().ToString());
 
-            QueryGenerator context = GetCurrentQueryGenerator();
+            QueryGenerator generator = GetCurrentQueryGenerator();
 
             if (resultOperator is AnyResultOperator)
             {
-                VariableTerm o = new VariableTerm(context.ObjectVariable.Name);
-                context.SetObject(o, new SampleAggregate(o));
+                VariableTerm o = new VariableTerm(generator.Object.Name);
+                generator.SetObject(o, new SampleAggregate(o));
             }
             else if (resultOperator is AverageResultOperator)
             {
-                VariableTerm o = new VariableTerm(context.ObjectVariable.Name);
-                context.SetObject(o, new AverageAggregate(o));
+                VariableTerm o = new VariableTerm(generator.Object.Name);
+                generator.SetObject(o, new AverageAggregate(o));
             }
             else if(resultOperator is CountResultOperator)
             {
-                VariableTerm o = new VariableTerm(context.ObjectVariable.Name);
-                context.SetObject(o, new CountAggregate(o));
+                VariableTerm o = new VariableTerm(generator.Object.Name);
+                generator.SetObject(o, new CountAggregate(o));
             }
             else if(resultOperator is FirstResultOperator)
             {
-                context.QueryBuilder.OrderBy(context.ObjectVariable.Name);
-                context.QueryBuilder.Limit(1);
+                string variableName = generator.Object.Name;
+
+                VariableTerm o = new VariableTerm(variableName);
+                generator.SetObject(o, new MinAggregate(o));
+                generator.QueryBuilder.OrderBy(variableName);
             }
             else if(resultOperator is LastResultOperator)
             {
-                context.QueryBuilder.OrderByDescending(context.ObjectVariable.Name);
-                context.QueryBuilder.Limit(1);
+                string variableName = generator.Object.Name;
+
+                VariableTerm o = new VariableTerm(variableName);
+                generator.SetObject(o, new MinAggregate(o));
+                generator.QueryBuilder.OrderByDescending(variableName);
             }
             else if(resultOperator is MaxResultOperator)
             {
-                VariableTerm o = new VariableTerm(context.ObjectVariable.Name);
-                context.SetObject(o, new MaxAggregate(o));
+                VariableTerm o = new VariableTerm(generator.Object.Name);
+                generator.SetObject(o, new MaxAggregate(o));
             }
             else if(resultOperator is MinResultOperator)
             {
-                VariableTerm o = new VariableTerm(context.ObjectVariable.Name);
-                context.SetObject(o, new MinAggregate(o));
+                VariableTerm o = new VariableTerm(generator.Object.Name);
+                generator.SetObject(o, new MinAggregate(o));
             }
             else if(resultOperator is OfTypeResultOperator)
             {
@@ -179,20 +194,20 @@ namespace Semiodesk.Trinity.Query
                     throw new ArgumentException("No RdfClass attrribute declared on type: " + itemType);
                 }
 
-                SparqlVariable s = context.SubjectVariable;
+                SparqlVariable s = generator.Subject;
                 Uri o = itemClass.MappedUri;
 
-                context.QueryBuilder.Where(e => e.Subject(s.Name).PredicateUri("rdf:type").Object(o));
+                generator.QueryBuilder.Where(e => e.Subject(s.Name).PredicateUri("rdf:type").Object(o));
             }
             else if(resultOperator is SumResultOperator)
             {
-                VariableTerm o = new VariableTerm(context.ObjectVariable.Name);
-                context.SetObject(o, new SumAggregate(o));
+                VariableTerm o = new VariableTerm(generator.Object.Name);
+                generator.SetObject(o, new SumAggregate(o));
             }
             else if(resultOperator is SkipResultOperator)
             {
                 SkipResultOperator op = resultOperator as SkipResultOperator;
-                context.QueryBuilder.Offset(int.Parse(op.Count.ToString()));
+                generator.QueryBuilder.Offset(int.Parse(op.Count.ToString()));
             }
             else
             {
@@ -204,7 +219,7 @@ namespace Semiodesk.Trinity.Query
         {
             Debug.WriteLine(selectClause.GetType().ToString());
 
-            if(_currentQueryGenerator == _rootGenerator)
+            if(CurrentQueryGenerator == _rootGenerator)
             {
                 // Bind the subject variable for queries which return resources.
                 QuerySourceReferenceExpression sourceExpression = selectClause.Selector.TryGetQuerySource();
@@ -264,19 +279,22 @@ namespace Semiodesk.Trinity.Query
 
         private void VisitSubQueryExpression(SubQueryExpression expression)
         {
-            QueryGenerator currentQueryGenerator = _currentQueryGenerator;
+            QueryGenerator currentQueryGenerator = CurrentQueryGenerator;
             QueryGenerator subQueryGenerator = new QueryGenerator(this);
 
+            // Enable look-up of query generators from query models.
             _queryGenerators[expression.QueryModel] = subQueryGenerator;
 
-            _currentQueryGenerator = subQueryGenerator;
+            // Add the sub query to the query tree.
+            _queryBuilderTree.AddQuery(currentQueryGenerator, subQueryGenerator);
+
+            CurrentQueryGenerator = subQueryGenerator;
+            SubQueryGenerator = null;
 
             _expressionVisitor.VisitExpression(expression);
 
-            _currentQueryGenerator = currentQueryGenerator;
-
-            // Add the sub query to the query builder tree.
-            _queryBuilderTree.AddQuery(currentQueryGenerator, subQueryGenerator);
+            CurrentQueryGenerator = currentQueryGenerator;
+            SubQueryGenerator = subQueryGenerator;
         }
 
         public override void VisitOrderByClause(OrderByClause orderByClause, QueryModel queryModel, int index)
@@ -297,8 +315,8 @@ namespace Semiodesk.Trinity.Query
         {
             string queryString = "";
 
-            // Since the dotNetRdf query builder does not support sub queries,
-            // we need to generate the nested query here.
+            // Since the dotNetRdf QueryBuilder does not support building sub queries,
+            // we need to generate the nested queries here.
             _queryBuilderTree.Traverse((builder) =>
             {
                 string q = builder.BuildQuery().ToString();
@@ -307,7 +325,10 @@ namespace Semiodesk.Trinity.Query
                 {
                     int n = q.IndexOf("{") + 1;
 
-                    q = q.Insert(n, "{ " + queryString + " }");
+                    if(n > 0)
+                    {
+                        q = q.Insert(n, "{ " + queryString + " }");
+                    }
                 }
 
                 queryString = q;
@@ -322,7 +343,7 @@ namespace Semiodesk.Trinity.Query
 
         internal QueryGenerator GetCurrentQueryGenerator()
         {
-            return _currentQueryGenerator;
+            return CurrentQueryGenerator;
         }
 
         internal QueryGenerator GetQueryGenerator(QueryModel queryModel)
