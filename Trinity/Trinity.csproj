@@ -121,9 +121,11 @@
     <Compile Include="PropertyValue.cs" />
     <Compile Include="Query\ISparqlQuery.cs" />
     <Compile Include="Query\ISparqlQueryResult.cs" />
+    <Compile Include="Query\Linq\AggregateExtensions.cs" />
     <Compile Include="Query\Linq\ConstantExpressionExtensions.cs" />
     <Compile Include="Query\Linq\ExpressionExstensions.cs" />
     <Compile Include="Query\Linq\ExpressionTreeVisitor.cs" />
+    <Compile Include="Query\Linq\IAggregateExpression.cs" />
     <Compile Include="Query\Linq\MemberExpressionExtensions.cs" />
     <Compile Include="Query\Linq\MemberInfoExtensions.cs" />
     <Compile Include="Query\Linq\QueryGeneratorTree.cs" />
