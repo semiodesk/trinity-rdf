@@ -33,7 +33,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using VDS.RDF;
 using VDS.RDF.Query;
-using VDS.RDF.Query.Builder;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -70,22 +69,22 @@ namespace Semiodesk.Trinity.Query
                 switch (expression.NodeType)
                 {
                     case ExpressionType.Equal:
-                        generator.Equal(member, constant);
+                        generator.WhereEqual(member, constant);
                         break;
                     case ExpressionType.GreaterThan:
-                        generator.GreaterThan(member, constant);
+                        generator.WhereGreaterThan(member, constant);
                         break;
                     case ExpressionType.GreaterThanOrEqual:
-                        generator.GreaterThanOrEqual(member, constant);
+                        generator.WhereGreaterThanOrEqual(member, constant);
                         break;
                     case ExpressionType.LessThan:
-                        generator.LessThan(member, constant);
+                        generator.WhereLessThan(member, constant);
                         break;
                     case ExpressionType.LessThanOrEqual:
-                        generator.LessThanOrEqual(member, constant);
+                        generator.WhereLessThanOrEqual(member, constant);
                         break;
                     case ExpressionType.NotEqual:
-                        generator.NotEqual(member, constant);
+                        generator.WhereNotEqual(member, constant);
                         break;
                     default:
                         throw new NotSupportedException(expression.NodeType.ToString());
@@ -100,22 +99,22 @@ namespace Semiodesk.Trinity.Query
                 switch (expression.NodeType)
                 {
                     case ExpressionType.Equal:
-                        generator.Equal(subGenerator.Object, constant);
+                        generator.WhereEqual(subGenerator.ObjectVariable, constant);
                         break;
                     case ExpressionType.GreaterThan:
-                        generator.GreaterThan(subGenerator.Object, constant);
+                        generator.WhereGreaterThan(subGenerator.ObjectVariable, constant);
                         break;
                     case ExpressionType.GreaterThanOrEqual:
-                        generator.GreaterThanOrEqual(subGenerator.Object, constant);
+                        generator.WhereGreaterThanOrEqual(subGenerator.ObjectVariable, constant);
                         break;
                     case ExpressionType.LessThan:
-                        generator.LessThan(subGenerator.Object, constant);
+                        generator.WhereLessThan(subGenerator.ObjectVariable, constant);
                         break;
                     case ExpressionType.LessThanOrEqual:
-                        generator.LessThanOrEqual(subGenerator.Object, constant);
+                        generator.WhereLessThanOrEqual(subGenerator.ObjectVariable, constant);
                         break;
                     case ExpressionType.NotEqual:
-                        generator.NotEqual(subGenerator.Object, constant);
+                        generator.WhereNotEqual(subGenerator.ObjectVariable, constant);
                         break;
                     default:
                         throw new NotSupportedException(expression.NodeType.ToString());
@@ -170,16 +169,15 @@ namespace Semiodesk.Trinity.Query
 
                 Debug.WriteLine(expression.GetType().ToString() + ": " + node.ToString());
 
-                QueryGenerator context = _queryModelVisitor.GetCurrentQueryGenerator();
+                QueryGenerator generator = _queryModelVisitor.CurrentQueryGenerator;
 
-                if (context.SetSubjectFromExpression(expression))
+                if (generator.SetSubjectFromExpression(expression))
                 {
-                    SparqlVariable s = context.Subject;
+                    SparqlVariable s = generator.SubjectVariable;
                     SparqlVariable o = _queryModelVisitor.VariableBuilder.GenerateObjectVariable();
 
-                    context.QueryBuilder.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(o.Name));
-
-                    context.SetObject(o);
+                    generator.SetObject(o);
+                    generator.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(o.Name));
                 }
             }
 
@@ -206,11 +204,11 @@ namespace Semiodesk.Trinity.Query
                 {
                     MemberExpression member = expression.Object as MemberExpression;
 
-                    generator.Equal(member, constant);
+                    generator.WhereEqual(member, constant);
                 }
                 else if(expression.Object is SubQueryExpression)
                 {
-                    generator.Equal(generator.Object, constant);
+                    generator.WhereEqual(generator.ObjectVariable, constant);
                 }
             }
             else

@@ -58,8 +58,6 @@ namespace Semiodesk.Trinity.Query
 
         public QueryGenerator CurrentQueryGenerator { get; private set; }
 
-        public QueryGenerator SubQueryGenerator { get; private set; }
-
         private readonly QueryGeneratorTree _queryBuilderTree;
 
         public VariableBuilder VariableBuilder { get; private set; }
@@ -73,8 +71,7 @@ namespace Semiodesk.Trinity.Query
             VariableBuilder = new VariableBuilder();
 
             // The root query which selects triples when returning resources.
-            _rootGenerator = new QueryGenerator(this, QueryBuilder.Select(new string[] { }));
-            _rootGenerator.SetObject(new SparqlVariable("o_"));
+            _rootGenerator = new QueryGenerator(this);
 
             CurrentQueryGenerator = _rootGenerator;
 
@@ -127,6 +124,14 @@ namespace Semiodesk.Trinity.Query
             else
             {
                 Debug.WriteLine(fromClause.GetType().ToString() + ": " + fromClause.ItemName);
+
+                string s = fromClause.ItemName;
+
+                _rootGenerator.SetSubject(new SparqlVariable(s));
+                _rootGenerator.Select(new SparqlVariable("p_"));
+                _rootGenerator.SetObject(new SparqlVariable("o_"));
+
+                _rootGenerator.Where(e => e.Subject(s).Predicate("p_").Object("o_"));
             }
         }
 
@@ -145,69 +150,65 @@ namespace Semiodesk.Trinity.Query
 
             if (resultOperator is AnyResultOperator)
             {
-                VariableTerm o = new VariableTerm(generator.Object.Name);
-                generator.SetObject(o, new SampleAggregate(o));
+                var aggregate = new SampleAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                generator.SetObject(aggregate.AsSparqlVariable());
             }
             else if (resultOperator is AverageResultOperator)
             {
-                VariableTerm o = new VariableTerm(generator.Object.Name);
-                generator.SetObject(o, new AverageAggregate(o));
+                var aggregate = new AverageAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                generator.SetObject(aggregate.AsSparqlVariable());
             }
             else if(resultOperator is CountResultOperator)
             {
-                VariableTerm o = new VariableTerm(generator.Object.Name);
-                generator.SetObject(o, new CountAggregate(o));
+                var aggregate = new CountAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                generator.SetObject(aggregate.AsSparqlVariable());
             }
             else if(resultOperator is FirstResultOperator)
             {
-                string variableName = generator.Object.Name;
-
-                VariableTerm o = new VariableTerm(variableName);
-                generator.SetObject(o, new MinAggregate(o));
-                generator.QueryBuilder.OrderBy(variableName);
+                var aggregate = new MinAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                generator.SetObject(aggregate.AsSparqlVariable());
+                generator.OrderBy(generator.ObjectVariable);
             }
             else if(resultOperator is LastResultOperator)
             {
-                string variableName = generator.Object.Name;
-
-                VariableTerm o = new VariableTerm(variableName);
-                generator.SetObject(o, new MinAggregate(o));
-                generator.QueryBuilder.OrderByDescending(variableName);
+                var aggregate = new MinAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                generator.SetObject(aggregate.AsSparqlVariable());
+                generator.OrderByDescending(generator.ObjectVariable);
             }
             else if(resultOperator is MaxResultOperator)
             {
-                VariableTerm o = new VariableTerm(generator.Object.Name);
-                generator.SetObject(o, new MaxAggregate(o));
+                var aggregate = new MaxAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                generator.SetObject(aggregate.AsSparqlVariable());
             }
             else if(resultOperator is MinResultOperator)
             {
-                VariableTerm o = new VariableTerm(generator.Object.Name);
-                generator.SetObject(o, new MinAggregate(o));
+                var aggregate = new MinAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                generator.SetObject(aggregate.AsSparqlVariable());
             }
-            else if(resultOperator is OfTypeResultOperator)
+            else if(resultOperator is SumResultOperator)
+            {
+                var aggregate = new SumAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                generator.SetObject(aggregate.AsSparqlVariable());
+            }
+            else if (resultOperator is OfTypeResultOperator)
             {
                 Type itemType = queryModel.MainFromClause.ItemType;
                 RdfClassAttribute itemClass = itemType.TryGetCustomAttribute<RdfClassAttribute>();
 
-                if(itemClass == null)
+                if (itemClass == null)
                 {
                     throw new ArgumentException("No RdfClass attrribute declared on type: " + itemType);
                 }
 
-                SparqlVariable s = generator.Subject;
+                SparqlVariable s = generator.SubjectVariable;
                 Uri o = itemClass.MappedUri;
 
-                generator.QueryBuilder.Where(e => e.Subject(s.Name).PredicateUri("rdf:type").Object(o));
-            }
-            else if(resultOperator is SumResultOperator)
-            {
-                VariableTerm o = new VariableTerm(generator.Object.Name);
-                generator.SetObject(o, new SumAggregate(o));
+                generator.Where(e => e.Subject(s.Name).PredicateUri("rdf:type").Object(o));
             }
             else if(resultOperator is SkipResultOperator)
             {
                 SkipResultOperator op = resultOperator as SkipResultOperator;
-                generator.QueryBuilder.Offset(int.Parse(op.Count.ToString()));
+                generator.Offset(int.Parse(op.Count.ToString()));
             }
             else
             {
@@ -218,21 +219,6 @@ namespace Semiodesk.Trinity.Query
         public override void VisitSelectClause(SelectClause selectClause, QueryModel queryModel)
         {
             Debug.WriteLine(selectClause.GetType().ToString());
-
-            if(CurrentQueryGenerator == _rootGenerator)
-            {
-                // Bind the subject variable for queries which return resources.
-                QuerySourceReferenceExpression sourceExpression = selectClause.Selector.TryGetQuerySource();
-
-                if(sourceExpression != null)
-                {
-                    IQuerySource source = sourceExpression.ReferencedQuerySource;
-
-                    _rootGenerator.SelectBuilder.And(source.ItemName, "p_", "o_");
-
-                    _rootGenerator.QueryBuilder.Where(e => e.Subject(source.ItemName).Predicate("p_").Object("o_"));
-                }
-            }
 
             queryModel.MainFromClause.Accept(this, queryModel);
 
@@ -289,12 +275,10 @@ namespace Semiodesk.Trinity.Query
             _queryBuilderTree.AddQuery(currentQueryGenerator, subQueryGenerator);
 
             CurrentQueryGenerator = subQueryGenerator;
-            SubQueryGenerator = null;
 
             _expressionVisitor.VisitExpression(expression);
 
             CurrentQueryGenerator = currentQueryGenerator;
-            SubQueryGenerator = subQueryGenerator;
         }
 
         public override void VisitOrderByClause(OrderByClause orderByClause, QueryModel queryModel, int index)
