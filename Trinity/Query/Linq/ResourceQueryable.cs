@@ -36,8 +36,8 @@ namespace Semiodesk.Trinity.Query
     {
         #region Constructors
 
-        public ResourceQueryable(IQueryParser queryParser, IQueryExecutor executor)
-            : base(new DefaultQueryProvider(typeof(ResourceQueryable<>), queryParser, executor))
+        public ResourceQueryable(IQueryParser queryParser, IQueryExecutor queryExecutor)
+            : base(new DefaultQueryProvider(typeof(ResourceQueryable<>), queryParser, queryExecutor))
         {
         }
 
