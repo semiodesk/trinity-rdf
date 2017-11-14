@@ -36,18 +36,19 @@ namespace Semiodesk.Trinity.Test.Linq
     [TestFixture]
     public class LinqTest
     {
-        protected IStore Store = StoreFactory.CreateStore("provider=dotnetrdf");
+        protected IStore Store;
 
         protected IModel Model;
 
-        public LinqTest()
-        {
-            Model = Store.CreateModel(new Uri("http://test.com/test"));
-        }
+        public LinqTest() {}
 
-        [SetUp]
         public void SetUp()
         {
+            string connectionString = SetupClass.ConnectionString;
+
+            Store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+
+            Model = Store.CreateModel(new Uri("http://test.com/test"));
             Model.Clear();
 
             Assert.IsTrue(Model.IsEmpty);
@@ -81,8 +82,10 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void TestExecuteCollectionWithIntegerPropertyCondition()
+        public void CanSelectResourcesWithIntegerBinaryExpression()
         {
+            SetUp();
+
             var persons = from person in Model.AsQueryable<Person>() where person.Age == 69 select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
@@ -109,9 +112,11 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void TestExecuteCollectionWithStringPropertyCondition()
+        public void CanSelectResourcesWithStringBinaryExpression()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" && person.Age > 1 select person;
+            SetUp();
+
+            var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice"  select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
 
@@ -121,45 +126,11 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void TestExecuteCollectionWithSubQueryAndIntegerCondition()
+        public void CanSelectResourcesWithSubQuery()
         {
-            SparqlQuery query = new SparqlQuery(@"
-                SELECT ?person ?p_ ?o_ WHERE
-                {
-	                {
-		                SELECT ?person ?o0_min ( COUNT ( ?o1 ) AS ?o1_count ) WHERE
-		                {
-			                {
-				                SELECT ?person ( MIN ( ?o0 ) AS ?o0_min ) WHERE
-				                {
-					                ?person <http://xmlns.com/foaf/0.1/knows> ?o0 .
-				                }
-				                GROUP BY ?person ORDER BY ASC ( ?o0 )
-			                }
+            SetUp();
 
-			                ?o0_min <http://xmlns.com/foaf/0.1/knows> ?o1 .
-		                }
-		                GROUP BY ?person ?o0_min
-	                }
-	
-	                ?person ?p_ ?o_ .
-
-	                FILTER ( ?o1_count = '1' ^^<http://www.w3.org/2001/XMLSchema#int> )
-                }
-            ");
-
-            IEnumerable<BindingSet> bindings = Model.GetBindings(query);
-
-            foreach(BindingSet b in bindings)
-            {
-                Debug.WriteLine(b["person"].ToString() + " " + b["p_"].ToString() + " " + b["o_"].ToString());
-            }
-
-            var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.First().KnownPeople.Count == 1 select person;
-
-            Assert.AreEqual(1, persons.ToList().Count);
-
-            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count != 1 select person;
+            var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count != 1 select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
 
@@ -171,10 +142,6 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Assert.AreEqual(2, persons.ToList().Count);
 
-            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Select(p => p.FirstName).Equals("Alice") select person;
-
-            Assert.AreEqual(1, persons.ToList().Count);
-
             persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count < 1 select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
@@ -185,9 +152,51 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void TestExecuteCollectionWithSubQueryAndSelectConstraint()
+        public void CanSelectResourcesWithEqualsMethodCall()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Select(p => p.FirstName).Equals("Alice") select person;
+            SetUp();
+
+            var persons = from person in Model.AsQueryable<Person>() where person.FirstName.Equals("Alice") select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectResourcesWithFirstResultOperator()
+        {
+            SetUp();
+
+            SparqlQuery q1 = new SparqlQuery(@"
+				SELECT DISTINCT ?person ( MIN(?o0) AS ?o0_first ) WHERE
+				{
+                    { SELECT ?person WHERE { ?person <http://xmlns.com/foaf/0.1/knows> ?o0 . } }
+                    INTERSECT
+					{ SELECT ?person WHERE { ?person <http://xmlns.com/foaf/0.1/knows> ?o0 . } ORDER BY ?o0 LIMIT 1 }
+				}
+				GROUP BY ?person ?o0 ORDER BY ?o0
+            ");
+
+            IList<BindingSet> b1 = Model.GetBindings(q1).ToList();
+
+            SparqlQuery q2 = new SparqlQuery(@"
+		        SELECT ?person ( COUNT ( ?o1 ) AS ?o1_count ) WHERE
+		        {
+			        {
+				        SELECT ?person ( MIN ( ?o0 ) AS ?o0_first ) WHERE
+				        {
+					        ?person <http://xmlns.com/foaf/0.1/knows> ?o0 . 
+				        }
+				        GROUP BY ?person ?o0 ORDER BY ?o0
+			        }
+
+			        ?o0_first <http://xmlns.com/foaf/0.1/knows> ?o1 .
+		        }
+		        GROUP BY ?person
+            ");
+
+            IList<BindingSet> b2 = Model.GetBindings(q2).ToList();
+
+            var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.First().KnownPeople.Count == 1 select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
         }

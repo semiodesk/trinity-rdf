@@ -6,11 +6,22 @@ namespace Semiodesk.Trinity.Query
     {
         #region Members
 
+        private int _predicateCount;
+
         private int _objectCount;
 
         #endregion
 
         #region Methods
+
+        public SparqlVariable GeneratePredicateVariable(string prefix = "p")
+        {
+            string v = prefix + _predicateCount;
+
+            _predicateCount += 1;
+
+            return new SparqlVariable(v);
+        }
 
         public SparqlVariable GenerateObjectVariable(string prefix = "o")
         {

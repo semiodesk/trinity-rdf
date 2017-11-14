@@ -52,13 +52,15 @@ namespace Semiodesk.Trinity.Query
 
         private readonly ExpressionTreeVisitor _expressionVisitor;
 
+        private readonly QueryGeneratorTree _queryGeneratorTree;
+
         private readonly QueryGenerator _rootGenerator;
 
         private readonly Dictionary<QueryModel, QueryGenerator> _queryGenerators = new Dictionary<QueryModel, QueryGenerator>();
 
-        public QueryGenerator CurrentQueryGenerator { get; private set; }
+        public QueryModel CurrentQueryModel { get; private set; }
 
-        private readonly QueryGeneratorTree _queryBuilderTree;
+        public QueryGenerator CurrentQueryGenerator { get; private set; }
 
         public VariableBuilder VariableBuilder { get; private set; }
 
@@ -76,7 +78,7 @@ namespace Semiodesk.Trinity.Query
             CurrentQueryGenerator = _rootGenerator;
 
             // Add the root query builder to the query tree.
-            _queryBuilderTree = new QueryGeneratorTree(_rootGenerator);
+            _queryGeneratorTree = new QueryGeneratorTree(_rootGenerator);
 
             // The expression tree visitor needs to be initialized *after* the query builders.
             _expressionVisitor = new ExpressionTreeVisitor(this);
@@ -139,7 +141,13 @@ namespace Semiodesk.Trinity.Query
         {
             Debug.WriteLine(queryModel.GetType().ToString());
 
+            QueryModel currentQueryModel = CurrentQueryModel;
+
+            CurrentQueryModel = queryModel;
+
             queryModel.SelectClause.Accept(this, queryModel);
+
+            CurrentQueryModel = currentQueryModel;
         }
 
         public override void VisitResultOperator(ResultOperatorBase resultOperator, QueryModel queryModel, int index)
@@ -272,7 +280,7 @@ namespace Semiodesk.Trinity.Query
             _queryGenerators[expression.QueryModel] = subQueryGenerator;
 
             // Add the sub query to the query tree.
-            _queryBuilderTree.AddQuery(currentQueryGenerator, subQueryGenerator);
+            _queryGeneratorTree.AddQuery(currentQueryGenerator, subQueryGenerator);
 
             CurrentQueryGenerator = subQueryGenerator;
 
@@ -301,7 +309,7 @@ namespace Semiodesk.Trinity.Query
 
             // Since the dotNetRdf QueryBuilder does not support building sub queries,
             // we need to generate the nested queries here.
-            _queryBuilderTree.Traverse((builder) =>
+            _queryGeneratorTree.Traverse((builder) =>
             {
                 string q = builder.BuildQuery().ToString();
 
@@ -325,12 +333,12 @@ namespace Semiodesk.Trinity.Query
             return query;
         }
 
-        internal QueryGenerator GetCurrentQueryGenerator()
+        public QueryGenerator GetCurrentQueryGenerator()
         {
             return CurrentQueryGenerator;
         }
 
-        internal QueryGenerator GetQueryGenerator(QueryModel queryModel)
+        public QueryGenerator GetQueryGenerator(QueryModel queryModel)
         {
             return _queryGenerators[queryModel];
         }
