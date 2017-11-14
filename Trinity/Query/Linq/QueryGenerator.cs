@@ -27,16 +27,13 @@
 
 using Remotion.Linq.Clauses.Expressions;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using VDS.RDF;
 using VDS.RDF.Query;
 using VDS.RDF.Query.Aggregates;
-using VDS.RDF.Query.Aggregates.Sparql;
 using VDS.RDF.Query.Builder;
 using VDS.RDF.Query.Builder.Expressions;
-using VDS.RDF.Query.Expressions;
 using VDS.RDF.Query.Expressions.Primary;
 
 namespace Semiodesk.Trinity.Query
@@ -47,15 +44,15 @@ namespace Semiodesk.Trinity.Query
 
         public bool IsBound { get; private set; }
 
-        public SparqlVariable SubjectVariable { get; private set; }
+        public SparqlVariable Subject { get; private set; }
 
-        public SparqlVariable ObjectVariable { get; private set; }
+        public SparqlVariable Object { get; private set; }
 
         public ISelectBuilder SelectBuilder { get; private set; }
 
         public IQueryBuilder QueryBuilder { get; private set; }
 
-        public QueryModelVisitor QueryModelVisitor { get; private set; }
+        public QueryModelVisitor ModelVisitor { get; private set; }
 
         #endregion
 
@@ -65,14 +62,14 @@ namespace Semiodesk.Trinity.Query
         {
             SelectBuilder = VDS.RDF.Query.Builder.QueryBuilder.Select(new string[] {});
             QueryBuilder = SelectBuilder.GetQueryBuilder();
-            QueryModelVisitor = modelVisitor;
+            ModelVisitor = modelVisitor;
         }
 
         public QueryGenerator(QueryModelVisitor modelVisitor, ISelectBuilder selectBuilder)
         {
             SelectBuilder = selectBuilder;
             QueryBuilder = SelectBuilder.GetQueryBuilder();
-            QueryModelVisitor = modelVisitor;
+            ModelVisitor = modelVisitor;
         }
 
         #endregion
@@ -83,26 +80,27 @@ namespace Semiodesk.Trinity.Query
         {
             IsBound = true;
 
-            if(SubjectVariable != null)
+            if(Subject != null)
             {
-                SelectBuilder.And(SubjectVariable);
+                SelectBuilder.And(Subject);
             }
 
-            if(ObjectVariable != null)
+            if(Object != null)
             {
-                if (ObjectVariable.IsAggregate)
-                {
-                    string name = ObjectVariable.Name;
-                    string functor = ObjectVariable.Aggregate.Functor.ToLowerInvariant();
+                SelectBuilder.And(Object);
 
-                    SelectBuilder.And(e => e.Count(name)).As(string.Format("{0}_{1}", name, functor));
-
-                    QueryBuilder.GroupBy(SubjectVariable.Name);
-                }
-                else
+                if (Object.IsAggregate && Subject != null)
                 {
-                    SelectBuilder.And(ObjectVariable);
+                    QueryBuilder.GroupBy(Subject.Name);
                 }
+            }
+        }
+
+        public void SetSubject(SparqlVariable variable)
+        {
+            if (variable != null && !variable.IsAggregate)
+            {
+                Subject = variable;
             }
         }
 
@@ -110,13 +108,39 @@ namespace Semiodesk.Trinity.Query
         {
             ThrowOnBound();
 
-            QuerySourceReferenceExpression source = expression.TryGetQuerySource();
-
-            if (source != null)
+            if(expression is MemberExpression)
             {
-                SubjectVariable = new SparqlVariable(source.ReferencedQuerySource.ItemName, true);
+                MemberExpression memberExpression = expression as MemberExpression;
+                
+                if(memberExpression.Expression is SubQueryExpression)
+                {
+                    // When accessing members of sub queries, then the subject of the 
+                    // current query is the 'result' of the sub query.
+                    SubQueryExpression subQueryExpression = memberExpression.Expression as SubQueryExpression;
 
-                return true;
+                    QueryGenerator subQueryGenerator = ModelVisitor.GetQueryGenerator(subQueryExpression.QueryModel);
+
+                    if(subQueryGenerator.Object != null)
+                    {
+                        Subject = new SparqlVariable(subQueryGenerator.Object.Name);
+
+                        // TODO: Also add the inner subject here to the selected variables of the current query.
+                        SelectBuilder.And(subQueryGenerator.Subject);
+
+                        QueryBuilder.GroupBy(subQueryGenerator.Subject.Name);
+
+                        return true;
+                    }
+                }
+                else if(memberExpression.Expression is QuerySourceReferenceExpression)
+                {
+                    // Set the variable name of the query source reference as subject of the current query.
+                    QuerySourceReferenceExpression source = memberExpression.Expression as QuerySourceReferenceExpression;
+
+                    Subject = new SparqlVariable(source.ReferencedQuerySource.ItemName, true);
+
+                    return true;
+                }
             }
 
             return false;
@@ -130,11 +154,11 @@ namespace Semiodesk.Trinity.Query
 
             if (aggregate == null)
             {
-                ObjectVariable = new SparqlVariable(variableName, true);
+                Object = new SparqlVariable(variableName, true);
             }
             else
             {
-                ObjectVariable = new SparqlVariable(variableName, aggregate);
+                Object = new SparqlVariable(aggregate.GetProjectedName(variableName), aggregate);
             }
         }
 
@@ -144,11 +168,11 @@ namespace Semiodesk.Trinity.Query
 
             if (variable.IsResultVariable)
             {
-                ObjectVariable = variable;
+                Object = variable;
             }
             else
             {
-                ObjectVariable = new SparqlVariable(variable.Name, true);
+                Object = new SparqlVariable(variable.Name, true);
             }
         }
 
@@ -166,7 +190,7 @@ namespace Semiodesk.Trinity.Query
             RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
             INode o = constant.AsNode();
 
-            QueryBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(p.MappedUri).Object(o));
+            QueryBuilder.Where(t => t.Subject(Subject.Name).PredicateUri(p.MappedUri).Object(o));
         }
 
         public void NotEqual(SparqlVariable variable, ConstantExpression constant)
@@ -181,9 +205,9 @@ namespace Semiodesk.Trinity.Query
             ThrowOnBound();
 
             RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
-            SparqlVariable o = QueryModelVisitor.VariableBuilder.GenerateObjectVariable();
+            SparqlVariable o = ModelVisitor.VariableBuilder.GenerateObjectVariable();
 
-            QueryBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(p.MappedUri).Object(o.Name));
+            QueryBuilder.Where(t => t.Subject(Subject.Name).PredicateUri(p.MappedUri).Object(o.Name));
             QueryBuilder.Filter(e => e.Variable(o.Name) != new LiteralExpression(constant.AsSparqlExpression()));
         }
 
@@ -199,9 +223,9 @@ namespace Semiodesk.Trinity.Query
             ThrowOnBound();
 
             RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
-            SparqlVariable o = QueryModelVisitor.VariableBuilder.GenerateObjectVariable();
+            SparqlVariable o = ModelVisitor.VariableBuilder.GenerateObjectVariable();
 
-            QueryBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(p.MappedUri).Object(o.Name));
+            QueryBuilder.Where(t => t.Subject(Subject.Name).PredicateUri(p.MappedUri).Object(o.Name));
             QueryBuilder.Filter(e => e.Variable(o.Name) > new LiteralExpression(constant.AsSparqlExpression()));
         }
 
@@ -217,9 +241,9 @@ namespace Semiodesk.Trinity.Query
             ThrowOnBound();
 
             RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
-            SparqlVariable o = QueryModelVisitor.VariableBuilder.GenerateObjectVariable();
+            SparqlVariable o = ModelVisitor.VariableBuilder.GenerateObjectVariable();
 
-            QueryBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(p.MappedUri).Object(o.Name));
+            QueryBuilder.Where(t => t.Subject(Subject.Name).PredicateUri(p.MappedUri).Object(o.Name));
             QueryBuilder.Filter(e => e.Variable(o.Name) >= new LiteralExpression(constant.AsSparqlExpression()));
         }
 
@@ -235,9 +259,9 @@ namespace Semiodesk.Trinity.Query
             ThrowOnBound();
 
             RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
-            SparqlVariable o = QueryModelVisitor.VariableBuilder.GenerateObjectVariable();
+            SparqlVariable o = ModelVisitor.VariableBuilder.GenerateObjectVariable();
 
-            QueryBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(p.MappedUri).Object(o.Name));
+            QueryBuilder.Where(t => t.Subject(Subject.Name).PredicateUri(p.MappedUri).Object(o.Name));
             QueryBuilder.Filter(e => e.Variable(o.Name) < new LiteralExpression(constant.AsSparqlExpression()));
         }
 
@@ -253,9 +277,9 @@ namespace Semiodesk.Trinity.Query
             ThrowOnBound();
 
             RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
-            SparqlVariable o = QueryModelVisitor.VariableBuilder.GenerateObjectVariable();
+            SparqlVariable o = ModelVisitor.VariableBuilder.GenerateObjectVariable();
 
-            QueryBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(p.MappedUri).Object(o.Name));
+            QueryBuilder.Where(t => t.Subject(Subject.Name).PredicateUri(p.MappedUri).Object(o.Name));
             QueryBuilder.Filter(e => e.Variable(o.Name) <= new LiteralExpression(constant.AsSparqlExpression()));
         }
 

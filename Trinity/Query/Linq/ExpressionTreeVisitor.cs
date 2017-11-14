@@ -60,12 +60,12 @@ namespace Semiodesk.Trinity.Query
         {
             Debug.WriteLine(expression.GetType().ToString());
 
+            QueryGenerator generator = _queryModelVisitor.CurrentQueryGenerator;
+            ConstantExpression constant = expression.Right as ConstantExpression;
+
             if (expression.Left is MemberExpression && expression.Right is ConstantExpression)
             {
                 MemberExpression member = expression.Left as MemberExpression;
-                ConstantExpression constant = expression.Right as ConstantExpression;
-
-                QueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
 
                 switch (expression.NodeType)
                 {
@@ -94,29 +94,28 @@ namespace Semiodesk.Trinity.Query
             else if (expression.Left is SubQueryExpression && expression.Right is ConstantExpression)
             {
                 SubQueryExpression subQuery = expression.Left as SubQueryExpression;
-                ConstantExpression constant = expression.Right as ConstantExpression;
 
-                QueryGenerator generator = _queryModelVisitor.GetQueryGenerator(subQuery.QueryModel);
+                QueryGenerator subGenerator = _queryModelVisitor.GetQueryGenerator(subQuery.QueryModel);
 
                 switch (expression.NodeType)
                 {
                     case ExpressionType.Equal:
-                        generator.Equal(generator.ObjectVariable, constant);
+                        generator.Equal(subGenerator.Object, constant);
                         break;
                     case ExpressionType.GreaterThan:
-                        generator.GreaterThan(generator.ObjectVariable, constant);
+                        generator.GreaterThan(subGenerator.Object, constant);
                         break;
                     case ExpressionType.GreaterThanOrEqual:
-                        generator.GreaterThanOrEqual(generator.ObjectVariable, constant);
+                        generator.GreaterThanOrEqual(subGenerator.Object, constant);
                         break;
                     case ExpressionType.LessThan:
-                        generator.LessThan(generator.ObjectVariable, constant);
+                        generator.LessThan(subGenerator.Object, constant);
                         break;
                     case ExpressionType.LessThanOrEqual:
-                        generator.LessThanOrEqual(generator.ObjectVariable, constant);
+                        generator.LessThanOrEqual(subGenerator.Object, constant);
                         break;
                     case ExpressionType.NotEqual:
-                        generator.NotEqual(generator.ObjectVariable, constant);
+                        generator.NotEqual(subGenerator.Object, constant);
                         break;
                     default:
                         throw new NotSupportedException(expression.NodeType.ToString());
@@ -139,7 +138,7 @@ namespace Semiodesk.Trinity.Query
 
             return expression;
         }
-
+        
         protected override Expression VisitInvocationExpression(InvocationExpression expression)
         {
             Debug.WriteLine(expression.GetType().ToString());
@@ -175,7 +174,7 @@ namespace Semiodesk.Trinity.Query
 
                 if (context.SetSubjectFromExpression(expression))
                 {
-                    SparqlVariable s = context.SubjectVariable;
+                    SparqlVariable s = context.Subject;
                     SparqlVariable o = _queryModelVisitor.VariableBuilder.GenerateObjectVariable();
 
                     context.QueryBuilder.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(o.Name));
@@ -196,7 +195,30 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitMethodCallExpression(MethodCallExpression expression)
         {
-            throw new NotSupportedException();
+            string method = expression.Method.Name;
+
+            if(method == "Equals")
+            {
+                QueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
+                ConstantExpression constant = expression.Arguments.First() as ConstantExpression;
+
+                if (expression.Object is MemberExpression)
+                {
+                    MemberExpression member = expression.Object as MemberExpression;
+
+                    generator.Equal(member, constant);
+                }
+                else if(expression.Object is SubQueryExpression)
+                {
+                    generator.Equal(generator.Object, constant);
+                }
+            }
+            else
+            {
+                throw new NotSupportedException();
+            }
+
+            return expression;
         }
 
         protected override Expression VisitNewExpression(NewExpression expression)
@@ -225,8 +247,6 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitSubQueryExpression(SubQueryExpression expression)
         {
-            QuerySourceReferenceExpression source = expression.TryGetQuerySource();
-
             expression.QueryModel.Accept(_queryModelVisitor);
 
             return expression;

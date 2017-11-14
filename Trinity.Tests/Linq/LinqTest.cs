@@ -27,6 +27,8 @@
 
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Semiodesk.Trinity.Test.Linq
@@ -72,6 +74,7 @@ namespace Semiodesk.Trinity.Test.Linq
             p1.Commit();
 
             p2.KnownPeople.Add(p1);
+            p2.KnownPeople.Add(p2);
             p2.Commit();
 
             Assert.IsFalse(Model.IsEmpty);
@@ -120,9 +123,41 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void TestExecuteCollectionWithSubQueryAndIntegerCondition()
         {
+            SparqlQuery query = new SparqlQuery(@"
+                SELECT ?person ?p_ ?o_ WHERE
+                {
+	                {
+		                SELECT ?person ?o0_min ( COUNT ( ?o1 ) AS ?o1_count ) WHERE
+		                {
+			                {
+				                SELECT ?person ( MIN ( ?o0 ) AS ?o0_min ) WHERE
+				                {
+					                ?person <http://xmlns.com/foaf/0.1/knows> ?o0 .
+				                }
+				                GROUP BY ?person ORDER BY ASC ( ?o0 )
+			                }
+
+			                ?o0_min <http://xmlns.com/foaf/0.1/knows> ?o1 .
+		                }
+		                GROUP BY ?person ?o0_min
+	                }
+	
+	                ?person ?p_ ?o_ .
+
+	                FILTER ( ?o1_count = '1' ^^<http://www.w3.org/2001/XMLSchema#int> )
+                }
+            ");
+
+            IEnumerable<BindingSet> bindings = Model.GetBindings(query);
+
+            foreach(BindingSet b in bindings)
+            {
+                Debug.WriteLine(b["person"].ToString() + " " + b["p_"].ToString() + " " + b["o_"].ToString());
+            }
+
             var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.First().KnownPeople.Count == 1 select person;
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            Assert.AreEqual(1, persons.ToList().Count);
 
             persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count != 1 select person;
 
@@ -136,6 +171,10 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Assert.AreEqual(2, persons.ToList().Count);
 
+            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Select(p => p.FirstName).Equals("Alice") select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
             persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count < 1 select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
@@ -143,10 +182,6 @@ namespace Semiodesk.Trinity.Test.Linq
             persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count <= 1 select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
-
-            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Select(p => p.FirstName).Equals("Alice") select person;
-
-            Assert.AreEqual(1, persons.ToList().Count);
         }
 
         [Test]
