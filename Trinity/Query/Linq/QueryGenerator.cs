@@ -28,8 +28,10 @@
 using Remotion.Linq.Clauses.Expressions;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using VDS.RDF;
 using VDS.RDF.Query;
 using VDS.RDF.Query.Builder;
@@ -88,21 +90,21 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public void SetSubject(SparqlVariable variable)
+        public void SetSubjectVariable(SparqlVariable variable)
         {
             ThrowOnBound();
 
             if (variable != null && !variable.IsAggregate)
             {
-                Deselect(SubjectVariable);
+                DeselectVariable(SubjectVariable);
 
                 SubjectVariable = variable;
 
-                Select(variable);
+                SelectVariable(variable);
             }
         }
 
-        public bool SetSubjectFromExpression(Expression expression)
+        public bool SetSubjectVariableFromExpression(Expression expression)
         {
             ThrowOnBound();
 
@@ -120,10 +122,10 @@ namespace Semiodesk.Trinity.Query
                     if(subQueryGenerator.ObjectVariable != null)
                     {
                         // Make the subject variable of sub queries available for outer queries.
-                        Select(subQueryGenerator.SubjectVariable);
+                        SelectVariable(subQueryGenerator.SubjectVariable);
 
                         // The object of the sub query is the subject of the outer query.
-                        SetSubject(new SparqlVariable(subQueryGenerator.ObjectVariable.Name));
+                        SetSubjectVariable(new SparqlVariable(subQueryGenerator.ObjectVariable.Name));
 
                         return true;
                     }
@@ -133,7 +135,7 @@ namespace Semiodesk.Trinity.Query
                     // Set the variable name of the query source reference as subject of the current query.
                     QuerySourceReferenceExpression source = memberExpression.Expression as QuerySourceReferenceExpression;
 
-                    SetSubject(new SparqlVariable(source.ReferencedQuerySource.ItemName, true));
+                    SetSubjectVariable(new SparqlVariable(source.ReferencedQuerySource.ItemName, true));
 
                     return true;
                 }
@@ -142,21 +144,21 @@ namespace Semiodesk.Trinity.Query
             return false;
         }
 
-        public void SetObject(SparqlVariable variable)
+        public void SetObjectVariable(SparqlVariable variable)
         {
             ThrowOnBound();
 
             if(variable != null)
             {
-                Deselect(ObjectVariable);
+                DeselectVariable(ObjectVariable);
 
                 ObjectVariable = variable;
 
-                Select(ObjectVariable);
+                SelectVariable(ObjectVariable);
             }
         }
 
-        public void Deselect(SparqlVariable variable)
+        public void DeselectVariable(SparqlVariable variable)
         {
             if (variable != null && SelectedVariables.Contains(variable))
             {
@@ -164,7 +166,7 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public void Select(SparqlVariable variable)
+        public void SelectVariable(SparqlVariable variable)
         {
             if(variable != null && !SelectedVariables.Contains(variable))
             {
@@ -188,10 +190,7 @@ namespace Semiodesk.Trinity.Query
         {
             ThrowOnBound();
 
-            RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
-            INode o = constant.AsNode();
-
-            QueryBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(p.MappedUri).Object(o));
+            BuildMemberAccess(member, constant.AsNode());
         }
 
         public void WhereNotEqual(SparqlVariable variable, ConstantExpression constant)
@@ -205,10 +204,10 @@ namespace Semiodesk.Trinity.Query
         {
             ThrowOnBound();
 
-            RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
             SparqlVariable o = ModelVisitor.VariableBuilder.GenerateObjectVariable();
 
-            QueryBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(p.MappedUri).Object(o.Name));
+            BuildMemberAccess(member, o);
+
             QueryBuilder.Filter(e => e.Variable(o.Name) != new LiteralExpression(constant.AsSparqlExpression()));
         }
 
@@ -223,10 +222,10 @@ namespace Semiodesk.Trinity.Query
         {
             ThrowOnBound();
 
-            RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
             SparqlVariable o = ModelVisitor.VariableBuilder.GenerateObjectVariable();
 
-            QueryBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(p.MappedUri).Object(o.Name));
+            BuildMemberAccess(member, o);
+
             QueryBuilder.Filter(e => e.Variable(o.Name) > new LiteralExpression(constant.AsSparqlExpression()));
         }
 
@@ -241,10 +240,10 @@ namespace Semiodesk.Trinity.Query
         {
             ThrowOnBound();
 
-            RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
             SparqlVariable o = ModelVisitor.VariableBuilder.GenerateObjectVariable();
 
-            QueryBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(p.MappedUri).Object(o.Name));
+            BuildMemberAccess(member, o);
+
             QueryBuilder.Filter(e => e.Variable(o.Name) >= new LiteralExpression(constant.AsSparqlExpression()));
         }
 
@@ -259,10 +258,10 @@ namespace Semiodesk.Trinity.Query
         {
             ThrowOnBound();
 
-            RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
             SparqlVariable o = ModelVisitor.VariableBuilder.GenerateObjectVariable();
 
-            QueryBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(p.MappedUri).Object(o.Name));
+            BuildMemberAccess(member, o);
+
             QueryBuilder.Filter(e => e.Variable(o.Name) < new LiteralExpression(constant.AsSparqlExpression()));
         }
 
@@ -277,11 +276,56 @@ namespace Semiodesk.Trinity.Query
         {
             ThrowOnBound();
 
-            RdfPropertyAttribute p = member.GetRdfPropertyAttribute();
             SparqlVariable o = ModelVisitor.VariableBuilder.GenerateObjectVariable();
 
-            QueryBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(p.MappedUri).Object(o.Name));
+            BuildMemberAccess(member, o);
+
             QueryBuilder.Filter(e => e.Variable(o.Name) <= new LiteralExpression(constant.AsSparqlExpression()));
+        }
+
+        private void BuildMemberAccess(MemberExpression member, INode o)
+        {
+            BuildMemberAccess(member, (s, p) =>
+            {
+                QueryBuilder.Where(t => t.Subject(s.Name).PredicateUri(p).Object(o));
+            });            
+        }
+
+        private void BuildMemberAccess(MemberExpression member, SparqlVariable o)
+        {
+            BuildMemberAccess(member, (s, p) =>
+            {
+                QueryBuilder.Where(t => t.Subject(s.Name).PredicateUri(p).Object(o.Name));
+            });
+        }
+
+        private SparqlVariable BuildMemberAccess(Expression expression, Action<SparqlVariable, Uri> buildMemberAccessTriple)
+        {
+            // Recursively generate the property path which leads to the query source.
+            if (expression is MemberExpression)
+            {
+                MemberExpression memberExpression = expression as MemberExpression;
+                MemberInfo member = memberExpression.Member;
+
+                var s = BuildMemberAccess(memberExpression.Expression, null);
+                var p = member.TryGetRdfPropertyAttribute();
+                var o = new SparqlVariable(member.Name.ToLowerInvariant());
+
+                if (buildMemberAccessTriple == null)
+                {
+                    QueryBuilder.Where(t => t.Subject(s.Name).PredicateUri(p.MappedUri).Object(o.Name));
+                }
+                else
+                {
+                    buildMemberAccessTriple(s, p.MappedUri);
+                }
+
+                return o;
+            }
+            else
+            {
+                return SubjectVariable;
+            }
         }
 
         public void OrderBy(SparqlVariable variable)

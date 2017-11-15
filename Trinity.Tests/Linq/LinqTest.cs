@@ -42,33 +42,55 @@ namespace Semiodesk.Trinity.Test.Linq
 
         public LinqTest() {}
 
+        [SetUp]
         public void SetUp()
         {
-            string connectionString = SetupClass.ConnectionString;
+            // DotNetRdf memory store.
+            string connectionString = "provider=dotnetrdf";
 
-            Store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+            // OpenLink Virtoso store.
+            //string connectionString = string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString);
+
+            Store = StoreFactory.CreateStore(connectionString);
 
             Model = Store.CreateModel(new Uri("http://test.com/test"));
             Model.Clear();
 
             Assert.IsTrue(Model.IsEmpty);
 
+            Group g1 = Model.CreateResource<Group>();
+            g1.Name = "The Spiders";
+            g1.Commit();
+
+            Group g2 = Model.CreateResource<Group>();
+            g2.Name = "Alicia Keys";
+            g2.Commit();
+
             Person p1 = Model.CreateResource<Person>();
             p1.FirstName = "Alice";
             p1.LastName = "Cooper";
             p1.Age = 69;
+            p1.Birthday = new DateTime(1948, 2, 4);
+            p1.Group = g1;
+            p1.Status = true;
+            p1.AccountBalance = 10000000.1f;
             p1.Commit();
 
             Person p2 = Model.CreateResource<Person>();
             p2.FirstName = "Bob";
             p2.LastName = "Dylan";
             p2.Age = 76;
+            p2.Birthday = new DateTime(1941, 5, 24);
+            p2.AccountBalance = 1000000.1f;
             p2.Commit();
 
             Person p3 = Model.CreateResource<Person>();
             p3.FirstName = "Eve";
             p3.LastName = "Jeffers-Cooper";
+            p3.Birthday = new DateTime(1978, 11, 10);
             p3.Age = 38;
+            p3.Group = g2;
+            p3.AccountBalance = 100000.0f;
             p3.Commit();
 
             p1.KnownPeople.Add(p2);
@@ -82,11 +104,61 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectResourcesWithIntegerBinaryExpression()
+        public void CanSelectResourcesWithBinaryExpressionOnBoolean()
         {
-            SetUp();
+            var persons = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person;
 
-            var persons = from person in Model.AsQueryable<Person>() where person.Age == 69 select person;
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Status == true select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Status == false select person;
+
+            Assert.AreEqual(0, persons.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectResourcesWithBinaryExpressionOnDateTime()
+        {
+            var persons = from person in Model.AsQueryable<Person>() where person.Birthday.Equals(new DateTime(1948, 2, 4)) select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Birthday == new DateTime(1948, 2, 4) select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Birthday != new DateTime(1948, 2, 4) select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Birthday < new DateTime(1948, 2, 4) select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Birthday <= new DateTime(1948, 2, 4) select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Birthday >= new DateTime(1948, 2, 4) select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Birthday > new DateTime(1948, 2, 4) select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectResourcesWithBinaryExpressionOnInteger()
+        {
+            var persons = from person in Model.AsQueryable<Person>() where person.Age.Equals(69) select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Age == 69 select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
 
@@ -112,10 +184,40 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectResourcesWithStringBinaryExpression()
+        public void CanSelectResourcesWithBinaryExpressionOnFloat()
         {
-            SetUp();
+            var persons = from person in Model.AsQueryable<Person>() where person.AccountBalance.Equals(100000) select person;
 
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance == 100000 select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance != 100000 select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance < 100000 select person;
+
+            Assert.AreEqual(0, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance <= 100000 select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance >= 100000 select person;
+
+            Assert.AreEqual(3, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance > 100000 select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectResourcesWithBinaryExpressionOnString()
+        {
             var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice"  select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
@@ -126,13 +228,27 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectResourcesWithSubQuery()
+        public void CanSelectResourcesWithBinaryExpressionOnResource()
         {
-            SetUp();
-
-            var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count != 1 select person;
+            var persons = from person in Model.AsQueryable<Person>() where person.Group.Name.Equals("The Spiders") select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Group.Name == "The Spiders" select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Group.Name != "The Spiders" select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectResourcesWithCountOperator()
+        {
+            var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count != 1 select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
 
             persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count > 0 select person;
 
@@ -154,8 +270,6 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectResourcesWithEqualsMethodCall()
         {
-            SetUp();
-
             var persons = from person in Model.AsQueryable<Person>() where person.FirstName.Equals("Alice") select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
@@ -164,7 +278,7 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectResourcesWithFirstResultOperator()
         {
-            SetUp();
+            Assert.Fail("TODO");
 
             SparqlQuery q1 = new SparqlQuery(@"
 				SELECT DISTINCT ?person ( MIN(?o0) AS ?o0_first ) WHERE
@@ -199,6 +313,30 @@ namespace Semiodesk.Trinity.Test.Linq
             var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.First().KnownPeople.Count == 1 select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectResourcesWithLastResultOperator()
+        {
+            Assert.Fail("TODO");
+
+            var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Last().KnownPeople.Count == 1 select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+        }
+
+        private void DumpModel()
+        {
+            Debug.WriteLine("");
+
+            ISparqlQuery q = new SparqlQuery(@"SELECT * WHERE { ?s ?p ?o . }");
+
+            foreach(BindingSet b in Model.GetBindings(q))
+            {
+                Debug.WriteLine(b["s"] + " " + b["p"] + " " + b["o"]);
+            }
+
+            Debug.WriteLine("");
         }
     }
 }

@@ -27,6 +27,7 @@
 
 using System;
 using System.Linq.Expressions;
+using System.Xml;
 using VDS.RDF;
 using VDS.RDF.Query.Expressions;
 using VDS.RDF.Query.Expressions.Primary;
@@ -35,35 +36,61 @@ namespace Semiodesk.Trinity.Query
 {
     public static class ConstantExpressionExtensions
     {
-        public static ISparqlExpression AsSparqlExpression(this ConstantExpression constantExpression)
+        public static ISparqlExpression AsSparqlExpression(this ConstantExpression constant)
         {
-            string value = constantExpression.Value.ToString();
+            string value = GetValue(constant);
+            Uri datatype = GetDataType(constant);
 
-            if (constantExpression.Type == typeof(string))
+            if(datatype == null)
             {
                 return new ConstantTerm(new NodeFactory().CreateLiteralNode(value));
             }
             else
             {
-                Uri datatype = XsdTypeMapper.GetXsdTypeUri(constantExpression.Type);
-
                 return new ConstantTerm(new NodeFactory().CreateLiteralNode(value, datatype));
             }
         }
 
-        public static INode AsNode(this ConstantExpression constantExpression)
+        public static INode AsNode(this ConstantExpression constant)
         {
-            string value = constantExpression.Value.ToString();
+            string value = GetValue(constant);
+            Uri datatype = GetDataType(constant);
 
-            if (constantExpression.Type == typeof(string))
+            if (datatype == null)
             {
                 return new NodeFactory().CreateLiteralNode(value);
             }
             else
             {
-                Uri datatype = XsdTypeMapper.GetXsdTypeUri(constantExpression.Type);
-
                 return new NodeFactory().CreateLiteralNode(value, datatype);
+            }
+        }
+
+        private static string GetValue(ConstantExpression constant)
+        {
+            if(constant.Type == typeof(DateTime))
+            {
+                return XmlConvert.ToString((DateTime)constant.Value, XmlDateTimeSerializationMode.Utc);
+            }
+            else if(constant.Type == typeof(bool))
+            {
+                return XmlConvert.ToString((bool)constant.Value);
+            }
+            else
+            {
+                return constant.Value.ToString();
+            }
+        }
+
+        private static Uri GetDataType(ConstantExpression constant)
+        {
+            if(constant.Type == typeof(string))
+            {
+                return null;
+            }
+            else
+            {
+                return XsdTypeMapper.GetXsdTypeUri(constant.Type);
             }
         }
     }

@@ -32,11 +32,9 @@ using Remotion.Linq.Clauses.ResultOperators;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Linq.Expressions;
 using VDS.RDF.Query;
 using VDS.RDF.Query.Aggregates.Sparql;
-using VDS.RDF.Query.Builder;
 using VDS.RDF.Query.Expressions.Primary;
 
 // TODO:
@@ -129,11 +127,22 @@ namespace Semiodesk.Trinity.Query
 
                 string s = fromClause.ItemName;
 
-                _rootGenerator.SetSubject(new SparqlVariable(s));
-                _rootGenerator.Select(new SparqlVariable("p_"));
-                _rootGenerator.SetObject(new SparqlVariable("o_"));
+                // Select all triples having the resource as subject.
+                _rootGenerator.SetSubjectVariable(new SparqlVariable(s));
+                _rootGenerator.SelectVariable(new SparqlVariable("p_"));
+                _rootGenerator.SetObjectVariable(new SparqlVariable("o_"));
 
                 _rootGenerator.Where(e => e.Subject(s).Predicate("p_").Object("o_"));
+
+                // Assert the resource type, if any.
+                RdfClassAttribute type = fromClause.ItemType.TryGetCustomAttribute<RdfClassAttribute>();
+
+                if (type != null)
+                {
+                    Uri p = new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+
+                    _rootGenerator.Where(e => e.Subject(s).PredicateUri(p).Object(type.MappedUri));
+                }
             }
         }
 
@@ -159,44 +168,44 @@ namespace Semiodesk.Trinity.Query
             if (resultOperator is AnyResultOperator)
             {
                 var aggregate = new SampleAggregate(new VariableTerm(generator.ObjectVariable.Name));
-                generator.SetObject(aggregate.AsSparqlVariable());
+                generator.SetObjectVariable(aggregate.AsSparqlVariable());
             }
             else if (resultOperator is AverageResultOperator)
             {
                 var aggregate = new AverageAggregate(new VariableTerm(generator.ObjectVariable.Name));
-                generator.SetObject(aggregate.AsSparqlVariable());
+                generator.SetObjectVariable(aggregate.AsSparqlVariable());
             }
             else if(resultOperator is CountResultOperator)
             {
-                var aggregate = new CountAggregate(new VariableTerm(generator.ObjectVariable.Name));
-                generator.SetObject(aggregate.AsSparqlVariable());
+                var aggregate = new CountDistinctAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                generator.SetObjectVariable(aggregate.AsSparqlVariable());
             }
             else if(resultOperator is FirstResultOperator)
             {
                 var aggregate = new MinAggregate(new VariableTerm(generator.ObjectVariable.Name));
-                generator.SetObject(aggregate.AsSparqlVariable());
+                generator.SetObjectVariable(aggregate.AsSparqlVariable());
                 generator.OrderBy(generator.ObjectVariable);
             }
             else if(resultOperator is LastResultOperator)
             {
                 var aggregate = new MinAggregate(new VariableTerm(generator.ObjectVariable.Name));
-                generator.SetObject(aggregate.AsSparqlVariable());
+                generator.SetObjectVariable(aggregate.AsSparqlVariable());
                 generator.OrderByDescending(generator.ObjectVariable);
             }
             else if(resultOperator is MaxResultOperator)
             {
                 var aggregate = new MaxAggregate(new VariableTerm(generator.ObjectVariable.Name));
-                generator.SetObject(aggregate.AsSparqlVariable());
+                generator.SetObjectVariable(aggregate.AsSparqlVariable());
             }
             else if(resultOperator is MinResultOperator)
             {
                 var aggregate = new MinAggregate(new VariableTerm(generator.ObjectVariable.Name));
-                generator.SetObject(aggregate.AsSparqlVariable());
+                generator.SetObjectVariable(aggregate.AsSparqlVariable());
             }
             else if(resultOperator is SumResultOperator)
             {
                 var aggregate = new SumAggregate(new VariableTerm(generator.ObjectVariable.Name));
-                generator.SetObject(aggregate.AsSparqlVariable());
+                generator.SetObjectVariable(aggregate.AsSparqlVariable());
             }
             else if (resultOperator is OfTypeResultOperator)
             {
