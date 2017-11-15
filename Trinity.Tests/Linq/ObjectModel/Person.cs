@@ -44,8 +44,20 @@ namespace Semiodesk.Trinity.Test.Linq
         [RdfProperty(FOAF.age)]
         public int Age { get; set; }
 
+        [RdfProperty(FOAF.birthday)]
+        public DateTime Birthday { get; set; }
+
         [RdfProperty(FOAF.knows)]
         public List<Person> KnownPeople { get; set; }
+
+        [RdfProperty(FOAF.member)]
+        public Group Group { get; set; }
+
+        [RdfProperty(FOAF.status)]
+        public bool Status { get; set; }
+
+        [RdfProperty(FOAF.account)]
+        public float AccountBalance { get; set; }
 
         #endregion
 
