@@ -86,7 +86,7 @@ namespace Semiodesk.Trinity
             {typeof(UInt64), xsd._ulong},
             {typeof(DateTime), xsd.datetime},
             {typeof(byte[]), xsd.base64Binary},
-            {typeof(bool), xsd.boolean_},
+            {typeof(bool), xsd.boolean},
             {typeof(decimal), xsd._decimal},
             {typeof(double), xsd._double},
             {typeof(float), xsd._float},

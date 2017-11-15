@@ -173,12 +173,12 @@ namespace Semiodesk.Trinity.Query
 
                 QueryGenerator generator = _queryModelVisitor.CurrentQueryGenerator;
 
-                if (generator.SetSubjectFromExpression(expression))
+                if (generator.SetSubjectVariableFromExpression(expression))
                 {
                     SparqlVariable s = generator.SubjectVariable;
                     SparqlVariable o = _queryModelVisitor.VariableBuilder.GenerateObjectVariable();
 
-                    generator.SetObject(o);
+                    generator.SetObjectVariable(o);
 
                     if(_queryModelVisitor.CurrentQueryModel.HasNumericResultOperator())
                     {
