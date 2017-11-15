@@ -90,6 +90,7 @@
     <Compile Include="dotnetrdf_SparqlQueryTest.cs" />
     <Compile Include="Linq\LinqTest.cs" />
     <Compile Include="Linq\ObjectModel\foaf.cs" />
+    <Compile Include="Linq\ObjectModel\Group.cs" />
     <Compile Include="Linq\ObjectModel\Person.cs" />
     <Compile Include="ModelGroupTest.cs" />
     <Compile Include="DotNetRdf\ResourceMappingTest.cs" />

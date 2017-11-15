@@ -32,7 +32,7 @@ namespace Semiodesk.Trinity.Query
 {
     internal static class ExpressionExstensions
     {
-        public static QuerySourceReferenceExpression TryGetQuerySource(this Expression expression)
+        public static QuerySourceReferenceExpression TryGetQuerySourceReference(this Expression expression)
         {
             if (expression is QuerySourceReferenceExpression)
             {
@@ -44,13 +44,13 @@ namespace Semiodesk.Trinity.Query
             {
                 MemberExpression memberExpression = expression as MemberExpression;
 
-                return TryGetQuerySource(memberExpression.Expression);
+                return TryGetQuerySourceReference(memberExpression.Expression);
             }
             else if (expression is SubQueryExpression)
             {
                 SubQueryExpression subQueryExpression = expression as SubQueryExpression;
 
-                return TryGetQuerySource(subQueryExpression.QueryModel.MainFromClause.FromExpression);
+                return TryGetQuerySourceReference(subQueryExpression.QueryModel.MainFromClause.FromExpression);
             }
 
             return null;
