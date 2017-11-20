@@ -645,11 +645,11 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public IQueryable<T> AsQueryable<T>() where T : Resource
         {
-            ResourceQueryExecutor executor = new ResourceQueryExecutor(this);
+            SparqlQueryExecutor executor = new SparqlQueryExecutor(this);
 
             QueryParser queryParser = QueryParser.CreateDefault();
 
-            return new ResourceQueryable<T>(queryParser, executor);
+            return new SparqlQueryable<T>(queryParser, executor);
         }
 
         /// <summary>

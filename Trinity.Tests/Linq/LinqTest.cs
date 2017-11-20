@@ -104,6 +104,22 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
+        public void CanSelectBooleanValueWithBinaryExpressionOnBoolean()
+        {
+            var persons = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.Status == true select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.Status == false select person;
+
+            Assert.IsFalse(persons.Any());
+        }
+
+        [Test]
         public void CanSelectResourcesWithBinaryExpressionOnBoolean()
         {
             var persons = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person;

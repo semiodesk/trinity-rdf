@@ -28,7 +28,6 @@
 using Remotion.Linq.Clauses.Expressions;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -39,7 +38,7 @@ using VDS.RDF.Query.Builder.Expressions;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal class QueryGenerator
+    internal class SparqlQueryGenerator
     {
         #region Members
 
@@ -49,7 +48,7 @@ namespace Semiodesk.Trinity.Query
 
         protected IQueryBuilder QueryBuilder;
 
-        public QueryModelVisitor ModelVisitor { get; private set; }
+        public IQueryModelVisitor ModelVisitor { get; private set; }
 
         public SparqlVariable SubjectVariable { get; private set; }
 
@@ -61,11 +60,18 @@ namespace Semiodesk.Trinity.Query
 
         #region Constructors
 
-        public QueryGenerator(QueryModelVisitor modelVisitor)
+        public SparqlQueryGenerator(IQueryModelVisitor modelVisitor, IQueryBuilder queryBuilder)
         {
             SelectedVariables = new List<SparqlVariable>();
-            SelectBuilder = VDS.RDF.Query.Builder.QueryBuilder.Select(new string[] {});
-            QueryBuilder = SelectBuilder.GetQueryBuilder();
+            QueryBuilder = queryBuilder;
+            ModelVisitor = modelVisitor;
+        }
+
+        public SparqlQueryGenerator(IQueryModelVisitor modelVisitor, ISelectBuilder selectBuilder)
+        {
+            SelectedVariables = new List<SparqlVariable>();
+            SelectBuilder = selectBuilder;
+            QueryBuilder = selectBuilder.GetQueryBuilder();
             ModelVisitor = modelVisitor;
         }
 
@@ -77,15 +83,18 @@ namespace Semiodesk.Trinity.Query
         {
             IsBound = true;
 
-            bool hasAggregate = SelectedVariables.Any(v => v.IsAggregate);
-
-            foreach(SparqlVariable variable in SelectedVariables)
+            if(SelectBuilder != null)
             {
-                SelectBuilder.And(variable);
+                bool hasAggregate = SelectedVariables.Any(v => v.IsAggregate);
 
-                if(hasAggregate && !variable.IsAggregate)
+                foreach (SparqlVariable variable in SelectedVariables)
                 {
-                    QueryBuilder.GroupBy(variable.Name);
+                    SelectBuilder.And(variable);
+
+                    if (hasAggregate && !variable.IsAggregate)
+                    {
+                        QueryBuilder.GroupBy(variable.Name);
+                    }
                 }
             }
         }
@@ -116,8 +125,7 @@ namespace Semiodesk.Trinity.Query
                 {
                     SubQueryExpression subQueryExpression = memberExpression.Expression as SubQueryExpression;
 
-                    // TODO: May be we can use ModelVisitor.SubQueryGenerator here?
-                    QueryGenerator subQueryGenerator = ModelVisitor.GetQueryGenerator(subQueryExpression.QueryModel);
+                    SparqlQueryGenerator subQueryGenerator = ModelVisitor.GetQueryGenerator(subQueryExpression.QueryModel);
 
                     if(subQueryGenerator.ObjectVariable != null)
                     {
@@ -160,17 +168,33 @@ namespace Semiodesk.Trinity.Query
 
         public void DeselectVariable(SparqlVariable variable)
         {
-            if (variable != null && SelectedVariables.Contains(variable))
+            if (SelectBuilder != null)
             {
-                SelectedVariables.Remove(variable);
+                if (variable != null && SelectedVariables.Contains(variable))
+                {
+                    SelectedVariables.Remove(variable);
+                }
+            }
+            else
+            {
+                string msg = "Cannot deselect variables with non-SELECT query type.";
+                throw new Exception(msg);
             }
         }
 
         public void SelectVariable(SparqlVariable variable)
         {
-            if(variable != null && !SelectedVariables.Contains(variable))
+            if(SelectBuilder != null)
             {
-                SelectedVariables.Add(variable);
+                if (variable != null && !SelectedVariables.Contains(variable))
+                {
+                    SelectedVariables.Add(variable);
+                }
+            }
+            else
+            {
+                string msg = "Cannot select variables with non-SELECT query type.";
+                throw new Exception(msg);
             }
         }
 

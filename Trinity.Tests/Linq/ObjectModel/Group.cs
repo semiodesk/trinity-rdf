@@ -23,28 +23,25 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2017
 
-using Remotion.Linq;
-using Remotion.Linq.Parsing.Structure;
-using System.Linq;
-using System.Linq.Expressions;
+using System;
 
-namespace Semiodesk.Trinity.Query
+namespace Semiodesk.Trinity.Test.Linq
 {
-    internal class ResourceQueryable<T> : QueryableBase<T> where T : Resource
+    [RdfClass(FOAF.Group)]
+    internal class Group : Resource
     {
+        #region Members
+
+        [RdfProperty(FOAF.name)]
+        public string Name { get; set; }
+
+        #endregion
+
         #region Constructors
 
-        public ResourceQueryable(IQueryParser queryParser, IQueryExecutor queryExecutor)
-            : base(new DefaultQueryProvider(typeof(ResourceQueryable<>), queryParser, queryExecutor))
-        {
-        }
-
-        public ResourceQueryable(IQueryProvider provider, Expression expression)
-            : base(provider, expression)
-        {
-        }
+        public Group(Uri uri) : base(uri) { }
 
         #endregion
     }

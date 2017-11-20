@@ -29,11 +29,12 @@ using Remotion.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal class ResourceQueryExecutor : IQueryExecutor
+    internal class SparqlQueryExecutor : IQueryExecutor
     {
         #region Members
         
@@ -47,7 +48,7 @@ namespace Semiodesk.Trinity.Query
 
         #region Constructors
 
-        public ResourceQueryExecutor(IModel model)
+        public SparqlQueryExecutor(IModel model)
         {
             Model = model;
 
@@ -66,7 +67,7 @@ namespace Semiodesk.Trinity.Query
 
             if (getResources != null)
             {
-                QueryModelVisitor visitor = new QueryModelVisitor();
+                SparqlQueryModelVisitorBase<T> visitor = new SelectResourcesQueryModelVisitor<T>();
                 visitor.VisitQueryModel(queryModel);
 
                 object[] args = new object[] { visitor.GetQuery(), false, null };
@@ -91,8 +92,24 @@ namespace Semiodesk.Trinity.Query
 
         public T ExecuteScalar<T>(QueryModel queryModel)
         {
-            // We'll get to this one later...
-            throw new NotImplementedException();
+            Type t = typeof(T);
+
+            if(t == typeof(bool))
+            {
+                // Generate and execute ASK query.
+                SparqlQueryModelVisitorBase<T> visitor = new AskQueryModelVisitor<T>();
+                visitor.VisitQueryModel(queryModel);
+
+                ISparqlQuery query = visitor.GetQuery();
+                ISparqlQueryResult result = Model.ExecuteQuery(query);
+
+                return new object[] { result.GetAnwser() }.OfType<T>().First();
+            }
+            else
+            {
+                // Generate and execute SELECT query with bindings.
+                throw new NotImplementedException();
+            }
         }
 
         #endregion
