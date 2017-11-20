@@ -25,23 +25,47 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
-using Remotion.Linq;
 using Remotion.Linq.Clauses;
-using VDS.RDF.Query.Builder;
+using System;
+using System.Linq.Expressions;
+using VDS.RDF.Query;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal class SelectBindingsQueryModelVisitor<T> : SparqlQueryModelVisitorBase<T>
+    internal class SelectTriplesQueryGenerator : SelectQueryGenerator
     {
+        #region Constructors
+
+        public SelectTriplesQueryGenerator(ISparqlQueryModelVisitor modelVisitor)
+            : base(modelVisitor)
+        {
+        }
+
+        #endregion
+
         #region Methods
 
-        protected override void InitializeQueryGenerator(QueryModel queryModel)
+        public override void SetFromClause(MainFromClause fromClause)
         {
-            // The root query which selects triples when returning resources.
-            CurrentQueryGenerator = new SparqlQueryGenerator(this, QueryBuilder.Select(new string[] {}));
+            base.SetFromClause(fromClause);
 
-            // Add the root query builder to the query tree.
-            QueryGeneratorTree = new SparqlQueryGeneratorTree(CurrentQueryGenerator);
+            if (fromClause.FromExpression.NodeType == ExpressionType.Constant)
+            {
+                SparqlVariable s = new SparqlVariable(fromClause.ItemName);
+                SparqlVariable p = new SparqlVariable("p_");
+                SparqlVariable o = new SparqlVariable("o_");
+
+                SetSubjectVariable(s);
+                SetObjectVariable(o);
+
+                // Select all triples having the resource as subject.
+                SelectVariable(s);
+                SelectVariable(p);
+                SelectVariable(o);
+
+                Where(e => e.Subject(s.Name).Predicate(p.Name).Object(o.Name));
+                Where(s, fromClause.ItemType);
+            }
         }
 
         #endregion

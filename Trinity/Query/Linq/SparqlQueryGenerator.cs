@@ -25,6 +25,7 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
+using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
 using System;
 using System.Collections.Generic;
@@ -48,7 +49,9 @@ namespace Semiodesk.Trinity.Query
 
         protected IQueryBuilder QueryBuilder;
 
-        public IQueryModelVisitor ModelVisitor { get; private set; }
+        public ISparqlQueryModelVisitor ModelVisitor { get; private set; }
+
+        protected MainFromClause FromClause { get; private set; }
 
         public SparqlVariable SubjectVariable { get; private set; }
 
@@ -60,14 +63,14 @@ namespace Semiodesk.Trinity.Query
 
         #region Constructors
 
-        public SparqlQueryGenerator(IQueryModelVisitor modelVisitor, IQueryBuilder queryBuilder)
+        public SparqlQueryGenerator(ISparqlQueryModelVisitor modelVisitor, IQueryBuilder queryBuilder)
         {
             SelectedVariables = new List<SparqlVariable>();
             QueryBuilder = queryBuilder;
             ModelVisitor = modelVisitor;
         }
 
-        public SparqlQueryGenerator(IQueryModelVisitor modelVisitor, ISelectBuilder selectBuilder)
+        public SparqlQueryGenerator(ISparqlQueryModelVisitor modelVisitor, ISelectBuilder selectBuilder)
         {
             SelectedVariables = new List<SparqlVariable>();
             SelectBuilder = selectBuilder;
@@ -99,17 +102,47 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public void SetSubjectVariable(SparqlVariable variable)
+        public virtual void SetFromClause(MainFromClause fromClause)
+        {
+            ThrowOnBound();
+
+            FromClause = fromClause;
+        }
+
+        public virtual void SetObjectOperator(ResultOperatorBase resultOperator)
+        {
+            ThrowOnBound();
+        }
+
+        public void SetObjectVariable(SparqlVariable variable, bool select = false)
+        {
+            ThrowOnBound();
+
+            if (variable != null)
+            {
+                if(select)
+                {
+                    DeselectVariable(ObjectVariable);
+                    SelectVariable(variable);
+                }
+
+                ObjectVariable = variable;
+            }
+        }
+
+        public void SetSubjectVariable(SparqlVariable variable, bool select = false)
         {
             ThrowOnBound();
 
             if (variable != null && !variable.IsAggregate)
             {
-                DeselectVariable(SubjectVariable);
+                if (select)
+                {
+                    DeselectVariable(SubjectVariable);
+                    SelectVariable(variable);
+                }
 
                 SubjectVariable = variable;
-
-                SelectVariable(variable);
             }
         }
 
@@ -152,22 +185,10 @@ namespace Semiodesk.Trinity.Query
             return false;
         }
 
-        public void SetObjectVariable(SparqlVariable variable)
+        public void DeselectVariable(SparqlVariable variable)
         {
             ThrowOnBound();
 
-            if(variable != null)
-            {
-                DeselectVariable(ObjectVariable);
-
-                ObjectVariable = variable;
-
-                SelectVariable(ObjectVariable);
-            }
-        }
-
-        public void DeselectVariable(SparqlVariable variable)
-        {
             if (SelectBuilder != null)
             {
                 if (variable != null && SelectedVariables.Contains(variable))
@@ -184,6 +205,8 @@ namespace Semiodesk.Trinity.Query
 
         public void SelectVariable(SparqlVariable variable)
         {
+            ThrowOnBound();
+
             if(SelectBuilder != null)
             {
                 if (variable != null && !SelectedVariables.Contains(variable))
@@ -200,7 +223,24 @@ namespace Semiodesk.Trinity.Query
 
         public void Where(Action<ITriplePatternBuilder> buildTriplePatterns)
         {
+            ThrowOnBound();
+
             QueryBuilder.Where(buildTriplePatterns);
+        }
+
+        public void Where(SparqlVariable subject, Type type)
+        {
+            ThrowOnBound();
+
+            // Assert the resource type, if any.
+            RdfClassAttribute t = type.TryGetCustomAttribute<RdfClassAttribute>();
+
+            if (t != null)
+            {
+                Uri a = new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+
+                Where(e => e.Subject(subject.Name).PredicateUri(a).Object(t.MappedUri));
+            }
         }
 
         public void WhereEqual(SparqlVariable variable, ConstantExpression constant)

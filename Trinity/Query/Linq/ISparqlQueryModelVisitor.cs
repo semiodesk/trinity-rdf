@@ -29,7 +29,7 @@ using Remotion.Linq;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal interface IQueryModelVisitor : Remotion.Linq.IQueryModelVisitor
+    internal interface ISparqlQueryModelVisitor : IQueryModelVisitor
     {
         #region Members
 

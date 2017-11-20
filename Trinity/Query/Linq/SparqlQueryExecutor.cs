@@ -67,7 +67,8 @@ namespace Semiodesk.Trinity.Query
 
             if (getResources != null)
             {
-                SparqlQueryModelVisitorBase<T> visitor = new SelectResourcesQueryModelVisitor<T>();
+                SparqlQueryModelVisitor<T> visitor = new SparqlQueryModelVisitor<T>();
+                visitor.SetRootQueryGenerator(new SelectTriplesQueryGenerator(visitor));
                 visitor.VisitQueryModel(queryModel);
 
                 object[] args = new object[] { visitor.GetQuery(), false, null };
@@ -97,7 +98,8 @@ namespace Semiodesk.Trinity.Query
             if(t == typeof(bool))
             {
                 // Generate and execute ASK query.
-                SparqlQueryModelVisitorBase<T> visitor = new AskQueryModelVisitor<T>();
+                SparqlQueryModelVisitor<T> visitor = new SparqlQueryModelVisitor<T>();
+                visitor.SetRootQueryGenerator(new AskQueryGenerator(visitor));
                 visitor.VisitQueryModel(queryModel);
 
                 ISparqlQuery query = visitor.GetQuery();

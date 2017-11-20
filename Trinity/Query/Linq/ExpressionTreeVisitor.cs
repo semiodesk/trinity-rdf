@@ -41,13 +41,13 @@ namespace Semiodesk.Trinity.Query
     {
         #region Members
 
-        private IQueryModelVisitor _queryModelVisitor;
+        private ISparqlQueryModelVisitor _queryModelVisitor;
 
         #endregion
 
         #region Constructors
 
-        public ExpressionTreeVisitor(IQueryModelVisitor queryModelVisitor)
+        public ExpressionTreeVisitor(ISparqlQueryModelVisitor queryModelVisitor)
         {
             _queryModelVisitor = queryModelVisitor;
         }
@@ -178,6 +178,9 @@ namespace Semiodesk.Trinity.Query
                     SparqlVariable o = _queryModelVisitor.VariableBuilder.GenerateObjectVariable();
 
                     generator.SetObjectVariable(o);
+
+                    generator.SelectVariable(s);
+                    generator.SelectVariable(o);
 
                     QueryModel queryModel = _queryModelVisitor.GetCurrentQueryModel();
 
