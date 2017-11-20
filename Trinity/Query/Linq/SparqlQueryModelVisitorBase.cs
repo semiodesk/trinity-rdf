@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Linq.Expressions;
 using VDS.RDF.Query;
 using VDS.RDF.Query.Aggregates.Sparql;
+using VDS.RDF.Query.Builder;
 using VDS.RDF.Query.Expressions.Primary;
 
 // TODO:
@@ -44,21 +45,21 @@ using VDS.RDF.Query.Expressions.Primary;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal class QueryModelVisitor : QueryModelVisitorBase
+    internal abstract class SparqlQueryModelVisitorBase<T> : QueryModelVisitorBase, IQueryModelVisitor
     {
         #region Members
 
-        private readonly ExpressionTreeVisitor _expressionVisitor;
+        protected bool IsInitialized;
 
-        private readonly QueryGeneratorTree _queryGeneratorTree;
+        protected ExpressionTreeVisitor ExpressionVisitor;
 
-        private readonly QueryGenerator _rootGenerator;
+        protected SparqlQueryGeneratorTree QueryGeneratorTree;
 
-        private readonly Dictionary<QueryModel, QueryGenerator> _queryGenerators = new Dictionary<QueryModel, QueryGenerator>();
+        protected readonly Dictionary<QueryModel, SparqlQueryGenerator> QueryGenerators = new Dictionary<QueryModel, SparqlQueryGenerator>();
 
-        public QueryModel CurrentQueryModel { get; private set; }
+        protected QueryModel CurrentQueryModel;
 
-        public QueryGenerator CurrentQueryGenerator { get; private set; }
+        protected SparqlQueryGenerator CurrentQueryGenerator;
 
         public VariableBuilder VariableBuilder { get; private set; }
 
@@ -66,25 +67,16 @@ namespace Semiodesk.Trinity.Query
 
         #region Constructors
 
-        public QueryModelVisitor()
+        public SparqlQueryModelVisitorBase()
         {
             VariableBuilder = new VariableBuilder();
-
-            // The root query which selects triples when returning resources.
-            _rootGenerator = new QueryGenerator(this);
-
-            CurrentQueryGenerator = _rootGenerator;
-
-            // Add the root query builder to the query tree.
-            _queryGeneratorTree = new QueryGeneratorTree(_rootGenerator);
-
-            // The expression tree visitor needs to be initialized *after* the query builders.
-            _expressionVisitor = new ExpressionTreeVisitor(this);
         }
 
         #endregion
 
         #region Methods
+
+        protected abstract void InitializeQueryGenerator(QueryModel queryModel);
 
         public override void VisitAdditionalFromClause(AdditionalFromClause fromClause, QueryModel queryModel, int index)
         {
@@ -117,45 +109,33 @@ namespace Semiodesk.Trinity.Query
                     VisitSubQueryExpression(memberExpression.Expression as SubQueryExpression);
                 }
 
-                Debug.WriteLine(fromClause.GetType().ToString() + ": " + fromClause.ItemName);
-
-                _expressionVisitor.VisitExpression(fromClause.FromExpression);
-            }
-            else
-            {
-                Debug.WriteLine(fromClause.GetType().ToString() + ": " + fromClause.ItemName);
-
-                string s = fromClause.ItemName;
-
-                // Select all triples having the resource as subject.
-                _rootGenerator.SetSubjectVariable(new SparqlVariable(s));
-                _rootGenerator.SelectVariable(new SparqlVariable("p_"));
-                _rootGenerator.SetObjectVariable(new SparqlVariable("o_"));
-
-                _rootGenerator.Where(e => e.Subject(s).Predicate("p_").Object("o_"));
-
-                // Assert the resource type, if any.
-                RdfClassAttribute type = fromClause.ItemType.TryGetCustomAttribute<RdfClassAttribute>();
-
-                if (type != null)
-                {
-                    Uri p = new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-
-                    _rootGenerator.Where(e => e.Subject(s).PredicateUri(p).Object(type.MappedUri));
-                }
+                ExpressionVisitor.VisitExpression(fromClause.FromExpression);
             }
         }
 
         public override void VisitQueryModel(QueryModel queryModel)
         {
-            Debug.WriteLine(queryModel.GetType().ToString());
+            if (!IsInitialized)
+            {
+                // Initialize a query generator suitable for the current result type.
+                InitializeQueryGenerator(queryModel);
 
+                // The expression tree visitor needs to be initialized *after* the query builders.
+                ExpressionVisitor = new ExpressionTreeVisitor(this);
+
+                IsInitialized = true;
+            }
+
+            // CurrentQueryModel is null when this method is invoked for the first time.
             QueryModel currentQueryModel = CurrentQueryModel;
 
+            // Set the current query model which the query generators manipulate.
             CurrentQueryModel = queryModel;
 
+            // This possibly traverses into sub-queries.
             queryModel.SelectClause.Accept(this, queryModel);
 
+            // Restore the current query model after visiting possible sub queries in the select clause.
             CurrentQueryModel = currentQueryModel;
         }
 
@@ -163,80 +143,83 @@ namespace Semiodesk.Trinity.Query
         {
             Debug.WriteLine(resultOperator.GetType().ToString());
 
-            QueryGenerator generator = GetCurrentQueryGenerator();
+            SparqlQueryGenerator generator = GetCurrentQueryGenerator();
 
-            if (resultOperator is AnyResultOperator)
+            // TODO: Improve abstraction of the query types: introduce sub classes of SparqlQueryGenerator.
+            if (generator.ObjectVariable != null)
             {
-                var aggregate = new SampleAggregate(new VariableTerm(generator.ObjectVariable.Name));
-                generator.SetObjectVariable(aggregate.AsSparqlVariable());
-            }
-            else if (resultOperator is AverageResultOperator)
-            {
-                var aggregate = new AverageAggregate(new VariableTerm(generator.ObjectVariable.Name));
-                generator.SetObjectVariable(aggregate.AsSparqlVariable());
-            }
-            else if(resultOperator is CountResultOperator)
-            {
-                var aggregate = new CountDistinctAggregate(new VariableTerm(generator.ObjectVariable.Name));
-                generator.SetObjectVariable(aggregate.AsSparqlVariable());
-            }
-            else if(resultOperator is FirstResultOperator)
-            {
-                var aggregate = new MinAggregate(new VariableTerm(generator.ObjectVariable.Name));
-                generator.SetObjectVariable(aggregate.AsSparqlVariable());
-                generator.OrderBy(generator.ObjectVariable);
-            }
-            else if(resultOperator is LastResultOperator)
-            {
-                var aggregate = new MinAggregate(new VariableTerm(generator.ObjectVariable.Name));
-                generator.SetObjectVariable(aggregate.AsSparqlVariable());
-                generator.OrderByDescending(generator.ObjectVariable);
-            }
-            else if(resultOperator is MaxResultOperator)
-            {
-                var aggregate = new MaxAggregate(new VariableTerm(generator.ObjectVariable.Name));
-                generator.SetObjectVariable(aggregate.AsSparqlVariable());
-            }
-            else if(resultOperator is MinResultOperator)
-            {
-                var aggregate = new MinAggregate(new VariableTerm(generator.ObjectVariable.Name));
-                generator.SetObjectVariable(aggregate.AsSparqlVariable());
-            }
-            else if(resultOperator is SumResultOperator)
-            {
-                var aggregate = new SumAggregate(new VariableTerm(generator.ObjectVariable.Name));
-                generator.SetObjectVariable(aggregate.AsSparqlVariable());
-            }
-            else if (resultOperator is OfTypeResultOperator)
-            {
-                Type itemType = queryModel.MainFromClause.ItemType;
-                RdfClassAttribute itemClass = itemType.TryGetCustomAttribute<RdfClassAttribute>();
-
-                if (itemClass == null)
+                if (resultOperator is AnyResultOperator)
                 {
-                    throw new ArgumentException("No RdfClass attrribute declared on type: " + itemType);
+                    var aggregate = new SampleAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                    generator.SetObjectVariable(aggregate.AsSparqlVariable());
                 }
+                else if (resultOperator is AverageResultOperator)
+                {
+                    var aggregate = new AverageAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                    generator.SetObjectVariable(aggregate.AsSparqlVariable());
+                }
+                else if (resultOperator is CountResultOperator)
+                {
+                    var aggregate = new CountDistinctAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                    generator.SetObjectVariable(aggregate.AsSparqlVariable());
+                }
+                else if (resultOperator is FirstResultOperator)
+                {
+                    var aggregate = new MinAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                    generator.SetObjectVariable(aggregate.AsSparqlVariable());
+                    generator.OrderBy(generator.ObjectVariable);
+                }
+                else if (resultOperator is LastResultOperator)
+                {
+                    var aggregate = new MinAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                    generator.SetObjectVariable(aggregate.AsSparqlVariable());
+                    generator.OrderByDescending(generator.ObjectVariable);
+                }
+                else if (resultOperator is MaxResultOperator)
+                {
+                    var aggregate = new MaxAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                    generator.SetObjectVariable(aggregate.AsSparqlVariable());
+                }
+                else if (resultOperator is MinResultOperator)
+                {
+                    var aggregate = new MinAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                    generator.SetObjectVariable(aggregate.AsSparqlVariable());
+                }
+                else if (resultOperator is SumResultOperator)
+                {
+                    var aggregate = new SumAggregate(new VariableTerm(generator.ObjectVariable.Name));
+                    generator.SetObjectVariable(aggregate.AsSparqlVariable());
+                }
+                else if (resultOperator is OfTypeResultOperator)
+                {
+                    Type itemType = queryModel.MainFromClause.ItemType;
+                    RdfClassAttribute itemClass = itemType.TryGetCustomAttribute<RdfClassAttribute>();
 
-                SparqlVariable s = generator.SubjectVariable;
-                Uri o = itemClass.MappedUri;
+                    if (itemClass == null)
+                    {
+                        throw new ArgumentException("No RdfClass attrribute declared on type: " + itemType);
+                    }
 
-                generator.Where(e => e.Subject(s.Name).PredicateUri("rdf:type").Object(o));
-            }
-            else if(resultOperator is SkipResultOperator)
-            {
-                SkipResultOperator op = resultOperator as SkipResultOperator;
-                generator.Offset(int.Parse(op.Count.ToString()));
-            }
-            else
-            {
-                throw new NotImplementedException();
+                    SparqlVariable s = generator.SubjectVariable;
+                    Uri p = new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+                    Uri o = itemClass.MappedUri;
+
+                    generator.Where(e => e.Subject(s.Name).PredicateUri(p).Object(o));
+                }
+                else if (resultOperator is SkipResultOperator)
+                {
+                    SkipResultOperator op = resultOperator as SkipResultOperator;
+                    generator.Offset(int.Parse(op.Count.ToString()));
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
             }
         }
 
         public override void VisitSelectClause(SelectClause selectClause, QueryModel queryModel)
         {
-            Debug.WriteLine(selectClause.GetType().ToString());
-
             queryModel.MainFromClause.Accept(this, queryModel);
 
             for(int i = 0; i < queryModel.BodyClauses.Count; i++)
@@ -277,23 +260,23 @@ namespace Semiodesk.Trinity.Query
                 Debug.WriteLine(whereClause.GetType().ToString());
             }
 
-            _expressionVisitor.VisitExpression(whereClause.Predicate);
+            ExpressionVisitor.VisitExpression(whereClause.Predicate);
         }
 
         private void VisitSubQueryExpression(SubQueryExpression expression)
         {
-            QueryGenerator currentQueryGenerator = CurrentQueryGenerator;
-            QueryGenerator subQueryGenerator = new QueryGenerator(this);
+            SparqlQueryGenerator currentQueryGenerator = CurrentQueryGenerator;
+            SparqlQueryGenerator subQueryGenerator = new SparqlQueryGenerator(this, QueryBuilder.Select(new string[] {}));
 
             // Enable look-up of query generators from query models.
-            _queryGenerators[expression.QueryModel] = subQueryGenerator;
+            QueryGenerators[expression.QueryModel] = subQueryGenerator;
 
             // Add the sub query to the query tree.
-            _queryGeneratorTree.AddQuery(currentQueryGenerator, subQueryGenerator);
+            QueryGeneratorTree.AddQuery(currentQueryGenerator, subQueryGenerator);
 
             CurrentQueryGenerator = subQueryGenerator;
 
-            _expressionVisitor.VisitExpression(expression);
+            ExpressionVisitor.VisitExpression(expression);
 
             CurrentQueryGenerator = currentQueryGenerator;
         }
@@ -318,7 +301,7 @@ namespace Semiodesk.Trinity.Query
 
             // Since the dotNetRdf QueryBuilder does not support building sub queries,
             // we need to generate the nested queries here.
-            _queryGeneratorTree.Traverse((builder) =>
+            QueryGeneratorTree.Traverse((builder) =>
             {
                 string q = builder.BuildQuery().ToString();
 
@@ -342,14 +325,19 @@ namespace Semiodesk.Trinity.Query
             return query;
         }
 
-        public QueryGenerator GetCurrentQueryGenerator()
+        public QueryModel GetCurrentQueryModel()
+        {
+            return CurrentQueryModel;
+        }
+
+        public SparqlQueryGenerator GetCurrentQueryGenerator()
         {
             return CurrentQueryGenerator;
         }
 
-        public QueryGenerator GetQueryGenerator(QueryModel queryModel)
+        public SparqlQueryGenerator GetQueryGenerator(QueryModel queryModel)
         {
-            return _queryGenerators[queryModel];
+            return QueryGenerators[queryModel];
         }
 
         #endregion

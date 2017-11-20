@@ -23,11 +23,10 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2017
 
-using Remotion.Linq.Clauses;
+using Remotion.Linq;
 using Remotion.Linq.Clauses.Expressions;
-using Remotion.Linq.Clauses.ResultOperators;
 using Remotion.Linq.Parsing;
 using System;
 using System.Diagnostics;
@@ -42,13 +41,13 @@ namespace Semiodesk.Trinity.Query
     {
         #region Members
 
-        private QueryModelVisitor _queryModelVisitor;
+        private IQueryModelVisitor _queryModelVisitor;
 
         #endregion
 
         #region Constructors
 
-        public ExpressionTreeVisitor(QueryModelVisitor queryModelVisitor)
+        public ExpressionTreeVisitor(IQueryModelVisitor queryModelVisitor)
         {
             _queryModelVisitor = queryModelVisitor;
         }
@@ -61,7 +60,7 @@ namespace Semiodesk.Trinity.Query
         {
             Debug.WriteLine(expression.GetType().ToString());
 
-            QueryGenerator generator = _queryModelVisitor.CurrentQueryGenerator;
+            SparqlQueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
             ConstantExpression constant = expression.Right as ConstantExpression;
 
             if (expression.Left is MemberExpression && expression.Right is ConstantExpression)
@@ -96,7 +95,7 @@ namespace Semiodesk.Trinity.Query
             {
                 SubQueryExpression subQuery = expression.Left as SubQueryExpression;
 
-                QueryGenerator subGenerator = _queryModelVisitor.GetQueryGenerator(subQuery.QueryModel);
+                SparqlQueryGenerator subGenerator = _queryModelVisitor.GetQueryGenerator(subQuery.QueryModel);
 
                 switch (expression.NodeType)
                 {
@@ -171,7 +170,7 @@ namespace Semiodesk.Trinity.Query
 
                 Debug.WriteLine(expression.GetType().ToString() + ": " + node.ToString());
 
-                QueryGenerator generator = _queryModelVisitor.CurrentQueryGenerator;
+                SparqlQueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
 
                 if (generator.SetSubjectVariableFromExpression(expression))
                 {
@@ -180,7 +179,9 @@ namespace Semiodesk.Trinity.Query
 
                     generator.SetObjectVariable(o);
 
-                    if(_queryModelVisitor.CurrentQueryModel.HasNumericResultOperator())
+                    QueryModel queryModel = _queryModelVisitor.GetCurrentQueryModel();
+
+                    if(queryModel.HasNumericResultOperator())
                     {
                         SparqlVariable p = _queryModelVisitor.VariableBuilder.GeneratePredicateVariable();
                         SparqlVariable o2 = _queryModelVisitor.VariableBuilder.GenerateObjectVariable();
@@ -214,7 +215,7 @@ namespace Semiodesk.Trinity.Query
 
             if(method == "Equals")
             {
-                QueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
+                SparqlQueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
                 ConstantExpression constant = expression.Arguments.First() as ConstantExpression;
 
                 if (expression.Object is MemberExpression)
