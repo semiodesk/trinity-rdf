@@ -25,53 +25,43 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
-using Remotion.Linq;
 using Remotion.Linq.Clauses;
 using System;
 using System.Linq.Expressions;
 using VDS.RDF.Query;
-using VDS.RDF.Query.Builder;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal class SelectResourcesQueryModelVisitor<T> : SparqlQueryModelVisitorBase<T>
+    internal class AskQueryGenerator : SparqlQueryGenerator
     {
-        #region Methods
+        #region Constructors
 
-        protected override void InitializeQueryGenerator(QueryModel queryModel)
+        public AskQueryGenerator(ISparqlQueryModelVisitor modelVisitor)
+            : base(modelVisitor, VDS.RDF.Query.Builder.QueryBuilder.Ask())
         {
-            // The root query which selects triples when returning resources.
-            CurrentQueryGenerator = new SparqlQueryGenerator(this, QueryBuilder.Select(new string[] {}));
-
-            // Add the root query builder to the query tree.
-            QueryGeneratorTree = new SparqlQueryGeneratorTree(CurrentQueryGenerator);
         }
 
-        public override void VisitMainFromClause(MainFromClause fromClause, QueryModel queryModel)
+        #endregion
+
+        #region Methods
+
+        public override void SetFromClause(MainFromClause fromClause)
         {
+            base.SetFromClause(fromClause);
+
             if (fromClause.FromExpression.NodeType == ExpressionType.Constant)
             {
-                string s = fromClause.ItemName;
+                SparqlVariable s = new SparqlVariable(fromClause.ItemName);
+                SparqlVariable p = new SparqlVariable("p_");
+                SparqlVariable o = new SparqlVariable("o_");
 
                 // Select all triples having the resource as subject.
-                CurrentQueryGenerator.SetSubjectVariable(new SparqlVariable(s));
-                CurrentQueryGenerator.SelectVariable(new SparqlVariable("p_"));
-                CurrentQueryGenerator.SetObjectVariable(new SparqlVariable("o_"));
+                SetSubjectVariable(s);
+                SetObjectVariable(o);
 
-                CurrentQueryGenerator.Where(e => e.Subject(s).Predicate("p_").Object("o_"));
-
-                // Assert the resource type, if any.
-                RdfClassAttribute type = fromClause.ItemType.TryGetCustomAttribute<RdfClassAttribute>();
-
-                if (type != null)
-                {
-                    Uri p = new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-
-                    CurrentQueryGenerator.Where(e => e.Subject(s).PredicateUri(p).Object(type.MappedUri));
-                }
+                Where(e => e.Subject(s.Name).Predicate(p.Name).Object(o.Name));
+                Where(s, fromClause.ItemType);
             }
-
-            base.VisitMainFromClause(fromClause, queryModel);
         }
 
         #endregion

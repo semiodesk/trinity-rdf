@@ -128,12 +128,13 @@
     <Compile Include="Query\Linq\ISparqlQueryModelVisitor.cs" />
     <Compile Include="Query\Linq\MemberExpressionExtensions.cs" />
     <Compile Include="Query\Linq\MemberInfoExtensions.cs" />
-    <Compile Include="Query\Linq\QueryModelVisitors\AskQueryModelVisitor.cs" />
-    <Compile Include="Query\Linq\QueryModelVisitors\SelectBindingsQueryModelVisitor.cs" />
-    <Compile Include="Query\Linq\QueryModelVisitors\SelectResourcesQueryModelVisitor.cs" />
+    <Compile Include="Query\Linq\QueryGenerators\AskQueryGenerator.cs" />
+    <Compile Include="Query\Linq\QueryGenerators\SelectBindingsQueryGenerator.cs" />
+    <Compile Include="Query\Linq\QueryGenerators\SelectQueryGenerator.cs" />
+    <Compile Include="Query\Linq\QueryGenerators\SelectTriplesQueryGenerator.cs" />
     <Compile Include="Query\Linq\SparqlQueryGeneratorTree.cs" />
     <Compile Include="Query\Linq\QueryModelExtensions.cs" />
-    <Compile Include="Query\Linq\SparqlQueryModelVisitorBase.cs" />
+    <Compile Include="Query\Linq\SparqlQueryModelVisitor.cs" />
     <Compile Include="Query\Linq\SparqlQueryExecutor.cs" />
     <Compile Include="Query\Linq\SparqlQueryGenerator.cs" />
     <Compile Include="Query\Linq\SparqlVariableExtensions.cs" />

@@ -104,7 +104,7 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectBooleanValueWithBinaryExpressionOnBoolean()
+        public void CanAskWithBinaryExpressionOnBoolean()
         {
             var persons = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person;
 
