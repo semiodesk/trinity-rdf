@@ -120,6 +120,110 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
+        public void CanAskWithBinaryExpressionOnDateTime()
+        {
+            var persons = from person in Model.AsQueryable<Person>() where person.Birthday.Equals(new DateTime(1948, 2, 4)) select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.Birthday == new DateTime(1948, 2, 4) select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.Birthday == new DateTime(1950, 1, 1) select person;
+
+            Assert.IsFalse(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.Birthday != new DateTime(1948, 2, 4) select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.Birthday < new DateTime(1948, 2, 4) select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.Birthday <= new DateTime(1948, 2, 4) select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.Birthday >= new DateTime(1948, 2, 4) select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.Birthday > new DateTime(1948, 2, 4) select person;
+
+            Assert.IsTrue(persons.Any());
+        }
+
+        [Test]
+        public void CanAskWithBinaryExpressionOnFloat()
+        {
+            var persons = from person in Model.AsQueryable<Person>() where person.AccountBalance.Equals(100000) select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance == 100000 select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance != 100000 select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance < 100000 select person;
+
+            Assert.IsFalse(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance <= 100000 select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance >= 100000 select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance > 100000 select person;
+
+            Assert.IsTrue(persons.Any());
+        }
+
+        [Test]
+        public void CanAskWithBinaryExpressionOnString()
+        {
+            var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.LastName == "Alice" select person;
+
+            Assert.IsFalse(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.FirstName != "Alice" select person;
+
+            Assert.IsTrue(persons.Any());
+        }
+
+        [Test]
+        public void CanAskWithBinaryExpressionOnResource()
+        {
+            var persons = from person in Model.AsQueryable<Person>() where person.Group.Name.Equals("The Spiders") select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.Group.Name == "The Spiders" select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.Group.Name == "The Bugs" select person;
+
+            Assert.IsFalse(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.Group.Name != "The Spiders" select person;
+
+            Assert.IsTrue(persons.Any());
+        }
+
+        [Test]
         public void CanSelectResourcesWithBinaryExpressionOnBoolean()
         {
             var persons = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person;
