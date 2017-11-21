@@ -57,9 +57,12 @@ namespace Semiodesk.Trinity.Query
 
         protected readonly Dictionary<QueryModel, ISparqlQueryGenerator> QueryGenerators = new Dictionary<QueryModel, ISparqlQueryGenerator>();
 
+        // TODO: Implement the 'current' accessors using a stack. Then we can count to determine if we are in a sub query.
         protected QueryModel CurrentQueryModel;
 
         protected ISparqlQueryGenerator CurrentQueryGenerator;
+
+        protected QueryModel RootQueryModel;
 
         protected ISparqlQueryGenerator RootQueryGenerator;
 
@@ -132,6 +135,12 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitQueryModel(QueryModel queryModel)
         {
+            // Store the root query model for reliably detecting if we are in a sub query.
+            if (CurrentQueryModel == null)
+            {
+                RootQueryModel = queryModel;
+            }
+
             // CurrentQueryModel is null when this method is invoked for the first time.
             QueryModel currentQueryModel = CurrentQueryModel;
 
@@ -158,7 +167,7 @@ namespace Semiodesk.Trinity.Query
         {
             queryModel.MainFromClause.Accept(this, queryModel);
 
-            bool isRootQuery = RootQueryGenerator == CurrentQueryGenerator;
+            bool isRootQuery = RootQueryModel == CurrentQueryModel;
 
             CurrentQueryGenerator.Select(selectClause, isRootQuery);
 
@@ -197,7 +206,7 @@ namespace Semiodesk.Trinity.Query
             ExpressionVisitor.VisitExpression(whereClause.Predicate);
         }
 
-        private void VisitSubQueryExpression(SubQueryExpression expression)
+        public void VisitSubQueryExpression(SubQueryExpression expression)
         {
             ISparqlQueryGenerator currentQueryGenerator = CurrentQueryGenerator;
             ISparqlQueryGenerator subQueryGenerator = new SelectQueryGenerator();
@@ -278,6 +287,11 @@ namespace Semiodesk.Trinity.Query
         public ISparqlQueryGenerator GetQueryGenerator(QueryModel queryModel)
         {
             return QueryGenerators[queryModel];
+        }
+
+        public bool HasQueryGenerator(QueryModel queryModel)
+        {
+            return QueryGenerators.ContainsKey(queryModel);
         }
 
         #endregion
