@@ -102,16 +102,21 @@ namespace Semiodesk.Trinity.Query
         {
             CurrentQueryGenerator.SetFromClause(fromClause);
 
-            if (fromClause.FromExpression.NodeType == ExpressionType.MemberAccess)
+            switch(fromClause.FromExpression.NodeType)
             {
-                MemberExpression memberExpression = fromClause.FromExpression as MemberExpression;
+                case ExpressionType.MemberAccess:
+                    {
+                        MemberExpression memberExpression = fromClause.FromExpression as MemberExpression;
 
-                if(memberExpression.Expression is SubQueryExpression)
-                {
-                    VisitSubQueryExpression(memberExpression.Expression as SubQueryExpression);
-                }
+                        if (memberExpression.Expression is SubQueryExpression)
+                        {
+                            VisitSubQueryExpression(memberExpression.Expression as SubQueryExpression);
+                        }
 
-                ExpressionVisitor.VisitExpression(fromClause.FromExpression);
+                        ExpressionVisitor.VisitExpression(fromClause.FromExpression);
+
+                        break;
+                    }
             }
         }
 
@@ -148,7 +153,14 @@ namespace Semiodesk.Trinity.Query
         {
             queryModel.MainFromClause.Accept(this, queryModel);
 
-            for(int i = 0; i < queryModel.BodyClauses.Count; i++)
+            if(selectClause.Selector is MemberExpression)
+            {
+                MemberExpression expression = selectClause.Selector as MemberExpression;
+
+                ExpressionVisitor.VisitExpression(expression);
+            }
+
+            for (int i = 0; i < queryModel.BodyClauses.Count; i++)
             {
                 IBodyClause c = queryModel.BodyClauses[i];
 
