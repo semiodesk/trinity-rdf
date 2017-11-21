@@ -63,24 +63,38 @@ namespace Semiodesk.Trinity.Query
 
         public IEnumerable<T> ExecuteCollection<T>(QueryModel queryModel)
         {
-            MethodInfo getResources = _getResourceMethod.MakeGenericMethod(typeof(T));
+            Type t = typeof(T);
 
-            if (getResources != null)
+            if(typeof(Resource).IsAssignableFrom(t))
             {
                 SparqlQueryModelVisitor<T> visitor = new SparqlQueryModelVisitor<T>();
                 visitor.SetRootQueryGenerator(new SelectTriplesQueryGenerator(visitor));
                 visitor.VisitQueryModel(queryModel);
 
+                MethodInfo getResources = _getResourceMethod.MakeGenericMethod(typeof(T));
                 object[] args = new object[] { visitor.GetQuery(), false, null };
 
-                IEnumerable<T> result = getResources.Invoke(Model, args) as IEnumerable<T>;
-
-                return result;
+                foreach (T value in getResources.Invoke(Model, args) as IEnumerable<T>)
+                {
+                    yield return value;
+                }
             }
             else
             {
-                string msg = string.Format("The LINQ result type {0} is currently not supported.", typeof(T));
-                throw new NotSupportedException(msg);
+                SparqlQueryModelVisitor<T> visitor = new SparqlQueryModelVisitor<T>();
+                visitor.SetRootQueryGenerator(new SelectBindingsQueryGenerator(visitor));
+                visitor.VisitQueryModel(queryModel);
+
+                ISparqlQuery query = visitor.GetQuery();
+                ISparqlQueryResult result = Model.ExecuteQuery(query);
+
+                foreach(BindingSet bindings in result.GetBindings())
+                {
+                    foreach(T value in bindings.Values.OfType<T>())
+                    {
+                        yield return value;
+                    }
+                }
             }
         }
 

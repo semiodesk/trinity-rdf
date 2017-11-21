@@ -25,6 +25,7 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
+using Remotion.Linq;
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
 using System;
@@ -240,6 +241,42 @@ namespace Semiodesk.Trinity.Query
                 Uri a = new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
 
                 Where(e => e.Subject(subject.Name).PredicateUri(a).Object(t.MappedUri));
+            }
+        }
+
+        public void Where(MemberExpression member)
+        {
+            SparqlVariable s = SubjectVariable;
+            SparqlVariable o = ModelVisitor.VariableBuilder.GenerateObjectVariable();
+
+            SetObjectVariable(o);
+
+            // Select the subject variable when building sub queries.
+            if (member.Expression is QuerySourceReferenceExpression)
+            {
+                SelectVariable(s);
+            }
+
+            SelectVariable(o);
+
+            QueryModel queryModel = ModelVisitor.GetCurrentQueryModel();
+
+            RdfPropertyAttribute attribute = member.Member.TryGetCustomAttribute<RdfPropertyAttribute>();
+
+            if (queryModel.HasNumericResultOperator())
+            {
+                SparqlVariable p = ModelVisitor.VariableBuilder.GeneratePredicateVariable();
+                SparqlVariable o2 = ModelVisitor.VariableBuilder.GenerateObjectVariable();
+
+                Where(t => t.Subject(s.Name).Predicate(p.Name).Object(o2.Name));
+
+                // For numeric results, allow to select non existing triple patterns as zero values.
+                Optional(g => g.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(o.Name)));
+            }
+            else
+            {
+                // Otherwise make the pattern non-optional.
+                Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(o.Name));
             }
         }
 

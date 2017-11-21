@@ -32,7 +32,7 @@ using System.Linq.Expressions;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal class SparqlQueryable<T> : QueryableBase<T> where T : Resource
+    internal class SparqlQueryable<T> : QueryableBase<T>
     {
         #region Constructors
 

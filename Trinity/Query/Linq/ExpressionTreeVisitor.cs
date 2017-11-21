@@ -162,44 +162,11 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitMemberExpression(MemberExpression expression)
         {
-            RdfPropertyAttribute attribute = expression.Member.TryGetCustomAttribute<RdfPropertyAttribute>();
+            SparqlQueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
 
-            if(attribute != null)
+            if (generator.SetSubjectVariableFromExpression(expression))
             {
-                INode node = new NodeFactory().CreateUriNode(attribute.MappedUri);
-
-                Debug.WriteLine(expression.GetType().ToString() + ": " + node.ToString());
-
-                SparqlQueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
-
-                if (generator.SetSubjectVariableFromExpression(expression))
-                {
-                    SparqlVariable s = generator.SubjectVariable;
-                    SparqlVariable o = _queryModelVisitor.VariableBuilder.GenerateObjectVariable();
-
-                    generator.SetObjectVariable(o);
-
-                    generator.SelectVariable(s);
-                    generator.SelectVariable(o);
-
-                    QueryModel queryModel = _queryModelVisitor.GetCurrentQueryModel();
-
-                    if(queryModel.HasNumericResultOperator())
-                    {
-                        SparqlVariable p = _queryModelVisitor.VariableBuilder.GeneratePredicateVariable();
-                        SparqlVariable o2 = _queryModelVisitor.VariableBuilder.GenerateObjectVariable();
-
-                        generator.Where(t => t.Subject(s.Name).Predicate(p.Name).Object(o2.Name));
-
-                        // For numeric results, allow to select non existing triple patterns as zero values.
-                        generator.Optional(g => g.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(o.Name)));
-                    }
-                    else
-                    {
-                        // Otherwise make the pattern non-optional.
-                        generator.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(o.Name));
-                    }
-                }
+                generator.Where(expression);
             }
 
             return expression;
