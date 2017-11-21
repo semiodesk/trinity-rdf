@@ -26,6 +26,7 @@
 // Copyright (c) Semiodesk GmbH 2017
 
 using Remotion.Linq.Clauses;
+using Remotion.Linq.Clauses.Expressions;
 using System;
 using System.Linq.Expressions;
 using VDS.RDF.Query;
@@ -36,8 +37,8 @@ namespace Semiodesk.Trinity.Query
     {
         #region Constructors
 
-        public AskQueryGenerator(ISparqlQueryModelVisitor modelVisitor)
-            : base(modelVisitor, VDS.RDF.Query.Builder.QueryBuilder.Ask())
+        public AskQueryGenerator()
+            : base(VDS.RDF.Query.Builder.QueryBuilder.Ask())
         {
         }
 
@@ -45,22 +46,25 @@ namespace Semiodesk.Trinity.Query
 
         #region Methods
 
-        public override void SetFromClause(MainFromClause fromClause)
+        public override void Select(SelectClause selectClause, bool isRootQuery)
         {
-            base.SetFromClause(fromClause);
+            base.Select(selectClause, isRootQuery);
 
-            if (fromClause.FromExpression.NodeType == ExpressionType.Constant)
+            if (selectClause.Selector is QuerySourceReferenceExpression)
             {
-                SparqlVariable s = new SparqlVariable(fromClause.ItemName);
-                SparqlVariable p = new SparqlVariable("p_");
-                SparqlVariable o = new SparqlVariable("o_");
+                QuerySourceReferenceExpression sourceExpression = selectClause.Selector as QuerySourceReferenceExpression;
+
+                IQuerySource querySource = sourceExpression.ReferencedQuerySource;
+
+                SparqlVariable s = VariableGenerator.GetGlobalVariable(querySource.ItemName);
+                SparqlVariable p = VariableGenerator.GetGlobalVariable("p");
+                SparqlVariable o = VariableGenerator.GetGlobalVariable("o");
 
                 // Select all triples having the resource as subject.
                 SetSubjectVariable(s);
                 SetObjectVariable(o);
 
-                Where(e => e.Subject(s.Name).Predicate(p.Name).Object(o.Name));
-                Where(s, fromClause.ItemType);
+                Where(s, querySource.ItemType);
             }
         }
 

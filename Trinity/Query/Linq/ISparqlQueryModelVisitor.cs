@@ -33,7 +33,7 @@ namespace Semiodesk.Trinity.Query
     {
         #region Members
 
-        VariableBuilder VariableBuilder { get; }
+        SparqlVariableGenerator VariableGenerator { get; }
 
         #endregion
 
@@ -43,9 +43,11 @@ namespace Semiodesk.Trinity.Query
 
         QueryModel GetCurrentQueryModel();
 
-        SparqlQueryGenerator GetCurrentQueryGenerator();
+        ISparqlQueryGenerator GetRootQueryGenerator();
 
-        SparqlQueryGenerator GetQueryGenerator(QueryModel queryModel);
+        ISparqlQueryGenerator GetCurrentQueryGenerator();
+
+        ISparqlQueryGenerator GetQueryGenerator(QueryModel queryModel);
 
         #endregion
     }

@@ -224,7 +224,7 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectBooleanWithBinaryExpression()
+        public void CanSelectBooleanPropertyWithBinaryExpression()
         {
             var states = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Status;
 
@@ -240,7 +240,7 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectIntWithBinaryExpression()
+        public void CanSelectIntegerPropertyWithBinaryExpression()
         {
             var ages = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Age;
 
@@ -256,7 +256,7 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectDateTimeWithBinaryExpression()
+        public void CanSelectDateTimePropertyWithBinaryExpression()
         {
             var birthdays = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Birthday;
 
@@ -272,7 +272,7 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectStringWithBinaryExpression()
+        public void CanSelectStringPropertyWithBinaryExpression()
         {
             var names = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.FirstName;
 
@@ -288,7 +288,7 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectResourceWithBinaryExpression()
+        public void CanSelectResourcePropertyWithBinaryExpression()
         {
             var groups = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Group;
 

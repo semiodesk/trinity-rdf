@@ -38,8 +38,8 @@ namespace Semiodesk.Trinity.Query
     {
         #region Constructors
 
-        public SelectQueryGenerator(ISparqlQueryModelVisitor modelVisitor)
-            : base(modelVisitor, VDS.RDF.Query.Builder.QueryBuilder.Select(new string[] {}))
+        public SelectQueryGenerator()
+            : base(VDS.RDF.Query.Builder.QueryBuilder.Select(new string[] {}))
         {
         }
 
@@ -97,17 +97,17 @@ namespace Semiodesk.Trinity.Query
                 }
                 else if (resultOperator is OfTypeResultOperator)
                 {
-                    Type itemType = FromClause.ItemType;
-                    RdfClassAttribute itemClass = itemType.TryGetCustomAttribute<RdfClassAttribute>();
+                    OfTypeResultOperator op = resultOperator as OfTypeResultOperator;
+                    RdfClassAttribute type = op.SearchedItemType.TryGetCustomAttribute<RdfClassAttribute>();
 
-                    if (itemClass == null)
+                    if (type == null)
                     {
-                        throw new ArgumentException("No RdfClass attrribute declared on type: " + itemType);
+                        throw new ArgumentException("No RdfClass attrribute declared on type: " + op.SearchedItemType);
                     }
 
                     SparqlVariable s = SubjectVariable;
                     Uri p = new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-                    Uri o = itemClass.MappedUri;
+                    Uri o = type.MappedUri;
 
                     Where(e => e.Subject(s.Name).PredicateUri(p).Object(o));
                 }
