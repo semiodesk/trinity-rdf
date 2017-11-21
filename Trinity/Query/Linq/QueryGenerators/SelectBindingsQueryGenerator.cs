@@ -26,6 +26,7 @@
 // Copyright (c) Semiodesk GmbH 2017
 
 using Remotion.Linq.Clauses;
+using Remotion.Linq.Clauses.Expressions;
 using System.Linq.Expressions;
 using VDS.RDF.Query;
 
@@ -35,8 +36,7 @@ namespace Semiodesk.Trinity.Query
     {
         #region Constructors
 
-        public SelectBindingsQueryGenerator(ISparqlQueryModelVisitor modelVisitor)
-            : base(modelVisitor)
+        public SelectBindingsQueryGenerator()
         {
         }
 
@@ -44,21 +44,29 @@ namespace Semiodesk.Trinity.Query
 
         #region Methods
 
-        public override void SetFromClause(MainFromClause fromClause)
+        public override void Select(SelectClause selectClause, bool isRootQuery)
         {
-            base.SetFromClause(fromClause);
+            base.Select(selectClause, isRootQuery);
 
-            if (fromClause.FromExpression.NodeType == ExpressionType.Constant)
+            if (selectClause.Selector is MemberExpression)
             {
-                SparqlVariable s = new SparqlVariable(fromClause.ItemName);
-                SparqlVariable p = new SparqlVariable("p_");
-                SparqlVariable o = new SparqlVariable("o_");
+                MemberExpression member = selectClause.Selector as MemberExpression;
 
-                // Select all triples having the resource as subject.
-                SetSubjectVariable(s);
-                SetObjectVariable(o);
+                QuerySourceReferenceExpression querySource = member.TryGetQuerySourceReference();
 
-                Where(s, fromClause.ItemType);
+                if(querySource != null)
+                {
+                    SparqlVariable s = VariableGenerator.GetGlobalVariable(querySource.ReferencedQuerySource.ItemName);
+
+                    // Select all triples having the resource as subject.
+                    SetSubjectVariable(s);
+
+                    // Assert the triples which select the binding value.
+                    Where(member);
+
+                    // Assert the object type, if applicable.
+                    Where(s, member.Member.GetMemberType());
+                }
             }
         }
 

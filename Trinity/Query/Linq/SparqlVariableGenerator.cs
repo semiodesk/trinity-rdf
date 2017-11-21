@@ -25,68 +25,69 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
+using System;
 using System.Collections.Generic;
+using System.Reflection;
+using VDS.RDF.Query;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal class SparqlQueryGeneratorTree
+    internal class SparqlVariableGenerator
     {
         #region Members
 
-        private ISparqlQueryGenerator _rootQuery;
-
-        private Dictionary<ISparqlQueryGenerator, IList<ISparqlQueryGenerator>> _subQueries = new Dictionary<ISparqlQueryGenerator, IList<ISparqlQueryGenerator>>();
-
-        #endregion
-
-        #region Constructors
-
-        public SparqlQueryGeneratorTree(ISparqlQueryGenerator rootQuery)
-        {
-            _rootQuery = rootQuery;
-        }
+        private readonly Dictionary<string, int> _variableCounters = new Dictionary<string, int>();
 
         #endregion
 
         #region Methods
 
-        public void AddQuery(ISparqlQueryGenerator query, ISparqlQueryGenerator subQuery)
+        public SparqlVariable GetVariable(string name)
         {
-            if(_subQueries.ContainsKey(query))
+            if(string.IsNullOrEmpty(name))
             {
-                _subQueries[query].Add(subQuery);
-            }
-            else
-            {
-                _subQueries[query] = new List<ISparqlQueryGenerator>() { subQuery };
-            }
-        }
-
-        public void Traverse(QueryGeneratorTraversalDelegate callback)
-        {
-            Traverse(_rootQuery, callback);
-        }
-
-        private void Traverse(ISparqlQueryGenerator generator, QueryGeneratorTraversalDelegate callback)
-        {
-            if(_subQueries.ContainsKey(generator))
-            {
-                foreach(ISparqlQueryGenerator subQuery in _subQueries[generator])
-                {
-                    Traverse(subQuery, callback);
-                }
+                throw new ArgumentNullException("name");
             }
 
-            callback(generator);
+            int n = 0;
+
+            if(_variableCounters.ContainsKey(name))
+            {
+                n = _variableCounters[name] + 1;
+
+                _variableCounters[name] = n;
+            }
+
+            _variableCounters[name] = n;
+
+            return new SparqlVariable(name + n);
         }
 
-        public IEnumerable<ISparqlQueryGenerator> TryGetSubQueries(ISparqlQueryGenerator query)
+        public SparqlVariable GetGlobalVariable(string name, bool isResultVariable = false)
         {
-            return _subQueries.ContainsKey(query) ? _subQueries[query] : null;
+            if (string.IsNullOrEmpty(name))
+            {
+                throw new ArgumentNullException("name");
+            }
+
+            return new SparqlVariable(name.ToCamelCase() + "_", isResultVariable);
+        }
+
+        public SparqlVariable GetMemberVariable(MemberInfo member)
+        {
+            return GetVariable(member.Name.ToCamelCase());
+        }
+
+        public SparqlVariable GetPredicateVariable(string name = "p")
+        {
+            return GetVariable(name);
+        }
+
+        public SparqlVariable GetObjectVariable(string name = "o")
+        {
+            return GetVariable(name);
         }
 
         #endregion
     }
-
-    internal delegate void QueryGeneratorTraversalDelegate(ISparqlQueryGenerator queryGenerator);
 }

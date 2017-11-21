@@ -55,23 +55,40 @@ namespace Semiodesk.Trinity.Query
 
         protected SparqlQueryGeneratorTree QueryGeneratorTree;
 
-        protected readonly Dictionary<QueryModel, SparqlQueryGenerator> QueryGenerators = new Dictionary<QueryModel, SparqlQueryGenerator>();
+        protected readonly Dictionary<QueryModel, ISparqlQueryGenerator> QueryGenerators = new Dictionary<QueryModel, ISparqlQueryGenerator>();
 
         protected QueryModel CurrentQueryModel;
 
-        protected SparqlQueryGenerator CurrentQueryGenerator;
+        protected ISparqlQueryGenerator CurrentQueryGenerator;
 
-        protected SparqlQueryGenerator RootQueryGenerator;
+        protected ISparqlQueryGenerator RootQueryGenerator;
 
-        public VariableBuilder VariableBuilder { get; private set; }
+        public SparqlVariableGenerator VariableGenerator { get; private set; }
 
         #endregion
 
         #region Constructors
 
-        public SparqlQueryModelVisitor()
+        public SparqlQueryModelVisitor(ISparqlQueryGenerator queryGenerator)
         {
-            VariableBuilder = new VariableBuilder();
+            // Generated variables need to be managed accross sub-queries,
+            // so that no duplicate variable names are generated.
+            VariableGenerator = new SparqlVariableGenerator();
+
+            // The root quer generator builds the outer-most query which returns the actual results.
+            queryGenerator.SetQueryModelVisitor(this);
+
+            // The current (sub-)query generator.
+            CurrentQueryGenerator = queryGenerator;
+
+            // The query generator of the outermost query.
+            RootQueryGenerator = queryGenerator;
+
+            // Add the root query builder to the query tree.
+            QueryGeneratorTree = new SparqlQueryGeneratorTree(queryGenerator);
+
+            // The expression tree visitor needs to be initialized *after* the query builders.
+            ExpressionVisitor = new ExpressionTreeVisitor(this);
         }
 
         #endregion
@@ -100,33 +117,21 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitMainFromClause(MainFromClause fromClause, QueryModel queryModel)
         {
-            CurrentQueryGenerator.SetFromClause(fromClause);
-
-            switch(fromClause.FromExpression.NodeType)
+            if(fromClause.FromExpression is MemberExpression)
             {
-                case ExpressionType.MemberAccess:
-                    {
-                        MemberExpression memberExpression = fromClause.FromExpression as MemberExpression;
+                MemberExpression memberExpression = fromClause.FromExpression as MemberExpression;
 
-                        if (memberExpression.Expression is SubQueryExpression)
-                        {
-                            VisitSubQueryExpression(memberExpression.Expression as SubQueryExpression);
-                        }
+                if (memberExpression.Expression is SubQueryExpression)
+                {
+                    VisitSubQueryExpression(memberExpression.Expression as SubQueryExpression);
+                }
 
-                        ExpressionVisitor.VisitExpression(fromClause.FromExpression);
-
-                        break;
-                    }
+                ExpressionVisitor.VisitExpression(fromClause.FromExpression);
             }
         }
 
         public override void VisitQueryModel(QueryModel queryModel)
         {
-            if (RootQueryGenerator == null)
-            {
-                throw new ArgumentNullException("RootQueryGenerator");
-            }
-
             // CurrentQueryModel is null when this method is invoked for the first time.
             QueryModel currentQueryModel = CurrentQueryModel;
 
@@ -144,7 +149,7 @@ namespace Semiodesk.Trinity.Query
         {
             Debug.WriteLine(resultOperator.GetType().ToString());
 
-            SparqlQueryGenerator generator = GetCurrentQueryGenerator();
+            ISparqlQueryGenerator generator = GetCurrentQueryGenerator();
 
             generator.SetObjectOperator(resultOperator);
         }
@@ -153,12 +158,9 @@ namespace Semiodesk.Trinity.Query
         {
             queryModel.MainFromClause.Accept(this, queryModel);
 
-            if(selectClause.Selector is MemberExpression)
-            {
-                MemberExpression expression = selectClause.Selector as MemberExpression;
+            bool isRootQuery = RootQueryGenerator == CurrentQueryGenerator;
 
-                ExpressionVisitor.VisitExpression(expression);
-            }
+            CurrentQueryGenerator.Select(selectClause, isRootQuery);
 
             for (int i = 0; i < queryModel.BodyClauses.Count; i++)
             {
@@ -190,12 +192,6 @@ namespace Semiodesk.Trinity.Query
                 {
                     VisitSubQueryExpression(binaryExpression.Right as SubQueryExpression);
                 }
-
-                Debug.WriteLine(whereClause.GetType().ToString());
-            }
-            else
-            {
-                Debug.WriteLine(whereClause.GetType().ToString());
             }
 
             ExpressionVisitor.VisitExpression(whereClause.Predicate);
@@ -203,8 +199,9 @@ namespace Semiodesk.Trinity.Query
 
         private void VisitSubQueryExpression(SubQueryExpression expression)
         {
-            SparqlQueryGenerator currentQueryGenerator = CurrentQueryGenerator;
-            SparqlQueryGenerator subQueryGenerator = new SelectQueryGenerator(this);
+            ISparqlQueryGenerator currentQueryGenerator = CurrentQueryGenerator;
+            ISparqlQueryGenerator subQueryGenerator = new SelectQueryGenerator();
+            subQueryGenerator.SetQueryModelVisitor(this);
 
             // Enable look-up of query generators from query models.
             QueryGenerators[expression.QueryModel] = subQueryGenerator;
@@ -212,24 +209,24 @@ namespace Semiodesk.Trinity.Query
             // Add the sub query to the query tree.
             QueryGeneratorTree.AddQuery(currentQueryGenerator, subQueryGenerator);
 
+            // Descend the query tree and implement the sub query before the outer one.
             CurrentQueryGenerator = subQueryGenerator;
 
             ExpressionVisitor.VisitExpression(expression);
 
             CurrentQueryGenerator = currentQueryGenerator;
+
+            // Sub queries always select the subject from the select clause of the root query.
+            subQueryGenerator.SelectVariable(subQueryGenerator.SubjectVariable);
         }
 
         public override void VisitOrderByClause(OrderByClause orderByClause, QueryModel queryModel, int index)
         {
-            Debug.WriteLine(orderByClause.GetType().ToString());
-
             base.VisitOrderByClause(orderByClause, queryModel, index);
         }
 
         public override void VisitOrdering(Ordering ordering, QueryModel queryModel, OrderByClause orderByClause, int index)
         {
-            Debug.WriteLine(ordering.GetType().ToString());
-
             base.VisitOrdering(ordering, queryModel, orderByClause, index);
         }
 
@@ -268,29 +265,19 @@ namespace Semiodesk.Trinity.Query
             return CurrentQueryModel;
         }
 
-        public SparqlQueryGenerator GetCurrentQueryGenerator()
+        public ISparqlQueryGenerator GetRootQueryGenerator()
+        {
+            return RootQueryGenerator;
+        }
+
+        public ISparqlQueryGenerator GetCurrentQueryGenerator()
         {
             return CurrentQueryGenerator;
         }
 
-        public SparqlQueryGenerator GetQueryGenerator(QueryModel queryModel)
+        public ISparqlQueryGenerator GetQueryGenerator(QueryModel queryModel)
         {
             return QueryGenerators[queryModel];
-        }
-
-        public void SetRootQueryGenerator(SparqlQueryGenerator generator)
-        {
-            // The current (sub-)query generator.
-            CurrentQueryGenerator = generator;
-
-            // The query generator of the outermost query.
-            RootQueryGenerator = generator;
-
-            // Add the root query builder to the query tree.
-            QueryGeneratorTree = new SparqlQueryGeneratorTree(RootQueryGenerator);
-
-            // The expression tree visitor needs to be initialized *after* the query builders.
-            ExpressionVisitor = new ExpressionTreeVisitor(this);
         }
 
         #endregion

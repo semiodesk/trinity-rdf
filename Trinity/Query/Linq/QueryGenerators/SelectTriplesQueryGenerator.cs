@@ -26,6 +26,7 @@
 // Copyright (c) Semiodesk GmbH 2017
 
 using Remotion.Linq.Clauses;
+using Remotion.Linq.Clauses.Expressions;
 using System;
 using System.Linq.Expressions;
 using VDS.RDF.Query;
@@ -36,8 +37,7 @@ namespace Semiodesk.Trinity.Query
     {
         #region Constructors
 
-        public SelectTriplesQueryGenerator(ISparqlQueryModelVisitor modelVisitor)
-            : base(modelVisitor)
+        public SelectTriplesQueryGenerator()
         {
         }
 
@@ -45,26 +45,72 @@ namespace Semiodesk.Trinity.Query
 
         #region Methods
 
-        public override void SetFromClause(MainFromClause fromClause)
+        public override void Select(SelectClause selectClause, bool isRootQuery)
         {
-            base.SetFromClause(fromClause);
+            base.Select(selectClause, isRootQuery);
 
-            if (fromClause.FromExpression.NodeType == ExpressionType.Constant)
+            // In any case, we need to describe the queried object provided by the from expression.
+            QuerySourceReferenceExpression sourceExpression = selectClause.Selector.TryGetQuerySourceReference();
+
+            if (sourceExpression != null)
             {
-                SparqlVariable s = new SparqlVariable(fromClause.ItemName);
-                SparqlVariable p = new SparqlVariable("p_");
-                SparqlVariable o = new SparqlVariable("o_");
+                IQuerySource querySource = sourceExpression.ReferencedQuerySource;
 
-                SetSubjectVariable(s);
-                SetObjectVariable(o);
+                SparqlVariable s = null;
+                SparqlVariable p = VariableGenerator.GetGlobalVariable("p");
+                SparqlVariable o = VariableGenerator.GetGlobalVariable("o");
 
-                // Select all triples having the resource as subject.
-                SelectVariable(s);
-                SelectVariable(p);
-                SelectVariable(o);
+                if (selectClause.Selector is MemberExpression)
+                {
+                    s = VariableGenerator.GetVariable(querySource.ItemName);
 
-                Where(e => e.Subject(s.Name).Predicate(p.Name).Object(o.Name));
-                Where(s, fromClause.ItemType);
+                    // We set the query subject, just in case there are any sub queries.
+                    SetSubjectVariable(s);
+
+                    // If we are selecting to return a member of an object, we select 
+                    // the triples of the resource and generate the required member access triples.
+                    MemberExpression memberExpression = selectClause.Selector as MemberExpression;
+
+                    SparqlVariable m = VariableGenerator.GetGlobalVariable(memberExpression.Member.Name);
+
+                    SelectVariable(m);
+                    SelectVariable(p);
+                    SelectVariable(o);
+
+                    Where(e => e.Subject(m.Name).Predicate(p.Name).Object(o.Name));
+
+                    Type t = memberExpression.Member.GetMemberType();
+
+                    if (t != null)
+                    {
+                        Where(m, t);
+                    }
+
+                    // The member can be accessed via chained properties (?s ex:prop1 / ex:prop2 ?m).
+                    BuildMemberAccess(memberExpression, m);
+                }
+                else if (selectClause.Selector is QuerySourceReferenceExpression)
+                {
+                    s = VariableGenerator.GetGlobalVariable(querySource.ItemName);
+
+                    // We set the query subject, just in case there are any sub queries.
+                    SetSubjectVariable(s);
+
+                    // Only select the query source variables if we directly return the object.
+                    SetObjectVariable(o);
+
+                    SelectVariable(s);
+                    SelectVariable(p);
+                    SelectVariable(o);
+
+                    Where(e => e.Subject(s.Name).Predicate(p.Name).Object(o.Name));
+                }
+
+                // Assert the subject type, if applicable.
+                if (querySource.ItemType != null)
+                {
+                    Where(s, querySource.ItemType);
+                }
             }
         }
 

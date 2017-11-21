@@ -20,8 +20,8 @@
 //
 // AUTHORS:
 //
-//  Moritz Eberl <moritz@semiodesk.com>
-//  Sebastian Faubel <sebastian@semiodesk.com>
+// Moritz Eberl <moritz@semiodesk.com>
+// Sebastian Faubel <sebastian@semiodesk.com>
 //
 // Copyright (c) Semiodesk GmbH 2017
 
@@ -32,8 +32,6 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
-using VDS.RDF;
-using VDS.RDF.Query;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -58,11 +56,11 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitBinaryExpression(BinaryExpression expression)
         {
-            Debug.WriteLine(expression.GetType().ToString());
+            ISparqlQueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
 
-            SparqlQueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
             ConstantExpression constant = expression.Right as ConstantExpression;
 
+            // TODO: Also support other permutations of the following expression types (left/right swapped).
             if (expression.Left is MemberExpression && expression.Right is ConstantExpression)
             {
                 MemberExpression member = expression.Left as MemberExpression;
@@ -95,7 +93,7 @@ namespace Semiodesk.Trinity.Query
             {
                 SubQueryExpression subQuery = expression.Left as SubQueryExpression;
 
-                SparqlQueryGenerator subGenerator = _queryModelVisitor.GetQueryGenerator(subQuery.QueryModel);
+                ISparqlQueryGenerator subGenerator = _queryModelVisitor.GetQueryGenerator(subQuery.QueryModel);
 
                 switch (expression.NodeType)
                 {
@@ -127,42 +125,32 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitConditionalExpression(ConditionalExpression expression)
         {
-            Debug.WriteLine(expression.GetType().ToString());
-
-            return expression;
+            throw new NotImplementedException();
         }
 
         protected override Expression VisitConstantExpression(ConstantExpression expression)
         {
-            Debug.WriteLine(expression.GetType().ToString() + ": " + expression.AsSparqlExpression());
-
             return expression;
         }
         
         protected override Expression VisitInvocationExpression(InvocationExpression expression)
         {
-            Debug.WriteLine(expression.GetType().ToString());
-
-            return expression;
+            throw new NotImplementedException();
         }
 
         protected override Expression VisitLambdaExpression(LambdaExpression expression)
         {
-            Debug.WriteLine(expression.GetType().ToString());
-
-            return expression;
+            throw new NotImplementedException();
         }
 
         protected override Expression VisitListInitExpression(ListInitExpression expression)
         {
-            Debug.WriteLine(expression.GetType().ToString());
-
-            return expression;
+            throw new NotImplementedException();
         }
 
         protected override Expression VisitMemberExpression(MemberExpression expression)
         {
-            SparqlQueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
 
             if (generator.SetSubjectVariableFromExpression(expression))
             {
@@ -174,9 +162,7 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitMemberInitExpression(MemberInitExpression expression)
         {
-            Debug.WriteLine(expression.GetType().ToString());
-
-            return expression;
+            throw new NotImplementedException();
         }
 
         protected override Expression VisitMethodCallExpression(MethodCallExpression expression)
@@ -185,7 +171,8 @@ namespace Semiodesk.Trinity.Query
 
             if(method == "Equals")
             {
-                SparqlQueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
+                ISparqlQueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
+
                 ConstantExpression constant = expression.Arguments.First() as ConstantExpression;
 
                 if (expression.Object is MemberExpression)
@@ -219,16 +206,12 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitParameterExpression(ParameterExpression expression)
         {
-            Debug.WriteLine(expression.GetType().ToString());
-
-            return expression;
+            throw new NotImplementedException();
         }
 
         protected override Expression VisitQuerySourceReferenceExpression(QuerySourceReferenceExpression expression)
         {
-            Debug.WriteLine(expression.GetType().ToString());
-
-            return expression;
+            throw new NotImplementedException();
         }
 
         protected override Expression VisitSubQueryExpression(SubQueryExpression expression)
@@ -240,16 +223,12 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitTypeBinaryExpression(TypeBinaryExpression expression)
         {
-            Debug.WriteLine(expression.GetType().ToString());
-
-            return expression;
+            throw new NotImplementedException();
         }
 
         protected override Expression VisitUnaryExpression(UnaryExpression expression)
         {
-            Debug.WriteLine(expression.GetType().ToString());
-
-            return expression;
+            throw new NotImplementedException();
         }
 
         protected override Exception CreateUnhandledItemException<T>(T unhandledItem, string visitMethod)
