@@ -444,6 +444,22 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
+        public void CanSelectResourcesWithLogicalAndAlso()
+        {
+            var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" && person.LastName == "Cooper" select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" && person.LastName == "Dylan" select person;
+
+            Assert.AreEqual(0, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" && person.LastName == "Cooper" && person.KnownPeople.Count == 1 select person;
+
+            Assert.AreEqual(0, persons.ToList().Count);
+        }
+
+        [Test]
         public void CanSelectResourcesWithCountOperator()
         {
             var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count != 1 select person;

@@ -35,6 +35,7 @@ using System.Linq.Expressions;
 
 namespace Semiodesk.Trinity.Query
 {
+    // TODO: Each query generator should have its own ExpressionVisitor instance.
     sealed class ExpressionTreeVisitor : ThrowingExpressionTreeVisitor
     {
         #region Members
@@ -56,71 +57,109 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitBinaryExpression(BinaryExpression expression)
         {
-            ISparqlQueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
-
-            ConstantExpression constant = expression.Right as ConstantExpression;
-
-            // TODO: Also support other permutations of the following expression types (left/right swapped).
-            if (expression.Left is MemberExpression && expression.Right is ConstantExpression)
+            switch(expression.NodeType)
             {
-                MemberExpression member = expression.Left as MemberExpression;
-
-                switch (expression.NodeType)
+                case ExpressionType.Equal:
+                case ExpressionType.NotEqual:
+                case ExpressionType.GreaterThan:
+                case ExpressionType.GreaterThanOrEqual:
+                case ExpressionType.LessThan:
+                case ExpressionType.LessThanOrEqual:
                 {
-                    case ExpressionType.Equal:
-                        generator.WhereEqual(member, constant);
-                        break;
-                    case ExpressionType.GreaterThan:
-                        generator.WhereGreaterThan(member, constant);
-                        break;
-                    case ExpressionType.GreaterThanOrEqual:
-                        generator.WhereGreaterThanOrEqual(member, constant);
-                        break;
-                    case ExpressionType.LessThan:
-                        generator.WhereLessThan(member, constant);
-                        break;
-                    case ExpressionType.LessThanOrEqual:
-                        generator.WhereLessThanOrEqual(member, constant);
-                        break;
-                    case ExpressionType.NotEqual:
-                        generator.WhereNotEqual(member, constant);
-                        break;
-                    default:
-                        throw new NotSupportedException(expression.NodeType.ToString());
+                    if (expression.HasExpressionOfType<ConstantExpression>())
+                    {
+                        ConstantExpression constant = expression.TryGetExpressionOfType<ConstantExpression>();
+
+                        if (expression.HasExpressionOfType<MemberExpression>())
+                        {
+                            MemberExpression member = expression.TryGetExpressionOfType<MemberExpression>();
+
+                            VisitBinaryMemberExpression(expression.NodeType, member, constant);
+                        }
+                        else if (expression.HasExpressionOfType<SubQueryExpression>())
+                        {
+                            SubQueryExpression subQuery = expression.TryGetExpressionOfType<SubQueryExpression>();
+
+                            VisitBinarySubQueryExpression(expression.NodeType, subQuery, constant);
+                        }
+                    }
+
+                    break;
                 }
-            }
-            else if (expression.Left is SubQueryExpression && expression.Right is ConstantExpression)
-            {
-                SubQueryExpression subQuery = expression.Left as SubQueryExpression;
-
-                ISparqlQueryGenerator subGenerator = _queryModelVisitor.GetQueryGenerator(subQuery.QueryModel);
-
-                switch (expression.NodeType)
+                case ExpressionType.AndAlso:
                 {
-                    case ExpressionType.Equal:
-                        generator.WhereEqual(subGenerator.ObjectVariable, constant);
-                        break;
-                    case ExpressionType.GreaterThan:
-                        generator.WhereGreaterThan(subGenerator.ObjectVariable, constant);
-                        break;
-                    case ExpressionType.GreaterThanOrEqual:
-                        generator.WhereGreaterThanOrEqual(subGenerator.ObjectVariable, constant);
-                        break;
-                    case ExpressionType.LessThan:
-                        generator.WhereLessThan(subGenerator.ObjectVariable, constant);
-                        break;
-                    case ExpressionType.LessThanOrEqual:
-                        generator.WhereLessThanOrEqual(subGenerator.ObjectVariable, constant);
-                        break;
-                    case ExpressionType.NotEqual:
-                        generator.WhereNotEqual(subGenerator.ObjectVariable, constant);
-                        break;
-                    default:
-                        throw new NotSupportedException(expression.NodeType.ToString());
+                    VisitExpression(expression.Left);
+                    VisitExpression(expression.Right);
+
+                    break;
                 }
             }
 
             return expression;
+        }
+
+        private void VisitBinaryMemberExpression(ExpressionType type, MemberExpression member, ConstantExpression constant)
+        {
+            ISparqlQueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
+
+            switch (type)
+            {
+                case ExpressionType.Equal:
+                    generator.WhereEqual(member, constant);
+                    break;
+                case ExpressionType.NotEqual:
+                    generator.WhereNotEqual(member, constant);
+                    break;
+                case ExpressionType.GreaterThan:
+                    generator.WhereGreaterThan(member, constant);
+                    break;
+                case ExpressionType.GreaterThanOrEqual:
+                    generator.WhereGreaterThanOrEqual(member, constant);
+                    break;
+                case ExpressionType.LessThan:
+                    generator.WhereLessThan(member, constant);
+                    break;
+                case ExpressionType.LessThanOrEqual:
+                    generator.WhereLessThanOrEqual(member, constant);
+                    break;
+                default:
+                    throw new NotSupportedException(type.ToString());
+            }
+        }
+
+        private void VisitBinarySubQueryExpression(ExpressionType type, SubQueryExpression subQuery, ConstantExpression constant)
+        {
+            if(!_queryModelVisitor.HasQueryGenerator(subQuery.QueryModel))
+            {
+                VisitSubQueryExpression(subQuery);
+            }
+
+            ISparqlQueryGenerator generator = _queryModelVisitor.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator subGenerator = _queryModelVisitor.GetQueryGenerator(subQuery.QueryModel);
+
+            switch (type)
+            {
+                case ExpressionType.Equal:
+                    generator.WhereEqual(subGenerator.ObjectVariable, constant);
+                    break;
+                case ExpressionType.NotEqual:
+                    generator.WhereNotEqual(subGenerator.ObjectVariable, constant);
+                    break;
+                case ExpressionType.GreaterThan:
+                    generator.WhereGreaterThan(subGenerator.ObjectVariable, constant);
+                    break;
+                case ExpressionType.GreaterThanOrEqual:
+                    generator.WhereGreaterThanOrEqual(subGenerator.ObjectVariable, constant);
+                    break;
+                case ExpressionType.LessThan:
+                    generator.WhereLessThan(subGenerator.ObjectVariable, constant);
+                    break;
+                case ExpressionType.LessThanOrEqual:
+                    generator.WhereLessThanOrEqual(subGenerator.ObjectVariable, constant);
+                    break;
+                default:
+                    throw new NotSupportedException(type.ToString());
+            }
         }
 
         protected override Expression VisitConditionalExpression(ConditionalExpression expression)
@@ -216,7 +255,7 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitSubQueryExpression(SubQueryExpression expression)
         {
-            expression.QueryModel.Accept(_queryModelVisitor);
+            _queryModelVisitor.VisitQueryModel(expression.QueryModel);
 
             return expression;
         }

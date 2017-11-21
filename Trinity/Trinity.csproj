@@ -122,6 +122,7 @@
     <Compile Include="Query\ISparqlQuery.cs" />
     <Compile Include="Query\ISparqlQueryResult.cs" />
     <Compile Include="Query\Linq\Extensions\AggregateExtensions.cs" />
+    <Compile Include="Query\Linq\Extensions\BinaryExpressionExtensions.cs" />
     <Compile Include="Query\Linq\Extensions\ConstantExpressionExtensions.cs" />
     <Compile Include="Query\Linq\Extensions\ExpressionExstensions.cs" />
     <Compile Include="Query\Linq\ExpressionTreeVisitor.cs" />

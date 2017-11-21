@@ -20,37 +20,25 @@
 //
 // AUTHORS:
 //
-// Moritz Eberl <moritz@semiodesk.com>
-// Sebastian Faubel <sebastian@semiodesk.com>
+//  Moritz Eberl <moritz@semiodesk.com>
+//  Sebastian Faubel <sebastian@semiodesk.com>
 //
 // Copyright (c) Semiodesk GmbH 2017
 
-using Remotion.Linq;
+using System.Linq.Expressions;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal interface ISparqlQueryModelVisitor : IQueryModelVisitor
+    internal static class BinaryExpressionExtensions
     {
-        #region Members
+        public static bool HasExpressionOfType<T>(this BinaryExpression expression) where T : Expression
+        {
+            return expression.Right is T || expression.Left is T;
+        }
 
-        SparqlVariableGenerator VariableGenerator { get; }
-
-        #endregion
-
-        #region Methods
-
-        ISparqlQuery GetQuery();
-
-        QueryModel GetCurrentQueryModel();
-
-        ISparqlQueryGenerator GetRootQueryGenerator();
-
-        ISparqlQueryGenerator GetCurrentQueryGenerator();
-
-        ISparqlQueryGenerator GetQueryGenerator(QueryModel queryModel);
-
-        bool HasQueryGenerator(QueryModel queryModel);
-
-        #endregion
+        public static T TryGetExpressionOfType<T>(this BinaryExpression expression) where T : Expression
+        {
+            return expression.Right is T ? expression.Right as T : expression.Left as T;
+        }
     }
 }
