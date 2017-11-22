@@ -20,28 +20,17 @@
 //
 // AUTHORS:
 //
-//  Moritz Eberl <moritz@semiodesk.com>
-//  Sebastian Faubel <sebastian@semiodesk.com>
+// Moritz Eberl <moritz@semiodesk.com>
+// Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2017
 
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
-using Remotion.Linq.Clauses.ResultOperators;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq.Expressions;
-using VDS.RDF.Query;
-using VDS.RDF.Query.Aggregates.Sparql;
-using VDS.RDF.Query.Builder;
-using VDS.RDF.Query.Expressions.Primary;
-
-// TODO:
-// - Support scalar query forms.
-// - Establish dynamic look-up of query source reference expressions and sub query expresssions to variable names.
-// - Make selected variables of sub queries more flexible (currently only subject and object).
 
 namespace Semiodesk.Trinity.Query
 {
@@ -79,7 +68,7 @@ namespace Semiodesk.Trinity.Query
             _queryGeneratorTree = new SparqlQueryGeneratorTree(queryGenerator, _variableGenerator);
 
             // The expression tree visitor needs to be initialized *after* the query builders.
-            _expressionVisitor = new ExpressionTreeVisitor(this, _queryGeneratorTree);
+            _expressionVisitor = new ExpressionTreeVisitor(this, _queryGeneratorTree, _variableGenerator);
         }
 
         #endregion

@@ -57,15 +57,17 @@ namespace Semiodesk.Trinity.Query
                 if(querySource != null)
                 {
                     SparqlVariable s = VariableGenerator.GetGlobalVariable(querySource.ReferencedQuerySource.ItemName);
+                    SparqlVariable o = VariableGenerator.GetObjectVariable();
 
                     // Select all triples having the resource as subject.
                     SetSubjectVariable(s);
+                    SetObjectVariable(o, true);
 
                     // Assert the triples which select the binding value.
-                    Where(member);
+                    Where(member, o);
 
                     // Assert the object type, if applicable.
-                    Where(s, member.Member.GetMemberType());
+                    WhereOfType(s, member.Member.GetMemberType());
                 }
             }
         }

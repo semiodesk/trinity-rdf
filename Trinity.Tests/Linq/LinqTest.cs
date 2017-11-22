@@ -444,7 +444,7 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectResourcesWithLogicalAndAlso()
+        public void CanSelectResourcesWithNodeTypeAndAlso()
         {
             var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" && person.LastName == "Cooper" select person;
 
@@ -460,7 +460,23 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectResourcesWithCountOperator()
+        public void CanSelectResourcesWithNodeTypeOrElse()
+        {
+            var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" || person.FirstName == "Bob" select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectResourcesWithEqualsOnString()
+        {
+            var persons = from person in Model.AsQueryable<Person>() where person.FirstName.Equals("Alice") select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectResourcesWithResultOperatorCount()
         {
             var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count != 1 select person;
 
@@ -484,15 +500,7 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectResourcesWithEqualsMethodCall()
-        {
-            var persons = from person in Model.AsQueryable<Person>() where person.FirstName.Equals("Alice") select person;
-
-            Assert.AreEqual(1, persons.ToList().Count);
-        }
-
-        [Test]
-        public void CanSelectResourcesWithFirstResultOperator()
+        public void CanSelectResourcesWithResultOperatorFirst()
         {
             Assert.Fail("TODO");
 
@@ -532,7 +540,7 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectResourcesWithLastResultOperator()
+        public void CanSelectResourcesWithResultOperatorLast()
         {
             Assert.Fail("TODO");
 

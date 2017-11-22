@@ -67,11 +67,9 @@ namespace Semiodesk.Trinity.Query
 
         void Select(Expression selector, bool isRootQuery);
 
-        void Where(Action<ITriplePatternBuilder> buildTriplePatterns);
+        void WhereOfType(SparqlVariable subject, Type type);
 
-        void Where(SparqlVariable subject, Type type);
-
-        void Where(MemberExpression member);
+        void Where(MemberExpression member, SparqlVariable variable);
 
         void WhereEqual(SparqlVariable variable, ConstantExpression constant);
 
@@ -100,8 +98,6 @@ namespace Semiodesk.Trinity.Query
         void OrderBy(SparqlVariable variable);
 
         void OrderByDescending(SparqlVariable variable);
-
-        void Optional(Action<IGraphPatternBuilder> buildGraphPattern);
 
         void Offset(int offset);
 
