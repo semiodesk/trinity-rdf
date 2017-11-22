@@ -25,6 +25,7 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
+using Remotion.Linq;
 using Remotion.Linq.Clauses;
 using System;
 using System.Collections.Generic;
@@ -40,8 +41,6 @@ namespace Semiodesk.Trinity.Query
 
         bool IsBound { get; }
 
-        ISparqlQueryModelVisitor ModelVisitor { get; }
-
         SparqlVariable SubjectVariable { get; }
 
         SparqlVariable ObjectVariable { get; }
@@ -52,7 +51,9 @@ namespace Semiodesk.Trinity.Query
 
         #region Methods
 
-        void SetQueryModelVisitor(ISparqlQueryModelVisitor modelVisitor);
+        void SetQueryModel(QueryModel queryModel);
+
+        void SetVariableGenerator(SparqlVariableGenerator variableGenerator);
 
         void SetObjectOperator(ResultOperatorBase resultOperator);
 
@@ -60,13 +61,11 @@ namespace Semiodesk.Trinity.Query
 
         void SetSubjectVariable(SparqlVariable variable, bool select = false);
 
-        bool SetSubjectVariableFromExpression(MemberExpression member);
-
         void DeselectVariable(SparqlVariable variable);
 
         void SelectVariable(SparqlVariable variable);
 
-        void Select(SelectClause selectClause, bool isRootQuery);
+        void Select(Expression selector, bool isRootQuery);
 
         void Where(Action<ITriplePatternBuilder> buildTriplePatterns);
 

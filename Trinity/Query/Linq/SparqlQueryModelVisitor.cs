@@ -45,28 +45,29 @@ using VDS.RDF.Query.Expressions.Primary;
 
 namespace Semiodesk.Trinity.Query
 {
+    /// <summary>
+    /// Generates a SPARQL query from a LINQ query model by visiting all clauses and invoking 
+    /// expression implementation using a <c>ExpressionTreeVisitor</c>.
+    /// </summary>
+    /// <typeparam name="T">The result type.</typeparam>
     internal class SparqlQueryModelVisitor<T> : QueryModelVisitorBase, ISparqlQueryModelVisitor
     {
         #region Members
 
-        protected bool IsInitialized;
+        /// <summary>
+        /// Allows to access query generators and sub query generators in a tree-like fashion.
+        /// </summary>
+        private ISparqlQueryGeneratorTree _queryGeneratorTree;
 
-        protected ExpressionTreeVisitor ExpressionVisitor;
+        /// <summary>
+        /// A common variable name generator for all query generators.
+        /// </summary>
+        private SparqlVariableGenerator _variableGenerator = new SparqlVariableGenerator();
 
-        protected SparqlQueryGeneratorTree QueryGeneratorTree;
-
-        protected readonly Dictionary<QueryModel, ISparqlQueryGenerator> QueryGenerators = new Dictionary<QueryModel, ISparqlQueryGenerator>();
-
-        // TODO: Implement the 'current' accessors using a stack. Then we can count to determine if we are in a sub query.
-        protected QueryModel CurrentQueryModel;
-
-        protected ISparqlQueryGenerator CurrentQueryGenerator;
-
-        protected QueryModel RootQueryModel;
-
-        protected ISparqlQueryGenerator RootQueryGenerator;
-
-        public SparqlVariableGenerator VariableGenerator { get; private set; }
+        /// <summary>
+        /// Visits all expressions in a query model and handles the query generation.
+        /// </summary>
+        private ExpressionTreeVisitor _expressionVisitor;
 
         #endregion
 
@@ -74,24 +75,11 @@ namespace Semiodesk.Trinity.Query
 
         public SparqlQueryModelVisitor(ISparqlQueryGenerator queryGenerator)
         {
-            // Generated variables need to be managed accross sub-queries,
-            // so that no duplicate variable names are generated.
-            VariableGenerator = new SparqlVariableGenerator();
-
-            // The root quer generator builds the outer-most query which returns the actual results.
-            queryGenerator.SetQueryModelVisitor(this);
-
-            // The current (sub-)query generator.
-            CurrentQueryGenerator = queryGenerator;
-
-            // The query generator of the outermost query.
-            RootQueryGenerator = queryGenerator;
-
             // Add the root query builder to the query tree.
-            QueryGeneratorTree = new SparqlQueryGeneratorTree(queryGenerator);
+            _queryGeneratorTree = new SparqlQueryGeneratorTree(queryGenerator, _variableGenerator);
 
             // The expression tree visitor needs to be initialized *after* the query builders.
-            ExpressionVisitor = new ExpressionTreeVisitor(this);
+            _expressionVisitor = new ExpressionTreeVisitor(this, _queryGeneratorTree);
         }
 
         #endregion
@@ -126,39 +114,32 @@ namespace Semiodesk.Trinity.Query
 
                 if (memberExpression.Expression is SubQueryExpression)
                 {
-                    VisitSubQueryExpression(memberExpression.Expression as SubQueryExpression);
+                    SubQueryExpression subQueryExpression = memberExpression.Expression as SubQueryExpression;
+
+                    _expressionVisitor.VisitExpression(subQueryExpression);
                 }
 
-                ExpressionVisitor.VisitExpression(fromClause.FromExpression);
+                _expressionVisitor.VisitExpression(fromClause.FromExpression);
             }
         }
 
         public override void VisitQueryModel(QueryModel queryModel)
         {
-            // Store the root query model for reliably detecting if we are in a sub query.
-            if (CurrentQueryModel == null)
+            // The root query generator cannot be registered until this method is invoked.
+            if(!_queryGeneratorTree.HasQueryGenerator(queryModel))
             {
-                RootQueryModel = queryModel;
+                ISparqlQueryGenerator generator = _queryGeneratorTree.GetRootQueryGenerator();
+
+                _queryGeneratorTree.RegisterQueryGenerator(generator, queryModel);
             }
-
-            // CurrentQueryModel is null when this method is invoked for the first time.
-            QueryModel currentQueryModel = CurrentQueryModel;
-
-            // Set the current query model which the query generators manipulate.
-            CurrentQueryModel = queryModel;
 
             // This possibly traverses into sub-queries.
             queryModel.SelectClause.Accept(this, queryModel);
-
-            // Restore the current query model after visiting possible sub queries in the select clause.
-            CurrentQueryModel = currentQueryModel;
         }
 
         public override void VisitResultOperator(ResultOperatorBase resultOperator, QueryModel queryModel, int index)
         {
-            Debug.WriteLine(resultOperator.GetType().ToString());
-
-            ISparqlQueryGenerator generator = GetCurrentQueryGenerator();
+            ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
             generator.SetObjectOperator(resultOperator);
         }
@@ -167,9 +148,7 @@ namespace Semiodesk.Trinity.Query
         {
             queryModel.MainFromClause.Accept(this, queryModel);
 
-            bool isRootQuery = RootQueryModel == CurrentQueryModel;
-
-            CurrentQueryGenerator.Select(selectClause, isRootQuery);
+            _expressionVisitor.VisitSelectExpression(selectClause.Selector, true);
 
             for (int i = 0; i < queryModel.BodyClauses.Count; i++)
             {
@@ -194,39 +173,20 @@ namespace Semiodesk.Trinity.Query
 
                 if(binaryExpression.Left is SubQueryExpression)
                 {
-                    VisitSubQueryExpression(binaryExpression.Left as SubQueryExpression);
+                    SubQueryExpression subQueryExpression = binaryExpression.Left as SubQueryExpression;
+
+                    _expressionVisitor.VisitExpression(subQueryExpression);
                 }
 
                 if(binaryExpression.Right is SubQueryExpression)
                 {
-                    VisitSubQueryExpression(binaryExpression.Right as SubQueryExpression);
+                    SubQueryExpression subQueryExpression = binaryExpression.Right as SubQueryExpression;
+
+                    _expressionVisitor.VisitExpression(subQueryExpression);
                 }
             }
 
-            ExpressionVisitor.VisitExpression(whereClause.Predicate);
-        }
-
-        public void VisitSubQueryExpression(SubQueryExpression expression)
-        {
-            ISparqlQueryGenerator currentQueryGenerator = CurrentQueryGenerator;
-            ISparqlQueryGenerator subQueryGenerator = new SelectQueryGenerator();
-            subQueryGenerator.SetQueryModelVisitor(this);
-
-            // Enable look-up of query generators from query models.
-            QueryGenerators[expression.QueryModel] = subQueryGenerator;
-
-            // Add the sub query to the query tree.
-            QueryGeneratorTree.AddQuery(currentQueryGenerator, subQueryGenerator);
-
-            // Descend the query tree and implement the sub query before the outer one.
-            CurrentQueryGenerator = subQueryGenerator;
-
-            ExpressionVisitor.VisitExpression(expression);
-
-            CurrentQueryGenerator = currentQueryGenerator;
-
-            // Sub queries always select the subject from the select clause of the root query.
-            subQueryGenerator.SelectVariable(subQueryGenerator.SubjectVariable);
+            _expressionVisitor.VisitExpression(whereClause.Predicate);
         }
 
         public override void VisitOrderByClause(OrderByClause orderByClause, QueryModel queryModel, int index)
@@ -245,7 +205,7 @@ namespace Semiodesk.Trinity.Query
 
             // Since the dotNetRdf QueryBuilder does not support building sub queries,
             // we need to generate the nested queries here.
-            QueryGeneratorTree.Traverse((builder) =>
+            _queryGeneratorTree.Traverse((builder) =>
             {
                 string q = builder.BuildQuery().ToString();
 
@@ -267,31 +227,6 @@ namespace Semiodesk.Trinity.Query
             Debug.WriteLine(query.ToString());
 
             return query;
-        }
-
-        public QueryModel GetCurrentQueryModel()
-        {
-            return CurrentQueryModel;
-        }
-
-        public ISparqlQueryGenerator GetRootQueryGenerator()
-        {
-            return RootQueryGenerator;
-        }
-
-        public ISparqlQueryGenerator GetCurrentQueryGenerator()
-        {
-            return CurrentQueryGenerator;
-        }
-
-        public ISparqlQueryGenerator GetQueryGenerator(QueryModel queryModel)
-        {
-            return QueryGenerators[queryModel];
-        }
-
-        public bool HasQueryGenerator(QueryModel queryModel)
-        {
-            return QueryGenerators.ContainsKey(queryModel);
         }
 
         #endregion

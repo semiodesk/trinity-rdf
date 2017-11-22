@@ -25,53 +25,141 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
+using Remotion.Linq;
+using Remotion.Linq.Clauses.Expressions;
 using System.Collections.Generic;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal class SparqlQueryGeneratorTree
+    internal class SparqlQueryGeneratorTree : ISparqlQueryGeneratorTree
     {
         #region Members
 
-        private ISparqlQueryGenerator _rootQuery;
+        private ISparqlQueryGenerator _currentQueryGenerator;
 
-        private Dictionary<ISparqlQueryGenerator, IList<ISparqlQueryGenerator>> _subQueries = new Dictionary<ISparqlQueryGenerator, IList<ISparqlQueryGenerator>>();
+        private ISparqlQueryGenerator _rootQueryGenerator;
+
+        private readonly Dictionary<ISparqlQueryGenerator, IList<ISparqlQueryGenerator>> _generatorTree = new Dictionary<ISparqlQueryGenerator, IList<ISparqlQueryGenerator>>();
+
+        private readonly Dictionary<SubQueryExpression, ISparqlQueryGenerator> _expressionGenerators = new Dictionary<SubQueryExpression, ISparqlQueryGenerator>();
+
+        private readonly Dictionary<QueryModel, ISparqlQueryGenerator> _queryModelGenerators = new Dictionary<QueryModel, ISparqlQueryGenerator>();
+
+        private readonly SparqlVariableGenerator _variableGenerator;
 
         #endregion
 
         #region Constructors
 
-        public SparqlQueryGeneratorTree(ISparqlQueryGenerator rootQuery)
+        public SparqlQueryGeneratorTree(ISparqlQueryGenerator queryGenerator, SparqlVariableGenerator variableGenerator)
         {
-            _rootQuery = rootQuery;
+            // The query generator of the outermost query.
+            _rootQueryGenerator = queryGenerator;
+
+            // The current (sub-)query generator.
+            _currentQueryGenerator = queryGenerator;
+
+            // Generates unique variable names for the query generators.
+            _variableGenerator = variableGenerator;
         }
 
         #endregion
 
         #region Methods
 
-        public void AddQuery(ISparqlQueryGenerator query, ISparqlQueryGenerator subQuery)
+        public ISparqlQueryGenerator CreateSubQueryGenerator(SubQueryExpression expression)
         {
-            if(_subQueries.ContainsKey(query))
+            ISparqlQueryGenerator generator = new SelectQueryGenerator();
+
+            RegisterQueryGenerator(generator, expression);
+
+            if (_currentQueryGenerator != null)
             {
-                _subQueries[query].Add(subQuery);
+                AddSubQueryGenerator(_currentQueryGenerator, generator);
+            }
+            else if (_rootQueryGenerator != null)
+            {
+                AddSubQueryGenerator(_rootQueryGenerator, generator);
+            }
+
+            return generator;
+        }
+
+        private void AddSubQueryGenerator(ISparqlQueryGenerator queryGenerator, ISparqlQueryGenerator subQueryGenerator)
+        {
+            // Add the sub query to the query tree.
+            if (_generatorTree.ContainsKey(queryGenerator))
+            {
+                _generatorTree[queryGenerator].Add(subQueryGenerator);
             }
             else
             {
-                _subQueries[query] = new List<ISparqlQueryGenerator>() { subQuery };
+                _generatorTree[queryGenerator] = new List<ISparqlQueryGenerator>() { subQueryGenerator };
             }
+        }
+
+        public void RegisterQueryGenerator(ISparqlQueryGenerator queryGenerator, QueryModel queryModel)
+        {
+            queryGenerator.SetVariableGenerator(_variableGenerator);
+            queryGenerator.SetQueryModel(queryModel);
+
+            _queryModelGenerators[queryModel] = queryGenerator;
+        }
+
+        public void RegisterQueryGenerator(ISparqlQueryGenerator queryGenerator, SubQueryExpression expression)
+        {
+            queryGenerator.SetVariableGenerator(_variableGenerator);
+            queryGenerator.SetQueryModel(expression.QueryModel);
+
+            _expressionGenerators[expression] = queryGenerator;
+            _queryModelGenerators[expression.QueryModel] = queryGenerator;
+        }
+
+        public ISparqlQueryGenerator GetRootQueryGenerator()
+        {
+            return _rootQueryGenerator;
+        }
+
+        public ISparqlQueryGenerator GetCurrentQueryGenerator()
+        {
+            return _currentQueryGenerator;
+        }
+
+        public void SetCurrentQueryGenerator(ISparqlQueryGenerator queryGenerator)
+        {
+            _currentQueryGenerator = queryGenerator;
+        }
+
+        public bool HasQueryGenerator(QueryModel queryModel)
+        {
+            return _queryModelGenerators.ContainsKey(queryModel);
+        }
+
+        public ISparqlQueryGenerator GetQueryGenerator(QueryModel queryModel)
+        {
+            return _queryModelGenerators[queryModel];
+        }
+
+        public bool HasQueryGenerator(SubQueryExpression subQuery)
+        {
+            return _expressionGenerators.ContainsKey(subQuery);
+        }
+
+        public ISparqlQueryGenerator GetQueryGenerator(SubQueryExpression subQuery)
+        {
+            return _expressionGenerators[subQuery];
         }
 
         public void Traverse(QueryGeneratorTraversalDelegate callback)
         {
-            Traverse(_rootQuery, callback);
+            Traverse(_rootQueryGenerator, callback);
         }
 
         private void Traverse(ISparqlQueryGenerator generator, QueryGeneratorTraversalDelegate callback)
         {
-            if(_subQueries.ContainsKey(generator))
+            if (_generatorTree.ContainsKey(generator))
             {
-                foreach(ISparqlQueryGenerator subQuery in _subQueries[generator])
+                foreach (ISparqlQueryGenerator subQuery in _generatorTree[generator])
                 {
                     Traverse(subQuery, callback);
                 }
@@ -82,7 +170,7 @@ namespace Semiodesk.Trinity.Query
 
         public IEnumerable<ISparqlQueryGenerator> TryGetSubQueries(ISparqlQueryGenerator query)
         {
-            return _subQueries.ContainsKey(query) ? _subQueries[query] : null;
+            return _generatorTree.ContainsKey(query) ? _generatorTree[query] : null;
         }
 
         #endregion

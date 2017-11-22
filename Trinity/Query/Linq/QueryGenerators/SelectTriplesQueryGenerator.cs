@@ -45,12 +45,12 @@ namespace Semiodesk.Trinity.Query
 
         #region Methods
 
-        public override void Select(SelectClause selectClause, bool isRootQuery)
+        public override void Select(Expression selector, bool isRootQuery)
         {
-            base.Select(selectClause, isRootQuery);
+            base.Select(selector, isRootQuery);
 
             // In any case, we need to describe the queried object provided by the from expression.
-            QuerySourceReferenceExpression sourceExpression = selectClause.Selector.TryGetQuerySourceReference();
+            QuerySourceReferenceExpression sourceExpression = selector.TryGetQuerySourceReference();
 
             if (sourceExpression != null)
             {
@@ -60,7 +60,7 @@ namespace Semiodesk.Trinity.Query
                 SparqlVariable p = VariableGenerator.GetGlobalVariable("p");
                 SparqlVariable o = VariableGenerator.GetGlobalVariable("o");
 
-                if (selectClause.Selector is MemberExpression)
+                if (selector is MemberExpression)
                 {
                     s = VariableGenerator.GetVariable(querySource.ItemName);
 
@@ -69,7 +69,7 @@ namespace Semiodesk.Trinity.Query
 
                     // If we are selecting to return a member of an object, we select 
                     // the triples of the resource and generate the required member access triples.
-                    MemberExpression memberExpression = selectClause.Selector as MemberExpression;
+                    MemberExpression memberExpression = selector as MemberExpression;
 
                     SparqlVariable m = VariableGenerator.GetGlobalVariable(memberExpression.Member.Name);
 
@@ -89,7 +89,7 @@ namespace Semiodesk.Trinity.Query
                     // The member can be accessed via chained properties (?s ex:prop1 / ex:prop2 ?m).
                     BuildMemberAccess(memberExpression, m);
                 }
-                else if (selectClause.Selector is QuerySourceReferenceExpression)
+                else if (selector is QuerySourceReferenceExpression)
                 {
                     s = VariableGenerator.GetGlobalVariable(querySource.ItemName);
 

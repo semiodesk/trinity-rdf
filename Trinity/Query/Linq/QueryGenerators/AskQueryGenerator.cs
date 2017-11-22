@@ -46,13 +46,13 @@ namespace Semiodesk.Trinity.Query
 
         #region Methods
 
-        public override void Select(SelectClause selectClause, bool isRootQuery)
+        public override void Select(Expression selector, bool isRootQuery)
         {
-            base.Select(selectClause, isRootQuery);
+            base.Select(selector, isRootQuery);
 
-            if (selectClause.Selector is QuerySourceReferenceExpression)
+            if (selector is QuerySourceReferenceExpression)
             {
-                QuerySourceReferenceExpression sourceExpression = selectClause.Selector as QuerySourceReferenceExpression;
+                QuerySourceReferenceExpression sourceExpression = selector as QuerySourceReferenceExpression;
 
                 IQuerySource querySource = sourceExpression.ReferencedQuerySource;
 

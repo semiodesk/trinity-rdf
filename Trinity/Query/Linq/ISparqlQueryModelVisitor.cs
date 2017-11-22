@@ -31,25 +31,9 @@ namespace Semiodesk.Trinity.Query
 {
     internal interface ISparqlQueryModelVisitor : IQueryModelVisitor
     {
-        #region Members
-
-        SparqlVariableGenerator VariableGenerator { get; }
-
-        #endregion
-
         #region Methods
 
         ISparqlQuery GetQuery();
-
-        QueryModel GetCurrentQueryModel();
-
-        ISparqlQueryGenerator GetRootQueryGenerator();
-
-        ISparqlQueryGenerator GetCurrentQueryGenerator();
-
-        ISparqlQueryGenerator GetQueryGenerator(QueryModel queryModel);
-
-        bool HasQueryGenerator(QueryModel queryModel);
 
         #endregion
     }

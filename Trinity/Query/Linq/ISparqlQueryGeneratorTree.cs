@@ -25,50 +25,40 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
-using Remotion.Linq.Clauses;
+using Remotion.Linq;
 using Remotion.Linq.Clauses.Expressions;
-using System.Linq.Expressions;
-using VDS.RDF.Query;
+using System.Collections.Generic;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal class SelectBindingsQueryGenerator : SelectQueryGenerator
+    // TODO: This can be decomposed into a tree and a factory class.
+    internal interface ISparqlQueryGeneratorTree
     {
-        #region Constructors
-
-        public SelectBindingsQueryGenerator()
-        {
-        }
-
-        #endregion
-
         #region Methods
 
-        public override void Select(Expression selector, bool isRootQuery)
-        {
-            base.Select(selector, isRootQuery);
+        ISparqlQueryGenerator CreateSubQueryGenerator(SubQueryExpression expression);
 
-            if (selector is MemberExpression)
-            {
-                MemberExpression member = selector as MemberExpression;
+        void RegisterQueryGenerator(ISparqlQueryGenerator queryGenerator, QueryModel queryModel);
 
-                QuerySourceReferenceExpression querySource = member.TryGetQuerySourceReference();
+        void RegisterQueryGenerator(ISparqlQueryGenerator queryGenerator, SubQueryExpression expression);
 
-                if(querySource != null)
-                {
-                    SparqlVariable s = VariableGenerator.GetGlobalVariable(querySource.ReferencedQuerySource.ItemName);
+        ISparqlQueryGenerator GetRootQueryGenerator();
 
-                    // Select all triples having the resource as subject.
-                    SetSubjectVariable(s);
+        ISparqlQueryGenerator GetCurrentQueryGenerator();
 
-                    // Assert the triples which select the binding value.
-                    Where(member);
+        void SetCurrentQueryGenerator(ISparqlQueryGenerator queryGenerator);
 
-                    // Assert the object type, if applicable.
-                    Where(s, member.Member.GetMemberType());
-                }
-            }
-        }
+        bool HasQueryGenerator(QueryModel queryModel);
+
+        ISparqlQueryGenerator GetQueryGenerator(QueryModel queryModel);
+
+        bool HasQueryGenerator(SubQueryExpression subQuery);
+
+        ISparqlQueryGenerator GetQueryGenerator(SubQueryExpression subQuery);
+
+        void Traverse(QueryGeneratorTraversalDelegate callback);
+
+        IEnumerable<ISparqlQueryGenerator> TryGetSubQueries(ISparqlQueryGenerator query);
 
         #endregion
     }

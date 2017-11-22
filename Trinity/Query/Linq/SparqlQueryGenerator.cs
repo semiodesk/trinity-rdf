@@ -46,13 +46,11 @@ namespace Semiodesk.Trinity.Query
 
         public bool IsBound { get; private set; }
 
-        public ISparqlQueryModelVisitor ModelVisitor { get; private set; }
-
-        protected SelectClause SelectClause { get; private set; }
-
         protected ISelectBuilder SelectBuilder;
 
         protected IQueryBuilder QueryBuilder;
+
+        public QueryModel QueryModel { get; private set; }
 
         public SparqlVariable SubjectVariable { get; private set; }
 
@@ -83,13 +81,14 @@ namespace Semiodesk.Trinity.Query
 
         #region Methods
 
-        public void SetQueryModelVisitor(ISparqlQueryModelVisitor modelVisitor)
+        public void SetQueryModel(QueryModel queryModel)
         {
-            if(modelVisitor != null)
-            {
-                ModelVisitor = modelVisitor;
-                VariableGenerator = modelVisitor.VariableGenerator;
-            }
+            QueryModel = queryModel;
+        }
+
+        public void SetVariableGenerator(SparqlVariableGenerator variableGenerator)
+        {
+            VariableGenerator = variableGenerator;
         }
 
         public virtual void SetObjectOperator(ResultOperatorBase resultOperator)
@@ -129,53 +128,6 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public bool SetSubjectVariableFromExpression(MemberExpression member)
-        {
-            ThrowOnBound();
-
-            if (member.Expression is SubQueryExpression)
-            {
-                return SetSubjectVariableFromExpression(member, member.Expression as SubQueryExpression);
-            }
-            else if(member.Expression is QuerySourceReferenceExpression)
-            {
-                return SetSubjectVariableFromExpression(member, member.Expression as QuerySourceReferenceExpression);
-            }
-
-            return false;
-        }
-
-        private bool SetSubjectVariableFromExpression(MemberExpression member, SubQueryExpression subQuery)
-        {
-            ISparqlQueryGenerator subQueryGenerator = ModelVisitor.GetQueryGenerator(subQuery.QueryModel);
-
-            SparqlVariable s = subQueryGenerator.SubjectVariable;
-            SparqlVariable o = subQueryGenerator.ObjectVariable;
-
-            if(o != null)
-            {
-                // Make the subject variable of sub queries available for outer queries.
-                SelectVariable(s);
-
-                // The object of the sub query is the subject of the outer query.
-                SetSubjectVariable(o);
-
-                return true;
-            }
-
-            return false;
-        }
-
-        private bool SetSubjectVariableFromExpression(MemberExpression member, QuerySourceReferenceExpression querySource)
-        {
-            ISparqlQueryGenerator rootGenerator = ModelVisitor.GetRootQueryGenerator();
-
-            // Set the variable name of the query source reference as subject of the current query.
-            SetSubjectVariable(rootGenerator.SubjectVariable, true);
-
-            return true;
-        }
-
         public void DeselectVariable(SparqlVariable variable)
         {
             ThrowOnBound();
@@ -212,11 +164,9 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public virtual void Select(SelectClause selectClause, bool isRootQuery)
+        public virtual void Select(Expression selector, bool isRootQuery)
         {
             ThrowOnBound();
-
-            SelectClause = selectClause;
         }
 
         public void Where(Action<ITriplePatternBuilder> buildTriplePatterns)
@@ -253,9 +203,7 @@ namespace Semiodesk.Trinity.Query
 
             RdfPropertyAttribute attribute = member.Member.TryGetCustomAttribute<RdfPropertyAttribute>();
 
-            QueryModel queryModel = ModelVisitor.GetCurrentQueryModel();
-
-            if (queryModel.HasNumericResultOperator())
+            if (QueryModel.HasNumericResultOperator())
             {
                 SparqlVariable p2 = VariableGenerator.GetPredicateVariable();
                 SparqlVariable o2 = VariableGenerator.GetObjectVariable();
@@ -448,11 +396,6 @@ namespace Semiodesk.Trinity.Query
 
         private void ThrowOnBound()
         {
-            if(ModelVisitor == null)
-            {
-                throw new Exception("Parent model visitor not initialized.");
-            }
-
             if (IsBound)
             {
                 throw new Exception("Cannot modify a bound query.");
