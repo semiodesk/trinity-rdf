@@ -30,6 +30,7 @@ using Remotion.Linq.Parsing;
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using VDS.RDF.Query;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -41,14 +42,17 @@ namespace Semiodesk.Trinity.Query
 
         private ISparqlQueryGeneratorTree _queryGeneratorTree;
 
+        private SparqlVariableGenerator _variableGenerator;
+
         #endregion
 
         #region Constructors
 
-        public ExpressionTreeVisitor(ISparqlQueryModelVisitor queryModelVisitor, ISparqlQueryGeneratorTree queryGeneratorTree)
+        public ExpressionTreeVisitor(ISparqlQueryModelVisitor queryModelVisitor, ISparqlQueryGeneratorTree queryGeneratorTree, SparqlVariableGenerator variableGenerator)
         {
             _queryModelVisitor = queryModelVisitor;
             _queryGeneratorTree = queryGeneratorTree;
+            _variableGenerator = variableGenerator;
         }
 
         #endregion
@@ -68,34 +72,55 @@ namespace Semiodesk.Trinity.Query
                 {
                     if (expression.HasExpressionOfType<ConstantExpression>())
                     {
-                        ConstantExpression constant = expression.TryGetExpressionOfType<ConstantExpression>();
-
-                        if (expression.HasExpressionOfType<MemberExpression>())
-                        {
-                            MemberExpression member = expression.TryGetExpressionOfType<MemberExpression>();
-
-                            VisitBinaryMemberExpression(expression.NodeType, member, constant);
-                        }
-                        else if (expression.HasExpressionOfType<SubQueryExpression>())
-                        {
-                            SubQueryExpression subQuery = expression.TryGetExpressionOfType<SubQueryExpression>();
-
-                            VisitBinarySubQueryExpression(expression.NodeType, subQuery, constant);
-                        }
+                        VisitBinaryConstantExpression(expression);
                     }
-
                     break;
                 }
                 case ExpressionType.AndAlso:
                 {
-                    VisitExpression(expression.Left);
-                    VisitExpression(expression.Right);
-
+                    VisitBinaryAndAlsoExpression(expression);
+                    break;
+                }
+                case ExpressionType.OrElse:
+                {
+                    VisitBinaryOrElseExpression(expression);
                     break;
                 }
             }
 
             return expression;
+        }
+
+        private void VisitBinaryAndAlsoExpression(BinaryExpression expression)
+        {
+            VisitExpression(expression.Left);
+            VisitExpression(expression.Right);
+        }
+
+        private void VisitBinaryOrElseExpression(BinaryExpression expression)
+        {
+            ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
+
+            // TODO
+            throw new NotImplementedException();
+        }
+
+        private void VisitBinaryConstantExpression(BinaryExpression expression)
+        {
+            ConstantExpression constant = expression.TryGetExpressionOfType<ConstantExpression>();
+
+            if (expression.HasExpressionOfType<MemberExpression>())
+            {
+                MemberExpression member = expression.TryGetExpressionOfType<MemberExpression>();
+
+                VisitBinaryMemberExpression(expression.NodeType, member, constant);
+            }
+            else if (expression.HasExpressionOfType<SubQueryExpression>())
+            {
+                SubQueryExpression subQuery = expression.TryGetExpressionOfType<SubQueryExpression>();
+
+                VisitBinarySubQueryExpression(expression.NodeType, subQuery, constant);
+            }
         }
 
         private void VisitBinaryMemberExpression(ExpressionType type, MemberExpression member, ConstantExpression constant)
@@ -198,24 +223,30 @@ namespace Semiodesk.Trinity.Query
 
                 if (subQueryGenerator.ObjectVariable != null)
                 {
+                    SparqlVariable o = _variableGenerator.GetObjectVariable();
+
                     // Make the subject variable of sub queries available for outer queries.
                     currentQueryGenerator.SelectVariable(subQueryGenerator.SubjectVariable);
 
                     // The object of the sub query is the subject of the enclosing query.
                     currentQueryGenerator.SetSubjectVariable(subQueryGenerator.ObjectVariable);
+                    currentQueryGenerator.SetObjectVariable(o, true);
 
-                    currentQueryGenerator.Where(expression);
+                    currentQueryGenerator.Where(expression, o);
                 }
             }
             else if (expression.Expression is QuerySourceReferenceExpression)
             {
+                SparqlVariable o = _variableGenerator.GetObjectVariable();
+
                 ISparqlQueryGenerator currentQueryGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
                 ISparqlQueryGenerator rootQueryGenerator = _queryGeneratorTree.GetRootQueryGenerator();
 
                 // Set the variable name of the query source reference as subject of the current query.
                 currentQueryGenerator.SetSubjectVariable(rootQueryGenerator.SubjectVariable, true);
+                currentQueryGenerator.SetObjectVariable(o, true);
 
-                currentQueryGenerator.Where(expression);
+                currentQueryGenerator.Where(expression, o);
             }
 
             return expression;

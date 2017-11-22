@@ -64,7 +64,7 @@ namespace Semiodesk.Trinity.Query
                 SetSubjectVariable(s);
                 SetObjectVariable(o);
 
-                Where(s, querySource.ItemType);
+                WhereOfType(s, querySource.ItemType);
             }
         }
 

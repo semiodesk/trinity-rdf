@@ -83,7 +83,7 @@ namespace Semiodesk.Trinity.Query
 
                     if (t != null)
                     {
-                        Where(m, t);
+                        WhereOfType(m, t);
                     }
 
                     // The member can be accessed via chained properties (?s ex:prop1 / ex:prop2 ?m).
@@ -109,7 +109,7 @@ namespace Semiodesk.Trinity.Query
                 // Assert the subject type, if applicable.
                 if (querySource.ItemType != null)
                 {
-                    Where(s, querySource.ItemType);
+                    WhereOfType(s, querySource.ItemType);
                 }
             }
         }

@@ -81,6 +81,51 @@ namespace Semiodesk.Trinity.Query
 
         #region Methods
 
+        protected void BuildMemberAccess(MemberExpression member, INode o)
+        {
+            BuildMemberAccess(member, (s, p) =>
+            {
+                QueryBuilder.Where(t => t.Subject(s.Name).PredicateUri(p).Object(o));
+            });
+        }
+
+        protected void BuildMemberAccess(MemberExpression member, SparqlVariable o)
+        {
+            BuildMemberAccess(member, (s, p) =>
+            {
+                QueryBuilder.Where(t => t.Subject(s.Name).PredicateUri(p).Object(o.Name));
+            });
+        }
+
+        private SparqlVariable BuildMemberAccess(Expression expression, Action<SparqlVariable, Uri> buildMemberAccessTriple)
+        {
+            // Recursively generate the property path which leads to the query source.
+            if (expression is MemberExpression)
+            {
+                MemberExpression memberExpression = expression as MemberExpression;
+                MemberInfo member = memberExpression.Member;
+
+                var s = BuildMemberAccess(memberExpression.Expression, null);
+                var p = member.TryGetRdfPropertyAttribute();
+                var o = new SparqlVariable(member.Name.ToLowerInvariant());
+
+                if (buildMemberAccessTriple == null)
+                {
+                    QueryBuilder.Where(t => t.Subject(s.Name).PredicateUri(p.MappedUri).Object(o.Name));
+                }
+                else
+                {
+                    buildMemberAccessTriple(s, p.MappedUri);
+                }
+
+                return o;
+            }
+            else
+            {
+                return SubjectVariable;
+            }
+        }
+
         public void SetQueryModel(QueryModel queryModel)
         {
             QueryModel = queryModel;
@@ -169,37 +214,16 @@ namespace Semiodesk.Trinity.Query
             ThrowOnBound();
         }
 
-        public void Where(Action<ITriplePatternBuilder> buildTriplePatterns)
+        protected void Where(Action<ITriplePatternBuilder> buildTriplePatterns)
         {
             ThrowOnBound();
 
             QueryBuilder.Where(buildTriplePatterns);
         }
 
-        public void Where(SparqlVariable subject, Type type)
-        {
-            ThrowOnBound();
-
-            if (typeof(Resource).IsAssignableFrom(type))
-            {
-                // Assert the resource type, if any.
-                RdfClassAttribute t = type.TryGetCustomAttribute<RdfClassAttribute>();
-
-                if (t != null)
-                {
-                    Uri a = new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-
-                    Where(e => e.Subject(subject.Name).PredicateUri(a).Object(t.MappedUri));
-                }
-            }
-        }
-
-        public void Where(MemberExpression member)
+        public void Where(MemberExpression member, SparqlVariable variable)
         {
             SparqlVariable s = SubjectVariable;
-            SparqlVariable o = VariableGenerator.GetObjectVariable();
-
-            SetObjectVariable(o, true);
 
             RdfPropertyAttribute attribute = member.Member.TryGetCustomAttribute<RdfPropertyAttribute>();
 
@@ -211,12 +235,12 @@ namespace Semiodesk.Trinity.Query
                 Where(t => t.Subject(s.Name).Predicate(p2.Name).Object(o2.Name));
 
                 // For numeric results, allow to select non existing triple patterns as zero values.
-                Optional(g => g.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(o.Name)));
+                Optional(g => g.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(variable.Name)));
             }
             else
             {
                 // Otherwise make the pattern non-optional.
-                Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(o.Name));
+                Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(variable.Name));
             }
         }
 
@@ -324,49 +348,26 @@ namespace Semiodesk.Trinity.Query
             QueryBuilder.Filter(e => e.Variable(o.Name) <= new LiteralExpression(constant.AsSparqlExpression()));
         }
 
-        protected void BuildMemberAccess(MemberExpression member, INode o)
+        public void WhereOfType(SparqlVariable subject, Type type)
         {
-            BuildMemberAccess(member, (s, p) =>
+            ThrowOnBound();
+
+            if (typeof(Resource).IsAssignableFrom(type))
             {
-                QueryBuilder.Where(t => t.Subject(s.Name).PredicateUri(p).Object(o));
-            });            
+                // Assert the resource type, if any.
+                RdfClassAttribute t = type.TryGetCustomAttribute<RdfClassAttribute>();
+
+                if (t != null)
+                {
+                    Uri a = new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+
+                    Where(e => e.Subject(subject.Name).PredicateUri(a).Object(t.MappedUri));
+                }
+            }
         }
 
-        protected void BuildMemberAccess(MemberExpression member, SparqlVariable o)
+        public void Union(Expression left, Expression right)
         {
-            BuildMemberAccess(member, (s, p) =>
-            {
-                QueryBuilder.Where(t => t.Subject(s.Name).PredicateUri(p).Object(o.Name));
-            });
-        }
-
-        private SparqlVariable BuildMemberAccess(Expression expression, Action<SparqlVariable, Uri> buildMemberAccessTriple)
-        {
-            // Recursively generate the property path which leads to the query source.
-            if (expression is MemberExpression)
-            {
-                MemberExpression memberExpression = expression as MemberExpression;
-                MemberInfo member = memberExpression.Member;
-
-                var s = BuildMemberAccess(memberExpression.Expression, null);
-                var p = member.TryGetRdfPropertyAttribute();
-                var o = new SparqlVariable(member.Name.ToLowerInvariant());
-
-                if (buildMemberAccessTriple == null)
-                {
-                    QueryBuilder.Where(t => t.Subject(s.Name).PredicateUri(p.MappedUri).Object(o.Name));
-                }
-                else
-                {
-                    buildMemberAccessTriple(s, p.MappedUri);
-                }
-
-                return o;
-            }
-            else
-            {
-                return SubjectVariable;
-            }
         }
 
         public void OrderBy(SparqlVariable variable)
