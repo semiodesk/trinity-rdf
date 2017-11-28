@@ -123,7 +123,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
         internal FieldDefinition ImplementMappingField(PropertyDefinition property)
         {
             // Load the property mapping type.
-            TypeReference mappingType = MainModule.Import(typeof(PropertyMapping<>));
+            TypeReference mappingType = MainModule.ImportReference(typeof(PropertyMapping<>));
 
             Assert.IsNotNull(mappingType, "{0}: Failed to import type {1}.", Assembly.FullName, mappingType.FullName);
 
@@ -249,7 +249,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
             if (ctorDef == null) yield break;
 
-            MethodReference ctor = Generator.Assembly.MainModule.Import(ctorDef);
+            MethodReference ctor = Generator.Assembly.MainModule.ImportReference(ctorDef);
 
             // Thanks to: http://stackoverflow.com/questions/4968755/mono-cecil-call-generic-base-class-method-from-other-assembly
             if (mappingType.IsGenericInstance)

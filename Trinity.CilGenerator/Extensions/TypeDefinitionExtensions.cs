@@ -240,7 +240,7 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
         /// <returns>A method reference on success, <c>null</c> otherwise.</returns>
         public static MethodReference TryGetSetValueMethod(this TypeDefinition type, AssemblyDefinition assembly, params TypeReference[] genericArguments)
         {
-            TypeReference mappingType = assembly.MainModule.Import(typeof(PropertyMapping<>));
+            TypeReference mappingType = assembly.MainModule.ImportReference(typeof(PropertyMapping<>));
             GenericParameter valueType = mappingType.GenericParameters[0];
 
             if (mappingType == null) return null;
@@ -261,7 +261,7 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
         /// <returns>A method reference on success, <c>null</c> otherwise.</returns>
         public static MethodReference TryGetGetValueMethod(this TypeDefinition type, AssemblyDefinition assembly, params TypeReference[] genericArguments)
         {
-            TypeReference mappingType = assembly.MainModule.Import(typeof(PropertyMapping<>));
+            TypeReference mappingType = assembly.MainModule.ImportReference(typeof(PropertyMapping<>));
             GenericParameter valueType = mappingType.GenericParameters[0];
 
             if (mappingType == null) return null;
