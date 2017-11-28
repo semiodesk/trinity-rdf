@@ -31,6 +31,7 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using VDS.RDF.Query;
+using VDS.RDF.Query.Builder;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -101,8 +102,20 @@ namespace Semiodesk.Trinity.Query
         {
             ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
-            // TODO
-            throw new NotImplementedException();
+            generator.Union(
+                (left) =>
+                {
+                    generator.SetPatternBuilder(left);
+                    VisitExpression(expression.Left);
+                },
+                (right) =>
+                {
+                    generator.SetPatternBuilder(right);
+                    VisitExpression(expression.Right);
+                }
+            );
+
+            generator.ResetPatternBuilder();
         }
 
         private void VisitBinaryConstantExpression(BinaryExpression expression)

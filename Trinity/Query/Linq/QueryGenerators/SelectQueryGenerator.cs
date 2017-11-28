@@ -30,6 +30,7 @@ using Remotion.Linq.Clauses.ResultOperators;
 using System;
 using VDS.RDF.Query;
 using VDS.RDF.Query.Aggregates.Sparql;
+using VDS.RDF.Query.Builder;
 using VDS.RDF.Query.Expressions.Primary;
 
 namespace Semiodesk.Trinity.Query
@@ -109,7 +110,7 @@ namespace Semiodesk.Trinity.Query
                     Uri p = new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
                     Uri o = type.MappedUri;
 
-                    Where(e => e.Subject(s.Name).PredicateUri(p).Object(o));
+                    PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(p).Object(o));
                 }
                 else if (resultOperator is SkipResultOperator)
                 {
