@@ -465,6 +465,10 @@ namespace Semiodesk.Trinity.Test.Linq
             var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" || person.FirstName == "Bob" select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
+
+            //persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" || person.FirstName == "Bob" || person.FirstName == "Eve" select person;
+
+            //Assert.AreEqual(3, persons.ToList().Count);
         }
 
         [Test]

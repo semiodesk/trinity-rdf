@@ -30,6 +30,7 @@ using Remotion.Linq.Clauses.Expressions;
 using System;
 using System.Linq.Expressions;
 using VDS.RDF.Query;
+using VDS.RDF.Query.Builder;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -77,13 +78,13 @@ namespace Semiodesk.Trinity.Query
                     SelectVariable(p);
                     SelectVariable(o);
 
-                    Where(e => e.Subject(m.Name).Predicate(p.Name).Object(o.Name));
+                    PatternBuilder.Where(t => t.Subject(m.Name).Predicate(p.Name).Object(o.Name));
 
-                    Type t = memberExpression.Member.GetMemberType();
+                    Type type = memberExpression.Member.GetMemberType();
 
-                    if (t != null)
+                    if (type != null)
                     {
-                        WhereOfType(m, t);
+                        WhereOfType(m, type);
                     }
 
                     // The member can be accessed via chained properties (?s ex:prop1 / ex:prop2 ?m).
@@ -103,7 +104,7 @@ namespace Semiodesk.Trinity.Query
                     SelectVariable(p);
                     SelectVariable(o);
 
-                    Where(e => e.Subject(s.Name).Predicate(p.Name).Object(o.Name));
+                    PatternBuilder.Where(t => t.Subject(s.Name).Predicate(p.Name).Object(o.Name));
                 }
 
                 // Assert the subject type, if applicable.
