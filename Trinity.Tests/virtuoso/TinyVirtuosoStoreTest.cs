@@ -31,20 +31,24 @@ using NUnit.Framework;
 using Semiodesk.Trinity;
 using System.Linq;
 using System.Reflection;
+using Semiodesk.Trinity.Test;
 
-namespace dotNetRDFStore.Test
+namespace Semiodesk.Trinity.Test
 {
 
 
     [TestFixture]
-    class StoreTest
+    class TinyVirtuosoStoreTest
     {
         IStore Store;
 
         [SetUp]
         public void SetUp()
         {
-            Store = StoreFactory.CreateStore("provider=dotnetrdf");
+            string connectionString = SetupClass.ConnectionString;
+
+            Store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+            Store.LoadOntologySettings();
         }
 
         [TearDown]
@@ -54,26 +58,15 @@ namespace dotNetRDFStore.Test
             Store = null;
         }
 
-        [Test]
-        public void LoadOntologiesTest()
-        {
-            Uri testModel = new Uri("ex:Test");
 
-            Store.LoadOntologySettings();
-
-            Assert.AreEqual(6, Store.ListModels().Count());
-        }
 
         [Test]
         public void LoadOntologiesFromFileTest()
         {
-            Uri testModel = new Uri("ex:Test");
-            DirectoryInfo asm = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory;
-            string configFile = Path.Combine(asm.FullName, "custom.config");
-            Store.LoadOntologySettings(configFile);
+            var model = Store.GetModel(new Uri("http://purl.org/dc/elements/1.1/"));
 
-            Assert.AreEqual(4, Store.ListModels().Count());
-
+            var res = model.GetResources(new SparqlQuery("SELECT ?s ?p ?o where { ?s ?p ?o. }"));
+            var x = res.ToList();
 
         }
 
