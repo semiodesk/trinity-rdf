@@ -82,6 +82,7 @@
     <Compile Include="Collections\ResourceQueryItemsProvider.cs" />
     <Compile Include="Collections\VirtualizingResourceCollection.cs" />
     <Compile Include="Collections\VirtualizingCollection.cs" />
+    <Compile Include="Configuration\Configuration.cs" />
     <Compile Include="Configuration\FileSource.cs" />
     <Compile Include="Configuration\Graph.cs" />
     <Compile Include="Configuration\GraphCollection.cs" />
@@ -90,9 +91,10 @@
     <Compile Include="Configuration\RuleSet.cs" />
     <Compile Include="Configuration\RuleSetCollection.cs" />
     <Compile Include="Configuration\TrinitySettings.cs" />
-    <Compile Include="Configuration\VirtuosoStoreSettings.cs" />
     <Compile Include="Exceptions.cs" />
+    <Compile Include="Exceptions\StoreProviderMissingException.cs" />
     <Compile Include="IPropertyMapping.cs" />
+    <Compile Include="Model\IModelEqualityComparer.cs" />
     <Compile Include="Query\IResourceQueryResult.cs" />
     <Compile Include="ITransactional.cs" />
     <Compile Include="Model\IModelGroup.cs" />
@@ -106,7 +108,6 @@
     <Compile Include="MappingDiscovery.cs" />
     <Compile Include="Model\Model.cs" />
     <Compile Include="Model\ModelChangedEventArgs.cs" />
-    <Compile Include="Model\ModelManager.cs" />
     <Compile Include="NamespaceManager.cs" />
     <Compile Include="Ontology.cs" />
     <Compile Include="OntologyDiscovery.cs" />
@@ -139,15 +140,10 @@
     <Compile Include="Stores\SparqlEndpoint\SparqlEndpointStoreProvider.cs" />
     <Compile Include="Stores\SparqlEndpoint\SparqlEndpointQueryResult.cs" />
     <Compile Include="Stores\SparqlEndpoint\SparqlEndpointStorage.cs" />
-    <Compile Include="Stores\Virtuoso\VirtuosoSpecific.cs" />
-    <Compile Include="Stores\Virtuoso\VirtuosoStoreProvider.cs" />
-    <Compile Include="Stores\Virtuoso\VirtuosoTransaction.cs" />
     <Compile Include="Resource.cs" />
     <Compile Include="ResourceCache.cs" />
     <Compile Include="Query\SparqlQuery.cs" />
-    <Compile Include="Stores\Virtuoso\VirtuosoSparqlQueryResult.cs" />
     <Compile Include="Query\SparqlSerializer.cs" />
-    <Compile Include="Stores\Virtuoso\VirtuosoStore.cs" />
     <Compile Include="Query\SparqlUpdate.cs" />
     <Compile Include="UriRef.cs" />
     <Compile Include="XsdTypeMapper.cs" />

@@ -141,6 +141,7 @@
     <None Include="Models\test-tmo.trig">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="ontologies.config" />
     <None Include="Ontologies\dces.ttl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -175,6 +176,10 @@
     <None Include="TinyVirtuoso\virtuoso\doc\README" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Trinity.Virtuoso\Trinity.Virtuoso.csproj">
+      <Project>{5e69f2ce-5f36-4e8b-8269-f10733608fe8}</Project>
+      <Name>Trinity.Virtuoso</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Trinity\Trinity.csproj">
       <Project>{0D10D2AD-CA61-46E3-88C8-0AB8318647BA}</Project>
       <Name>Trinity</Name>

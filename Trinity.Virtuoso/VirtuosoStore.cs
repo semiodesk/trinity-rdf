@@ -582,11 +582,12 @@ namespace Semiodesk.Trinity.Store
                 result.Add(GetModel(model));
             }
 
-            return new ModelGroup(this, result);
+            return ModelGroupFactory.CreateModelGroup(this, result);
         }
 
         public void LoadOntologySettings(string configPath = null, string sourceDir = "")
         {
+            /*
             Trinity.Configuration.TrinitySettings settings;
 
             if (!string.IsNullOrEmpty(configPath) && File.Exists(configPath))
@@ -628,12 +629,13 @@ namespace Semiodesk.Trinity.Store
             StoreUpdater updater = new StoreUpdater(this, srcDir);
             updater.UpdateOntologies(settings.Ontologies);
 
-            if (settings.VirtuosoStoreSettings != null)
+            var virtuosoSettings = (VirtuosoStoreSettings)settings.GetSettings("VirtuosoStoreSettings");
+            if (virtuosoSettings != null)
             {
-                IStorageSpecific spec = new VirtuosoSettings(settings.VirtuosoStoreSettings);
+                IStorageSpecific spec = new VirtuosoSettings(virtuosoSettings);
                 updater.UpdateStorageSpecifics(spec);
             }
-            
+            */
         }
 
         #endregion

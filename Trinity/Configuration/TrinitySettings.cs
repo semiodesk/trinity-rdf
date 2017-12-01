@@ -65,20 +65,26 @@ namespace Semiodesk.Trinity.Configuration
             get { return (OntologyCollection)base["OntologySettings"]; }
         }
 
-        /// <summary>
-        /// Virtuoso specific settings
-        /// </summary>
-        [ConfigurationProperty("VirtuosoStoreSettings")]
-        public VirtuosoStoreSettings VirtuosoStoreSettings
+
+        public object GetSettings(string name)
         {
-            get
-            {
-                return (VirtuosoStoreSettings)this["VirtuosoStoreSettings"];
-            }
-            set
-            {
-                this["VirtuosoStoreSettings"] = value;
-            }
+            return this[name];
         }
+
+        ///// <summary>
+        ///// Virtuoso specific settings
+        ///// </summary>
+        //[ConfigurationProperty("VirtuosoStoreSettings")]
+        //public VirtuosoStoreSettings VirtuosoStoreSettings
+        //{
+        //    get
+        //    {
+        //        return (VirtuosoStoreSettings)this["VirtuosoStoreSettings"];
+        //    }
+        //    set
+        //    {
+        //        this["VirtuosoStoreSettings"] = value;
+        //    }
+        //}
     }
 }

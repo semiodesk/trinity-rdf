@@ -35,7 +35,7 @@ using Semiodesk.Trinity.Configuration;
 
 namespace Semiodesk.Trinity
 {
-    internal class StoreUpdater
+    public class StoreUpdater
     {
         #region Fields
         private DirectoryInfo _sourceDirectory;
@@ -63,15 +63,15 @@ namespace Semiodesk.Trinity
             }
         }
 
-        public void UpdateOntologies(IEnumerable<Semiodesk.Trinity.Configuration.Ontology> ontologies)
+        public void UpdateOntologies(IEnumerable<OntologyConfiguration> ontologies)
         {
-            foreach (Semiodesk.Trinity.Configuration.Ontology onto in ontologies)
+            foreach (OntologyConfiguration onto in ontologies)
             {
                 Uri path = GetPathFromSource(onto.FileSource);
 
                 RdfSerializationFormat format = GetSerializationFormatFromUri(path);
 
-                _store.Read(onto.Uri, path, format, false);
+                _store.Read(new Uri(onto.Uri), path, format, false);
             }
         }
 
