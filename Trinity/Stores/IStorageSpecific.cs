@@ -32,7 +32,7 @@ using System.Text;
 
 namespace Semiodesk.Trinity
 {
-    interface IStorageSpecific
+    public interface IStorageSpecific
     {
         void Update(IStore store);
     }

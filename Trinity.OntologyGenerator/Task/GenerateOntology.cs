@@ -62,7 +62,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 foreach (string file in allFiles)
                 {
                     string filename = file.ToLower();
-                    if( filename.EndsWith("app.config") || filename.EndsWith("web.config" ))
+                    if( filename.EndsWith("ontologies.config"))
                     {
                         configFile = new FileInfo(file);
                     }       

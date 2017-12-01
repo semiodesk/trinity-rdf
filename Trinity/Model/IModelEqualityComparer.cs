@@ -23,7 +23,8 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2017
+
 
 using System;
 using System.Collections.Generic;
@@ -32,16 +33,35 @@ using System.Text;
 
 namespace Semiodesk.Trinity
 {
-    public class ResourceLockedException : Exception
+    /// <summary>
+    /// Compares two models by their uris
+    /// </summary>
+    class IModelEqualityComparer : IEqualityComparer<IModel>
     {
-        #region Constructor
+        #region IEqualityComparer<IModel> Members
 
-        public ResourceLockedException(Exception inner)
-            : base(string.Format("ResourceLockedException: One or more resources you tried to access was locked. Either try using transactions or try to repeat the action after reloading your resources."), inner)
+        /// <summary>
+        /// Equals
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
+        public bool Equals(IModel x, IModel y)
         {
+            return x.Uri.Equals(y.Uri);
+        }
 
+        /// <summary>
+        /// HashCode
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public int GetHashCode(IModel obj)
+        {
+            return obj.Uri.AbsoluteUri.GetHashCode();
         }
 
         #endregion
     }
+
 }

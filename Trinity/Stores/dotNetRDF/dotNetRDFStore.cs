@@ -341,6 +341,7 @@ namespace Semiodesk.Trinity.Store
 
         public void LoadOntologySettings(string configPath = null, string sourceDir = "")
         {
+            /*
             Trinity.Configuration.TrinitySettings settings;
             if (!string.IsNullOrEmpty(configPath) && File.Exists(configPath))
             {
@@ -375,6 +376,7 @@ namespace Semiodesk.Trinity.Store
             }
             StoreUpdater updater = new StoreUpdater(this, srcDir);
             updater.UpdateOntologies(settings.Ontologies);
+             * */
         }
         #endregion
         #endregion

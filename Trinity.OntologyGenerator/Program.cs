@@ -46,8 +46,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
         string _generatePath = null;
         int _verbosity = 0;
         private string _configPath = null;
-        System.Configuration.Configuration _configuration = null;
-        TrinitySettings _config = null;
+        Config _config = null;
         private DirectoryInfo _sourceDir;
         ILogger Logger { get; set; }
         #endregion
@@ -128,21 +127,16 @@ namespace Semiodesk.Trinity.OntologyGenerator
             FileInfo configFile = new FileInfo(configPath);
             if (configFile.Exists)
             {
-                ExeConfigurationFileMap configMap = new ExeConfigurationFileMap();
+                XmlSerializer serializer = new XmlSerializer(typeof(OntologyConfiguration));
 
-                configMap.ExeConfigFilename = configFile.FullName;
+                using (var stream = configFile.OpenRead())
+                {
+                    Config result = (Config)serializer.Deserialize(stream);
+                    _config = result;
+                }
 
-                _configuration = ConfigurationManager.OpenMappedExeConfiguration(configMap, ConfigurationUserLevel.None);
-                AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
-                try
-                {
-                    _config = (TrinitySettings)_configuration.GetSection("TrinitySettings");
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError("Could not read config file from {0}. Reason: {1}", configPath, e.Message);
-                }
-                AppDomain.CurrentDomain.AssemblyResolve -= CurrentDomain_AssemblyResolve;
+               
+                
 
             }
             else
@@ -209,25 +203,25 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 try
                 {
                     
-                    OntologyGenerator generator = new OntologyGenerator(_config.Namespace);
+                    OntologyGenerator generator = new OntologyGenerator(_config.Ontologies.Namespace);
                     generator.Logger = Logger;
                     if (_config.Ontologies != null)
                     {
-                        foreach (var ontology in _config.Ontologies)
+                        foreach (var ontology in _config.Ontologies.Ontology)
                         {
                             UriRef t = GetPathFromSource(ontology.FileSource);
-                            if (!generator.ImportOntology(ontology.Uri, t))
+                            if (!generator.ImportOntology(new Uri(ontology.Uri), t))
                             {
                                 FileInfo ontologyFile = new FileInfo(t.LocalPath);
-                                var info = ontology.ElementInformation;
-                                Logger.LogWarning(string.Format("Could not read ontology <{0}> from path {1}.", ontology.Uri, ontologyFile.FullName), info);
+                       
+                                Logger.LogWarning(string.Format("Could not read ontology <{0}> from path {1}.", ontology.Uri, ontologyFile.FullName));
                             }
 
 
 
-                            if (!generator.AddOntology(ontology.Uri, ontology.MetadataUri, ontology.Prefix))
+                            if (!generator.AddOntology(new Uri(ontology.Uri), new Uri(ontology.Meta), ontology.Prefix))
                             {
-                                Logger.LogMessage("Ontology with uri <{0}> or uri <{1}> could not be found in store.", ontology.Uri, ontology.MetadataUri);
+                                Logger.LogMessage("Ontology with uri <{0}> or uri <{1}> could not be found in store.", ontology.Uri, ontology.Meta);
                             }
 
                         }

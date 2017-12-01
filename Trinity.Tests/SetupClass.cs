@@ -6,6 +6,7 @@ using System.Text;
 using Semiodesk.TinyVirtuoso;
 using System.Reflection;
 using System.IO;
+using Semiodesk.Trinity.Store;
 
 namespace Semiodesk.Trinity.Test
 {
@@ -21,6 +22,7 @@ namespace Semiodesk.Trinity.Test
         [OneTimeSetUp]
         public void Setup()
         {
+            StoreFactory.LoadProvider(Assembly.GetAssembly(typeof(VirtuosoStoreProvider)));
             OntologyDiscovery.AddAssembly(Assembly.GetExecutingAssembly());
             MappingDiscovery.RegisterAssembly(Assembly.GetExecutingAssembly());
 

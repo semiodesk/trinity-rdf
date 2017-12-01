@@ -37,7 +37,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Semiodesk")]
 [assembly: AssemblyProduct("Semiodesk.Trinity")]
-[assembly: AssemblyCopyright("Copyright © Semiodesk 2015")]
+[assembly: AssemblyCopyright("Copyright © Semiodesk GmbH 2017")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
