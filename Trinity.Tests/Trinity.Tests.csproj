@@ -111,6 +111,7 @@
     <Compile Include="StoreProviderTest.cs" />
     <Compile Include="TransactionTest.cs" />
     <Compile Include="UriRefTest.cs" />
+    <Compile Include="virtuoso\TinyVirtuosoStoreTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="custom.config">
@@ -140,7 +141,15 @@
     <None Include="Models\test-tmo.trig">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Ontologies\foaf.rdf" />
+    <None Include="Ontologies\dces.ttl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Ontologies\space test ontology.rdf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Ontologies\foaf.rdf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Ontologies\nco.trig">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
