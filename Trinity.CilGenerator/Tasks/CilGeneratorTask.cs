@@ -26,7 +26,6 @@
 // Copyright (c) Semiodesk GmbH 2015
 
 using System.IO;
-using System.ComponentModel;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Semiodesk.Trinity.CilGenerator.Loggers;
@@ -40,8 +39,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
         [Required]
         public string TargetFile { get; set; }
 
-        private bool _writeSymbols = false;
-        public bool WriteSymbols { get { return _writeSymbols; } set { _writeSymbols = value; } }
+        public bool WriteSymbols { get; set; }
 
         #endregion
 

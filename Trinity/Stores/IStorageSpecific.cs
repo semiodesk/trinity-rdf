@@ -27,12 +27,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 
 namespace Semiodesk.Trinity
 {
-    interface IStorageSpecific
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public interface IStorageSpecific
     {
         void Update(IStore store);
     }

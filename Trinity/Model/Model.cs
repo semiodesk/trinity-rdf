@@ -314,7 +314,7 @@ namespace Semiodesk.Trinity
             }
             else
             {
-                updateString = string.Format(@"WITH {0} DELETE {{ {1} ?p ?o. }} INSERT {{ {2} }} WHERE {{ {1} ?p ?o. }} ",
+                updateString = string.Format(@"WITH {0} DELETE {{ {1} ?p ?o. }} INSERT {{ {2} }} WHERE {{ OPTIONAL {{ {1} ?p ?o. }} }}",
                     SparqlSerializer.SerializeUri(Uri),
                     SparqlSerializer.SerializeUri(resource.Uri),
                     SparqlSerializer.SerializeResource(resource));
@@ -403,7 +403,7 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(Uri uri, ITransaction transaction = null)
         {
-            ISparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o FROM @model WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
+            ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?s ?p ?o FROM @model WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
             query.Bind("@model", this.Uri);
             query.Bind("@subject", uri);
 
@@ -411,21 +411,29 @@ namespace Semiodesk.Trinity
 
             IEnumerable<Resource> resources = result.GetResources();
 
-            if (resources.Any())
+            foreach (Resource r in resources)
             {
-                Resource r = resources.First();
                 r.IsNew = false;
                 r.IsSynchronized = true;
                 r.SetModel(this);
 
                 return r;
             }
-            else
-            {
-                string msg = "Error: Could not find resource {0}.";
 
-                throw new ArgumentException(string.Format(msg, uri));
-            }
+            string msg = "Error: Could not find resource <{0}>.";
+
+            throw new ArgumentException(string.Format(msg, uri));
+        }
+
+        /// <summary>
+        /// Retrieves a resource from the model.
+        /// </summary>
+        /// <param name="resource">The instance of IResource to be retrieved.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <returns>A resource with all asserted properties.</returns>
+        public IResource GetResource(IResource resource, ITransaction transaction = null)
+        {
+            return GetResource(resource.Uri, transaction);
         }
 
         /// <summary>
@@ -436,7 +444,7 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
-            ISparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o FROM @model WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
+            ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?s ?p ?o FROM @model WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
             query.Bind("@model", this.Uri);
             query.Bind("@subject", uri);
 
@@ -444,21 +452,29 @@ namespace Semiodesk.Trinity
 
             IEnumerable<T> resources = result.GetResources<T>();
 
-            if (resources.Any())
+            foreach (T r in resources)
             {
-                T r = resources.First();
                 r.IsNew = false;
                 r.IsSynchronized = true;
                 r.SetModel(this);
 
                 return r;
             }
-            else
-            {
-                string msg = "Error: Could not find resource <{0}>.";
 
-                throw new ArgumentException(string.Format(msg, uri));
-            }
+            string msg = "Error: Could not find resource <{0}>.";
+
+            throw new ArgumentException(string.Format(msg, uri));
+        }
+
+        /// <summary>
+        /// Retrieves a resource from the model. Provides a resource object of the given type.
+        /// </summary>
+        /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <param name="transaction">ransaction associated with this action.</param>
+        /// <returns>A resource with all asserted properties.</returns>
+        public T GetResource<T>(IResource resource, ITransaction transaction = null) where T : Resource
+        {
+            return GetResource<T>(resource.Uri, transaction);
         }
 
         /// <summary>

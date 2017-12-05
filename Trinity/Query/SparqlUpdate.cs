@@ -76,6 +76,8 @@ namespace Semiodesk.Trinity
         /// <param name="namespaceManager">The optional namespace manager used to declare Sparql PREFIXes.</param>
         public SparqlUpdate(string updateString)
         {
+            _updateString = updateString;
+
             using (TextReader reader = new StringReader(updateString))
             {
                 // Parse the query for namespace prefixes and optionally remove any formatting characters.

@@ -34,9 +34,7 @@ using Mono.Cecil.Pdb;
 using Mono.Cecil.Mdb;
 using Semiodesk.Trinity.CilGenerator.Extensions;
 using Semiodesk.Trinity.CilGenerator.Tasks;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.Reflection;
 using System.IO;
 
 namespace Semiodesk.Trinity.CilGenerator
@@ -89,8 +87,6 @@ namespace Semiodesk.Trinity.CilGenerator
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            ISymbolReader symbolReader = null;
-
             try
             {
                 var resolver = new DefaultAssemblyResolver();
@@ -113,11 +109,11 @@ namespace Semiodesk.Trinity.CilGenerator
                     //  - PropertyAttribute with PropertyChangedAttribute
                     //  - PropertyAttribute without PropertyChangedAttribute
                     //  - PropertyChangedAttribute only
-                    HashSet<PropertyDefinition> mapping = type.GetPropertiesWithAttribute<Semiodesk.Trinity.RdfPropertyAttribute>().ToHashSet();
-                    HashSet<PropertyDefinition> notifying = type.GetPropertiesWithAttribute<Semiodesk.Trinity.NotifyPropertyChangedAttribute>().ToHashSet();
+                    HashSet<PropertyDefinition> mapping = type.GetPropertiesWithAttribute<RdfPropertyAttribute>().ToHashSet();
+                    HashSet<PropertyDefinition> notifying = type.GetPropertiesWithAttribute<NotifyPropertyChangedAttribute>().ToHashSet();
 
                     // Implement the GetTypes()-method for the given type.
-                    if (mapping.Count > 0 || type.TryGetCustomAttribute<Semiodesk.Trinity.RdfClassAttribute>().Any())
+                    if (mapping.Any() || type.TryGetCustomAttribute<RdfClassAttribute>().Any())
                     {
                         ImplementRdfClassTask implementClass = new ImplementRdfClassTask(this, type);
 
@@ -126,21 +122,27 @@ namespace Semiodesk.Trinity.CilGenerator
                     }
 
                     // Properties which do not raise the PropertyChanged-event can be implemented using minimal IL code.
-                    var implementProperty = new ImplementRdfPropertyTask(this, type);
-
-                    foreach (PropertyDefinition p in mapping.Except(notifying).Where(implementProperty.CanExecute))
+                    if (mapping.Any())
                     {
-                        assemblyModified = implementProperty.Execute(p);
+                        var implementProperty = new ImplementRdfPropertyTask(this, type);
+
+                        foreach (PropertyDefinition p in mapping.Except(notifying).Where(implementProperty.CanExecute))
+                        {
+                            assemblyModified = implementProperty.Execute(p);
+                        }
                     }
 
                     // Properties which raise the PropertyChanged-event may also have the RdfProperty attribute.
-                    var implementPropertyChanged = new ImplementNotifyPropertyChangedTask(this, type);
-
-                    foreach (PropertyDefinition p in notifying.Where(implementPropertyChanged.CanExecute))
+                    if (notifying.Any())
                     {
-                        implementPropertyChanged.IsMappedProperty = mapping.Contains(p);
+                        var implementPropertyChanged = new ImplementNotifyPropertyChangedTask(this, type);
 
-                        assemblyModified = implementPropertyChanged.Execute(p);
+                        foreach (PropertyDefinition p in notifying.Where(implementPropertyChanged.CanExecute))
+                        {
+                            implementPropertyChanged.IsMappedProperty = mapping.Contains(p);
+
+                            assemblyModified = implementPropertyChanged.Execute(p);
+                        }
                     }
                 }
 
@@ -148,32 +150,25 @@ namespace Semiodesk.Trinity.CilGenerator
                 {
                     if(WriteSymbols)
                     {
-                        // Read the debug symbols from the assembly.
+                        // Use the correct debug symbol reader and writer on Mono and .NET
                         if (Type.GetType("Mono.Runtime") != null)
                         {
-                            symbolReader = new MdbReaderProvider().GetSymbolReader(Assembly.MainModule, sourceFile);
+                            using (ISymbolReader symbolReader = new MdbReaderProvider().GetSymbolReader(Assembly.MainModule, sourceFile))
+                            {
+                                ISymbolWriterProvider symbolWriter = new MdbWriterProvider();
+
+                                WriteSymbolsToAssembly(targetFile, symbolReader, symbolWriter);
+                            }
                         }
                         else
                         {
-                            symbolReader = new PdbReaderProvider().GetSymbolReader(Assembly.MainModule, sourceFile);
+                            using (ISymbolReader symbolReader = new PdbReaderProvider().GetSymbolReader(Assembly.MainModule, sourceFile))
+                            {
+                                ISymbolWriterProvider symbolWriter = new PdbWriterProvider();
+
+                                WriteSymbolsToAssembly(targetFile, symbolReader, symbolWriter);
+                            }
                         }
-
-                        Assembly.MainModule.ReadSymbols(symbolReader);
-
-                        ISymbolWriterProvider symbolWriter;
-
-                        // Use the correct debug symbol writer on Mono and .NET.
-                        if (Type.GetType("Mono.Runtime") != null)
-                        {
-                            symbolWriter = new MdbWriterProvider();
-                        }
-                        else
-                        {
-                            symbolWriter = new PdbWriterProvider();
-                        }
-
-                        // NOTE: "WriteSymbols = true" generates the .pdb symbols required for debugging.
-                        Assembly.Write(targetFile, new WriterParameters { WriteSymbols = true, SymbolWriterProvider = symbolWriter });
                     }
                     else
                     {
@@ -186,11 +181,8 @@ namespace Semiodesk.Trinity.CilGenerator
             catch (Exception ex)
             {
                 Log.LogError(ex.ToString());
+
                 result = false;
-            }
-            finally
-            {
-                if (symbolReader != null) symbolReader.Dispose();
             }
 
             stopwatch.Stop();
@@ -200,10 +192,17 @@ namespace Semiodesk.Trinity.CilGenerator
             return result;
         }
 
-
         string GetAssemblyDirectoryFromType(Type type)
         {
             return new FileInfo(System.Reflection.Assembly.GetAssembly(type).Location).DirectoryName;
+        }
+
+        void WriteSymbolsToAssembly(string targetFile, ISymbolReader symbolReader, ISymbolWriterProvider symbolWriter)
+        {
+            Assembly.MainModule.ReadSymbols(symbolReader);
+
+            // NOTE: "WriteSymbols = true" generates the .pdb symbols required for debugging.
+            Assembly.Write(targetFile, new WriterParameters { WriteSymbols = true, SymbolWriterProvider = symbolWriter });
         }
 
         #endregion

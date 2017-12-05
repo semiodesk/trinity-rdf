@@ -14,6 +14,7 @@
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
+    <NuGetPackageImportStamp>63ca0a14</NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -84,14 +85,14 @@
   <ItemGroup>
     <Compile Include="Cilg\CilgResourceMappingTest.cs" />
     <Compile Include="Cilg\MappingClasses.cs" />
-    <Compile Include="dotnetrdf\ModelTest.cs" />
+    <Compile Include="DotNetRdf\ModelTest.cs" />
     <Compile Include="dotnetrdf_ResourceQueryTest.cs" />
     <Compile Include="dotnetrdf_SparqlQueryTest.cs" />
     <Compile Include="ModelGroupTest.cs" />
-    <Compile Include="dotnetrdf\ResourceMappingTest.cs" />
-    <Compile Include="dotnetrdf\ResourceTest.cs" />
-    <Compile Include="dotnetrdf\StoreHandleTest.cs" />
-    <Compile Include="dotnetrdf\StoreTest.cs" />
+    <Compile Include="DotNetRdf\ResourceMappingTest.cs" />
+    <Compile Include="DotNetRdf\ResourceTest.cs" />
+    <Compile Include="DotNetRdf\StoreHandleTest.cs" />
+    <Compile Include="DotNetRdf\StoreTest.cs" />
     <Compile Include="Ontologies.cs" />
     <Compile Include="SetupClass.cs" />
     <Compile Include="SparqlEndpointTest.cs" />
@@ -107,6 +108,11 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ResourceTest.cs" />
     <Compile Include="SparqlQueryTest.cs" />
+    <Compile Include="Stardog\ModelTest.cs" />
+    <Compile Include="Stardog\ResourceMappingTest.cs" />
+    <Compile Include="Stardog\ResourceTest.cs" />
+    <Compile Include="Stardog\StoreHandleTest.cs" />
+    <Compile Include="Stardog\StoreTest.cs" />
     <Compile Include="StoreFactoryTest.cs" />
     <Compile Include="StoreProviderTest.cs" />
     <Compile Include="TransactionTest.cs" />
@@ -206,6 +212,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <PropertyGroup>

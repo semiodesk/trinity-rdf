@@ -39,11 +39,11 @@ using Semiodesk.Trinity.Utility;
 
 namespace Semiodesk.Trinity.Store
 {
-    interface ITripleProvider
+    public interface ITripleProvider
     {
         bool HasNext { get; }
         void SetNext();
-        Uri S { get; }
+        INode S { get; }
         Uri P { get; }
         INode O { get; }
         int Count { get; }
@@ -52,7 +52,7 @@ namespace Semiodesk.Trinity.Store
 
     }
 
-    class GraphTripleProvider : ITripleProvider
+    public class GraphTripleProvider : ITripleProvider
     {
         IGraph _graph;
         int counter;
@@ -83,9 +83,9 @@ namespace Semiodesk.Trinity.Store
             counter += 1;
         }
 
-        public Uri S
+        public INode S
         {
-            get { return (_graph.Triples.ElementAt(counter).Subject as UriNode).Uri; }
+            get { return _graph.Triples.ElementAt(counter).Subject; }
         }
 
         public Uri P
@@ -99,7 +99,7 @@ namespace Semiodesk.Trinity.Store
         }
     }
 
-    class SparqlResultSetTripleProvider : ITripleProvider
+    public class SparqlResultSetTripleProvider : ITripleProvider
     {
         SparqlResultSet _set;
         string _subjectVar;
@@ -138,9 +138,9 @@ namespace Semiodesk.Trinity.Store
             counter += 1;
         }
 
-        public Uri S
+        public INode S
         {
-            get { return (_set[counter][_subjectVar] as UriNode).Uri; }
+            get { return _set[counter][_subjectVar]; }
         }
 
         public Uri P
@@ -272,8 +272,8 @@ namespace Semiodesk.Trinity.Store
 
                 while (_tripleProvider.HasNext)
                 {
-                    Uri s, predUri;
-                    INode o;
+                    Uri predUri;
+                    INode s, o;
                     Property p;
 
 
@@ -284,49 +284,66 @@ namespace Semiodesk.Trinity.Store
 
                     p = OntologyDiscovery.GetProperty(predUri);
 
-                    if (currentResource != null && currentResource.Uri.OriginalString == s.OriginalString)
-                    {
-                        // We already have the handle to the resource which the property should be added to.
-                    }
-                    else if (cache.ContainsKey(s.OriginalString))
-                    {
-                        currentResource = cache[s.OriginalString] as T;
 
-                        // In this case we may have encountered a resource which was 
-                        // added to the cache by the object value handler below.
-                        if (!result.Contains(currentResource))
+                    if (s is IUriNode)
+                    {
+                        Uri sUri = (s as IUriNode).Uri;
+
+                        if (currentResource != null && currentResource.Uri.OriginalString == sUri.OriginalString)
                         {
-                            result.Add(currentResource);
+                            // We already have the handle to the resource which the property should be added to.
                         }
+                        else if (cache.ContainsKey(sUri.OriginalString))
+                        {
+                            currentResource = cache[sUri.OriginalString] as T;
+
+                            // In this case we may have encountered a resource which was 
+                            // added to the cache by the object value handler below.
+                            if (!result.Contains(currentResource))
+                            {
+                                result.Add(currentResource);
+                            }
+                        }
+                        else
+                        {
+                            try
+                            {
+                                currentResource = (T)Activator.CreateInstance(typeof(T), sUri);
+                                currentResource.IsNew = false;
+                                currentResource.IsSynchronized = true;
+                                currentResource.Model = _model;
+
+                                cache.Add(sUri.OriginalString, currentResource);
+                                result.Add(currentResource);
+                            }
+                            catch
+                            {
+#if DEBUG
+                                Debug.WriteLine("[SparqlQueryResult] Info: Could not create resource " +
+                                                sUri.OriginalString);
+#endif
+
+                                continue;
+                            }
+                        }
+                    }
+                    else if(s is BlankNode)
+                    {
+                        //TODO
                     }
                     else
                     {
-                        try
-                        {
-                            currentResource = (T)Activator.CreateInstance(typeof(T), s);
-                            currentResource.IsNew = false;
-                            currentResource.IsSynchronized = true;
-                            currentResource.Model = _model;
-
-                            cache.Add(s.OriginalString, currentResource);
-                            result.Add(currentResource);
-                        }
-                        catch
-                        {
-#if DEBUG
-                            Debug.WriteLine("[SparqlQueryResult] Info: Could not create resource " +
-                                            s.OriginalString);
-#endif
-
-                            continue;
-                        }
                     }
 
                     if (o is IUriNode)
                     {
                         Uri uri = (o as IUriNode).Uri;
 
-                        if (cache.ContainsKey(uri.OriginalString))
+                        if (currentResource.HasPropertyMapping(p, uri.GetType()))
+                        {
+                            currentResource.AddPropertyToMapping(p, uri, false);
+                        }
+                        else if (cache.ContainsKey(uri.OriginalString))
                         {
                             currentResource.AddPropertyToMapping(p, cache[uri.OriginalString], true);
                             currentResource.IsNew = false;
@@ -385,39 +402,47 @@ namespace Semiodesk.Trinity.Store
         {
             Dictionary<string, T> result = new Dictionary<string, T>();
             Dictionary<string, List<Class>> types = new Dictionary<string, List<Class>>();
-            string s, p;
-            INode o;
+            string  p;
+            INode s,o;
+
+           // _tripleProvider.Reset();
 
             // Collect all types for every resource in the types dictionary.
             // I was going to use _queryResults.Select(), but that doesn't work with Virtuoso.
             while (_tripleProvider.HasNext)
             {
-                s = _tripleProvider.S.ToString();
+                s = _tripleProvider.S;
                 p = _tripleProvider.P.ToString();
                 o = _tripleProvider.O;
 
+
                 _tripleProvider.SetNext();
 
-                if (p.ToString() == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+                if (o.NodeType == NodeType.Uri && p == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
                 {
-                    string obj = ((IUriNode)o).Uri.OriginalString;
+                    if( s is IUriNode)
+                    {
+                        string suri = ((IUriNode)s).Uri.OriginalString;
 
-                    if (!types.ContainsKey(s))
-                    {
-                        types.Add(s, new List<Class>());
-                    }
+                        string obj = ((IUriNode)o).Uri.OriginalString;
 
-                    if (OntologyDiscovery.Classes.ContainsKey(obj))
-                    {
-                        types[s].Add(OntologyDiscovery.Classes[obj]);
-                    }
-                    else
-                    {
-                        types[s].Add(new Class(new Uri(obj)));
+                        if (!types.ContainsKey(suri))
+                        {
+                            types.Add(suri, new List<Class>());
+                        }
+
+                        if (OntologyDiscovery.Classes.ContainsKey(obj))
+                        {
+                            types[suri].Add(OntologyDiscovery.Classes[obj]);
+                        }
+                        else
+                        {
+                            types[suri].Add(new Class(new Uri(obj)));
+                        }
                     }
                 }
             }
-
+            
             // Iterate over all types and find the right class and instatiate it.
             foreach (string subject in types.Keys)
             {

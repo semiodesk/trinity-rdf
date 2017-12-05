@@ -31,9 +31,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.IO;
 using System.Linq;
-using Semiodesk.Trinity;
-using System.Security.Principal;
-using System.Diagnostics;
 #if NET_3_5
 using Semiodesk.Trinity.Utility;
 #endif
@@ -44,11 +41,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
     {
         #region Members
 
-        public ILogger Logger
-        {
-            get;
-            set;
-        }
+        public ILogger Logger { get; set; }
 
         /// <summary>
         /// A reference to the store
@@ -92,6 +85,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
             "enum", "namespace", "string", 
             "Namespace", "Prefix"
         };
+
         private string _namespace;
 
         #endregion
@@ -101,10 +95,11 @@ namespace Semiodesk.Trinity.OntologyGenerator
         public OntologyGenerator(string ns)
         {
             Logger = new ConsoleLogger();
+
             _namespace = ns;
 
             Console.WriteLine();
-            Console.WriteLine(string.Format("Starting OntologyGenerator in {0}", Directory.GetCurrentDirectory()));
+            Console.WriteLine(string.Format("Starting ontology generator in {0}", Directory.GetCurrentDirectory()));
             Console.WriteLine();
 
             _store = StoreFactory.CreateStore("provider=dotnetrdf");
@@ -143,17 +138,23 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
         public bool AddOntology(Uri graphUri, Uri metadataUri, string prefix)
         {
-            if (graphUri == null) return false;
+            if (graphUri == null)
+            {
+                return false;
+            }
 
-            IModel graphModel = _store.ContainsModel(graphUri) ? _store.GetModel(graphUri) : null;
+            IModel graphModel = _store.GetModel(graphUri);
 
-            if (graphModel == null) return false;
+            if (graphModel == null)
+            {
+                return false;
+            }
 
             IModel metadataModel = null;
 
             if (metadataUri != null)
             {
-                metadataModel = _store.ContainsModel(metadataUri) ? _store.GetModel(metadataUri) : null;
+                metadataModel = _store.GetModel(metadataUri);
             }
 
             _models.Add(new Tuple<IModel, IModel, string, string>(graphModel, metadataModel, prefix, graphUri.AbsoluteUri));
@@ -163,13 +164,20 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
         public void GenerateFile(FileInfo target)
         {
+            if(!_models.Any())
+            {
+                Logger.LogMessage("No ontologies found.");
+
+                return;
+            }
+
             StringBuilder ontologies = new StringBuilder();
 
             foreach (Tuple<IModel, IModel, string, string> model in _models)
             {
-                _globalSymbols.Clear();
-
                 Logger.LogMessage("Generating ontology <{0}>", model.Item1.Uri.OriginalString);
+
+                _globalSymbols.Clear();
 
                 if (model.Item2 == null)
                 {
@@ -183,16 +191,20 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 }
             }
 
-            string content = string.Format(Properties.Resources.FileTemplate, DateTime.Now, ontologies.ToString(), _namespace);
-
-            if (string.IsNullOrEmpty(content))
+            if(ontologies.Length > 0)
             {
-                throw new Exception(string.Format("Content of file {0} should not be empty", target.FullName));
-            }
+                string template = Properties.Resources.FileTemplate;
+                string content = string.Format(template, DateTime.Now, ontologies.ToString(), _namespace);
 
-            using (StreamWriter writer = new StreamWriter(target.FullName, false))
-            {
-                writer.Write(content.ToString());
+                if (string.IsNullOrEmpty(content))
+                {
+                    throw new Exception(string.Format("Content of file {0} should not be empty", target.FullName));
+                }
+
+                using (StreamWriter writer = new StreamWriter(target.FullName, false))
+                {
+                    writer.Write(content.ToString());
+                }
             }
         }
 
@@ -204,6 +216,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
             return bindings.Any() ? bindings.First().ToString() : "";
         }
+
 
         private string GenerateOntology(IModel model, string prefix, string ns, bool stringOnly = false)
         {
@@ -306,15 +319,23 @@ namespace Semiodesk.Trinity.OntologyGenerator
         {
             string name = GetName(resource);
 
-            if (string.IsNullOrEmpty(name)) return "";
+            if (string.IsNullOrEmpty(name))
+            {
+                return "";
+            }
 
-            string comment = "";
             string type = "Resource";
+            string comment = "";
 
             if (_globalSymbols.Contains(name) || localSymbols.Contains(name))
+            {
                 name = GetName(resource, ontology);
+            }
 
-            if (string.IsNullOrEmpty(name)) return "";
+            if (string.IsNullOrEmpty(name))
+            {
+                return "";
+            }
 
             if (_globalSymbols.Contains(name) || localSymbols.Contains(name))
             {
@@ -441,14 +462,12 @@ namespace Semiodesk.Trinity.OntologyGenerator
             return result;
         }
 
-        #endregion
-
-        #region IDisposable Members
-
         public void Dispose()
         {
             if (_store != null)
+            {
                 _store.Dispose();
+            }
         }
 
         #endregion
