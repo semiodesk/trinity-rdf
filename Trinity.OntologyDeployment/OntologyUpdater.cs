@@ -55,14 +55,6 @@ namespace Semiodesk.Trinity.OntologyDeployment
 
         #region Methods
 
-        protected void RemoveGraph(Uri graphUri)
-        {
-            if (_store.ContainsModel(graphUri))
-            {
-                _store.RemoveModel(graphUri);
-            }
-        }
-
         public void UpdateOntologies(IEnumerable<Semiodesk.Trinity.Configuration.Ontology> ontologies)
         {
             foreach (Semiodesk.Trinity.Configuration.Ontology onto in ontologies)

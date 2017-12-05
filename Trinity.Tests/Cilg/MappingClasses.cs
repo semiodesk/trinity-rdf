@@ -78,7 +78,7 @@ namespace Semiodesk.Trinity.Test.Cilg
         [RdfProperty(TestOntology.uniqueStringTestString)]
         public string uniqueStringTest { get; set; }
 
-        [RdfProperty(TestOntology.uriTestString)]
+        [RdfProperty(TestOntology.resTestString)]
         public Resource uriProperty { get; set; }
 
         #endregion
@@ -102,4 +102,14 @@ namespace Semiodesk.Trinity.Test.Cilg
         #endregion
     }
 
+    [RdfClass(TestOntology.SingleMappingTestClassString)]
+    [RdfClass(TestOntology.SubMappingTestClassString)]
+    public class CilgMultipleMappingTestClass : CilgMappingTestClass
+    {
+        #region Constructors
+
+        public CilgMultipleMappingTestClass(Uri uri) : base(uri) { }
+
+        #endregion
+    }
 }
