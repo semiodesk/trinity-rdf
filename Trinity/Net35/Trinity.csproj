@@ -237,6 +237,15 @@
     <Compile Include="..\Query\StatementPattern.cs">
       <Link>Query\StatementPattern.cs</Link>
     </Compile>
+    <Compile Include="..\Stores\dotNetRDF\GraphTripleProvider.cs">
+      <Link>Stores\dotNetRDF\GraphTripleProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\Stores\dotNetRDF\ITripleProvider.cs">
+      <Link>Stores\dotNetRDF\ITripleProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\Stores\dotNetRDF\SparqlResultSetTripleProvider.cs">
+      <Link>Stores\dotNetRDF\SparqlResultSetTripleProvider.cs</Link>
+    </Compile>
     <Compile Include="..\Stores\Stardog\StardogQueryResult.cs">
       <Link>Stores\Stardog\StardogQueryResult.cs</Link>
     </Compile>
