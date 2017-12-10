@@ -177,6 +177,10 @@ namespace Semiodesk.Trinity
             return _preprocessor.DefaultGraphs;
         }
 
+        /// <summary>
+        /// Returns all prefixes that were specified by the query.
+        /// </summary>
+        /// <returns></returns>
         public IEnumerable<string> GetDeclaredPrefixes()
         {
             return _preprocessor.DeclaredPrefixes;

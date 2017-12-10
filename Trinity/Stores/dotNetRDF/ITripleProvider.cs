@@ -23,74 +23,57 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2016
+// Copyright (c) Semiodesk GmbH 2017
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using VDS.RDF;
 
-namespace Semiodesk.Trinity
+namespace Semiodesk.Trinity.Store
 {
     /// <summary>
-    /// A generic sparql query interface.  
+    /// A generic triple provider interface
     /// </summary>
-    public interface ISparqlQuery
+    public interface ITripleProvider
     {
-        #region Members
+        /// <summary>
+        /// Indicates if another triple is available
+        /// </summary>
+        bool HasNext { get; }
 
         /// <summary>
-        /// The model on which the query will be run.
+        /// Iterates to the next triple
         /// </summary>
-        IModel Model { get; set; }
+        void SetNext();
 
         /// <summary>
-        /// The type of the query.
+        /// Subject
         /// </summary>
-        SparqlQueryType QueryType { get; }
+        INode S { get; }
 
         /// <summary>
-        /// Indicates if inference should be enabled. It depends on the underlying store if and how this is used.
+        /// Predicate
         /// </summary>
-        bool IsInferenceEnabled { get; set; }
-
-        #endregion
-
-        #region Methods
+        Uri P { get; }
 
         /// <summary>
-        /// Bind parameters to specified values.
+        /// Object
         /// </summary>
-        /// <param name="parameter"></param>
-        /// <param name="value"></param>
-        void Bind(string parameter, object value);
+        INode O { get; }
 
         /// <summary>
-        /// Returns all prefixes that were specified by the query.
+        /// Number of total triples
         /// </summary>
-        /// <returns></returns>
-        IEnumerable<string> GetDeclaredPrefixes();
+        int Count { get; }
 
         /// <summary>
-        /// Enumerates the graphs which are declared in FROM and FROM NAMED directives at the root level.
+        /// Resets the provider
         /// </summary>
-        /// <returns>An enumeration of URI strings.</returns>
-        IEnumerable<string> GetDefaultModels();
+        void Reset();
 
-        string[] GetGlobalScopeVariableNames();
 
-        string GetRootGraphPattern();
-
-        string GetRootOrderByClause();
-
-        bool ProvidesStatements();
-
-        /// <summary>
-        /// Returns the string representation of the query.
-        /// </summary>
-        /// <returns></returns>
-        string ToString();
-
-        #endregion
     }
+
 }

@@ -110,7 +110,7 @@ namespace Semiodesk.Trinity.Store
         }
 
         #region IStore implementation
-
+        
         public IModel CreateModel(Uri uri)
         {
             return new Model(this, new UriRef(uri));
