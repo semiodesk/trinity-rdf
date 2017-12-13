@@ -26598,13 +26598,13 @@
         <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Union(VDS.RDF.Query.Builder.GraphPatternBuilder,VDS.RDF.Query.Builder.GraphPatternBuilder[])">
             <summary>
             Creates a UNION of multiple graph patterns. If <paramref name="unionedGraphPatternBuilders"/> is null or empty,
-            acts as a call to the <see cref="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Child(VDS.RDF.Query.Builder.GraphPatternBuilder)"/> method.
+            acts as a call to the <see cref="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Child(VDS.RDF.Query.Builder.IQueryBuilder)"/> method.
             </summary>
         </member>
         <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Union(System.Action{VDS.RDF.Query.Builder.IGraphPatternBuilder},System.Action{VDS.RDF.Query.Builder.IGraphPatternBuilder}[])">
             <summary>
             Creates a UNION of multiple graph patterns. If <paramref name="unionedGraphPatternBuilders"/> is null or empty,
-            acts as a call to the <see cref="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Child(VDS.RDF.Query.Builder.GraphPatternBuilder)"/> method.
+            acts as a call to the <see cref="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Child(VDS.RDF.Query.Builder.IQueryBuilder)"/> method.
             </summary>
         </member>
         <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Where(VDS.RDF.Query.Patterns.ITriplePattern[])">
@@ -26655,6 +26655,11 @@
         <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Bind(System.Func{VDS.RDF.Query.Builder.INonAggregateExpressionBuilder,VDS.RDF.Query.Builder.Expressions.PrimaryExpression{VDS.RDF.Query.Expressions.ISparqlExpression}})">
             <summary>
             Adds a BIND variable assignment to the graph pattern
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Child(VDS.RDF.Query.Builder.IQueryBuilder)">
+            <summary>
+            Adds a "normal" child graph pattern
             </summary>
         </member>
         <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Child(VDS.RDF.Query.Builder.GraphPatternBuilder)">

@@ -53,6 +53,8 @@ namespace Semiodesk.Trinity.Query
 
         string BuildQuery();
 
+        void Child(IQueryBuilder queryBuilder);
+
         void SetQueryModel(QueryModel queryModel);
 
         void SetVariableGenerator(SparqlVariableGenerator variableGenerator);
@@ -109,9 +111,13 @@ namespace Semiodesk.Trinity.Query
 
         void Union(Action<IGraphPatternBuilder> buildFirstPattern, params Action<IGraphPatternBuilder>[] buildOtherPatterns);
 
-        void SetPatternBuilder(IGraphPatternBuilder patternBuilder);
+        IQueryBuilder GetQueryBuilder();
 
-        void ResetPatternBuilder();
+        IGraphPatternBuilder GetPatternBuilder();
+
+        IGraphPatternBuilder GetRootPatternBuilder();
+
+        void SetPatternBuilder(IGraphPatternBuilder patternBuilder);
 
         #endregion
     }

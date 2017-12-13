@@ -106,11 +106,7 @@ namespace Semiodesk.Trinity.Query
                         throw new ArgumentException("No RdfClass attrribute declared on type: " + op.SearchedItemType);
                     }
 
-                    SparqlVariable s = SubjectVariable;
-                    Uri p = new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-                    Uri o = type.MappedUri;
-
-                    PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(p).Object(o));
+                    WhereOfType(SubjectVariable, op.SearchedItemType);
                 }
                 else if (resultOperator is SkipResultOperator)
                 {

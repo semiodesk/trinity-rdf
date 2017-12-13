@@ -190,26 +190,7 @@ namespace Semiodesk.Trinity.Query
 
         public ISparqlQuery GetQuery()
         {
-            string queryString = "";
-
-            // Since the dotNetRdf QueryBuilder does not support building sub queries,
-            // we need to generate the nested queries here.
-            _queryGeneratorTree.Traverse((builder) =>
-            {
-                string q = builder.BuildQuery().ToString();
-
-                if(!string.IsNullOrEmpty(queryString))
-                {
-                    int n = q.IndexOf("{") + 1;
-
-                    if(n > 0)
-                    {
-                        q = q.Insert(n, "{ " + queryString + " }");
-                    }
-                }
-
-                queryString = q;
-            });
+            string queryString = _queryGeneratorTree.GetRootQueryGenerator().BuildQuery();
 
             ISparqlQuery query = new SparqlQuery(queryString);
 
