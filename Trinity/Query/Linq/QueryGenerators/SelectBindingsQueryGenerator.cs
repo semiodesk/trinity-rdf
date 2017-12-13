@@ -25,8 +25,8 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
-using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
+using System;
 using System.Linq.Expressions;
 using VDS.RDF.Query;
 
@@ -67,7 +67,12 @@ namespace Semiodesk.Trinity.Query
                     Where(member, o);
 
                     // Assert the object type, if applicable.
-                    WhereOfType(s, member.Member.GetMemberType());
+                    Type type = member.Member.GetMemberType();
+
+                    if (typeof(Resource).IsAssignableFrom(type))
+                    {
+                        WhereOfType(s, type);
+                    }
                 }
             }
         }
