@@ -391,6 +391,10 @@ namespace Semiodesk.Trinity.Query
                     PatternBuilder.Where(e => e.Subject(subject.Name).PredicateUri(a).Object(t.MappedUri));
                 }
             }
+            else
+            {
+                throw new ArgumentException("Type cannot be used in a SPARQL query: " + type);
+            }
         }
 
         public void OrderBy(SparqlVariable variable)
@@ -423,14 +427,29 @@ namespace Semiodesk.Trinity.Query
             PatternBuilder.Union(buildFirstPattern, buildOtherPatterns);
         }
 
+        public void Child(IQueryBuilder queryBuilder)
+        {
+            PatternBuilder.Child(queryBuilder);
+        }
+
+        public IQueryBuilder GetQueryBuilder()
+        {
+            return QueryBuilder;
+        }
+
+        public IGraphPatternBuilder GetPatternBuilder()
+        {
+            return PatternBuilder;
+        }
+
+        public IGraphPatternBuilder GetRootPatternBuilder()
+        {
+            return QueryBuilder.RootGraphPatternBuilder;
+        }
+
         public void SetPatternBuilder(IGraphPatternBuilder patternBuilder)
         {
             PatternBuilder = patternBuilder;
-        }
-
-        public void ResetPatternBuilder()
-        {
-            PatternBuilder = QueryBuilder.RootGraphPatternBuilder;
         }
 
         private void ThrowOnBound()

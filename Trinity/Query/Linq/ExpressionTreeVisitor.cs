@@ -100,22 +100,29 @@ namespace Semiodesk.Trinity.Query
 
         private void VisitBinaryOrElseExpression(BinaryExpression expression)
         {
-            ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator queryGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
-            generator.Union(
+            // Get the currently active pattern builder so that we can reset it after we're done.
+            // This will build nested UNIONS ({{x} UNION {y}} UNION {z}) for multiple alternative 
+            // OR expressions. While this is not elegant, it is logically correct and can be optimized 
+            // by the storage backend.
+            IGraphPatternBuilder patternBuilder = queryGenerator.GetPatternBuilder();
+
+            queryGenerator.Union(
                 (left) =>
                 {
-                    generator.SetPatternBuilder(left);
+                    queryGenerator.SetPatternBuilder(left);
                     VisitExpression(expression.Left);
                 },
                 (right) =>
                 {
-                    generator.SetPatternBuilder(right);
+                    queryGenerator.SetPatternBuilder(right);
                     VisitExpression(expression.Right);
                 }
             );
 
-            generator.ResetPatternBuilder();
+            // Reset the pattern builder that was used before implementing the unions.
+            queryGenerator.SetPatternBuilder(patternBuilder);
         }
 
         private void VisitBinaryConstantExpression(BinaryExpression expression)
@@ -345,12 +352,20 @@ namespace Semiodesk.Trinity.Query
             // Sub queries always select the subject from the select clause of the root query.
             subQueryGenerator.SelectVariable(currentQueryGenerator.SubjectVariable);
 
+            string s = subQueryGenerator.BuildQuery();
+
+            currentQueryGenerator.Child(subQueryGenerator.GetQueryBuilder());
+
             return expression;
         }
 
         protected override Expression VisitTypeBinaryExpression(TypeBinaryExpression expression)
         {
-            throw new NotImplementedException();
+            ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
+
+            generator.WhereOfType(generator.SubjectVariable, expression.TypeOperand);
+
+            return expression;
         }
 
         protected override Expression VisitUnaryExpression(UnaryExpression expression)

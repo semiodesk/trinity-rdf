@@ -100,6 +100,10 @@ namespace Semiodesk.Trinity.Test.Linq
             p2.KnownPeople.Add(p2);
             p2.Commit();
 
+            p3.Interests.Add(g2);
+            p3.Interests.Add(p3);
+            p3.Commit();
+
             Assert.IsFalse(Model.IsEmpty);
         }
 
@@ -466,9 +470,13 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Assert.AreEqual(2, persons.ToList().Count);
 
-            //persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" || person.FirstName == "Bob" || person.FirstName == "Eve" select person;
+            persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" || person.FirstName == "Bob" || person.FirstName == "Eve" select person;
 
-            //Assert.AreEqual(3, persons.ToList().Count);
+            Assert.AreEqual(3, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" || person.FirstName == "Bob" || person.KnownPeople.Count == 0 select person;
+
+            Assert.AreEqual(3, persons.ToList().Count);
         }
 
         [Test]
@@ -551,6 +559,26 @@ namespace Semiodesk.Trinity.Test.Linq
             var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Last().KnownPeople.Count == 1 select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectResourcesWithOperatorTypeOf()
+        {
+            var resources = from resource in Model.AsQueryable<Resource>() select resource;
+
+            Assert.AreEqual(5, resources.ToList().Count);
+
+            resources = from resource in Model.AsQueryable<Resource>() where resource is Person select resource;
+
+            Assert.AreEqual(3, resources.ToList().Count);
+
+            resources = from resource in Model.AsQueryable<Person>() where resource.Interests.OfType<Group>().Count() > 0 select resource;
+
+            Assert.AreEqual(1, resources.ToList().Count);
+
+            resources = from resource in Model.AsQueryable<Person>() where resource.Interests.OfType<Person>().Count() > 0 select resource;
+
+            Assert.AreEqual(1, resources.ToList().Count);
         }
 
         private void DumpModel()

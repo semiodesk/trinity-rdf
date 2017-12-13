@@ -59,6 +59,9 @@ namespace Semiodesk.Trinity.Test.Linq
         [RdfProperty(FOAF.account)]
         public float AccountBalance { get; set; }
 
+        [RdfProperty(FOAF.interest)]
+        public List<Resource> Interests { get; set; }
+
         #endregion
 
         #region Constructors
