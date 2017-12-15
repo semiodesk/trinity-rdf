@@ -126,10 +126,14 @@ namespace Semiodesk.Trinity.Query
             // The root query generator cannot be registered until this method is invoked.
             if(!_queryGeneratorTree.HasQueryGenerator(queryModel))
             {
-                ISparqlQueryGenerator generator = _queryGeneratorTree.GetRootQueryGenerator();
+                ISparqlQueryGenerator rootGenerator = _queryGeneratorTree.GetRootQueryGenerator();
 
-                _queryGeneratorTree.RegisterQueryModel(generator, queryModel);
+                _queryGeneratorTree.RegisterQueryModel(rootGenerator, queryModel);
             }
+
+            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+
+            currentGenerator.Initialize(_variableGenerator, queryModel);
 
             // Handle the main from clause before the select.
             queryModel.MainFromClause.Accept(this, queryModel);
@@ -166,25 +170,6 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitWhereClause(WhereClause whereClause, QueryModel queryModel, int index)
         {
-            if (whereClause.Predicate is BinaryExpression)
-            {
-                BinaryExpression binaryExpression = whereClause.Predicate as BinaryExpression;
-
-                if(binaryExpression.Left is SubQueryExpression)
-                {
-                    SubQueryExpression subQueryExpression = binaryExpression.Left as SubQueryExpression;
-
-                    _expressionVisitor.VisitExpression(subQueryExpression);
-                }
-
-                if(binaryExpression.Right is SubQueryExpression)
-                {
-                    SubQueryExpression subQueryExpression = binaryExpression.Right as SubQueryExpression;
-
-                    _expressionVisitor.VisitExpression(subQueryExpression);
-                }
-            }
-
             _expressionVisitor.VisitExpression(whereClause.Predicate);
         }
 

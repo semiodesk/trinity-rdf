@@ -28,10 +28,8 @@
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.ResultOperators;
 using System;
-using System.Linq.Expressions;
 using VDS.RDF.Query.Aggregates.Sparql;
 using VDS.RDF.Query.Expressions.Primary;
-using VDS.RDF.Query.Builder;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -71,15 +69,19 @@ namespace Semiodesk.Trinity.Query
                 }
                 else if (resultOperator is FirstResultOperator)
                 {
-                    var aggregate = new MinAggregate(new VariableTerm(ObjectVariable.Name));
-                    SetObjectVariable(aggregate.AsSparqlVariable(), true);
-                    OrderBy(ObjectVariable);
+                    //var aggregate = new MinAggregate(new VariableTerm(ObjectVariable.Name));
+                    //SetObjectVariable(aggregate.AsSparqlVariable(), true);
+                    //OrderBy(ObjectVariable);
+
+                    throw new NotSupportedException();
                 }
                 else if (resultOperator is LastResultOperator)
                 {
-                    var aggregate = new MinAggregate(new VariableTerm(ObjectVariable.Name));
-                    SetObjectVariable(aggregate.AsSparqlVariable(), true);
-                    OrderByDescending(ObjectVariable);
+                    //var aggregate = new MinAggregate(new VariableTerm(ObjectVariable.Name));
+                    //SetObjectVariable(aggregate.AsSparqlVariable(), true);
+                    //OrderByDescending(ObjectVariable);
+
+                    throw new NotSupportedException();
                 }
                 else if (resultOperator is MaxResultOperator)
                 {

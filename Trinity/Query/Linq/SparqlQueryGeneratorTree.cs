@@ -102,8 +102,6 @@ namespace Semiodesk.Trinity.Query
         {
             if(!_queryModelGenerators.ContainsKey(queryModel))
             {
-                generator.SetQueryContext(_variableGenerator, queryModel);
-
                 _queryModelGenerators[queryModel] = generator;
             }
         }
@@ -112,8 +110,6 @@ namespace Semiodesk.Trinity.Query
         {
             if (!_expressionGenerators.ContainsKey(expression))
             {
-                RegisterQueryModel(generator, expression.QueryModel);
-
                 _expressionGenerators[expression] = generator;
             }
         }
