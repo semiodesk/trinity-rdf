@@ -29,7 +29,9 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Semiodesk.Trinity.Test.Linq
 {
@@ -46,10 +48,10 @@ namespace Semiodesk.Trinity.Test.Linq
         public void SetUp()
         {
             // DotNetRdf memory store.
-            string connectionString = "provider=dotnetrdf";
+            //string connectionString = "provider=dotnetrdf";
 
             // OpenLink Virtoso store.
-            //string connectionString = string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString);
+            string connectionString = string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString);
 
             Store = StoreFactory.CreateStore(connectionString);
 
@@ -228,7 +230,7 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectBooleanPropertyWithBinaryExpression()
+        public void CanSelectBooleanWithBinaryExpression()
         {
             var states = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Status;
 
@@ -244,7 +246,7 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectIntegerPropertyWithBinaryExpression()
+        public void CanSelectIntegerWithBinaryExpression()
         {
             var ages = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Age;
 
@@ -260,7 +262,7 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectDateTimePropertyWithBinaryExpression()
+        public void CanSelectDateTimeWithBinaryExpression()
         {
             var birthdays = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Birthday;
 
@@ -276,7 +278,7 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectStringPropertyWithBinaryExpression()
+        public void CanSelectStringWithBinaryExpression()
         {
             var names = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.FirstName;
 
@@ -292,7 +294,79 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectResourcePropertyWithBinaryExpression()
+        public void CanSelectStringWithBinaryExpressionOnStringLength()
+        {
+            var names = from person in Model.AsQueryable<Person>() where person.FirstName.Length == 4 select person.FirstName;
+
+            Assert.AreEqual(1, names.ToList().Count);
+
+            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length != 4 select person.FirstName;
+
+            Assert.AreEqual(2, names.ToList().Count);
+
+            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length < 4 select person.FirstName;
+
+            Assert.AreEqual(2, names.ToList().Count);
+
+            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length <= 4 select person.FirstName;
+
+            Assert.AreEqual(3, names.ToList().Count);
+
+            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length > 4 select person.FirstName;
+
+            Assert.AreEqual(0, names.ToList().Count);
+
+            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length >= 4 select person.FirstName;
+
+            Assert.AreEqual(1, names.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectStringWithMethodContains()
+        {
+            var names = from person in Model.AsQueryable<Person>() where person.FirstName.Contains("e") select person.FirstName;
+
+            Assert.AreEqual(2, names.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectStringWithMethodStartsWith()
+        {
+            var names = from person in Model.AsQueryable<Person>() where person.FirstName.StartsWith("A") select person.FirstName;
+
+            Assert.AreEqual(1, names.ToList().Count);
+
+            names = from person in Model.AsQueryable<Person>() where person.FirstName.StartsWith("a", true, CultureInfo.CurrentCulture) select person.FirstName;
+
+            Assert.AreEqual(1, names.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectStringWithMethodEndsWith()
+        {
+            var names = from person in Model.AsQueryable<Person>() where person.FirstName.EndsWith("e") select person.FirstName;
+
+            Assert.AreEqual(2, names.ToList().Count);
+
+            names = from person in Model.AsQueryable<Person>() where person.FirstName.EndsWith("E", true, CultureInfo.CurrentCulture) select person.FirstName;
+
+            Assert.AreEqual(2, names.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectStringWithRegexIsMatch()
+        {
+            var names = from person in Model.AsQueryable<Person>() where Regex.IsMatch(person.FirstName, "e") select person.FirstName;
+
+            Assert.AreEqual(2, names.ToList().Count);
+
+            names = from person in Model.AsQueryable<Person>() where Regex.IsMatch(person.FirstName, "E", RegexOptions.IgnoreCase) select person.FirstName;
+
+            Assert.AreEqual(2, names.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectResourceWithBinaryExpression()
         {
             var groups = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Group;
 
@@ -466,6 +540,39 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectResourcesWithNodeTypeOrElse()
         {
+            SparqlQuery q1 = new SparqlQuery(@"
+            SELECT ?person_ ?p_ ?o_ FROM <http://test.com/test>
+            WHERE
+            {
+                ?person_ ?p_ ?o_ .
+                ?person_ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Person> .
+    
+                {
+                    { ?person_ <http://xmlns.com/foaf/0.1/firstName> 'Alice' . }
+                    UNION
+                    { ?person_ <http://xmlns.com/foaf/0.1/firstName> 'Bob' . }
+                }
+                UNION
+                {
+                    {
+                        {
+                            SELECT ?person_ ( COUNT ( DISTINCT ?o0 ) AS ?o0_count )
+                            WHERE
+                            {
+                                ?person_ ?p0 ?o1 
+                    
+                                 OPTIONAL { ?person_ <http://xmlns.com/foaf/0.1/knows> ?o0 . }
+                            } GROUP BY ?person_
+                        }
+
+                        FILTER ( ?o0_count = '0' ^^<http://www.w3.org/2001/XMLSchema#int> )
+                    }
+                }
+            }
+            ");
+
+            var b1 = Model.GetResources<Person>(q1).ToList();
+
             var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" || person.FirstName == "Bob" select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
@@ -514,51 +621,17 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectResourcesWithResultOperatorFirst()
         {
-            Assert.Fail("TODO");
-
-            SparqlQuery q1 = new SparqlQuery(@"
-				SELECT DISTINCT ?person ( MIN(?o0) AS ?o0_first ) WHERE
-				{
-                    { SELECT ?person WHERE { ?person <http://xmlns.com/foaf/0.1/knows> ?o0 . } }
-                    INTERSECT
-					{ SELECT ?person WHERE { ?person <http://xmlns.com/foaf/0.1/knows> ?o0 . } ORDER BY ?o0 LIMIT 1 }
-				}
-				GROUP BY ?person ?o0 ORDER BY ?o0
-            ");
-
-            IList<BindingSet> b1 = Model.GetBindings(q1).ToList();
-
-            SparqlQuery q2 = new SparqlQuery(@"
-		        SELECT ?person ( COUNT ( ?o1 ) AS ?o1_count ) WHERE
-		        {
-			        {
-				        SELECT ?person ( MIN ( ?o0 ) AS ?o0_first ) WHERE
-				        {
-					        ?person <http://xmlns.com/foaf/0.1/knows> ?o0 . 
-				        }
-				        GROUP BY ?person ?o0 ORDER BY ?o0
-			        }
-
-			        ?o0_first <http://xmlns.com/foaf/0.1/knows> ?o1 .
-		        }
-		        GROUP BY ?person
-            ");
-
-            IList<BindingSet> b2 = Model.GetBindings(q2).ToList();
-
             var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.First().KnownPeople.Count == 1 select person;
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            Assert.Throws<NotSupportedException>(() => { persons.ToList(); });
         }
 
         [Test]
         public void CanSelectResourcesWithResultOperatorLast()
         {
-            Assert.Fail("TODO");
-
             var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Last().KnownPeople.Count == 1 select person;
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            Assert.Throws<NotSupportedException>(() => { persons.ToList(); });
         }
 
         [Test]
@@ -587,6 +660,24 @@ namespace Semiodesk.Trinity.Test.Linq
             var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Any(p => p.FirstName == "Alice") select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Any(p => p.FirstName == "Alice") && person.KnownPeople.Any(p => p.FirstName == "Bob") && person.KnownPeople.Any(p => p.FirstName == "Eve") select person;
+
+            var x = persons.ToList();
+
+            Assert.AreEqual(0, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Any(p => p.FirstName == "Alice") || person.KnownPeople.Any(p => p.FirstName == "Eve") select person;
+
+            var y = persons.ToList();
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Any(p => p.FirstName == "Alice") || person.KnownPeople.Any(p => p.FirstName == "Bob") select person;
+
+            var z = persons.ToList();
+
+            Assert.AreEqual(2, persons.ToList().Count);
         }
 
         private void DumpModel()

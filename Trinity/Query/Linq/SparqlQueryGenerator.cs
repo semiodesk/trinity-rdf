@@ -88,6 +88,12 @@ namespace Semiodesk.Trinity.Query
 
         #region Methods
 
+        public void Initialize(SparqlVariableGenerator variableGenerator, QueryModel queryModel)
+        {
+            VariableGenerator = variableGenerator;
+            QueryModel = queryModel;
+        }
+
         public bool HasNumericResultOperator()
         {
             return QueryModel.ResultOperators.Any(op => IsNumericResultOperator(op));
@@ -181,14 +187,8 @@ namespace Semiodesk.Trinity.Query
             }
             else
             {
-                return SubjectVariable;
+                return VariableGenerator.GetVariable(expression);
             }
-        }
-
-        public void SetQueryContext(SparqlVariableGenerator variableGenerator, QueryModel queryModel)
-        {
-            VariableGenerator = variableGenerator;
-            QueryModel = queryModel;
         }
 
         public virtual void SetObjectOperator(ResultOperatorBase resultOperator)
@@ -271,9 +271,13 @@ namespace Semiodesk.Trinity.Query
 
         public void Where(MemberExpression member, SparqlVariable variable)
         {
+            ThrowOnBound();
+
             RdfPropertyAttribute attribute = member.Member.TryGetCustomAttribute<RdfPropertyAttribute>();
 
             PatternBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(attribute.MappedUri).Object(variable.Name));
+
+            VariableGenerator.RegisterExpression(member, variable);
         }
 
         public void WhereEqual(SparqlVariable variable, ConstantExpression constant)
@@ -380,6 +384,27 @@ namespace Semiodesk.Trinity.Query
             PatternBuilder.Filter(e => e.Variable(o.Name) <= new LiteralExpression(constant.AsSparqlExpression()));
         }
 
+        public void FilterRegex(SparqlVariable variable, string pattern, bool ignoreCase)
+        {
+            ThrowOnBound();
+
+            if (ignoreCase)
+            {
+                PatternBuilder.Filter(e => e.Regex(e.Variable(variable.Name), pattern, "i"));
+            }
+            else
+            {
+                PatternBuilder.Filter(e => e.Regex(e.Variable(variable.Name), pattern));
+            }
+        }
+
+        public void FilterRegex(MemberExpression member, string pattern, bool ignoreCase)
+        {
+            SparqlVariable o = VariableGenerator.GetVariable(member);
+
+            FilterRegex(o, pattern, ignoreCase);
+        }
+
         public void WhereResource(SparqlVariable subject)
         {
             ThrowOnBound();
@@ -414,42 +439,58 @@ namespace Semiodesk.Trinity.Query
 
         public void OrderBy(SparqlVariable variable)
         {
+            ThrowOnBound();
+
             QueryBuilder.OrderBy(variable.Name);
         }
 
         public void OrderByDescending(SparqlVariable variable)
         {
+            ThrowOnBound();
+
             QueryBuilder.OrderByDescending(variable.Name);
         }
 
         public void Offset(int offset)
         {
+            ThrowOnBound();
+
             QueryBuilder.Offset(offset);
         }
         
         public void Limit(int limit)
         {
+            ThrowOnBound();
+
             QueryBuilder.Limit(limit);
         }
 
         public void Union(GraphPatternBuilder firstBuilder, params GraphPatternBuilder[] otherBuilders)
         {
+            ThrowOnBound();
+
             PatternBuilder.Union(firstBuilder, otherBuilders);
         }
 
         public void Union(Action<IGraphPatternBuilder> buildFirstPattern, params Action<IGraphPatternBuilder>[] buildOtherPatterns)
         {
+            ThrowOnBound();
+
             PatternBuilder.Union(buildFirstPattern, buildOtherPatterns);
         }
 
-        public void Child(IQueryBuilder queryBuilder)
+        public IGraphPatternBuilder Child(IQueryBuilder queryBuilder)
         {
-            PatternBuilder.Child(queryBuilder);
+            ThrowOnBound();
+
+            return PatternBuilder.Child(queryBuilder);
         }
 
-        public void Child(GraphPatternBuilder patternBuilder)
+        public IGraphPatternBuilder Child(GraphPatternBuilder patternBuilder)
         {
-            PatternBuilder.Child(patternBuilder);
+            ThrowOnBound();
+
+            return PatternBuilder.Child(patternBuilder);
         }
 
         public IQueryBuilder GetQueryBuilder()

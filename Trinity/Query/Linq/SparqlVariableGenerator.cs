@@ -41,11 +41,38 @@ namespace Semiodesk.Trinity.Query
 
         private readonly Dictionary<string, int> _variableCounters = new Dictionary<string, int>();
 
-        private readonly Dictionary<Expression, SparqlVariable> _expressionVariables = new Dictionary<Expression, SparqlVariable>();
+        private readonly Dictionary<string, SparqlVariable> _expressionVariables = new Dictionary<string, SparqlVariable>();
 
         #endregion
 
         #region Methods
+
+        public void RegisterExpression(Expression expression, SparqlVariable variable)
+        {
+            _expressionVariables[expression.ToString()] = variable;
+        }
+
+        public bool HasVariable(Expression expression)
+        {
+            return _expressionVariables.ContainsKey(expression.ToString());
+        }
+
+        public SparqlVariable GetVariable(Expression expression)
+        {
+            QuerySourceReferenceExpression querySource = expression.TryGetQuerySourceReference();
+
+            if (querySource != null && querySource.ReferencedQuerySource is MainFromClause)
+            {
+                MainFromClause fromClause = querySource.ReferencedQuerySource as MainFromClause;
+
+                if(fromClause.FromExpression is MemberExpression)
+                {
+                    return _expressionVariables[fromClause.FromExpression.ToString()];
+                }
+            }
+
+            return _expressionVariables[expression.ToString()];
+        }
 
         public SparqlVariable GetVariable(string name)
         {
@@ -72,17 +99,19 @@ namespace Semiodesk.Trinity.Query
         {
             SparqlVariable v;
 
-            if (!_expressionVariables.ContainsKey(expression))
+            string e = expression.ToString();
+
+            if (!_expressionVariables.ContainsKey(e))
             {
                 IQuerySource querySource = expression.ReferencedQuerySource;
 
                 v = GetVariable(querySource.ItemName);
 
-                _expressionVariables[expression] = v;
+                _expressionVariables[e] = v;
             }
             else
             {
-                v = _expressionVariables[expression];
+                v = _expressionVariables[e];
             }
 
             return v;
@@ -102,17 +131,19 @@ namespace Semiodesk.Trinity.Query
         {
             SparqlVariable v;
 
-            if (!_expressionVariables.ContainsKey(expression))
+            string e = expression.ToString();
+
+            if (!_expressionVariables.ContainsKey(e))
             {
                 IQuerySource querySource = expression.ReferencedQuerySource;
 
                 v = GetGlobalVariable(querySource.ItemName);
 
-                _expressionVariables[expression] = v;
+                _expressionVariables[e] = v;
             }
             else
             {
-                v = _expressionVariables[expression];
+                v = _expressionVariables[e];
             }
 
             return v;

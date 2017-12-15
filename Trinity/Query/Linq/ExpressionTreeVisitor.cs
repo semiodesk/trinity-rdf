@@ -30,6 +30,7 @@ using Remotion.Linq.Parsing;
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Text.RegularExpressions;
 using VDS.RDF.Query;
 using VDS.RDF.Query.Builder;
 
@@ -256,6 +257,11 @@ namespace Semiodesk.Trinity.Query
                     // Make the subject variable of sub queries available for outer queries.
                     currentGenerator.SelectVariable(s);
                     currentGenerator.SelectVariable(o);
+
+                    if(expression != querySource)
+                    {
+                        _variableGenerator.RegisterExpression(expression, o);
+                    }
                 }
             }
 
@@ -317,29 +323,96 @@ namespace Semiodesk.Trinity.Query
         {
             string method = expression.Method.Name;
 
-            if(method == "Equals")
+            switch(method)
             {
-                ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+                case "Equals":
+                    {
+                        ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
-                ConstantExpression constant = expression.Arguments.First() as ConstantExpression;
+                        ConstantExpression arg0 = expression.Arguments[0] as ConstantExpression;
 
-                if (expression.Object is MemberExpression)
-                {
-                    MemberExpression member = expression.Object as MemberExpression;
+                        if (expression.Object is MemberExpression)
+                        {
+                            MemberExpression member = expression.Object as MemberExpression;
 
-                    currentGenerator.WhereEqual(member, constant);
-                }
-                else if(expression.Object is SubQueryExpression)
-                {
-                    currentGenerator.WhereEqual(currentGenerator.ObjectVariable, constant);
-                }
-            }
-            else
-            {
-                throw new NotSupportedException();
+                            currentGenerator.WhereEqual(member, arg0);
+                        }
+                        else if (expression.Object is SubQueryExpression)
+                        {
+                            currentGenerator.WhereEqual(currentGenerator.ObjectVariable, arg0);
+                        }
+
+                        break;
+                    }
+                case "Contains":
+                    {
+                        Expression o = expression.Object;
+                        string pattern = expression.GetArgumentValue<string>(0);
+
+                        HandleRegexMethodCallExpression(o, pattern);
+
+                        break;
+                    }
+                case "StartsWith":
+                    {
+                        Expression o = expression.Object;
+                        string pattern = "^" + expression.GetArgumentValue<string>(0);
+                        bool ignoreCase = expression.GetArgumentValue(1, false);
+
+                        HandleRegexMethodCallExpression(o, pattern, ignoreCase);
+
+                        break;
+                    }
+                case "EndsWith":
+                    {
+                        Expression o = expression.Object;
+                        string pattern = expression.GetArgumentValue<string>(0) + "$";
+                        bool ignoreCase = expression.GetArgumentValue(1, false);
+
+                        HandleRegexMethodCallExpression(o, pattern, ignoreCase);
+
+                        break;
+                    }
+                case "IsMatch":
+                    {
+                        if(expression.Method.DeclaringType == typeof(Regex))
+                        {
+                            Expression o = expression.Arguments[0];
+                            string pattern = expression.GetArgumentValue<string>(1) + "$";
+                            RegexOptions options = expression.GetArgumentValue(2, RegexOptions.None);
+
+                            HandleRegexMethodCallExpression(o, pattern, options.HasFlag(RegexOptions.IgnoreCase));
+                        }
+                        else
+                        {
+                            throw new NotSupportedException();
+                        }
+
+                        break;
+                    }
+                default:
+                    {
+                        throw new NotSupportedException();
+                    }
             }
 
             return expression;
+        }
+
+        private void HandleRegexMethodCallExpression(Expression expression, string regex, bool ignoreCase = false)
+        {
+            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+
+            if (expression is MemberExpression)
+            {
+                MemberExpression member = expression as MemberExpression;
+
+                currentGenerator.FilterRegex(member, regex, ignoreCase);
+            }
+            else if (expression is SubQueryExpression)
+            {
+                currentGenerator.FilterRegex(currentGenerator.ObjectVariable, regex, ignoreCase);
+            }
         }
 
         protected override Expression VisitNewExpression(NewExpression expression)

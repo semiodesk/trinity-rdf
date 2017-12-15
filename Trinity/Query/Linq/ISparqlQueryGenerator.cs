@@ -57,11 +57,11 @@ namespace Semiodesk.Trinity.Query
 
         bool HasNumericResultOperator();
 
-        void Child(IQueryBuilder queryBuilder);
+        IGraphPatternBuilder Child(IQueryBuilder queryBuilder);
 
-        void Child(GraphPatternBuilder patternBuilder);
+        IGraphPatternBuilder Child(GraphPatternBuilder patternBuilder);
 
-        void SetQueryContext(SparqlVariableGenerator variableGenerator, QueryModel queryModel);
+        void Initialize(SparqlVariableGenerator variableGenerator, QueryModel queryModel);
 
         void SetObjectOperator(ResultOperatorBase resultOperator);
 
@@ -104,6 +104,10 @@ namespace Semiodesk.Trinity.Query
         void WhereLessThanOrEqual(SparqlVariable variable, ConstantExpression constant);
 
         void WhereLessThanOrEqual(MemberExpression member, ConstantExpression constant);
+
+        void FilterRegex(SparqlVariable variable, string text, bool ignoreCase);
+
+        void FilterRegex(MemberExpression member, string text, bool ignoreCase);
 
         void OrderBy(SparqlVariable variable);
 
