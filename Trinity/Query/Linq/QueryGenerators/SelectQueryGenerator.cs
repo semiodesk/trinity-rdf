@@ -28,10 +28,10 @@
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.ResultOperators;
 using System;
-using VDS.RDF.Query;
+using System.Linq.Expressions;
 using VDS.RDF.Query.Aggregates.Sparql;
-using VDS.RDF.Query.Builder;
 using VDS.RDF.Query.Expressions.Primary;
+using VDS.RDF.Query.Builder;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -106,7 +106,8 @@ namespace Semiodesk.Trinity.Query
                         throw new ArgumentException("No RdfClass attrribute declared on type: " + op.SearchedItemType);
                     }
 
-                    WhereOfType(SubjectVariable, op.SearchedItemType);
+                    WhereResource(ObjectVariable);
+                    WhereResourceOfType(ObjectVariable, op.SearchedItemType);
                 }
                 else if (resultOperator is SkipResultOperator)
                 {

@@ -581,6 +581,14 @@ namespace Semiodesk.Trinity.Test.Linq
             Assert.AreEqual(1, resources.ToList().Count);
         }
 
+        [Test]
+        public void CanSelectResourcesWithSubQuery()
+        {
+            var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Any(p => p.FirstName == "Alice") select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+        }
+
         private void DumpModel()
         {
             Debug.WriteLine("");

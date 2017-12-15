@@ -5,6 +5,11 @@ namespace Semiodesk.Trinity.Query
 {
     internal static class SparqlVariableExtensions
     {
+        public static bool IsGlobal(this SparqlVariable variable)
+        {
+            return variable.Name.EndsWith("_");
+        }
+
         public static string GetProjectedName(this SparqlVariable variable)
         {
             if (variable.IsAggregate)

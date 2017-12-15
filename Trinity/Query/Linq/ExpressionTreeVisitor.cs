@@ -100,29 +100,29 @@ namespace Semiodesk.Trinity.Query
 
         private void VisitBinaryOrElseExpression(BinaryExpression expression)
         {
-            ISparqlQueryGenerator queryGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
             // Get the currently active pattern builder so that we can reset it after we're done.
             // This will build nested UNIONS ({{x} UNION {y}} UNION {z}) for multiple alternative 
             // OR expressions. While this is not elegant, it is logically correct and can be optimized 
             // by the storage backend.
-            IGraphPatternBuilder patternBuilder = queryGenerator.GetPatternBuilder();
+            IGraphPatternBuilder patternBuilder = currentGenerator.GetPatternBuilder();
 
-            queryGenerator.Union(
+            currentGenerator.Union(
                 (left) =>
                 {
-                    queryGenerator.SetPatternBuilder(left);
+                    currentGenerator.SetPatternBuilder(left);
                     VisitExpression(expression.Left);
                 },
                 (right) =>
                 {
-                    queryGenerator.SetPatternBuilder(right);
+                    currentGenerator.SetPatternBuilder(right);
                     VisitExpression(expression.Right);
                 }
             );
 
             // Reset the pattern builder that was used before implementing the unions.
-            queryGenerator.SetPatternBuilder(patternBuilder);
+            currentGenerator.SetPatternBuilder(patternBuilder);
         }
 
         private void VisitBinaryConstantExpression(BinaryExpression expression)
@@ -145,27 +145,27 @@ namespace Semiodesk.Trinity.Query
 
         private void VisitBinaryMemberExpression(ExpressionType type, MemberExpression member, ConstantExpression constant)
         {
-            ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
             switch (type)
             {
                 case ExpressionType.Equal:
-                    generator.WhereEqual(member, constant);
+                    currentGenerator.WhereEqual(member, constant);
                     break;
                 case ExpressionType.NotEqual:
-                    generator.WhereNotEqual(member, constant);
+                    currentGenerator.WhereNotEqual(member, constant);
                     break;
                 case ExpressionType.GreaterThan:
-                    generator.WhereGreaterThan(member, constant);
+                    currentGenerator.WhereGreaterThan(member, constant);
                     break;
                 case ExpressionType.GreaterThanOrEqual:
-                    generator.WhereGreaterThanOrEqual(member, constant);
+                    currentGenerator.WhereGreaterThanOrEqual(member, constant);
                     break;
                 case ExpressionType.LessThan:
-                    generator.WhereLessThan(member, constant);
+                    currentGenerator.WhereLessThan(member, constant);
                     break;
                 case ExpressionType.LessThanOrEqual:
-                    generator.WhereLessThanOrEqual(member, constant);
+                    currentGenerator.WhereLessThanOrEqual(member, constant);
                     break;
                 default:
                     throw new NotSupportedException(type.ToString());
@@ -179,28 +179,28 @@ namespace Semiodesk.Trinity.Query
                 VisitSubQueryExpression(subQuery);
             }
 
-            ISparqlQueryGenerator currentQueryGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
-            ISparqlQueryGenerator subQueryGenerator = _queryGeneratorTree.GetQueryGenerator(subQuery);
+            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator subGenerator = _queryGeneratorTree.GetQueryGenerator(subQuery);
 
             switch (type)
             {
                 case ExpressionType.Equal:
-                    currentQueryGenerator.WhereEqual(subQueryGenerator.ObjectVariable, constant);
+                    currentGenerator.WhereEqual(subGenerator.ObjectVariable, constant);
                     break;
                 case ExpressionType.NotEqual:
-                    currentQueryGenerator.WhereNotEqual(subQueryGenerator.ObjectVariable, constant);
+                    currentGenerator.WhereNotEqual(subGenerator.ObjectVariable, constant);
                     break;
                 case ExpressionType.GreaterThan:
-                    currentQueryGenerator.WhereGreaterThan(subQueryGenerator.ObjectVariable, constant);
+                    currentGenerator.WhereGreaterThan(subGenerator.ObjectVariable, constant);
                     break;
                 case ExpressionType.GreaterThanOrEqual:
-                    currentQueryGenerator.WhereGreaterThanOrEqual(subQueryGenerator.ObjectVariable, constant);
+                    currentGenerator.WhereGreaterThanOrEqual(subGenerator.ObjectVariable, constant);
                     break;
                 case ExpressionType.LessThan:
-                    currentQueryGenerator.WhereLessThan(subQueryGenerator.ObjectVariable, constant);
+                    currentGenerator.WhereLessThan(subGenerator.ObjectVariable, constant);
                     break;
                 case ExpressionType.LessThanOrEqual:
-                    currentQueryGenerator.WhereLessThanOrEqual(subQueryGenerator.ObjectVariable, constant);
+                    currentGenerator.WhereLessThanOrEqual(subGenerator.ObjectVariable, constant);
                     break;
                 default:
                     throw new NotSupportedException(type.ToString());
@@ -217,6 +217,68 @@ namespace Semiodesk.Trinity.Query
             return expression;
         }
         
+        public Expression VisitFromExpression(Expression expression)
+        {
+            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+
+            if (expression is SubQueryExpression)
+            {
+                SubQueryExpression subQuery = expression as SubQueryExpression;
+
+                ISparqlQueryGenerator subGenerator = _queryGeneratorTree.GetQueryGenerator(subQuery);
+
+                if (subGenerator.ObjectVariable != null)
+                {
+                    SparqlVariable o = _variableGenerator.GetObjectVariable();
+
+                    // The object of the sub query is the subject of the enclosing query.
+                    currentGenerator.SetSubjectVariable(subGenerator.ObjectVariable);
+                    currentGenerator.SetObjectVariable(o);
+
+                    // Make the subject variable of sub queries available for outer queries.
+                    currentGenerator.SelectVariable(subGenerator.SubjectVariable);
+                    currentGenerator.SelectVariable(o);
+                }
+            }
+            else
+            {
+                QuerySourceReferenceExpression querySource = expression.TryGetQuerySourceReference();
+
+                if(querySource != null)
+                {
+                    SparqlVariable s = _variableGenerator.GetVariable(querySource);
+                    SparqlVariable o = _variableGenerator.GetObjectVariable();
+
+                    // Set the variable name of the query source reference as subject of the current query.
+                    currentGenerator.SetSubjectVariable(s);
+                    currentGenerator.SetObjectVariable(o);
+
+                    // Make the subject variable of sub queries available for outer queries.
+                    currentGenerator.SelectVariable(s);
+                    currentGenerator.SelectVariable(o);
+                }
+            }
+
+            // Handle numeric result operators.
+            if (expression is MemberExpression && currentGenerator.HasNumericResultOperator())
+            {
+                if (currentGenerator.SubjectVariable != null && currentGenerator.SubjectVariable.IsGlobal())
+                {
+                    currentGenerator.WhereResource(currentGenerator.SubjectVariable);
+                }
+
+                // If the query model has a numeric result operator, we make all the following
+                // expressions optional in order to also allow to count zero occurences.
+                var optionalBuilder = new GraphPatternBuilder(GraphPatternType.Optional);
+
+                currentGenerator.Child(optionalBuilder);
+
+                currentGenerator.SetPatternBuilder(optionalBuilder);
+            }
+
+            return expression;
+        }
+
         protected override Expression VisitInvocationExpression(InvocationExpression expression)
         {
             throw new NotImplementedException();
@@ -234,39 +296,13 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitMemberExpression(MemberExpression expression)
         {
-            if (expression.Expression is SubQueryExpression)
+            Expression e = expression.Expression;
+
+            if (e is SubQueryExpression || e is QuerySourceReferenceExpression)
             {
-                SubQueryExpression subQuery = expression.Expression as SubQueryExpression;
+                ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
-                ISparqlQueryGenerator currentQueryGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
-                ISparqlQueryGenerator subQueryGenerator = _queryGeneratorTree.GetQueryGenerator(subQuery);
-
-                if (subQueryGenerator.ObjectVariable != null)
-                {
-                    SparqlVariable o = _variableGenerator.GetObjectVariable();
-
-                    // Make the subject variable of sub queries available for outer queries.
-                    currentQueryGenerator.SelectVariable(subQueryGenerator.SubjectVariable);
-
-                    // The object of the sub query is the subject of the enclosing query.
-                    currentQueryGenerator.SetSubjectVariable(subQueryGenerator.ObjectVariable);
-                    currentQueryGenerator.SetObjectVariable(o, true);
-
-                    currentQueryGenerator.Where(expression, o);
-                }
-            }
-            else if (expression.Expression is QuerySourceReferenceExpression)
-            {
-                SparqlVariable o = _variableGenerator.GetObjectVariable();
-
-                ISparqlQueryGenerator currentQueryGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
-                ISparqlQueryGenerator rootQueryGenerator = _queryGeneratorTree.GetRootQueryGenerator();
-
-                // Set the variable name of the query source reference as subject of the current query.
-                currentQueryGenerator.SetSubjectVariable(rootQueryGenerator.SubjectVariable, true);
-                currentQueryGenerator.SetObjectVariable(o, true);
-
-                currentQueryGenerator.Where(expression, o);
+                currentGenerator.Where(expression, currentGenerator.ObjectVariable);
             }
 
             return expression;
@@ -283,7 +319,7 @@ namespace Semiodesk.Trinity.Query
 
             if(method == "Equals")
             {
-                ISparqlQueryGenerator currentQueryGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+                ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
                 ConstantExpression constant = expression.Arguments.First() as ConstantExpression;
 
@@ -291,11 +327,11 @@ namespace Semiodesk.Trinity.Query
                 {
                     MemberExpression member = expression.Object as MemberExpression;
 
-                    currentQueryGenerator.WhereEqual(member, constant);
+                    currentGenerator.WhereEqual(member, constant);
                 }
                 else if(expression.Object is SubQueryExpression)
                 {
-                    currentQueryGenerator.WhereEqual(currentQueryGenerator.ObjectVariable, constant);
+                    currentGenerator.WhereEqual(currentGenerator.ObjectVariable, constant);
                 }
             }
             else
@@ -326,35 +362,36 @@ namespace Semiodesk.Trinity.Query
             throw new NotImplementedException();
         }
 
-        public Expression VisitSelectExpression(Expression expression, bool isRootQuery)
+        public Expression VisitSelectExpression(Expression expression)
         {
-            ISparqlQueryGenerator currentQueryGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
-            // Handle the selection of bindings in the root or sub queries.
-            currentQueryGenerator.Select(expression, isRootQuery);
+            // Handle the selection of bindings and the creation of optional blocks in sub-queries.
+            generator.Select(expression);
 
             return expression;
         }
 
         protected override Expression VisitSubQueryExpression(SubQueryExpression expression)
         {
-            ISparqlQueryGenerator currentQueryGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
-            ISparqlQueryGenerator subQueryGenerator = _queryGeneratorTree.CreateSubQueryGenerator(expression);
+            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator subGenerator = _queryGeneratorTree.CreateSubQueryGenerator(expression);
 
             // Descend the query tree and implement the sub query before the outer one.
-            _queryGeneratorTree.SetCurrentQueryGenerator(subQueryGenerator);
+            _queryGeneratorTree.SetCurrentQueryGenerator(subGenerator);
 
             expression.QueryModel.Accept(_queryModelVisitor);
 
             // Reset the query generator and continue with implementing the current query.
-            _queryGeneratorTree.SetCurrentQueryGenerator(currentQueryGenerator);
+            _queryGeneratorTree.SetCurrentQueryGenerator(currentGenerator);
 
             // Sub queries always select the subject from the select clause of the root query.
-            subQueryGenerator.SelectVariable(currentQueryGenerator.SubjectVariable);
+            subGenerator.SelectVariable(currentGenerator.SubjectVariable);
 
-            string s = subQueryGenerator.BuildQuery();
+            // TODO: Hacky.
+            string s = subGenerator.BuildQuery();
 
-            currentQueryGenerator.Child(subQueryGenerator.GetQueryBuilder());
+            currentGenerator.Child(subGenerator.GetQueryBuilder());
 
             return expression;
         }
@@ -363,7 +400,7 @@ namespace Semiodesk.Trinity.Query
         {
             ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
-            generator.WhereOfType(generator.SubjectVariable, expression.TypeOperand);
+            generator.WhereResourceOfType(generator.SubjectVariable, expression.TypeOperand);
 
             return expression;
         }

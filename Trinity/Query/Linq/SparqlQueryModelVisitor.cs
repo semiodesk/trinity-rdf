@@ -97,19 +97,28 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitMainFromClause(MainFromClause fromClause, QueryModel queryModel)
         {
-            if(fromClause.FromExpression is MemberExpression)
+            // Try to set the subject and object variable from the from-clause.
+            _expressionVisitor.VisitFromExpression(fromClause.FromExpression);
+
+            // The from clause is parsed first when handling a query. This allows us to detect if the
+            // query source is a subquery and proceed with implementing it _before_ hanlding its results.
+            if (fromClause.FromExpression is MemberExpression)
             {
                 MemberExpression memberExpression = fromClause.FromExpression as MemberExpression;
 
                 if (memberExpression.Expression is SubQueryExpression)
                 {
+                    // First, implement the subquery..
                     SubQueryExpression subQueryExpression = memberExpression.Expression as SubQueryExpression;
 
                     _expressionVisitor.VisitExpression(subQueryExpression);
                 }
 
+                // Handle the results of the subquery.
                 _expressionVisitor.VisitExpression(fromClause.FromExpression);
             }
+
+            // Nothing needs to be done for other expression types.
         }
 
         public override void VisitQueryModel(QueryModel queryModel)
@@ -119,8 +128,11 @@ namespace Semiodesk.Trinity.Query
             {
                 ISparqlQueryGenerator generator = _queryGeneratorTree.GetRootQueryGenerator();
 
-                _queryGeneratorTree.RegisterQueryGenerator(generator, queryModel);
+                _queryGeneratorTree.RegisterQueryModel(generator, queryModel);
             }
+
+            // Handle the main from clause before the select.
+            queryModel.MainFromClause.Accept(this, queryModel);
 
             // This possibly traverses into sub-queries.
             queryModel.SelectClause.Accept(this, queryModel);
@@ -135,9 +147,7 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitSelectClause(SelectClause selectClause, QueryModel queryModel)
         {
-            queryModel.MainFromClause.Accept(this, queryModel);
-
-            _expressionVisitor.VisitSelectExpression(selectClause.Selector, true);
+            _expressionVisitor.VisitSelectExpression(selectClause.Selector);
 
             for (int i = 0; i < queryModel.BodyClauses.Count; i++)
             {

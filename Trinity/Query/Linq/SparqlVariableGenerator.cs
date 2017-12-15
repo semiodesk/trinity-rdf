@@ -25,8 +25,11 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
+using Remotion.Linq.Clauses;
+using Remotion.Linq.Clauses.Expressions;
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Reflection;
 using VDS.RDF.Query;
 
@@ -37,6 +40,8 @@ namespace Semiodesk.Trinity.Query
         #region Members
 
         private readonly Dictionary<string, int> _variableCounters = new Dictionary<string, int>();
+
+        private readonly Dictionary<Expression, SparqlVariable> _expressionVariables = new Dictionary<Expression, SparqlVariable>();
 
         #endregion
 
@@ -63,14 +68,54 @@ namespace Semiodesk.Trinity.Query
             return new SparqlVariable(name + n);
         }
 
-        public SparqlVariable GetGlobalVariable(string name, bool isResultVariable = false)
+        public SparqlVariable GetVariable(QuerySourceReferenceExpression expression)
+        {
+            SparqlVariable v;
+
+            if (!_expressionVariables.ContainsKey(expression))
+            {
+                IQuerySource querySource = expression.ReferencedQuerySource;
+
+                v = GetVariable(querySource.ItemName);
+
+                _expressionVariables[expression] = v;
+            }
+            else
+            {
+                v = _expressionVariables[expression];
+            }
+
+            return v;
+        }
+
+        public SparqlVariable GetGlobalVariable(string name)
         {
             if (string.IsNullOrEmpty(name))
             {
                 throw new ArgumentNullException("name");
             }
 
-            return new SparqlVariable(name.ToCamelCase() + "_", isResultVariable);
+            return new SparqlVariable(name.ToCamelCase() + "_");
+        }
+
+        public SparqlVariable GetGlobalVariable(QuerySourceReferenceExpression expression)
+        {
+            SparqlVariable v;
+
+            if (!_expressionVariables.ContainsKey(expression))
+            {
+                IQuerySource querySource = expression.ReferencedQuerySource;
+
+                v = GetGlobalVariable(querySource.ItemName);
+
+                _expressionVariables[expression] = v;
+            }
+            else
+            {
+                v = _expressionVariables[expression];
+            }
+
+            return v;
         }
 
         public SparqlVariable GetMemberVariable(MemberInfo member)

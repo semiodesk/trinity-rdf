@@ -39,6 +39,8 @@ namespace Semiodesk.Trinity.Query
     {
         #region Members
 
+        bool IsRoot { get; }
+
         bool IsBound { get; }
 
         SparqlVariable SubjectVariable { get; }
@@ -53,11 +55,13 @@ namespace Semiodesk.Trinity.Query
 
         string BuildQuery();
 
+        bool HasNumericResultOperator();
+
         void Child(IQueryBuilder queryBuilder);
 
-        void SetQueryModel(QueryModel queryModel);
+        void Child(GraphPatternBuilder patternBuilder);
 
-        void SetVariableGenerator(SparqlVariableGenerator variableGenerator);
+        void SetQueryContext(SparqlVariableGenerator variableGenerator, QueryModel queryModel);
 
         void SetObjectOperator(ResultOperatorBase resultOperator);
 
@@ -69,9 +73,11 @@ namespace Semiodesk.Trinity.Query
 
         void SelectVariable(SparqlVariable variable);
 
-        void Select(Expression selector, bool isRootQuery);
+        void Select(Expression selector);
 
-        void WhereOfType(SparqlVariable subject, Type type);
+        void WhereResource(SparqlVariable subject);
+
+        void WhereResourceOfType(SparqlVariable subject, Type type);
 
         void Where(MemberExpression member, SparqlVariable variable);
 

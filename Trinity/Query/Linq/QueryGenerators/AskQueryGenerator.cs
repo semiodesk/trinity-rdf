@@ -25,7 +25,6 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
-using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
 using System;
 using System.Linq.Expressions;
@@ -40,23 +39,22 @@ namespace Semiodesk.Trinity.Query
         public AskQueryGenerator()
             : base(VDS.RDF.Query.Builder.QueryBuilder.Ask())
         {
+            IsRoot = true;
         }
 
         #endregion
 
         #region Methods
 
-        public override void Select(Expression selector, bool isRootQuery)
+        public override void Select(Expression selector)
         {
-            base.Select(selector, isRootQuery);
+            base.Select(selector);
 
             if (selector is QuerySourceReferenceExpression)
             {
                 QuerySourceReferenceExpression sourceExpression = selector as QuerySourceReferenceExpression;
 
-                IQuerySource querySource = sourceExpression.ReferencedQuerySource;
-
-                SparqlVariable s = VariableGenerator.GetGlobalVariable(querySource.ItemName);
+                SparqlVariable s = VariableGenerator.GetGlobalVariable(sourceExpression);
                 SparqlVariable p = VariableGenerator.GetGlobalVariable("p");
                 SparqlVariable o = VariableGenerator.GetGlobalVariable("o");
 
@@ -64,7 +62,13 @@ namespace Semiodesk.Trinity.Query
                 SetSubjectVariable(s);
                 SetObjectVariable(o);
 
-                WhereOfType(s, querySource.ItemType);
+                // Add the type constraint on the referenced query source.
+                Type type = sourceExpression.ReferencedQuerySource.ItemType;
+
+                if(typeof(Resource).IsAssignableFrom(type))
+                {
+                    WhereResourceOfType(s, type);
+                }
             }
         }
 
