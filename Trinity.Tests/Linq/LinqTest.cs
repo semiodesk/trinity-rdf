@@ -296,27 +296,27 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectStringWithBinaryExpressionOnStringLength()
         {
-            var names = from person in Model.AsQueryable<Person>() where person.FirstName.Length == 4 select person.FirstName;
+            var names = from person in Model.AsQueryable<Person>() where person.FirstName.Length == 5 select person.FirstName;
 
             Assert.AreEqual(1, names.ToList().Count);
 
-            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length != 4 select person.FirstName;
+            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length != 5 select person.FirstName;
 
             Assert.AreEqual(2, names.ToList().Count);
 
-            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length < 4 select person.FirstName;
+            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length < 5 select person.FirstName;
 
             Assert.AreEqual(2, names.ToList().Count);
 
-            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length <= 4 select person.FirstName;
+            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length <= 5 select person.FirstName;
 
             Assert.AreEqual(3, names.ToList().Count);
 
-            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length > 4 select person.FirstName;
+            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length > 5 select person.FirstName;
 
             Assert.AreEqual(0, names.ToList().Count);
 
-            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length >= 4 select person.FirstName;
+            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length >= 5 select person.FirstName;
 
             Assert.AreEqual(1, names.ToList().Count);
         }
