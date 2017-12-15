@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Reflection;
+using System.Collections.Generic;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -41,6 +42,17 @@ namespace Semiodesk.Trinity.Query
         public static bool Is(this MemberInfo member, Type type)
         {
             return type.IsAssignableFrom(member.GetMemberType());
+        }
+
+        public static bool IsSystemType(this MemberInfo member)
+        {
+            HashSet<Type> systemTypes = new HashSet<Type>()
+            {
+                typeof(DateTime),
+                typeof(String)
+            };
+
+            return systemTypes.Contains(member.DeclaringType);
         }
     }
 }

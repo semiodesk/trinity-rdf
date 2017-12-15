@@ -170,24 +170,55 @@ namespace Semiodesk.Trinity.Query
                 MemberExpression memberExpression = expression as MemberExpression;
                 MemberInfo member = memberExpression.Member;
 
-                var s = BuildMemberAccess(memberExpression.Expression, null);
-                var p = member.TryGetRdfPropertyAttribute();
-                var o = new SparqlVariable(member.Name.ToLowerInvariant());
-
-                if (buildMemberAccessTriple == null)
+                if(member.IsSystemType())
                 {
-                    PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(p.MappedUri).Object(o.Name));
+                    return VariableGenerator.GetVariable(memberExpression.Expression);
                 }
                 else
                 {
-                    buildMemberAccessTriple(s, p.MappedUri);
-                }
+                    var s = BuildMemberAccess(memberExpression.Expression, null);
+                    var p = member.TryGetRdfPropertyAttribute();
+                    var o = new SparqlVariable(member.Name.ToLowerInvariant());
 
-                return o;
+                    if (buildMemberAccessTriple == null)
+                    {
+                        PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(p.MappedUri).Object(o.Name));
+                    }
+                    else
+                    {
+                        buildMemberAccessTriple(s, p.MappedUri);
+                    }
+
+                    return o;
+                }
             }
             else
             {
                 return VariableGenerator.GetVariable(expression);
+            }
+        }
+
+        // TODO: Could be extension to GraphPatternBuilder (i.e. GraphPatternBuilder.FilterSystem)
+        protected void BuildFilterOnSystemType(MemberExpression expression, Func<NumericExpression, BooleanExpression> buildFilter)
+        {
+            SparqlVariable o = VariableGenerator.GetVariable(expression.Expression);
+
+            MemberInfo member = expression.Member;
+
+            if (member.DeclaringType == typeof(String))
+            {
+                switch (member.Name)
+                {
+                    case "Length":
+                        PatternBuilder.Filter(e => buildFilter(e.StrLen(e.Variable(o.Name))));
+                        break;
+                    default:
+                        throw new NotSupportedException();
+                }
+            }
+            else if (member.DeclaringType == typeof(DateTime))
+            {
+                throw new NotImplementedException();
             }
         }
 
@@ -284,14 +315,19 @@ namespace Semiodesk.Trinity.Query
         {
             ThrowOnBound();
 
-            PatternBuilder.Filter(e => e.Variable(variable.Name) == new LiteralExpression(constant.AsSparqlExpression()));
+            PatternBuilder.Filter(e => e.Variable(variable.Name) == constant.AsLiteralExpression());
         }
 
-        public void WhereEqual(MemberExpression member, ConstantExpression constant)
+        public void WhereEqual(MemberExpression expression, ConstantExpression constant)
         {
             ThrowOnBound();
 
-            BuildMemberAccess(member, constant.AsNode());
+            BuildMemberAccess(expression, constant.AsNode());
+
+            if (expression.Member.IsSystemType())
+            {
+                BuildFilterOnSystemType(expression, e => e == constant.AsNumericExpression());
+            }
         }
 
         public void WhereNotEqual(SparqlVariable variable, ConstantExpression constant)
@@ -301,33 +337,47 @@ namespace Semiodesk.Trinity.Query
             PatternBuilder.Filter(e => e.Variable(variable.Name) != new LiteralExpression(constant.AsSparqlExpression()));
         }
 
-        public void WhereNotEqual(MemberExpression member, ConstantExpression constant)
+        public void WhereNotEqual(MemberExpression expression, ConstantExpression constant)
         {
             ThrowOnBound();
 
             SparqlVariable o = VariableGenerator.GetObjectVariable();
 
-            BuildMemberAccess(member, o);
+            BuildMemberAccess(expression, o);
 
-            PatternBuilder.Filter(e => e.Variable(o.Name) != new LiteralExpression(constant.AsSparqlExpression()));
+            if (expression.Member.IsSystemType())
+            {
+                BuildFilterOnSystemType(expression, e => e != constant.AsNumericExpression());
+            }
+            else
+            {
+                PatternBuilder.Filter(e => e.Variable(o.Name) != constant.AsNumericExpression());
+            }
         }
 
         public void WhereGreaterThan(SparqlVariable variable, ConstantExpression constant)
         {
             ThrowOnBound();
 
-            PatternBuilder.Filter(e => e.Variable(variable.Name) > new LiteralExpression(constant.AsSparqlExpression()));
+            PatternBuilder.Filter(e => e.Variable(variable.Name) > constant.AsNumericExpression());
         }
 
-        public void WhereGreaterThan(MemberExpression member, ConstantExpression constant)
+        public void WhereGreaterThan(MemberExpression expression, ConstantExpression constant)
         {
             ThrowOnBound();
 
             SparqlVariable o = VariableGenerator.GetObjectVariable();
 
-            BuildMemberAccess(member, o);
+            BuildMemberAccess(expression, o);
 
-            PatternBuilder.Filter(e => e.Variable(o.Name) > new LiteralExpression(constant.AsSparqlExpression()));
+            if (expression.Member.IsSystemType())
+            {
+                BuildFilterOnSystemType(expression, e => e > constant.AsNumericExpression());
+            }
+            else
+            {
+                PatternBuilder.Filter(e => e.Variable(o.Name) > constant.AsNumericExpression());
+            }
         }
 
         public void WhereGreaterThanOrEqual(SparqlVariable variable, ConstantExpression constant)
@@ -337,15 +387,22 @@ namespace Semiodesk.Trinity.Query
             PatternBuilder.Filter(e => e.Variable(variable.Name) >= new LiteralExpression(constant.AsSparqlExpression()));
         }
 
-        public void WhereGreaterThanOrEqual(MemberExpression member, ConstantExpression constant)
+        public void WhereGreaterThanOrEqual(MemberExpression expression, ConstantExpression constant)
         {
             ThrowOnBound();
 
             SparqlVariable o = VariableGenerator.GetObjectVariable();
 
-            BuildMemberAccess(member, o);
+            BuildMemberAccess(expression, o);
 
-            PatternBuilder.Filter(e => e.Variable(o.Name) >= new LiteralExpression(constant.AsSparqlExpression()));
+            if (expression.Member.IsSystemType())
+            {
+                BuildFilterOnSystemType(expression, e => e >= constant.AsNumericExpression());
+            }
+            else
+            {
+                PatternBuilder.Filter(e => e.Variable(o.Name) >= constant.AsNumericExpression());
+            }
         }
 
         public void WhereLessThan(SparqlVariable variable, ConstantExpression constant)
@@ -355,15 +412,22 @@ namespace Semiodesk.Trinity.Query
             PatternBuilder.Filter(e => e.Variable(variable.Name) < new LiteralExpression(constant.AsSparqlExpression()));
         }
 
-        public void WhereLessThan(MemberExpression member, ConstantExpression constant)
+        public void WhereLessThan(MemberExpression expression, ConstantExpression constant)
         {
             ThrowOnBound();
 
             SparqlVariable o = VariableGenerator.GetObjectVariable();
 
-            BuildMemberAccess(member, o);
+            BuildMemberAccess(expression, o);
 
-            PatternBuilder.Filter(e => e.Variable(o.Name) < new LiteralExpression(constant.AsSparqlExpression()));
+            if (expression.Member.IsSystemType())
+            {
+                BuildFilterOnSystemType(expression, e => e < constant.AsNumericExpression());
+            }
+            else
+            {
+                PatternBuilder.Filter(e => e.Variable(o.Name) < constant.AsNumericExpression());
+            }
         }
 
         public void WhereLessThanOrEqual(SparqlVariable variable, ConstantExpression constant)
@@ -373,15 +437,22 @@ namespace Semiodesk.Trinity.Query
             PatternBuilder.Filter(e => e.Variable(variable.Name) <= new LiteralExpression(constant.AsSparqlExpression()));
         }
 
-        public void WhereLessThanOrEqual(MemberExpression member, ConstantExpression constant)
+        public void WhereLessThanOrEqual(MemberExpression expression, ConstantExpression constant)
         {
             ThrowOnBound();
 
             SparqlVariable o = VariableGenerator.GetObjectVariable();
 
-            BuildMemberAccess(member, o);
+            BuildMemberAccess(expression, o);
 
-            PatternBuilder.Filter(e => e.Variable(o.Name) <= new LiteralExpression(constant.AsSparqlExpression()));
+            if (expression.Member.IsSystemType())
+            {
+                BuildFilterOnSystemType(expression, e => e <= constant.AsNumericExpression());
+            }
+            else
+            {
+                PatternBuilder.Filter(e => e.Variable(o.Name) <= constant.AsNumericExpression());
+            }
         }
 
         public void FilterRegex(SparqlVariable variable, string pattern, bool ignoreCase)
@@ -398,9 +469,9 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public void FilterRegex(MemberExpression member, string pattern, bool ignoreCase)
+        public void FilterRegex(MemberExpression expression, string pattern, bool ignoreCase)
         {
-            SparqlVariable o = VariableGenerator.GetVariable(member);
+            SparqlVariable o = VariableGenerator.GetVariable(expression);
 
             FilterRegex(o, pattern, ignoreCase);
         }

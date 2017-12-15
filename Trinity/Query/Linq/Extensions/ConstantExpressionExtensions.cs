@@ -29,6 +29,7 @@ using System;
 using System.Linq.Expressions;
 using System.Xml;
 using VDS.RDF;
+using VDS.RDF.Query.Builder.Expressions;
 using VDS.RDF.Query.Expressions;
 using VDS.RDF.Query.Expressions.Primary;
 
@@ -49,6 +50,16 @@ namespace Semiodesk.Trinity.Query
             {
                 return new ConstantTerm(new NodeFactory().CreateLiteralNode(value, datatype));
             }
+        }
+
+        public static LiteralExpression AsLiteralExpression(this ConstantExpression constant)
+        {
+            return new LiteralExpression(constant.AsSparqlExpression());
+        }
+
+        public static NumericExpression AsNumericExpression(this ConstantExpression constant)
+        {
+            return new NumericExpression(constant.AsSparqlExpression());
         }
 
         public static INode AsNode(this ConstantExpression constant)
