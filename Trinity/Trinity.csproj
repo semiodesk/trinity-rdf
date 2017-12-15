@@ -137,7 +137,6 @@
     <Compile Include="Query\Linq\QueryGenerators\SelectQueryGenerator.cs" />
     <Compile Include="Query\Linq\QueryGenerators\SelectTriplesQueryGenerator.cs" />
     <Compile Include="Query\Linq\SparqlQueryGeneratorTree.cs" />
-    <Compile Include="Query\Linq\Extensions\QueryModelExtensions.cs" />
     <Compile Include="Query\Linq\SparqlQueryModelVisitor.cs" />
     <Compile Include="Query\Linq\SparqlQueryExecutor.cs" />
     <Compile Include="Query\Linq\SparqlQueryGenerator.cs" />

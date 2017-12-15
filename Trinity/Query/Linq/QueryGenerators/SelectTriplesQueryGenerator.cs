@@ -25,12 +25,10 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
-using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
 using System;
 using System.Linq.Expressions;
 using VDS.RDF.Query;
-using VDS.RDF.Query.Builder;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -40,30 +38,29 @@ namespace Semiodesk.Trinity.Query
 
         public SelectTriplesQueryGenerator()
         {
+            IsRoot = true;
         }
 
         #endregion
 
         #region Methods
 
-        public override void Select(Expression selector, bool isRootQuery)
+        public override void Select(Expression selector)
         {
-            base.Select(selector, isRootQuery);
+            base.Select(selector);
 
             // In any case, we need to describe the queried object provided by the from expression.
             QuerySourceReferenceExpression sourceExpression = selector.TryGetQuerySourceReference();
 
             if (sourceExpression != null)
             {
-                IQuerySource querySource = sourceExpression.ReferencedQuerySource;
-
                 SparqlVariable s = null;
                 SparqlVariable p = VariableGenerator.GetGlobalVariable("p");
                 SparqlVariable o = VariableGenerator.GetGlobalVariable("o");
 
                 if (selector is MemberExpression)
                 {
-                    s = VariableGenerator.GetVariable(querySource.ItemName);
+                    s = VariableGenerator.GetVariable(sourceExpression);
 
                     // We set the query subject, just in case there are any sub queries.
                     SetSubjectVariable(s);
@@ -84,7 +81,7 @@ namespace Semiodesk.Trinity.Query
 
                     if (type != null)
                     {
-                        WhereOfType(m, type);
+                        WhereResourceOfType(m, type);
                     }
 
                     // The member can be accessed via chained properties (?s ex:prop1 / ex:prop2 ?m).
@@ -92,25 +89,26 @@ namespace Semiodesk.Trinity.Query
                 }
                 else if (selector is QuerySourceReferenceExpression)
                 {
-                    s = VariableGenerator.GetGlobalVariable(querySource.ItemName);
+                    s = VariableGenerator.GetGlobalVariable(sourceExpression);
 
                     // We set the query subject, just in case there are any sub queries.
                     SetSubjectVariable(s);
-
-                    // Only select the query source variables if we directly return the object.
                     SetObjectVariable(o);
 
+                    // Only select the query source variables if we directly return the object.
                     SelectVariable(s);
                     SelectVariable(p);
                     SelectVariable(o);
 
                     PatternBuilder.Where(t => t.Subject(s.Name).Predicate(p.Name).Object(o.Name));
-                }
 
-                // Assert the subject type, if applicable.
-                if (querySource.ItemType != null)
-                {
-                    WhereOfType(s, querySource.ItemType);
+                    // Add the type constraint on the referenced query source.
+                    Type type = sourceExpression.ReferencedQuerySource.ItemType;
+
+                    if (typeof(Resource).IsAssignableFrom(type))
+                    {
+                        WhereResourceOfType(s, type);
+                    }
                 }
             }
         }

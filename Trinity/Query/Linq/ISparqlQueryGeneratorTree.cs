@@ -38,9 +38,11 @@ namespace Semiodesk.Trinity.Query
 
         ISparqlQueryGenerator CreateSubQueryGenerator(SubQueryExpression expression);
 
-        void RegisterQueryGenerator(ISparqlQueryGenerator queryGenerator, QueryModel queryModel);
+        void RegisterQueryModel(ISparqlQueryGenerator queryGenerator, QueryModel queryModel);
 
-        void RegisterQueryGenerator(ISparqlQueryGenerator queryGenerator, SubQueryExpression expression);
+        void RegisterQueryExpression(ISparqlQueryGenerator queryGenerator, SubQueryExpression expression);
+
+        bool IsRootQueryGenerator();
 
         ISparqlQueryGenerator GetRootQueryGenerator();
 
@@ -55,8 +57,6 @@ namespace Semiodesk.Trinity.Query
         bool HasQueryGenerator(SubQueryExpression subQuery);
 
         ISparqlQueryGenerator GetQueryGenerator(SubQueryExpression subQuery);
-
-        void Traverse(QueryGeneratorTraversalDelegate callback);
 
         IEnumerable<ISparqlQueryGenerator> TryGetSubQueries(ISparqlQueryGenerator query);
 

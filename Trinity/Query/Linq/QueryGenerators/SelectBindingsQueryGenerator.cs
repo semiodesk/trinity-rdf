@@ -38,15 +38,16 @@ namespace Semiodesk.Trinity.Query
 
         public SelectBindingsQueryGenerator()
         {
+            IsRoot = true;
         }
 
         #endregion
 
         #region Methods
 
-        public override void Select(Expression selector, bool isRootQuery)
+        public override void Select(Expression selector)
         {
-            base.Select(selector, isRootQuery);
+            base.Select(selector);
 
             if (selector is MemberExpression)
             {
@@ -56,7 +57,7 @@ namespace Semiodesk.Trinity.Query
 
                 if(querySource != null)
                 {
-                    SparqlVariable s = VariableGenerator.GetGlobalVariable(querySource.ReferencedQuerySource.ItemName);
+                    SparqlVariable s = VariableGenerator.GetGlobalVariable(querySource);
                     SparqlVariable o = VariableGenerator.GetObjectVariable();
 
                     // Select all triples having the resource as subject.
@@ -66,12 +67,12 @@ namespace Semiodesk.Trinity.Query
                     // Assert the triples which select the binding value.
                     Where(member, o);
 
-                    // Assert the object type, if applicable.
+                    // Assert the object type.
                     Type type = member.Member.GetMemberType();
 
                     if (typeof(Resource).IsAssignableFrom(type))
                     {
-                        WhereOfType(s, type);
+                        WhereResourceOfType(s, type);
                     }
                 }
             }

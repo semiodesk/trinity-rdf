@@ -28,6 +28,7 @@
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
+using Remotion.Linq.Clauses.ResultOperators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -43,6 +44,8 @@ namespace Semiodesk.Trinity.Query
     internal class SparqlQueryGenerator : ISparqlQueryGenerator
     {
         #region Members
+
+        public bool IsRoot { get; protected set; }
 
         public bool IsBound { get; private set; }
 
@@ -85,6 +88,28 @@ namespace Semiodesk.Trinity.Query
 
         #region Methods
 
+        public bool HasNumericResultOperator()
+        {
+            return QueryModel.ResultOperators.Any(op => IsNumericResultOperator(op));
+        }
+
+        private bool IsNumericResultOperator(ResultOperatorBase op)
+        {
+            if (op is SumResultOperator
+                || op is CountResultOperator
+                || op is LongCountResultOperator
+                || op is AverageResultOperator
+                || op is MinResultOperator
+                || op is MaxResultOperator)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+    
         public string BuildQuery()
         {
             if (!IsBound)
@@ -160,14 +185,10 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public void SetQueryModel(QueryModel queryModel)
-        {
-            QueryModel = queryModel;
-        }
-
-        public void SetVariableGenerator(SparqlVariableGenerator variableGenerator)
+        public void SetQueryContext(SparqlVariableGenerator variableGenerator, QueryModel queryModel)
         {
             VariableGenerator = variableGenerator;
+            QueryModel = queryModel;
         }
 
         public virtual void SetObjectOperator(ResultOperatorBase resultOperator)
@@ -243,32 +264,16 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public virtual void Select(Expression selector, bool isRootQuery)
+        public virtual void Select(Expression selector)
         {
             ThrowOnBound();
         }
 
         public void Where(MemberExpression member, SparqlVariable variable)
         {
-            SparqlVariable s = SubjectVariable;
-
             RdfPropertyAttribute attribute = member.Member.TryGetCustomAttribute<RdfPropertyAttribute>();
 
-            if (QueryModel.HasNumericResultOperator())
-            {
-                SparqlVariable p2 = VariableGenerator.GetPredicateVariable();
-                SparqlVariable o2 = VariableGenerator.GetObjectVariable();
-
-                PatternBuilder.Where(t => t.Subject(s.Name).Predicate(p2.Name).Object(o2.Name));
-
-                // For numeric results, allow to select non existing triple patterns as zero values.
-                PatternBuilder.Optional(g => g.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(variable.Name)));
-            }
-            else
-            {
-                // Otherwise make the pattern non-optional.
-                PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(variable.Name));
-            }
+            PatternBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(attribute.MappedUri).Object(variable.Name));
         }
 
         public void WhereEqual(SparqlVariable variable, ConstantExpression constant)
@@ -375,7 +380,17 @@ namespace Semiodesk.Trinity.Query
             PatternBuilder.Filter(e => e.Variable(o.Name) <= new LiteralExpression(constant.AsSparqlExpression()));
         }
 
-        public void WhereOfType(SparqlVariable subject, Type type)
+        public void WhereResource(SparqlVariable subject)
+        {
+            ThrowOnBound();
+
+            SparqlVariable p = VariableGenerator.GetPredicateVariable();
+            SparqlVariable o = VariableGenerator.GetObjectVariable();
+
+            PatternBuilder.Where(t => t.Subject(subject.Name).Predicate(p.Name).Object(o.Name));
+        }
+
+        public void WhereResourceOfType(SparqlVariable subject, Type type)
         {
             ThrowOnBound();
 
@@ -430,6 +445,11 @@ namespace Semiodesk.Trinity.Query
         public void Child(IQueryBuilder queryBuilder)
         {
             PatternBuilder.Child(queryBuilder);
+        }
+
+        public void Child(GraphPatternBuilder patternBuilder)
+        {
+            PatternBuilder.Child(patternBuilder);
         }
 
         public IQueryBuilder GetQueryBuilder()

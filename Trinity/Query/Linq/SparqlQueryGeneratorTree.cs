@@ -71,7 +71,7 @@ namespace Semiodesk.Trinity.Query
         {
             ISparqlQueryGenerator generator = new SelectQueryGenerator();
 
-            RegisterQueryGenerator(generator, expression);
+            RegisterQueryExpression(generator, expression);
 
             if (_currentQueryGenerator != null)
             {
@@ -85,34 +85,42 @@ namespace Semiodesk.Trinity.Query
             return generator;
         }
 
-        private void AddSubQueryGenerator(ISparqlQueryGenerator queryGenerator, ISparqlQueryGenerator subQueryGenerator)
+        private void AddSubQueryGenerator(ISparqlQueryGenerator generator, ISparqlQueryGenerator subQueryGenerator)
         {
             // Add the sub query to the query tree.
-            if (_generatorTree.ContainsKey(queryGenerator))
+            if (_generatorTree.ContainsKey(generator))
             {
-                _generatorTree[queryGenerator].Add(subQueryGenerator);
+                _generatorTree[generator].Add(subQueryGenerator);
             }
             else
             {
-                _generatorTree[queryGenerator] = new List<ISparqlQueryGenerator>() { subQueryGenerator };
+                _generatorTree[generator] = new List<ISparqlQueryGenerator>() { subQueryGenerator };
             }
         }
 
-        public void RegisterQueryGenerator(ISparqlQueryGenerator queryGenerator, QueryModel queryModel)
+        public void RegisterQueryModel(ISparqlQueryGenerator generator, QueryModel queryModel)
         {
-            queryGenerator.SetVariableGenerator(_variableGenerator);
-            queryGenerator.SetQueryModel(queryModel);
+            if(!_queryModelGenerators.ContainsKey(queryModel))
+            {
+                generator.SetQueryContext(_variableGenerator, queryModel);
 
-            _queryModelGenerators[queryModel] = queryGenerator;
+                _queryModelGenerators[queryModel] = generator;
+            }
         }
 
-        public void RegisterQueryGenerator(ISparqlQueryGenerator queryGenerator, SubQueryExpression expression)
+        public void RegisterQueryExpression(ISparqlQueryGenerator generator, SubQueryExpression expression)
         {
-            queryGenerator.SetVariableGenerator(_variableGenerator);
-            queryGenerator.SetQueryModel(expression.QueryModel);
+            if (!_expressionGenerators.ContainsKey(expression))
+            {
+                RegisterQueryModel(generator, expression.QueryModel);
 
-            _expressionGenerators[expression] = queryGenerator;
-            _queryModelGenerators[expression.QueryModel] = queryGenerator;
+                _expressionGenerators[expression] = generator;
+            }
+        }
+
+        public bool IsRootQueryGenerator()
+        {
+            return _rootQueryGenerator == _currentQueryGenerator;
         }
 
         public ISparqlQueryGenerator GetRootQueryGenerator()
@@ -150,24 +158,6 @@ namespace Semiodesk.Trinity.Query
             return _expressionGenerators[subQuery];
         }
 
-        public void Traverse(QueryGeneratorTraversalDelegate callback)
-        {
-            Traverse(_rootQueryGenerator, callback);
-        }
-
-        private void Traverse(ISparqlQueryGenerator generator, QueryGeneratorTraversalDelegate callback)
-        {
-            if (_generatorTree.ContainsKey(generator))
-            {
-                foreach (ISparqlQueryGenerator subQuery in _generatorTree[generator])
-                {
-                    Traverse(subQuery, callback);
-                }
-            }
-
-            callback(generator);
-        }
-
         public IEnumerable<ISparqlQueryGenerator> TryGetSubQueries(ISparqlQueryGenerator query)
         {
             return _generatorTree.ContainsKey(query) ? _generatorTree[query] : null;
@@ -175,6 +165,4 @@ namespace Semiodesk.Trinity.Query
 
         #endregion
     }
-
-    internal delegate void QueryGeneratorTraversalDelegate(ISparqlQueryGenerator queryGenerator);
 }
