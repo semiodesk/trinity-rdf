@@ -38,6 +38,7 @@ using VDS.RDF;
 using VDS.RDF.Query;
 using VDS.RDF.Query.Builder;
 using VDS.RDF.Query.Builder.Expressions;
+using VDS.RDF.Query.Patterns;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -118,7 +119,7 @@ namespace Semiodesk.Trinity.Query
     
         public string BuildQuery()
         {
-            if (!IsBound)
+            if(!IsBound)
             {
                 BindVariables();
             }
@@ -126,7 +127,7 @@ namespace Semiodesk.Trinity.Query
             return QueryBuilder.BuildQuery().ToString();
         }
 
-        private void BindVariables()
+        public void BindVariables()
         {
             IsBound = true;
 
@@ -550,11 +551,21 @@ namespace Semiodesk.Trinity.Query
             PatternBuilder.Union(buildFirstPattern, buildOtherPatterns);
         }
 
-        public IGraphPatternBuilder Child(IQueryBuilder queryBuilder)
+        public IGraphPatternBuilder Child(ISparqlQueryGenerator queryGenerator)
         {
             ThrowOnBound();
 
-            return PatternBuilder.Child(queryBuilder);
+            // TODO: Hacky.
+            string s = queryGenerator.BuildQuery();
+
+            var subquery = queryGenerator.GetQueryBuilder().BuildQuery();
+
+            var childBuilder = new GraphPatternBuilder();
+            childBuilder.Where(new SubQueryPattern(subquery));
+
+            queryGenerator.SetPatternBuilder(childBuilder);
+
+            return PatternBuilder.Child(childBuilder);
         }
 
         public IGraphPatternBuilder Child(GraphPatternBuilder patternBuilder)
@@ -586,10 +597,10 @@ namespace Semiodesk.Trinity.Query
 
         private void ThrowOnBound()
         {
-            if (IsBound)
-            {
-                throw new Exception("Cannot modify a bound query.");
-            }
+            //if (IsBound)
+            //{
+            //    throw new Exception("Cannot modify a bound query.");
+            //}
         }
 
         #endregion

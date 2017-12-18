@@ -186,22 +186,22 @@ namespace Semiodesk.Trinity.Query
             switch (type)
             {
                 case ExpressionType.Equal:
-                    currentGenerator.WhereEqual(subGenerator.ObjectVariable, constant);
+                    subGenerator.WhereEqual(subGenerator.ObjectVariable, constant);
                     break;
                 case ExpressionType.NotEqual:
-                    currentGenerator.WhereNotEqual(subGenerator.ObjectVariable, constant);
+                    subGenerator.WhereNotEqual(subGenerator.ObjectVariable, constant);
                     break;
                 case ExpressionType.GreaterThan:
-                    currentGenerator.WhereGreaterThan(subGenerator.ObjectVariable, constant);
+                    subGenerator.WhereGreaterThan(subGenerator.ObjectVariable, constant);
                     break;
                 case ExpressionType.GreaterThanOrEqual:
-                    currentGenerator.WhereGreaterThanOrEqual(subGenerator.ObjectVariable, constant);
+                    subGenerator.WhereGreaterThanOrEqual(subGenerator.ObjectVariable, constant);
                     break;
                 case ExpressionType.LessThan:
-                    currentGenerator.WhereLessThan(subGenerator.ObjectVariable, constant);
+                    subGenerator.WhereLessThan(subGenerator.ObjectVariable, constant);
                     break;
                 case ExpressionType.LessThanOrEqual:
-                    currentGenerator.WhereLessThanOrEqual(subGenerator.ObjectVariable, constant);
+                    subGenerator.WhereLessThanOrEqual(subGenerator.ObjectVariable, constant);
                     break;
                 default:
                     throw new NotSupportedException(type.ToString());
@@ -450,21 +450,19 @@ namespace Semiodesk.Trinity.Query
             ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
             ISparqlQueryGenerator subGenerator = _queryGeneratorTree.CreateSubQueryGenerator(expression);
 
-            // Descend the query tree and implement the sub query before the outer one.
-            _queryGeneratorTree.SetCurrentQueryGenerator(subGenerator);
-
-            expression.QueryModel.Accept(_queryModelVisitor);
-
-            // Reset the query generator and continue with implementing the current query.
-            _queryGeneratorTree.SetCurrentQueryGenerator(currentGenerator);
-
             // Sub queries always select the subject from the select clause of the root query.
             subGenerator.SelectVariable(currentGenerator.SubjectVariable);
 
-            // TODO: Hacky.
-            string s = subGenerator.BuildQuery();
+            // Set the sub query generator as the current query generator to implement the sub query.
+            _queryGeneratorTree.SetCurrentQueryGenerator(subGenerator);
 
-            currentGenerator.Child(subGenerator.GetQueryBuilder());
+            // Descend the query tree and implement the sub query.
+            expression.QueryModel.Accept(_queryModelVisitor);
+
+            // Reset the query generator and continue with implementing the outer query.
+            _queryGeneratorTree.SetCurrentQueryGenerator(currentGenerator);
+
+            currentGenerator.Child(subGenerator);
 
             return expression;
         }

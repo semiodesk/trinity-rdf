@@ -67,6 +67,24 @@ namespace Semiodesk.Trinity.Query
 
         #region Methods
 
+        public void Bind()
+        {
+            Bind(_rootQueryGenerator);
+        }
+
+        private void Bind(ISparqlQueryGenerator generator)
+        {
+            generator.BindVariables();
+
+            if (_generatorTree.ContainsKey(generator))
+            {
+                foreach (ISparqlQueryGenerator g in _generatorTree[generator])
+                {
+                    Bind(g);
+                }
+            }
+        }
+
         public ISparqlQueryGenerator CreateSubQueryGenerator(SubQueryExpression expression)
         {
             ISparqlQueryGenerator generator = new SelectQueryGenerator();
