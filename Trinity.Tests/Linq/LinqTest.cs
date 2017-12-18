@@ -623,6 +623,8 @@ namespace Semiodesk.Trinity.Test.Linq
         {
             var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.First().KnownPeople.Count == 1 select person;
 
+            // Trinity does not store list values in a defined order yet.
+            // TODO: Add support for SPARQL list syntax to Trinity. Breaks compatibility.
             Assert.Throws<NotSupportedException>(() => { persons.ToList(); });
         }
 
@@ -631,6 +633,8 @@ namespace Semiodesk.Trinity.Test.Linq
         {
             var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Last().KnownPeople.Count == 1 select person;
 
+            // Trinity does not store list values in a defined order yet.
+            // TODO: Add support for SPARQL list syntax to Trinity. Breaks compatibility.
             Assert.Throws<NotSupportedException>(() => { persons.ToList(); });
         }
 

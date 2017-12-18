@@ -55,9 +55,11 @@ namespace Semiodesk.Trinity.Query
 
         string BuildQuery();
 
+        void BindVariables();
+
         bool HasNumericResultOperator();
 
-        IGraphPatternBuilder Child(IQueryBuilder queryBuilder);
+        IGraphPatternBuilder Child(ISparqlQueryGenerator queryGenerator);
 
         IGraphPatternBuilder Child(GraphPatternBuilder patternBuilder);
 
