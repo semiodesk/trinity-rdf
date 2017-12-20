@@ -121,13 +121,13 @@ namespace Semiodesk.Trinity.Query
         {
             if(!IsBound)
             {
-                BindVariables();
+                BindSelectVariables();
             }
 
             return QueryBuilder.BuildQuery().ToString();
         }
 
-        public void BindVariables()
+        public void BindSelectVariables()
         {
             IsBound = true;
 
@@ -199,7 +199,6 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        // TODO: Could be extension to GraphPatternBuilder (i.e. GraphPatternBuilder.FilterSystem)
         protected void BuildFilterOnSystemType(MemberExpression expression, Func<NumericExpression, BooleanExpression> buildFilter)
         {
             SparqlVariable o = VariableGenerator.GetVariable(expression.Expression);
@@ -225,13 +224,10 @@ namespace Semiodesk.Trinity.Query
 
         public virtual void SetObjectOperator(ResultOperatorBase resultOperator)
         {
-            ThrowOnBound();
         }
 
         public void SetObjectVariable(SparqlVariable variable, bool select = false)
         {
-            ThrowOnBound();
-
             if (variable != null)
             {
                 if(select)
@@ -246,8 +242,6 @@ namespace Semiodesk.Trinity.Query
 
         public void SetSubjectVariable(SparqlVariable variable, bool select = false)
         {
-            ThrowOnBound();
-
             if (variable != null && !variable.IsAggregate)
             {
                 if (select)
@@ -262,8 +256,6 @@ namespace Semiodesk.Trinity.Query
 
         public void DeselectVariable(SparqlVariable variable)
         {
-            ThrowOnBound();
-
             if (SelectBuilder != null)
             {
                 if (variable != null && SelectedVariables.Contains(variable))
@@ -280,8 +272,6 @@ namespace Semiodesk.Trinity.Query
 
         public void SelectVariable(SparqlVariable variable)
         {
-            ThrowOnBound();
-
             if(SelectBuilder != null)
             {
                 if (variable != null && !SelectedVariables.Contains(variable))
@@ -298,13 +288,10 @@ namespace Semiodesk.Trinity.Query
 
         public virtual void Select(Expression selector)
         {
-            ThrowOnBound();
         }
 
         public void Where(MemberExpression member, SparqlVariable variable)
         {
-            ThrowOnBound();
-
             RdfPropertyAttribute attribute = member.Member.TryGetCustomAttribute<RdfPropertyAttribute>();
 
             PatternBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(attribute.MappedUri).Object(variable.Name));
@@ -314,15 +301,11 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereEqual(SparqlVariable variable, ConstantExpression constant)
         {
-            ThrowOnBound();
-
             PatternBuilder.Filter(e => e.Variable(variable.Name) == constant.AsLiteralExpression());
         }
 
         public void WhereEqual(MemberExpression expression, ConstantExpression constant)
         {
-            ThrowOnBound();
-
             BuildMemberAccess(expression, constant.AsNode());
 
             if (expression.Member.IsSystemType())
@@ -333,15 +316,11 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereNotEqual(SparqlVariable variable, ConstantExpression constant)
         {
-            ThrowOnBound();
-
             PatternBuilder.Filter(e => e.Variable(variable.Name) != new LiteralExpression(constant.AsSparqlExpression()));
         }
 
         public void WhereNotEqual(MemberExpression expression, ConstantExpression constant)
         {
-            ThrowOnBound();
-
             SparqlVariable o = VariableGenerator.GetObjectVariable();
 
             BuildMemberAccess(expression, o);
@@ -358,15 +337,11 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereGreaterThan(SparqlVariable variable, ConstantExpression constant)
         {
-            ThrowOnBound();
-
             PatternBuilder.Filter(e => e.Variable(variable.Name) > constant.AsNumericExpression());
         }
 
         public void WhereGreaterThan(MemberExpression expression, ConstantExpression constant)
         {
-            ThrowOnBound();
-
             SparqlVariable o = VariableGenerator.GetObjectVariable();
 
             BuildMemberAccess(expression, o);
@@ -383,15 +358,11 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereGreaterThanOrEqual(SparqlVariable variable, ConstantExpression constant)
         {
-            ThrowOnBound();
-
             PatternBuilder.Filter(e => e.Variable(variable.Name) >= new LiteralExpression(constant.AsSparqlExpression()));
         }
 
         public void WhereGreaterThanOrEqual(MemberExpression expression, ConstantExpression constant)
         {
-            ThrowOnBound();
-
             SparqlVariable o = VariableGenerator.GetObjectVariable();
 
             BuildMemberAccess(expression, o);
@@ -408,15 +379,11 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereLessThan(SparqlVariable variable, ConstantExpression constant)
         {
-            ThrowOnBound();
-
             PatternBuilder.Filter(e => e.Variable(variable.Name) < new LiteralExpression(constant.AsSparqlExpression()));
         }
 
         public void WhereLessThan(MemberExpression expression, ConstantExpression constant)
         {
-            ThrowOnBound();
-
             SparqlVariable o = VariableGenerator.GetObjectVariable();
 
             BuildMemberAccess(expression, o);
@@ -433,15 +400,11 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereLessThanOrEqual(SparqlVariable variable, ConstantExpression constant)
         {
-            ThrowOnBound();
-
             PatternBuilder.Filter(e => e.Variable(variable.Name) <= new LiteralExpression(constant.AsSparqlExpression()));
         }
 
         public void WhereLessThanOrEqual(MemberExpression expression, ConstantExpression constant)
         {
-            ThrowOnBound();
-
             SparqlVariable o = VariableGenerator.GetObjectVariable();
 
             BuildMemberAccess(expression, o);
@@ -458,8 +421,6 @@ namespace Semiodesk.Trinity.Query
 
         public void FilterRegex(SparqlVariable variable, string pattern, bool ignoreCase)
         {
-            ThrowOnBound();
-
             if (ignoreCase)
             {
                 PatternBuilder.Filter(e => e.Regex(e.Variable(variable.Name), pattern, "i"));
@@ -479,8 +440,6 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereResource(SparqlVariable subject)
         {
-            ThrowOnBound();
-
             SparqlVariable p = VariableGenerator.GetPredicateVariable();
             SparqlVariable o = VariableGenerator.GetObjectVariable();
 
@@ -489,8 +448,6 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereResourceOfType(SparqlVariable subject, Type type)
         {
-            ThrowOnBound();
-
             if (typeof(Resource).IsAssignableFrom(type))
             {
                 // Assert the resource type, if any.
@@ -511,58 +468,48 @@ namespace Semiodesk.Trinity.Query
 
         public void OrderBy(SparqlVariable variable)
         {
-            ThrowOnBound();
-
             QueryBuilder.OrderBy(variable.Name);
         }
 
         public void OrderByDescending(SparqlVariable variable)
         {
-            ThrowOnBound();
-
             QueryBuilder.OrderByDescending(variable.Name);
         }
 
         public void Offset(int offset)
         {
-            ThrowOnBound();
-
             QueryBuilder.Offset(offset);
         }
         
         public void Limit(int limit)
         {
-            ThrowOnBound();
-
             QueryBuilder.Limit(limit);
         }
 
         public void Union(GraphPatternBuilder firstBuilder, params GraphPatternBuilder[] otherBuilders)
         {
-            ThrowOnBound();
-
             PatternBuilder.Union(firstBuilder, otherBuilders);
         }
 
         public void Union(Action<IGraphPatternBuilder> buildFirstPattern, params Action<IGraphPatternBuilder>[] buildOtherPatterns)
         {
-            ThrowOnBound();
-
             PatternBuilder.Union(buildFirstPattern, buildOtherPatterns);
         }
 
         public IGraphPatternBuilder Child(ISparqlQueryGenerator queryGenerator)
         {
-            ThrowOnBound();
-
-            // TODO: Hacky.
-            string s = queryGenerator.BuildQuery();
+            queryGenerator.BindSelectVariables();
 
             var subquery = queryGenerator.GetQueryBuilder().BuildQuery();
 
             var childBuilder = new GraphPatternBuilder();
             childBuilder.Where(new SubQueryPattern(subquery));
 
+            // Note: This sets the enclosing pattern builder as the current pattern
+            // builder in order to build subsequent FILTERs on the selected variables
+            // into the enclosing block, rather than the parent query. This is because
+            // for OpenLink Virtuoso the FILTERs need to be inside the enclosing group
+            // of the subquery..
             queryGenerator.SetPatternBuilder(childBuilder);
 
             return PatternBuilder.Child(childBuilder);
@@ -570,8 +517,6 @@ namespace Semiodesk.Trinity.Query
 
         public IGraphPatternBuilder Child(GraphPatternBuilder patternBuilder)
         {
-            ThrowOnBound();
-
             return PatternBuilder.Child(patternBuilder);
         }
 
@@ -593,14 +538,6 @@ namespace Semiodesk.Trinity.Query
         public void SetPatternBuilder(IGraphPatternBuilder patternBuilder)
         {
             PatternBuilder = patternBuilder;
-        }
-
-        private void ThrowOnBound()
-        {
-            //if (IsBound)
-            //{
-            //    throw new Exception("Cannot modify a bound query.");
-            //}
         }
 
         #endregion

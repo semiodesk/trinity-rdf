@@ -55,7 +55,7 @@ namespace Semiodesk.Trinity.Query
 
         string BuildQuery();
 
-        void BindVariables();
+        void BindSelectVariables();
 
         bool HasNumericResultOperator();
 

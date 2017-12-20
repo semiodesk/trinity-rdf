@@ -74,7 +74,7 @@ namespace Semiodesk.Trinity.Query
 
         private void Bind(ISparqlQueryGenerator generator)
         {
-            generator.BindVariables();
+            generator.BindSelectVariables();
 
             if (_generatorTree.ContainsKey(generator))
             {

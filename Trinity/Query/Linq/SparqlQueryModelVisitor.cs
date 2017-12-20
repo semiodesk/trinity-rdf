@@ -185,8 +185,6 @@ namespace Semiodesk.Trinity.Query
 
         public ISparqlQuery GetQuery()
         {
-            //_queryGeneratorTree.Bind();
-
             string queryString = _queryGeneratorTree.GetRootQueryGenerator().BuildQuery();
 
             ISparqlQuery query = new SparqlQuery(queryString);

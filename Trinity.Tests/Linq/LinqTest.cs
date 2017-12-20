@@ -540,39 +540,6 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectResourcesWithNodeTypeOrElse()
         {
-            SparqlQuery q1 = new SparqlQuery(@"
-            SELECT ?person_ ?p_ ?o_ FROM <http://test.com/test>
-            WHERE
-            {
-                ?person_ ?p_ ?o_ .
-                ?person_ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Person> .
-    
-                {
-                    { ?person_ <http://xmlns.com/foaf/0.1/firstName> 'Alice' . }
-                    UNION
-                    { ?person_ <http://xmlns.com/foaf/0.1/firstName> 'Bob' . }
-                }
-                UNION
-                {
-                    {
-                        {
-                            SELECT ?person_ ( COUNT ( DISTINCT ?o0 ) AS ?o0_count )
-                            WHERE
-                            {
-                                ?person_ ?p0 ?o1 
-                    
-                                 OPTIONAL { ?person_ <http://xmlns.com/foaf/0.1/knows> ?o0 . }
-                            } GROUP BY ?person_
-                        }
-
-                        FILTER ( ?o0_count = '0' ^^<http://www.w3.org/2001/XMLSchema#int> )
-                    }
-                }
-            }
-            ");
-
-            var b1 = Model.GetResources<Person>(q1).ToList();
-
             var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" || person.FirstName == "Bob" select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
@@ -682,6 +649,36 @@ namespace Semiodesk.Trinity.Test.Linq
             var z = persons.ToList();
 
             Assert.AreEqual(2, persons.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectResourcesWithVariableExpression()
+        {
+            int minAge = 50;
+
+            var persons = from person in Model.AsQueryable<Person>() where person.Age > minAge select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Age >= minAge select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Age < minAge select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Age <= minAge select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Age != minAge select person;
+
+            Assert.AreEqual(3, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Age == minAge select person;
+
+            Assert.AreEqual(0, persons.ToList().Count);
         }
 
         private void DumpModel()
