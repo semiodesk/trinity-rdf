@@ -654,8 +654,14 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectResourcesWithVariableExpression()
         {
-            int minAge = 50;
+            foreach(int age in new [] { 40, 50, 60 })
+            {
+                CanSelectResourcesWithVariableExpression(age);
+            }
+        }
 
+        private void CanSelectResourcesWithVariableExpression(int minAge)
+        {
             var persons = from person in Model.AsQueryable<Person>() where person.Age > minAge select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
