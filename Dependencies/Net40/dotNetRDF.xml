@@ -27294,11 +27294,6 @@
             Provides methods for building triple patterns
             </summary>
         </member>
-        <member name="P:VDS.RDF.Query.Builder.ITriplePatternBuilder.Patterns">
-            <summary>
-            Gets the triple patterns generated with this builder.
-            </summary>
-        </member>
         <member name="M:VDS.RDF.Query.Builder.ITriplePatternBuilder.Subject(System.String)">
             <summary>
             Sets a variable as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Subject"/>
@@ -27341,6 +27336,12 @@
             <summary>
             Builds a simple DESCRIBE query without the WHERE part
             </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.QueryBuilderExtensions.Child(VDS.RDF.Query.Builder.IQueryBuilder,System.Action{VDS.RDF.Query.Builder.IGraphPatternBuilder})">
+            <summary>
+            Adds a group graph pattern or a sub query to the query.
+            </summary>
+            <param name="buildGraphPattern"></param>
         </member>
         <member name="M:VDS.RDF.Query.Builder.SelectBuilder.And(VDS.RDF.Query.SparqlVariable[])">
             <summary>

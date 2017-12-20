@@ -183,6 +183,9 @@ namespace Semiodesk.Trinity.Query
             ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
             ISparqlQueryGenerator subGenerator = _queryGeneratorTree.GetQueryGenerator(subQuery);
 
+            // Note: We write the filter into the sub query generator which is writing into it's
+            // enclosing graph group pattern rather than the query itself. This is required for
+            // supporting OpenLink Virtuoso (see SparqlQueryGenerator.Child()).
             switch (type)
             {
                 case ExpressionType.Equal:
@@ -462,6 +465,7 @@ namespace Semiodesk.Trinity.Query
             // Reset the query generator and continue with implementing the outer query.
             _queryGeneratorTree.SetCurrentQueryGenerator(currentGenerator);
 
+            // Note: This will set pattern builder of the sub generator to the enclosing graph group builder.
             currentGenerator.Child(subGenerator);
 
             return expression;
