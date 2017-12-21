@@ -626,6 +626,46 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
+        public void CanSelectResourcesWithResultOperatorSkip()
+        {
+            var persons = (from person in Model.AsQueryable<Person>() select person).Skip(0);
+
+            Assert.AreEqual(3, persons.ToArray().Length);
+
+            persons = (from person in Model.AsQueryable<Person>() select person).Skip(1);
+
+            Assert.AreEqual(2, persons.ToArray().Length);
+
+            persons = (from person in Model.AsQueryable<Person>() select person).Skip(2);
+
+            Assert.AreEqual(1, persons.ToArray().Length);
+
+            persons = (from person in Model.AsQueryable<Person>() select person).Skip(3);
+
+            Assert.AreEqual(0, persons.ToArray().Length);
+        }
+
+        [Test]
+        public void CanSelectResourcesWithResultOperatorTake()
+        {
+            var persons = (from person in Model.AsQueryable<Person>() select person).Take(0);
+
+            Assert.AreEqual(0, persons.ToArray().Length);
+
+            persons = (from person in Model.AsQueryable<Person>() select person).Take(1);
+
+            Assert.AreEqual(1, persons.ToArray().Length);
+
+            persons = (from person in Model.AsQueryable<Person>() select person).Take(2);
+
+            Assert.AreEqual(2, persons.ToArray().Length);
+
+            persons = (from person in Model.AsQueryable<Person>() select person).Take(3);
+
+            Assert.AreEqual(3, persons.ToArray().Length);
+        }
+
+        [Test]
         public void CanSelectResourcesWithOperatorTypeOf()
         {
             var resources = from resource in Model.AsQueryable<Resource>() select resource;
@@ -669,6 +709,46 @@ namespace Semiodesk.Trinity.Test.Linq
             var z = persons.ToList();
 
             Assert.AreEqual(2, persons.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectResourcesWithOrderBy()
+        {
+            var persons = from person in Model.AsQueryable<Person>() orderby person.KnownPeople.Count select person;
+
+            var P = persons.ToArray();
+
+            Assert.AreEqual(3, P.Length);
+            Assert.AreEqual(0, P[0].KnownPeople.Count);
+            Assert.AreEqual(1, P[1].KnownPeople.Count);
+            Assert.AreEqual(2, P[2].KnownPeople.Count);
+
+            persons = from person in Model.AsQueryable<Person>() orderby person.KnownPeople.Count descending select person;
+
+            P = persons.ToArray();
+
+            Assert.AreEqual(3, P.Length);
+            Assert.AreEqual(2, P[0].KnownPeople.Count);
+            Assert.AreEqual(1, P[1].KnownPeople.Count);
+            Assert.AreEqual(0, P[2].KnownPeople.Count);
+
+            persons = (from person in Model.AsQueryable<Person>() select person).OrderBy(p => p.KnownPeople.Count);
+
+            P = persons.ToArray();
+
+            Assert.AreEqual(3, P.Length);
+            Assert.AreEqual(0, P[0].KnownPeople.Count);
+            Assert.AreEqual(1, P[1].KnownPeople.Count);
+            Assert.AreEqual(2, P[2].KnownPeople.Count);
+
+            persons = (from person in Model.AsQueryable<Person>() select person).OrderByDescending(p => p.KnownPeople.Count);
+
+            P = persons.ToArray();
+
+            Assert.AreEqual(3, P.Length);
+            Assert.AreEqual(2, P[0].KnownPeople.Count);
+            Assert.AreEqual(1, P[1].KnownPeople.Count);
+            Assert.AreEqual(0, P[2].KnownPeople.Count);
         }
 
         [Test]

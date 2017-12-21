@@ -57,6 +57,8 @@ namespace Semiodesk.Trinity.Query
 
         void BindSelectVariables();
 
+        bool HasResultOperator<T>();
+
         bool HasNumericResultOperator();
 
         IGraphPatternBuilder Child(ISparqlQueryGenerator queryGenerator);

@@ -95,6 +95,11 @@ namespace Semiodesk.Trinity.Query
             QueryModel = queryModel;
         }
 
+        public bool HasResultOperator<T>()
+        {
+            return QueryModel.ResultOperators.Any(op => op is T);
+        }
+
         public bool HasNumericResultOperator()
         {
             return QueryModel.ResultOperators.Any(op => IsNumericResultOperator(op));
