@@ -73,9 +73,15 @@ namespace Semiodesk.Trinity.Query
 
         void DeselectVariable(SparqlVariable variable);
 
+        void SelectVariable(string variable);
+
         void SelectVariable(SparqlVariable variable);
 
-        void Select(Expression selector);
+        bool IsSelectedVariable(SparqlVariable variable);
+
+        void OnBeforeSelectVisited(Expression selector);
+
+        void OnSelectVisited(Expression selector);
 
         void WhereResource(SparqlVariable subject);
 

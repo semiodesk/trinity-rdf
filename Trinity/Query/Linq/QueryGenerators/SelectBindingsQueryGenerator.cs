@@ -27,6 +27,7 @@
 
 using Remotion.Linq.Clauses.Expressions;
 using System;
+using System.Diagnostics;
 using System.Linq.Expressions;
 using VDS.RDF.Query;
 
@@ -45,19 +46,19 @@ namespace Semiodesk.Trinity.Query
 
         #region Methods
 
-        public override void Select(Expression selector)
+        public override void OnBeforeSelectVisited(Expression selector)
         {
-            base.Select(selector);
+            base.OnBeforeSelectVisited(selector);
 
-            if (selector is MemberExpression)
+            QuerySourceReferenceExpression querySource = selector.TryGetQuerySourceReference();
+
+            if (querySource != null)
             {
-                MemberExpression member = selector as MemberExpression;
+                // Register the query source with the global variable for sub-queries.
+                SparqlVariable s = VariableGenerator.GetGlobalVariable(querySource);
 
-                QuerySourceReferenceExpression querySource = member.TryGetQuerySourceReference();
-
-                if(querySource != null)
+                if(selector is MemberExpression)
                 {
-                    SparqlVariable s = VariableGenerator.GetGlobalVariable(querySource);
                     SparqlVariable o = VariableGenerator.GetObjectVariable();
 
                     // Select all triples having the resource as subject.
@@ -65,6 +66,8 @@ namespace Semiodesk.Trinity.Query
                     SetObjectVariable(o, true);
 
                     // Assert the triples which select the binding value.
+                    MemberExpression member = selector as MemberExpression;
+
                     Where(member, o);
 
                     // Assert the object type.

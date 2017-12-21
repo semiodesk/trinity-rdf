@@ -38,7 +38,7 @@ namespace Semiodesk.Trinity.Query
 
         public IEnumerable<T> ExecuteCollection<T>(QueryModel queryModel)
         {
-            Type t = typeof(T);
+            Type t = queryModel.SelectClause.Selector.Type;
 
             if(typeof(Resource).IsAssignableFrom(t))
             {

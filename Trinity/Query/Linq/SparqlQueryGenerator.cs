@@ -144,6 +144,11 @@ namespace Semiodesk.Trinity.Query
                         QueryBuilder.GroupBy(variable.Name);
                     }
                 }
+
+                if(hasAggregate && !IsRoot)
+                {
+                    QueryBuilder.Distinct();
+                }
             }
         }
 
@@ -270,6 +275,22 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
+        public void SelectVariable(string variable)
+        {
+            if (SelectBuilder != null)
+            {
+                if (!string.IsNullOrEmpty(variable) && !SelectedVariables.Any(v => v.Name == variable))
+                {
+                    SelectedVariables.Add(new SparqlVariable(variable, true));
+                }
+            }
+            else
+            {
+                string msg = "Cannot select variables with non-SELECT query type.";
+                throw new Exception(msg);
+            }
+        }
+
         public void SelectVariable(SparqlVariable variable)
         {
             if(SelectBuilder != null)
@@ -286,7 +307,16 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public virtual void Select(Expression selector)
+        public bool IsSelectedVariable(SparqlVariable variable)
+        {
+            return variable != null && SelectBuilder != null && SelectedVariables.Contains(variable);
+        }
+
+        public virtual void OnBeforeSelectVisited(Expression selector)
+        {
+        }
+
+        public virtual void OnSelectVisited(Expression selector)
         {
         }
 

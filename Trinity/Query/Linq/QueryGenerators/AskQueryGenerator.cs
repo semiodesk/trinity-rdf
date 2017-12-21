@@ -46,9 +46,9 @@ namespace Semiodesk.Trinity.Query
 
         #region Methods
 
-        public override void Select(Expression selector)
+        public override void OnBeforeSelectVisited(Expression selector)
         {
-            base.Select(selector);
+            base.OnBeforeSelectVisited(selector);
 
             if (selector is QuerySourceReferenceExpression)
             {
