@@ -31,6 +31,7 @@ using Remotion.Linq.Clauses.Expressions;
 using System;
 using System.Diagnostics;
 using System.Linq.Expressions;
+using VDS.RDF.Query;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -98,27 +99,7 @@ namespace Semiodesk.Trinity.Query
         public override void VisitMainFromClause(MainFromClause fromClause, QueryModel queryModel)
         {
             // Try to set the subject and object variable from the from-clause.
-            _expressionVisitor.VisitFromExpression(fromClause.FromExpression);
-
-            // The from clause is parsed first when handling a query. This allows us to detect if the
-            // query source is a subquery and proceed with implementing it _before_ hanlding its results.
-            if (fromClause.FromExpression is MemberExpression)
-            {
-                MemberExpression memberExpression = fromClause.FromExpression as MemberExpression;
-
-                if (memberExpression.Expression is SubQueryExpression)
-                {
-                    // First, implement the subquery..
-                    SubQueryExpression subQueryExpression = memberExpression.Expression as SubQueryExpression;
-
-                    _expressionVisitor.VisitExpression(subQueryExpression);
-                }
-
-                // Handle the results of the subquery.
-                _expressionVisitor.VisitExpression(fromClause.FromExpression);
-            }
-
-            // Nothing needs to be done for other expression types.
+            _expressionVisitor.VisitFromExpression(fromClause.FromExpression, fromClause.ItemName, fromClause.ItemType);
         }
 
         public override void VisitQueryModel(QueryModel queryModel)
@@ -126,9 +107,9 @@ namespace Semiodesk.Trinity.Query
             // The root query generator cannot be registered until this method is invoked.
             if(!_queryGeneratorTree.HasQueryGenerator(queryModel))
             {
-                ISparqlQueryGenerator rootGenerator = _queryGeneratorTree.GetRootQueryGenerator();
+                ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
-                _queryGeneratorTree.RegisterQueryModel(rootGenerator, queryModel);
+                _queryGeneratorTree.RegisterQueryModel(generator, queryModel);
             }
 
             ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
@@ -151,7 +132,9 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitSelectClause(SelectClause selectClause, QueryModel queryModel)
         {
-            _expressionVisitor.VisitSelectExpression(selectClause.Selector);
+            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+
+            currentGenerator.OnBeforeSelectVisited(selectClause.Selector);
 
             for (int i = 0; i < queryModel.BodyClauses.Count; i++)
             {
@@ -166,6 +149,8 @@ namespace Semiodesk.Trinity.Query
 
                 o.Accept(this, queryModel, i);
             }
+
+            currentGenerator.OnSelectVisited(selectClause.Selector);
         }
 
         public override void VisitWhereClause(WhereClause whereClause, QueryModel queryModel, int index)
@@ -181,6 +166,8 @@ namespace Semiodesk.Trinity.Query
         public override void VisitOrdering(Ordering ordering, QueryModel queryModel, OrderByClause orderByClause, int index)
         {
             base.VisitOrdering(ordering, queryModel, orderByClause, index);
+
+            _expressionVisitor.VisitOrdering(ordering);
         }
 
         public ISparqlQuery GetQuery()

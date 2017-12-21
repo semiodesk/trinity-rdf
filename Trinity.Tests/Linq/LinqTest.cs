@@ -27,11 +27,11 @@
 
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
 
 namespace Semiodesk.Trinity.Test.Linq
 {
@@ -259,6 +259,26 @@ namespace Semiodesk.Trinity.Test.Linq
             ages = from person in Model.AsQueryable<Person>() where person.Status == false select person.Age;
 
             Assert.AreEqual(0, ages.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectIntegerWithOrderBy()
+        {
+            var n = from person in Model.AsQueryable<Person>() orderby person.KnownPeople.Count select person.KnownPeople.Count;
+
+            Assert.AreEqual(new[] { 0, 1, 2 }, n.ToArray());
+
+            n = from person in Model.AsQueryable<Person>() orderby person.KnownPeople.Count descending select person.KnownPeople.Count;
+
+            Assert.AreEqual(new[] { 2, 1, 0 }, n.ToArray());
+
+            n = (from person in Model.AsQueryable<Person>() select person.KnownPeople.Count).OrderBy(i => i);
+
+            Assert.AreEqual(new[] { 0, 1, 2 }, n.ToArray());
+
+            n = (from person in Model.AsQueryable<Person>() select person.KnownPeople.Count).OrderByDescending(i => i);
+
+            Assert.AreEqual(new[] { 2, 1, 0 }, n.ToArray());
         }
 
         [Test]

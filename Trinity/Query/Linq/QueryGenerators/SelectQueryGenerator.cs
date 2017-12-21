@@ -30,6 +30,8 @@ using Remotion.Linq.Clauses.ResultOperators;
 using System;
 using VDS.RDF.Query.Aggregates.Sparql;
 using VDS.RDF.Query.Expressions.Primary;
+using System.Linq.Expressions;
+using VDS.RDF.Query;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -45,6 +47,21 @@ namespace Semiodesk.Trinity.Query
         #endregion
 
         #region Methods
+
+        public override void OnSelectVisited(Expression selector)
+        {
+            base.OnSelectVisited(selector);
+
+            if (IsRoot && VariableGenerator.HasVariable(selector))
+            {
+                SparqlVariable v = VariableGenerator.GetVariable(selector);
+
+                if (!IsSelectedVariable(v))
+                {
+                    SelectVariable(v.Name);
+                }
+            }
+        }
 
         public override void SetObjectOperator(ResultOperatorBase resultOperator)
         {
