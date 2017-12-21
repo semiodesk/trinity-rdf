@@ -133,6 +133,11 @@ namespace Semiodesk.Trinity.Query
                     SkipResultOperator op = resultOperator as SkipResultOperator;
                     Offset(int.Parse(op.Count.ToString()));
                 }
+                else if(resultOperator is TakeResultOperator)
+                {
+                    TakeResultOperator op = resultOperator as TakeResultOperator;
+                    Limit(int.Parse(op.Count.ToString()));
+                }
                 else
                 {
                     throw new NotImplementedException();
