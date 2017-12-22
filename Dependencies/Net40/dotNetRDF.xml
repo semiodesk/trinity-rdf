@@ -26490,6 +26490,11 @@
             Creates a SUM aggregate
             </summary>
         </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Sum(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Creates a SUM aggregate
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Sum(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
             <summary>
             Creates a SUM aggregate
@@ -26501,6 +26506,11 @@
             </summary>
         </member>
         <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Avg(System.String)">
+            <summary>
+            Creates a AVG aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Avg(VDS.RDF.Query.SparqlVariable)">
             <summary>
             Creates a AVG aggregate
             </summary>
@@ -26520,6 +26530,11 @@
             Creates a MIN aggregate
             </summary>
         </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Min(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Creates a MIN aggregate
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Min(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
             <summary>
             Creates a MIN aggregate
@@ -26531,6 +26546,11 @@
             </summary>
         </member>
         <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Max(System.String)">
+            <summary>
+            Creates a MAX aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Max(VDS.RDF.Query.SparqlVariable)">
             <summary>
             Creates a MAX aggregate
             </summary>
@@ -26566,6 +26586,11 @@
             </summary>
         </member>
         <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Count(System.String)">
+            <summary>
+            Creates a COUNT aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Count(VDS.RDF.Query.SparqlVariable)">
             <summary>
             Creates a COUNT aggregate
             </summary>
@@ -27204,6 +27229,11 @@
             Creates a SPARQL variable
             </summary>
         </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Variable(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Creates a SPARQL variable
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Constant(System.String)">
             <summary>
             Creates a string constant 
@@ -27299,6 +27329,11 @@
             Sets a variable as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Subject"/>
             </summary>
         </member>
+        <member name="M:VDS.RDF.Query.Builder.ITriplePatternBuilder.Subject(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Sets a variable as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Subject"/>
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Query.Builder.ITriplePatternBuilder.Subject``1(System.String)">
             <summary>
             Depending on the generic parameter type, sets a literal, a QName or a blank node as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Subject"/>
@@ -27334,12 +27369,18 @@
         </member>
         <member name="M:VDS.RDF.Query.Builder.QueryBuilderExtensions.BuildQuery(VDS.RDF.Query.Builder.IDescribeBuilder)">
             <summary>
-            Builds a simple DESCRIBE query without the WHERE part
+            Build a simple DESCRIBE query without the WHERE part.
             </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.QueryBuilderExtensions.Child(VDS.RDF.Query.Builder.IQueryBuilder,VDS.RDF.Query.Builder.IQueryBuilder)">
+            <summary>
+            Add a group graph pattern or a sub query to the query.
+            </summary>
+            <param name="childBuilder"></param>
         </member>
         <member name="M:VDS.RDF.Query.Builder.QueryBuilderExtensions.Child(VDS.RDF.Query.Builder.IQueryBuilder,System.Action{VDS.RDF.Query.Builder.IGraphPatternBuilder})">
             <summary>
-            Adds a group graph pattern or a sub query to the query.
+            Add a group graph pattern or a sub query to the query.
             </summary>
             <param name="buildGraphPattern"></param>
         </member>
@@ -27413,6 +27454,11 @@
             Sets a SPARQL variable as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Object"/>
             </summary>
         </member>
+        <member name="M:VDS.RDF.Query.Builder.TriplePatternObjectPart.Object(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Sets a SPARQL variable as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Object"/>
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Query.Builder.TriplePatternObjectPart.Object``1(System.String)">
             <summary>
             Depending on the generic parameter type, sets a literal, a QName or a blank node as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Object"/>
@@ -27460,6 +27506,11 @@
             Sets a SPARQL variable as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Predicate"/>
             </summary>
         </member>
+        <member name="M:VDS.RDF.Query.Builder.TriplePatternPredicatePart.Predicate(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Sets a SPARQL variable as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Predicate"/>
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Query.Builder.TriplePatternPredicatePart.Predicate(VDS.RDF.Query.Patterns.PatternItem)">
             <summary>
             Sets a <see cref="T:VDS.RDF.Query.Patterns.PatternItem"/> as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Predicate"/>
@@ -27484,6 +27535,16 @@
         <member name="T:VDS.RDF.Query.Builder.IQueryBuilder">
             <summary>
             Interface for building SPARQL queries 
+            </summary>
+        </member>
+        <member name="P:VDS.RDF.Query.Builder.IQueryBuilder.QueryType">
+            <summary>
+            Gets the query type of the generated SPARQL query.
+            </summary>
+        </member>
+        <member name="P:VDS.RDF.Query.Builder.IQueryBuilder.RootGraphPatternBuilder">
+            <summary>
+            Gets the builder associated with the root graph pattern.
             </summary>
         </member>
         <member name="P:VDS.RDF.Query.Builder.IQueryBuilder.Prefixes">
@@ -27512,7 +27573,17 @@
             Adds ascending ordering by a variable to the query
             </summary>
         </member>
+        <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.OrderBy(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Adds ascending ordering by a variable to the query
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.OrderByDescending(System.String)">
+            <summary>
+            Adds descending ordering by a variable to the query
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.OrderByDescending(VDS.RDF.Query.SparqlVariable)">
             <summary>
             Adds descending ordering by a variable to the query
             </summary>
@@ -27528,6 +27599,11 @@
             </summary>
         </member>
         <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.GroupBy(System.String)">
+            <summary>
+            Adds a GROUP BY clause to the query.
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.GroupBy(VDS.RDF.Query.SparqlVariable)">
             <summary>
             Adds a GROUP BY clause to the query.
             </summary>
@@ -27637,7 +27713,17 @@
             Adds ascending ordering by a variable to the query
             </summary>
         </member>
+        <member name="M:VDS.RDF.Query.Builder.QueryBuilder.OrderBy(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Adds ascending ordering by a variable to the query
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Query.Builder.QueryBuilder.OrderByDescending(System.String)">
+            <summary>
+            Adds descending ordering by a variable to the query
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.QueryBuilder.OrderByDescending(VDS.RDF.Query.SparqlVariable)">
             <summary>
             Adds descending ordering by a variable to the query
             </summary>

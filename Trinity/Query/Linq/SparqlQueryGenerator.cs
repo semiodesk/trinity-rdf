@@ -46,7 +46,10 @@ namespace Semiodesk.Trinity.Query
     {
         #region Members
 
-        public bool IsRoot { get; protected set; }
+        public bool IsRoot
+        {
+            get { return this == QueryGeneratorTree.GetRootQueryGenerator(); }
+        }
 
         public bool IsBound { get; private set; }
 
@@ -65,6 +68,8 @@ namespace Semiodesk.Trinity.Query
         public IList<SparqlVariable> SelectedVariables { get; private set; }
 
         protected SparqlVariableGenerator VariableGenerator;
+
+        protected ISparqlQueryGeneratorTree QueryGeneratorTree;
 
         #endregion
 
@@ -88,12 +93,6 @@ namespace Semiodesk.Trinity.Query
         #endregion
 
         #region Methods
-
-        public void Initialize(SparqlVariableGenerator variableGenerator, QueryModel queryModel)
-        {
-            VariableGenerator = variableGenerator;
-            QueryModel = queryModel;
-        }
 
         public bool HasResultOperator<T>()
         {
@@ -317,14 +316,6 @@ namespace Semiodesk.Trinity.Query
             return variable != null && SelectBuilder != null && SelectedVariables.Contains(variable);
         }
 
-        public virtual void OnBeforeSelectVisited(Expression selector)
-        {
-        }
-
-        public virtual void OnSelectVisited(Expression selector)
-        {
-        }
-
         public void Where(MemberExpression member, SparqlVariable variable)
         {
             RdfPropertyAttribute attribute = member.Member.TryGetCustomAttribute<RdfPropertyAttribute>();
@@ -495,10 +486,6 @@ namespace Semiodesk.Trinity.Query
                     PatternBuilder.Where(e => e.Subject(subject.Name).PredicateUri(a).Object(t.MappedUri));
                 }
             }
-            else
-            {
-                throw new ArgumentException("Type cannot be used in a SPARQL query: " + type);
-            }
         }
 
         public void OrderBy(SparqlVariable variable)
@@ -573,6 +560,28 @@ namespace Semiodesk.Trinity.Query
         public void SetPatternBuilder(IGraphPatternBuilder patternBuilder)
         {
             PatternBuilder = patternBuilder;
+        }
+
+        public void SetQueryContext(QueryModel queryModel, ISparqlQueryGeneratorTree generatorTree, SparqlVariableGenerator variableGenerator)
+        {
+            QueryModel = queryModel;
+            QueryGeneratorTree = generatorTree;
+            VariableGenerator = variableGenerator;
+        }
+
+        public virtual void OnBeforeFromClauseVisited(Expression expression)
+        {
+        }
+
+        public virtual void OnFromClauseVisited(Expression expression)
+        { }
+
+        public virtual void OnBeforeSelectClauseVisited(Expression selector)
+        {
+        }
+
+        public virtual void OnSelectClauseVisited(Expression selector)
+        {
         }
 
         #endregion

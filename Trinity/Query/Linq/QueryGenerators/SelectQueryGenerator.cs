@@ -48,9 +48,9 @@ namespace Semiodesk.Trinity.Query
 
         #region Methods
 
-        public override void OnSelectVisited(Expression selector)
+        public override void OnSelectClauseVisited(Expression selector)
         {
-            base.OnSelectVisited(selector);
+            base.OnSelectClauseVisited(selector);
 
             if (IsRoot && VariableGenerator.HasVariable(selector))
             {
