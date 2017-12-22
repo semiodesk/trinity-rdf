@@ -571,6 +571,17 @@ namespace Semiodesk.Trinity.Query
 
         public virtual void OnBeforeFromClauseVisited(Expression expression)
         {
+            // This is a workaround for a bug in OpenLink Virtuoso where it throws an exception
+            // when it receives a SPARQL query with a OFFSET but not LIMIT clause.
+            if (HasResultOperator<SkipResultOperator>() && !HasResultOperator<TakeResultOperator>())
+            {
+                SkipResultOperator op = QueryModel.ResultOperators.OfType<SkipResultOperator>().First();
+
+                if (int.Parse(op.Count.ToString()) > 0)
+                {
+                    QueryModel.ResultOperators.Insert(0, new TakeResultOperator(Expression.Constant(int.MaxValue)));
+                }
+            }
         }
 
         public virtual void OnFromClauseVisited(Expression expression)

@@ -282,6 +282,46 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
+        public void CanSelectIntegerWithResultOperatorSkip()
+        {
+            var ages = (from person in Model.AsQueryable<Person>() select person.Age).Skip(0);
+
+            Assert.AreEqual(3, ages.ToArray().Length);
+
+            ages = (from person in Model.AsQueryable<Person>() select person.Age).Skip(1);
+
+            Assert.AreEqual(2, ages.ToArray().Length);
+
+            ages = (from person in Model.AsQueryable<Person>() select person.Age).Skip(2);
+
+            Assert.AreEqual(1, ages.ToArray().Length);
+
+            ages = (from person in Model.AsQueryable<Person>() select person.Age).Skip(3);
+
+            Assert.AreEqual(0, ages.ToArray().Length);
+        }
+
+        [Test]
+        public void CanSelectIntegerWithResultOperatorTake()
+        {
+            var ages = (from person in Model.AsQueryable<Person>() select person.Age).Take(0);
+
+            Assert.AreEqual(0, ages.ToArray().Length);
+
+            ages = (from person in Model.AsQueryable<Person>() select person.Age).Take(1);
+
+            Assert.AreEqual(1, ages.ToArray().Length);
+
+            ages = (from person in Model.AsQueryable<Person>() select person.Age).Take(2);
+
+            Assert.AreEqual(2, ages.ToArray().Length);
+
+            ages = (from person in Model.AsQueryable<Person>() select person.Age).Take(3);
+
+            Assert.AreEqual(3, ages.ToArray().Length);
+        }
+
+        [Test]
         public void CanSelectDateTimeWithBinaryExpression()
         {
             var birthdays = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Birthday;
