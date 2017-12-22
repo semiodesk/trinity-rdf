@@ -65,8 +65,6 @@ namespace Semiodesk.Trinity.Query
 
         IGraphPatternBuilder Child(GraphPatternBuilder patternBuilder);
 
-        void Initialize(SparqlVariableGenerator variableGenerator, QueryModel queryModel);
-
         void SetObjectOperator(ResultOperatorBase resultOperator);
 
         void SetObjectVariable(SparqlVariable variable, bool select = false);
@@ -80,10 +78,6 @@ namespace Semiodesk.Trinity.Query
         void SelectVariable(SparqlVariable variable);
 
         bool IsSelectedVariable(SparqlVariable variable);
-
-        void OnBeforeSelectVisited(Expression selector);
-
-        void OnSelectVisited(Expression selector);
 
         void WhereResource(SparqlVariable subject);
 
@@ -138,6 +132,16 @@ namespace Semiodesk.Trinity.Query
         IGraphPatternBuilder GetRootPatternBuilder();
 
         void SetPatternBuilder(IGraphPatternBuilder patternBuilder);
+
+        void SetQueryContext(QueryModel queryModel, ISparqlQueryGeneratorTree generatorTree, SparqlVariableGenerator variableGenerator);
+
+        void OnBeforeFromClauseVisited(Expression expression);
+
+        void OnFromClauseVisited(Expression expression);
+
+        void OnBeforeSelectClauseVisited(Expression selector);
+
+        void OnSelectClauseVisited(Expression selector);
 
         #endregion
     }

@@ -26,9 +26,12 @@
 // Copyright (c) Semiodesk GmbH 2017
 
 using Remotion.Linq.Clauses.Expressions;
-using System;
+using System.Linq;
 using System.Linq.Expressions;
 using VDS.RDF.Query;
+using Remotion.Linq;
+using Remotion.Linq.Clauses.ResultOperators;
+using System;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -38,16 +41,77 @@ namespace Semiodesk.Trinity.Query
 
         public SelectTriplesQueryGenerator()
         {
-            IsRoot = true;
         }
 
         #endregion
 
         #region Methods
 
-        public override void OnBeforeSelectVisited(Expression selector)
+        public override void OnBeforeFromClauseVisited(Expression expression)
         {
-            base.OnBeforeSelectVisited(selector);
+            base.OnBeforeFromClauseVisited(expression);
+
+            // If we are describing resources using a skip or take operator, we need to make sure that
+            // these operations are on a per-resource basis and all triples for the described resources
+            // are contained in the result.
+            if(HasResultOperator<SkipResultOperator>() || HasResultOperator<TakeResultOperator>())
+            {
+                // This is a workaround for a bug in OpenLink Virtuoso where it throws an exception
+                // when it receives a SPARQL query with a OFFSET but not LIMIT clause.
+                if(HasResultOperator<SkipResultOperator>() && !HasResultOperator<TakeResultOperator>())
+                {
+                    SkipResultOperator op = QueryModel.ResultOperators.OfType<SkipResultOperator>().First();
+
+                    if(int.Parse(op.Count.ToString()) > 0)
+                    {
+                        QueryModel.ResultOperators.Insert(0, new TakeResultOperator(Expression.Constant(int.MaxValue)));
+                    }
+                }
+
+                // We create an outer query which selects all triples for the resources..
+                SparqlVariable s = null;
+                SparqlVariable p = VariableGenerator.GetGlobalVariable("p");
+                SparqlVariable o = VariableGenerator.GetGlobalVariable("o");
+
+                if(expression is ConstantExpression)
+                {
+                    s = VariableGenerator.GetGlobalVariable(QueryModel.MainFromClause.ItemName);
+                }
+                else
+                {
+                    QuerySourceReferenceExpression sourceExpression = QueryModel.MainFromClause.FromExpression.TryGetQuerySourceReference();
+
+                    if(sourceExpression != null)
+                    {
+                        s = VariableGenerator.GetVariable(sourceExpression);
+                    }
+                    else
+                    {
+                        throw new Exception("Unable to determine query subject from the given from-expression.");
+                    }
+                }
+
+                SetSubjectVariable(s);
+
+                SelectVariable(s);
+                SelectVariable(p);
+                SelectVariable(o);
+
+                PatternBuilder.Where(t => t.Subject(s).Predicate(p).Object(o));
+
+                // ..which are described in an inner query on which the LIMIT and OFFSET operators are set.
+                // This results in a SELECT query that acts like a DESCRIBE but ist faster on most triple 
+                // stores as the triples can be returend via bindings and must not be parsed.
+                ISparqlQueryGenerator subGenerator = QueryGeneratorTree.CreateSubQueryGenerator<SelectTriplesQueryGenerator>();
+                subGenerator.SetQueryContext(QueryModel, QueryGeneratorTree, VariableGenerator);
+
+                QueryGeneratorTree.SetCurrentQueryGenerator(subGenerator);
+            }
+        }
+
+        public override void OnBeforeSelectClauseVisited(Expression selector)
+        {
+            base.OnBeforeSelectClauseVisited(selector);
 
             // In any case, we need to describe the queried object provided by the from expression.
             QuerySourceReferenceExpression sourceExpression = selector.TryGetQuerySourceReference();
@@ -75,14 +139,9 @@ namespace Semiodesk.Trinity.Query
                     SelectVariable(p);
                     SelectVariable(o);
 
-                    PatternBuilder.Where(t => t.Subject(m.Name).Predicate(p.Name).Object(o.Name));
+                    PatternBuilder.Where(t => t.Subject(m).Predicate(p).Object(o));
 
-                    Type type = memberExpression.Member.GetMemberType();
-
-                    if (type != null)
-                    {
-                        WhereResourceOfType(m, type);
-                    }
+                    WhereResourceOfType(m, memberExpression.Member.GetMemberType());
 
                     // The member can be accessed via chained properties (?s ex:prop1 / ex:prop2 ?m).
                     BuildMemberAccess(memberExpression, m);
@@ -97,18 +156,32 @@ namespace Semiodesk.Trinity.Query
 
                     // Only select the query source variables if we directly return the object.
                     SelectVariable(s);
-                    SelectVariable(p);
-                    SelectVariable(o);
 
-                    PatternBuilder.Where(t => t.Subject(s.Name).Predicate(p.Name).Object(o.Name));
+                    if (IsRoot)
+                    {
+                        SelectVariable(p);
+                        SelectVariable(o);
+
+                        PatternBuilder.Where(t => t.Subject(s).Predicate(p).Object(o));
+                    }
 
                     // Add the type constraint on the referenced query source.
-                    Type type = sourceExpression.ReferencedQuerySource.ItemType;
+                    WhereResourceOfType(s, sourceExpression.ReferencedQuerySource.ItemType);
+                }
+            }
+        }
 
-                    if (typeof(Resource).IsAssignableFrom(type))
-                    {
-                        WhereResourceOfType(s, type);
-                    }
+        public override void OnSelectClauseVisited(Expression selector)
+        {
+            if(!IsRoot)
+            {
+                // Finally, if we have a skip- or take operator on the root query, set the current 
+                // query generator as a child.
+                ISparqlQueryGenerator rootGenerator = QueryGeneratorTree.GetRootQueryGenerator();
+
+                if(rootGenerator.HasResultOperator<SkipResultOperator>() || rootGenerator.HasResultOperator<TakeResultOperator>())
+                {
+                    rootGenerator.Child(this);
                 }
             }
         }

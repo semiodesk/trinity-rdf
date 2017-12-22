@@ -48,17 +48,17 @@ namespace Semiodesk.Trinity.Query
         /// <summary>
         /// Allows to access query generators and sub query generators in a tree-like fashion.
         /// </summary>
-        private ISparqlQueryGeneratorTree _queryGeneratorTree;
+        private readonly ISparqlQueryGeneratorTree _queryGeneratorTree;
 
         /// <summary>
         /// A common variable name generator for all query generators.
         /// </summary>
-        private SparqlVariableGenerator _variableGenerator = new SparqlVariableGenerator();
+        private readonly SparqlVariableGenerator _variableGenerator = new SparqlVariableGenerator();
 
         /// <summary>
         /// Visits all expressions in a query model and handles the query generation.
         /// </summary>
-        private ExpressionTreeVisitor _expressionVisitor;
+        private readonly ExpressionTreeVisitor _expressionVisitor;
 
         #endregion
 
@@ -99,23 +99,27 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitMainFromClause(MainFromClause fromClause, QueryModel queryModel)
         {
+            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+
+            currentGenerator.OnBeforeFromClauseVisited(fromClause.FromExpression);
+
             // Try to set the subject and object variable from the from-clause.
             _expressionVisitor.VisitFromExpression(fromClause.FromExpression, fromClause.ItemName, fromClause.ItemType);
+
+            currentGenerator.OnFromClauseVisited(fromClause.FromExpression);
         }
 
         public override void VisitQueryModel(QueryModel queryModel)
         {
-            // The root query generator cannot be registered until this method is invoked.
-            if(!_queryGeneratorTree.HasQueryGenerator(queryModel))
-            {
-                ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
-
-                _queryGeneratorTree.RegisterQueryModel(generator, queryModel);
-            }
-
             ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
-            currentGenerator.Initialize(_variableGenerator, queryModel);
+            currentGenerator.SetQueryContext(queryModel, _queryGeneratorTree, _variableGenerator);
+
+            // The root query generator cannot be registered until this method is invoked.
+            if (!_queryGeneratorTree.HasQueryGenerator(queryModel))
+            {
+                _queryGeneratorTree.RegisterQueryModel(currentGenerator, queryModel);
+            }
 
             // Handle the main from clause before the select.
             queryModel.MainFromClause.Accept(this, queryModel);
@@ -135,7 +139,7 @@ namespace Semiodesk.Trinity.Query
         {
             ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
-            currentGenerator.OnBeforeSelectVisited(selectClause.Selector);
+            currentGenerator.OnBeforeSelectClauseVisited(selectClause.Selector);
 
             for (int i = 0; i < queryModel.BodyClauses.Count; i++)
             {
@@ -151,7 +155,7 @@ namespace Semiodesk.Trinity.Query
                 o.Accept(this, queryModel, i);
             }
 
-            currentGenerator.OnSelectVisited(selectClause.Selector);
+            currentGenerator.OnSelectClauseVisited(selectClause.Selector);
         }
 
         public override void VisitWhereClause(WhereClause whereClause, QueryModel queryModel, int index)

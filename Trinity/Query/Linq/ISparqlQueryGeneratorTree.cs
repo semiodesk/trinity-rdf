@@ -38,7 +38,7 @@ namespace Semiodesk.Trinity.Query
 
         void Bind();
 
-        ISparqlQueryGenerator CreateSubQueryGenerator(SubQueryExpression expression);
+        ISparqlQueryGenerator CreateSubQueryGenerator<T>(SubQueryExpression expression = null) where T : SelectQueryGenerator, new();
 
         void RegisterQueryModel(ISparqlQueryGenerator queryGenerator, QueryModel queryModel);
 

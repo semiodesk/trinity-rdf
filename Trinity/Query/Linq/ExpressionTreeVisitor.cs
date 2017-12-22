@@ -272,7 +272,6 @@ namespace Semiodesk.Trinity.Query
 
             if (expression is MemberExpression)
             {
-
                 // The from clause is parsed first when handling a query. This allows us to detect if the
                 // query source is a subquery and proceed with implementing it _before_ hanlding its results.
                 MemberExpression memberExpression = expression as MemberExpression;
@@ -285,13 +284,7 @@ namespace Semiodesk.Trinity.Query
                     if (s != null && s.IsGlobal())
                     {
                         currentGenerator.WhereResource(s);
-
-                        Type t = memberExpression.Member.DeclaringType;
-
-                        if (typeof(Resource).IsAssignableFrom(t))
-                        {
-                            currentGenerator.WhereResourceOfType(s, t);
-                        }
+                        currentGenerator.WhereResourceOfType(s, memberExpression.Member.DeclaringType);
                     }
 
                     // If the query model has a numeric result operator, we make all the following
@@ -299,7 +292,6 @@ namespace Semiodesk.Trinity.Query
                     var optionalBuilder = new GraphPatternBuilder(GraphPatternType.Optional);
 
                     currentGenerator.Child(optionalBuilder);
-
                     currentGenerator.SetPatternBuilder(optionalBuilder);
                 }
 
@@ -471,7 +463,7 @@ namespace Semiodesk.Trinity.Query
         protected override Expression VisitSubQueryExpression(SubQueryExpression expression)
         {
             ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
-            ISparqlQueryGenerator subGenerator = _queryGeneratorTree.CreateSubQueryGenerator(expression);
+            ISparqlQueryGenerator subGenerator = _queryGeneratorTree.CreateSubQueryGenerator<SelectQueryGenerator>(expression);
 
             // Sub queries always select the subject from the select clause of the root query.
             subGenerator.SelectVariable(currentGenerator.SubjectVariable);

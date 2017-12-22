@@ -27,7 +27,6 @@
 
 using Remotion.Linq.Clauses.Expressions;
 using System;
-using System.Diagnostics;
 using System.Linq.Expressions;
 using VDS.RDF.Query;
 
@@ -39,16 +38,15 @@ namespace Semiodesk.Trinity.Query
 
         public SelectBindingsQueryGenerator()
         {
-            IsRoot = true;
         }
 
         #endregion
 
         #region Methods
 
-        public override void OnBeforeSelectVisited(Expression selector)
+        public override void OnBeforeSelectClauseVisited(Expression selector)
         {
-            base.OnBeforeSelectVisited(selector);
+            base.OnBeforeSelectClauseVisited(selector);
 
             QuerySourceReferenceExpression querySource = selector.TryGetQuerySourceReference();
 

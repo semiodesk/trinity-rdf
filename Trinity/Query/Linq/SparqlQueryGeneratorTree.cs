@@ -85,11 +85,14 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public ISparqlQueryGenerator CreateSubQueryGenerator(SubQueryExpression expression)
+        public ISparqlQueryGenerator CreateSubQueryGenerator<T>(SubQueryExpression expression = null) where T : SelectQueryGenerator, new()
         {
-            ISparqlQueryGenerator generator = new SelectQueryGenerator();
+            ISparqlQueryGenerator generator = new T();
 
-            RegisterQueryExpression(generator, expression);
+            if(expression != null)
+            {
+                RegisterQueryExpression(generator, expression);
+            }
 
             if (_currentQueryGenerator != null)
             {

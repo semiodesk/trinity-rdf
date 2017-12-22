@@ -39,16 +39,15 @@ namespace Semiodesk.Trinity.Query
         public AskQueryGenerator()
             : base(VDS.RDF.Query.Builder.QueryBuilder.Ask())
         {
-            IsRoot = true;
         }
 
         #endregion
 
         #region Methods
 
-        public override void OnBeforeSelectVisited(Expression selector)
+        public override void OnBeforeSelectClauseVisited(Expression selector)
         {
-            base.OnBeforeSelectVisited(selector);
+            base.OnBeforeSelectClauseVisited(selector);
 
             if (selector is QuerySourceReferenceExpression)
             {
