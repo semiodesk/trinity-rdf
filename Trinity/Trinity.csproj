@@ -39,10 +39,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Dependencies\Net40\dotNetRDF.dll</HintPath>
     </Reference>
-    <Reference Include="dotNetRDF.Data.Virtuoso, Version=1.0.9.3683, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\Net40\dotNetRDF.Data.Virtuoso.dll</HintPath>
-    </Reference>
     <Reference Include="HtmlAgilityPack, Version=1.4.9.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Dependencies\Net40\HtmlAgilityPack.dll</HintPath>
@@ -50,10 +46,6 @@
     <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\Net40\packages\Newtonsoft.Json.9.0.1\lib\net40\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
-    </Reference>
-    <Reference Include="OpenLink.Data.Virtuoso, Version=6.2.3128.1, Culture=neutral, PublicKeyToken=6654f6917d07cb95, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\OpenLink.Data.Virtuoso.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
@@ -83,14 +75,7 @@
     <Compile Include="Collections\VirtualizingResourceCollection.cs" />
     <Compile Include="Collections\VirtualizingCollection.cs" />
     <Compile Include="Configuration\Configuration.cs" />
-    <Compile Include="Configuration\FileSource.cs" />
-    <Compile Include="Configuration\Graph.cs" />
-    <Compile Include="Configuration\GraphCollection.cs" />
-    <Compile Include="Configuration\Ontology.cs" />
-    <Compile Include="Configuration\OntologyCollection.cs" />
-    <Compile Include="Configuration\RuleSet.cs" />
-    <Compile Include="Configuration\RuleSetCollection.cs" />
-    <Compile Include="Configuration\TrinitySettings.cs" />
+    <Compile Include="Configuration\ConfigurationLoader.cs" />
     <Compile Include="Exceptions.cs" />
     <Compile Include="Exceptions\StoreProviderMissingException.cs" />
     <Compile Include="IPropertyMapping.cs" />

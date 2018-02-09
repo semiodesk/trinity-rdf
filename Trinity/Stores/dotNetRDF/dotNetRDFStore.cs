@@ -40,7 +40,7 @@ using VDS.RDF.Query.Datasets;
 using VDS.RDF.Query.Inference;
 using VDS.RDF.Update;
 using VDS.RDF.Writing;
-using TrinitySettings = Semiodesk.Trinity.Configuration.TrinitySettings;
+
 
 namespace Semiodesk.Trinity.Store
 {

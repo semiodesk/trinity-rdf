@@ -31,24 +31,34 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Text;
+using System.Xml.Serialization;
 
 namespace Semiodesk.Trinity.Configuration
 {
-    /// <summary>
-    /// Constains Virtuoso specific settings
-    /// </summary>
-    public class VirtuosoStoreSettings : ConfigurationElement
-    {
-        /// <summary>
-        /// A collection of rule sets
-        /// </summary>
-        [ConfigurationProperty("RuleSets", IsDefaultCollection = true)]
-        public RuleSetCollection RuleSets
-        {
-            get { return (RuleSetCollection)base["RuleSets"]; }
-        }
 
+    [XmlRoot(ElementName = "graph")]
+    public class Graph
+    {
+        [XmlAttribute(AttributeName = "uri")]
+        public string Uri { get; set; }
     }
+
+    [XmlRoot(ElementName = "ruleset")]
+    public class Ruleset
+    {
+        [XmlElement(ElementName = "graph")]
+        public List<Graph> Graph { get; set; }
+        [XmlAttribute(AttributeName = "uri")]
+        public string Uri { get; set; }
+    }
+
+    [XmlRoot(ElementName = "rulesets")]
+    public class Rulesets
+    {
+        [XmlElement(ElementName = "ruleset")]
+        public Ruleset Ruleset { get; set; }
+    }
+
 
        
 
