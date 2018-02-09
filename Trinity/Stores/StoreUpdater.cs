@@ -29,12 +29,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using OpenLink.Data.Virtuoso;
 using System.IO;
-using Semiodesk.Trinity.Configuration;
+using Semiodesk.Trinity.Configuration2;
 
 namespace Semiodesk.Trinity
 {
+    /// <summary>
+    /// This class can be used to load or update ontologies in stores. It provides convinence methods to load directly from the ontologies.config file.
+    /// </summary>
     public class StoreUpdater
     {
         #region Fields
@@ -44,6 +46,11 @@ namespace Semiodesk.Trinity
 
         #region Constructors
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="store">The store you want to update.</param>
+        /// <param name="sourceDir">A directory used as base path.</param>
         public StoreUpdater(IStore store, DirectoryInfo sourceDir)
         {
             _sourceDirectory = sourceDir;
@@ -54,24 +61,15 @@ namespace Semiodesk.Trinity
         #endregion
 
         #region Methods
-
-        protected void RemoveGraph(Uri graphUri)
+        public void UpdateOntologies(IEnumerable<Semiodesk.Trinity.Configuration2.Ontology> ontologies)
         {
-            if (_store.ContainsModel(graphUri))
-            {
-                _store.RemoveModel(graphUri);
-            }
-        }
-
-        public void UpdateOntologies(IEnumerable<OntologyConfiguration> ontologies)
-        {
-            foreach (OntologyConfiguration onto in ontologies)
+            foreach (var onto in ontologies)
             {
                 Uri path = GetPathFromSource(onto.FileSource);
 
                 RdfSerializationFormat format = GetSerializationFormatFromUri(path);
 
-                _store.Read(new Uri(onto.Uri), path, format, false);
+                _store.Read(onto.Uri, path, format, false);
             }
         }
 

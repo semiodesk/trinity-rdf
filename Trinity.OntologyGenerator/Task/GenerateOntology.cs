@@ -70,7 +70,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
 
                 Program p = new Program(logger);
-                p.LoadConfigFile(configFile.FullName);
+                p.SetConfig(configFile.FullName);
                 if (string.IsNullOrEmpty(IntermediatePath))
                 {
                     IntermediatePath = projectFile.Directory.FullName;
@@ -80,7 +80,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
                     IntermediatePath = Path.Combine(projectFile.DirectoryName, IntermediatePath);
                 }
                 string targetFile = Path.Combine(IntermediatePath, "Ontologies.g.cs");
-                p.SetGenerate(targetFile);
+                p.SetTarget(targetFile);
                 var res = p.Run();
 
                 OutputFiles = new TaskItem[] { new TaskItem(targetFile) };

@@ -34,7 +34,6 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Reflection;
-using OpenLink.Data.Virtuoso;
 using Newtonsoft.Json;
 
 namespace Semiodesk.Trinity

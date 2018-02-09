@@ -36,7 +36,7 @@ using System.Xml.Serialization;
 using System.Runtime.Serialization;
 using System.Xml;
 using System.Reflection;
-using Semiodesk.Trinity.Configuration;
+using Semiodesk.Trinity.Configuration2;
 
 namespace Semiodesk.Trinity.OntologyGenerator
 {
@@ -46,8 +46,11 @@ namespace Semiodesk.Trinity.OntologyGenerator
         string _generatePath = null;
         int _verbosity = 0;
         private string _configPath = null;
-        Config _config = null;
-        private DirectoryInfo _sourceDir;
+        private FileInfo _configFile = null;
+        OntologyConfiguration _config = null;
+        private DirectoryInfo _sourceDir = null;
+        private OntologyGenerator _generator;
+
         ILogger Logger { get; set; }
         #endregion
 
@@ -69,7 +72,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
             OptionSet o = new OptionSet()
           {
             { "c|config=", "Path of the config file.", v =>SetConfig(v)  },
-            { "g|generate=", "Path of the ontologies.cs file to generate.", v =>SetGenerate(v)  },
+            { "g|generate=", "Path of the ontologies.cs file to generate.", v =>SetTarget(v)  },
             { "v", "increase debug message verbosity", v => { if (v != null) ++_verbosity; } },
             { "h|help",  "Show this message and exit", v => showHelp = v != null }
           };
@@ -81,7 +84,6 @@ namespace Semiodesk.Trinity.OntologyGenerator
                     showHelp = true;
                 else
                 {
-                    LoadConfigFile(_configPath);
                     Run();
                 }
 
@@ -109,41 +111,32 @@ namespace Semiodesk.Trinity.OntologyGenerator
         #endregion
 
         #region Methods
-        protected void SetConfig(string config)
+        public void SetConfig(string configPath)
         {
-            Logger.LogMessage("Reading config from {0}", config);
+            Logger.LogMessage("Reading config from {0}", configPath);
 
-            if (string.IsNullOrEmpty(config))
-                return;
+            if (string.IsNullOrEmpty(configPath))
+                throw new ArgumentException("Configuration path was null or empty.");
 
-            FileInfo configFile = new FileInfo(config);
-            _configPath = configFile.FullName;
-           
+            _configPath = configPath;
+            _configFile = new FileInfo(configPath);
+            if (!_configFile.Exists)
+                throw new ArgumentException("Could not read config file from {0}. Reason: File does not exist.", _configPath);
+
+            _sourceDir = _configFile.Directory;
         }
 
-        public bool LoadConfigFile(string configPath)
+        private bool LoadConfigFile()
         {
-            _configPath = configPath;
-            FileInfo configFile = new FileInfo(configPath);
-            if (configFile.Exists)
+            XmlSerializer serializer = new XmlSerializer(typeof(OntologyConfiguration));
+
+            using (var stream = _configFile.OpenRead())
             {
-                XmlSerializer serializer = new XmlSerializer(typeof(OntologyConfiguration));
-
-                using (var stream = configFile.OpenRead())
-                {
-                    Config result = (Config)serializer.Deserialize(stream);
-                    _config = result;
-                }
-
-               
-                
-
+                OntologyConfiguration result = (OntologyConfiguration)serializer.Deserialize(stream);
+                _config = result;
             }
-            else
-            {
-                Logger.LogError("Could not read config file from {0}. Reason: File does not exist.", configPath);
-            }
-            return _config == null;
+
+            return true;
         }
 
         Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
@@ -153,10 +146,10 @@ namespace Semiodesk.Trinity.OntologyGenerator
             return null;
         }
 
-        public void SetGenerate(string generate)
+        public void SetTarget(string targetPath)
         {
-            Logger.LogMessage("Generating to {0}", generate);
-            _generatePath = generate;
+            Logger.LogMessage("Generating to {0}", targetPath);
+            _generatePath = targetPath;
         }
 
         void ShowHelp(OptionSet p)
@@ -190,44 +183,43 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
         public int Run()
         {
-            if (_config == null)
-                throw new Exception("Config file not loaded.");
-
-            FileInfo configFile = new FileInfo(_configPath);
-            _sourceDir = configFile.Directory;
-
+            LoadConfigFile();
 
             if (!string.IsNullOrEmpty(_generatePath))
             {
                 FileInfo fileInfo = new FileInfo(_generatePath);
                 try
                 {
-                    
-                    OntologyGenerator generator = new OntologyGenerator(_config.Ontologies.Namespace);
-                    generator.Logger = Logger;
+                    _generator = new OntologyGenerator(_config.Ontologies.Namespace);
+
+                    _generator.Logger = Logger;
                     if (_config.Ontologies != null)
                     {
                         foreach (var ontology in _config.Ontologies.Ontology)
                         {
-                            UriRef t = GetPathFromSource(ontology.FileSource);
-                            if (!generator.ImportOntology(new Uri(ontology.Uri), t))
+                            Uri ontologyUri = null;
+                            if(! ValidateOntology(ontology, out ontologyUri))
+                                continue;
+
+                            if( ontology.FileSource != null )
+                            { 
+                               HandleFileSource(ontology.FileSource, ontologyUri);
+                            }else if (ontology.WebSource != null)
                             {
-                                FileInfo ontologyFile = new FileInfo(t.LocalPath);
-                       
-                                Logger.LogWarning(string.Format("Could not read ontology <{0}> from path {1}.", ontology.Uri, ontologyFile.FullName));
+                                HandleWebSource(ontology.WebSource);
                             }
 
-
-
-                            if (!generator.AddOntology(new Uri(ontology.Uri), new Uri(ontology.Meta), ontology.Prefix))
+                            
+                            if (!_generator.AddOntology(ontology.Uri, null, ontology.Prefix))
                             {
-                                Logger.LogMessage("Ontology with uri <{0}> or uri <{1}> could not be found in store.", ontology.Uri, ontology.Meta);
+                                Logger.LogMessage("Ontology with uri <{0}> or uri <{1}> could not be found in store.", ontology.Uri, null);
                             }
+                            
 
                         }
                     }
-                    generator.GenerateFile(fileInfo);
-                    generator.Dispose();
+                    _generator.GenerateFile(fileInfo);
+                    _generator.Dispose();
 
                     return 0;
                 }catch(Exception e)
@@ -240,6 +232,49 @@ namespace Semiodesk.Trinity.OntologyGenerator
             
         }
 
+        public bool ValidateOntology(Semiodesk.Trinity.Configuration2.Ontology ontology, out Uri uri)
+        {
+            uri = null;
+            try
+            {
+                uri = ontology.Uri;
+            }catch(Exception)
+            {
+                Logger.LogError(string.Format("Uri \"{1}\" of ontology {0} does not conform to RFC 3986.", ontology.Prefix, ontology.Uri));
+                return false;
+            }
+            return true;
+        }
+
+        private void HandleWebSource(WebSource webSource)
+        {
+ 	        // TODO: Cache ontology
+            /*
+            UriRef t = GetPathFromSource(ontology.WebSource);
+            if (!generator.ImportOntology(new Uri(ontology.Uri), t))
+            {
+                FileInfo ontologyFile = new FileInfo(t.LocalPath);
+
+                Logger.LogWarning(string.Format("Could not read ontology <{0}> from path {1}.", ontology.Uri, ontologyFile.FullName));
+            }
+            */
+        }
+
+        /// <summary>
+        /// Handles a file source.
+        /// </summary>
+        /// <param name="source">The FileSource object.</param>
+        /// <param name="uri">The uri of the ontology.</param>
+        private void HandleFileSource(FileSource source, Uri uri)
+        {
+            UriRef t = GetPathFromSource(source);
+            if (!_generator.ImportOntology(uri, t))
+            {
+                FileInfo ontologyFile = new FileInfo(t.LocalPath);
+
+                Logger.LogWarning(string.Format("Could not read ontology <{0}> from path {1}.", uri, ontologyFile.FullName));
+            }
+        }
 
         #endregion
     }
