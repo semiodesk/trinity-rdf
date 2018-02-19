@@ -22,6 +22,10 @@ namespace Semiodesk.Trinity.Test
         [OneTimeSetUp]
         public void Setup()
         {
+
+            Directory.SetCurrentDirectory(TestContext.CurrentContext.TestDirectory);
+
+
             StoreFactory.LoadProvider(Assembly.GetAssembly(typeof(VirtuosoStoreProvider)));
             OntologyDiscovery.AddAssembly(Assembly.GetExecutingAssembly());
             MappingDiscovery.RegisterAssembly(Assembly.GetExecutingAssembly());

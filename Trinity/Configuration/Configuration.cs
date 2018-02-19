@@ -4,7 +4,7 @@ using System.Xml.Linq;
 using System.Collections.Generic;
 using System.Xml;
 
-namespace Semiodesk.Trinity.Configuration2
+namespace Semiodesk.Trinity.Configuration
 {
     [XmlRoot(ElementName = "filesource")]
     public class FileSource
@@ -58,7 +58,7 @@ namespace Semiodesk.Trinity.Configuration2
     public class Ontologies
     {
         [XmlElement(ElementName = "ontology")]
-        public List<Ontology> Ontology { get; set; }
+        public List<Ontology> OntologyList { get; set; }
         [XmlAttribute(AttributeName = "namespace")]
         public string Namespace { get; set; }
     }

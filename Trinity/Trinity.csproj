@@ -43,13 +43,14 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Dependencies\Net40\HtmlAgilityPack.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\Net40\packages\Newtonsoft.Json.9.0.1\lib\net40\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\Net40\packages\Newtonsoft.Json.10.0.3\lib\net40\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
@@ -113,6 +114,7 @@
     <Compile Include="Query\StatementPattern.cs" />
     <Compile Include="Serialization\JsonResourceConverter.cs" />
     <Compile Include="Serialization\JsonResourceSerializerSettings.cs" />
+    <Compile Include="Stores\StoreBase.cs" />
     <Compile Include="Stores\StoreProvider.cs" />
     <Compile Include="Stores\StoreFactory.cs" />
     <Compile Include="Stores\dotNetRDF\dotNetRDFQueryResult.cs" />

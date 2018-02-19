@@ -59,18 +59,17 @@ namespace dotNetRDFStore.Test
         {
             Uri testModel = new Uri("ex:Test");
 
-            Store.LoadOntologySettings();
+            Store.LoadOntologies();
 
-            Assert.AreEqual(6, Store.ListModels().Count());
+            Assert.AreEqual(4, Store.ListModels().Count());
         }
 
         [Test]
         public void LoadOntologiesFromFileTest()
         {
             Uri testModel = new Uri("ex:Test");
-            DirectoryInfo asm = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory;
-            string configFile = Path.Combine(asm.FullName, "custom.config");
-            Store.LoadOntologySettings(configFile);
+            string configFile = Path.Combine(Environment.CurrentDirectory, "custom.config");
+            Store.LoadOntologies(configFile);
 
             Assert.AreEqual(4, Store.ListModels().Count());
 

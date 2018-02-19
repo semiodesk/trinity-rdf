@@ -30,7 +30,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
-using Semiodesk.Trinity.Configuration2;
+using Semiodesk.Trinity.Configuration;
 
 namespace Semiodesk.Trinity
 {
@@ -61,18 +61,34 @@ namespace Semiodesk.Trinity
         #endregion
 
         #region Methods
-        public void UpdateOntologies(IEnumerable<Semiodesk.Trinity.Configuration2.Ontology> ontologies)
+        /// <summary>
+        /// This method loads the given ontologies into the provided store. 
+        /// A model will be created for each ontology. If it already exists, it wil be replaced.
+        /// </summary>
+        /// <param name="ontologies">A collection of ontologies to be loaded.</param>
+        public void UpdateOntologies(IEnumerable<Semiodesk.Trinity.Configuration.Ontology> ontologies)
         {
             foreach (var onto in ontologies)
             {
-                Uri path = GetPathFromSource(onto.FileSource);
+                if( onto.FileSource != null )
+                { 
+                    Uri path = GetPathFromSource(onto.FileSource);
 
-                RdfSerializationFormat format = GetSerializationFormatFromUri(path);
+                    RdfSerializationFormat format = GetSerializationFormatFromUri(path);
 
-                _store.Read(onto.Uri, path, format, false);
+                    _store.Read(onto.Uri, path, format, false);
+                }
+                else
+                {
+                    throw new ArgumentException(string.Format("The file for the ontology {0} ({1}) could not be found. Please check the configuration file.", onto.Prefix, onto.Uri));
+                }
             }
         }
 
+        /// <summary>
+        /// This method can be used to load storage specific configuration.
+        /// </summary>
+        /// <param name="storageSpecific"></param>
         public void UpdateStorageSpecifics(IStorageSpecific storageSpecific)
         {
             storageSpecific.Update(_store);
