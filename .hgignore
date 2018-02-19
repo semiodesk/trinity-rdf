@@ -27,3 +27,6 @@ obj/*
 bin/*
 Build/*
 packages/*
+api/*
+tools/docfx.msbuild/*
+tools/Addins/*

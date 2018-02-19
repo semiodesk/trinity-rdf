@@ -52,7 +52,7 @@ namespace Semiodesk.Trinity.Store
     /// This class is the implementation of the IStorage inteface for the Virtuoso Database.
     /// It provides the backend specific implementation of the storage management functions.
     /// </summary>
-    internal class VirtuosoStore : IStore
+    internal class VirtuosoStore : StoreBase
     {
         #region Members
 
@@ -85,7 +85,7 @@ namespace Semiodesk.Trinity.Store
         /// <summary>
         /// 
         /// </summary>
-        public bool IsReady
+        public override bool IsReady
         {
             get
             {
@@ -93,13 +93,9 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-        public bool ConnectUbiquity
-        {
-            get;
-            set;
-        }
-
         private string _defaultInferenceRule = "urn:semiodesk/ruleset";
+
+        private bool _isDisposed = false;
         #endregion
 
         #region Constructors
@@ -126,7 +122,6 @@ namespace Semiodesk.Trinity.Store
         /// <param name="password">Password needed to connect to storage.</param>
         public VirtuosoStore(string hostname, int port, string username, string password)
         {
-            ConnectUbiquity = true;
             Hostname = hostname;
             Port = port.ToString();
             Username = username;
@@ -157,12 +152,12 @@ namespace Semiodesk.Trinity.Store
         }
 
         [Obsolete("It is not necessary to create models explicitly. Use GetModel() instead, if the model does not exist, it will be created implicitly.")]
-        public IModel CreateModel(Uri uri)
+        public override IModel CreateModel(Uri uri)
         {
             return GetModel(uri);
         }
 
-        public void RemoveModel(Uri uri)
+        public override void RemoveModel(Uri uri)
         {
             using (ITransaction transaction = this.BeginTransaction(IsolationLevel.ReadCommitted))
             {
@@ -182,13 +177,8 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-        public void RemoveModel(IModel model)
-        {
-            RemoveModel(model.Uri);
-        }
-
         [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
-        public bool ContainsModel(Uri uri)
+        public override bool ContainsModel(Uri uri)
         {
             if (uri != null)
             {
@@ -207,17 +197,17 @@ namespace Semiodesk.Trinity.Store
         }
 
         [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
-        public bool ContainsModel(IModel model)
+        public override bool ContainsModel(IModel model)
         {
             return ContainsModel(model.Uri);
         }
 
-        public IModel GetModel(Uri uri)
+        public override IModel GetModel(Uri uri)
         {
             return new Model(this, uri.ToUriRef());
         }
 
-        public IEnumerable<IModel> ListModels()
+        public override IEnumerable<IModel> ListModels()
         {
             ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } }");
 
@@ -253,7 +243,7 @@ namespace Semiodesk.Trinity.Store
             return transaction;
         }
 
-        public ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
+        public override  ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
             VirtuosoTransaction transaction = new VirtuosoTransaction(this);
             transaction.Transaction = Connection.BeginTransaction(isolationLevel);
@@ -261,7 +251,7 @@ namespace Semiodesk.Trinity.Store
             return transaction;
         }
 
-        public ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
+        public override ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
             return new VirtuosoSparqlQueryResult(query.Model, query, this, transaction);
         }
@@ -403,7 +393,7 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-        public void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
+        public override void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
         {
             string queryString = string.Format("SPARQL {0}", query.ToString());
 
@@ -426,7 +416,7 @@ namespace Semiodesk.Trinity.Store
             return path;
         }
 
-        public Uri Read(Uri graph, Uri url, RdfSerializationFormat format, bool update)
+        public override Uri Read(Uri graph, Uri url, RdfSerializationFormat format, bool update)
         {
             // Note: Accessing the file scheme here throws an exception in case the URL is relative..
             if (url.IsFile)
@@ -463,7 +453,7 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-        public Uri Read(Stream stream, Uri graph, RdfSerializationFormat format, bool update)
+        public override Uri Read(Stream stream, Uri graph, RdfSerializationFormat format, bool update)
         {
             using (TextReader reader = new StreamReader(stream))
             {
@@ -548,7 +538,7 @@ namespace Semiodesk.Trinity.Store
             return graph;
         }
 
-        public void Write(Stream fs, Uri graph, RdfSerializationFormat format)
+        public override void Write(Stream fs, Uri graph, RdfSerializationFormat format)
         {
             using (VDS.RDF.Storage.VirtuosoManager manager = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
             {
@@ -573,7 +563,7 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-        public IModelGroup CreateModelGroup(params Uri[] models)
+        public override IModelGroup CreateModelGroup(params Uri[] models)
         {
             List<IModel> result = new List<IModel>();
 
@@ -585,57 +575,21 @@ namespace Semiodesk.Trinity.Store
             return ModelGroupFactory.CreateModelGroup(this, result);
         }
 
-        public void LoadOntologySettings(string configPath = null, string sourceDir = "")
+        public override void LoadOntologies(string configPath = null, string sourceDir = "")
         {
+            var config = LoadConfiguration(configPath);
+            LoadOntologies(config, sourceDir);
+
             /*
-            Trinity.Configuration.TrinitySettings settings;
-
-            if (!string.IsNullOrEmpty(configPath) && File.Exists(configPath))
-            {
-                ExeConfigurationFileMap configMap = new ExeConfigurationFileMap();
-
-                configMap.ExeConfigFilename = configPath;
-
-                var configuration = ConfigurationManager.OpenMappedExeConfiguration(configMap, ConfigurationUserLevel.None);
-
-                try
-                {
-                    settings = (TrinitySettings)configuration.GetSection("TrinitySettings");
-                }
-                catch (Exception e)
-                {
-                    throw new Exception(string.Format("Could not read config file from {0}. Reason: {1}", configPath, e.Message));
-                }
-
-                if( settings == null )
-                    throw new Exception(string.Format("TrinitySettings sections could not be found. Make sure the configSections element is at the top of the file {0}.", configPath));
-            }
-            else
-            {
-                settings = (TrinitySettings)ConfigurationManager.GetSection("TrinitySettings");
-            }
-
-            DirectoryInfo srcDir;
-
-            if (string.IsNullOrEmpty(sourceDir))
-            {
-                srcDir = new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
-            }
-            else
-            {
-                srcDir = new DirectoryInfo(sourceDir);
-            }
-
-            StoreUpdater updater = new StoreUpdater(this, srcDir);
-            updater.UpdateOntologies(settings.Ontologies);
-
             var virtuosoSettings = (VirtuosoStoreSettings)settings.GetSettings("VirtuosoStoreSettings");
             if (virtuosoSettings != null)
             {
                 IStorageSpecific spec = new VirtuosoSettings(virtuosoSettings);
                 updater.UpdateStorageSpecifics(spec);
-            }
-            */
+            }*/
+
+
+         
         }
 
         #endregion
@@ -656,10 +610,31 @@ namespace Semiodesk.Trinity.Store
 
         #region IDisposable
 
-        public void Dispose()
+        ~VirtuosoStore()
         {
-            Connection.Close();
-            Connection.Dispose();
+            Dispose(false);
+        }
+
+        public override void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool isDisposing)
+        {
+            if (_isDisposed)
+                return;
+
+            if( isDisposing )
+            {
+                if (Connection != null)
+                {
+                    Connection.Close();
+                    Connection.Dispose();
+                }
+            }
+            _isDisposed = true;
         }
 
         #endregion

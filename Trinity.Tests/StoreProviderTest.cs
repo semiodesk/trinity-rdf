@@ -37,6 +37,7 @@ namespace Semiodesk.Trinity.Test
     [TestFixture]
     class StoreProviderTest
     {
+
         [Test]
         public void ParseConfigurationTest()
         {

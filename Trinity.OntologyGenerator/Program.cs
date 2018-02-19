@@ -36,7 +36,7 @@ using System.Xml.Serialization;
 using System.Runtime.Serialization;
 using System.Xml;
 using System.Reflection;
-using Semiodesk.Trinity.Configuration2;
+using Semiodesk.Trinity.Configuration;
 
 namespace Semiodesk.Trinity.OntologyGenerator
 {
@@ -195,7 +195,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
                     _generator.Logger = Logger;
                     if (_config.Ontologies != null)
                     {
-                        foreach (var ontology in _config.Ontologies.Ontology)
+                        foreach (var ontology in _config.Ontologies.OntologyList)
                         {
                             Uri ontologyUri = null;
                             if(! ValidateOntology(ontology, out ontologyUri))
@@ -232,7 +232,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
             
         }
 
-        public bool ValidateOntology(Semiodesk.Trinity.Configuration2.Ontology ontology, out Uri uri)
+        public bool ValidateOntology(Semiodesk.Trinity.Configuration.Ontology ontology, out Uri uri)
         {
             uri = null;
             try
