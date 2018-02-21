@@ -123,7 +123,14 @@ namespace Semiodesk.Trinity
         /// <param name="models"></param>
         /// <returns></returns>
         IModelGroup CreateModelGroup(params Uri[] models);
-        
+
+        /// <summary>
+        /// Creates a model group which allows for queries to be made on multiple models at once.
+        /// </summary>
+        /// <param name="models"></param>
+        /// <returns></returns>
+        IModelGroup CreateModelGroup(params IModel[] models);
+
         /// <summary>
         /// Loads a serialized graph from the given location into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
         /// </summary>
