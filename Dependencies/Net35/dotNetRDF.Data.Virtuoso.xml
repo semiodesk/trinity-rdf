@@ -184,6 +184,11 @@
             Completely replaces any previously saved Graph with the same Graph URI
             </remarks>
         </member>
+        <member name="P:VDS.RDF.Storage.VirtuosoManager.IOBehaviour">
+            <summary>
+            Gets the IO Behaviour of the store
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Storage.VirtuosoManager.UpdateGraph(System.Uri,System.Collections.Generic.IEnumerable{VDS.RDF.Triple},System.Collections.Generic.IEnumerable{VDS.RDF.Triple})">
             <summary>
             Updates a Graph in the Quad Store
@@ -210,6 +215,21 @@
             <param name="graphUri">Graph Uri of the Graph to update</param>
             <param name="additions">Triples to be added</param>
             <param name="removals">Triples to be removed</param>
+        </member>
+        <member name="P:VDS.RDF.Storage.VirtuosoManager.UpdateSupported">
+            <summary>
+            Indicates that Updates are supported by the Virtuoso Native Quad Store
+            </summary>
+        </member>
+        <member name="P:VDS.RDF.Storage.VirtuosoManager.IsReady">
+            <summary>
+            Returns that the Manager is ready
+            </summary>
+        </member>
+        <member name="P:VDS.RDF.Storage.VirtuosoManager.IsReadOnly">
+            <summary>
+            Returns that the Manager is not read-only
+            </summary>
         </member>
         <member name="M:VDS.RDF.Storage.VirtuosoManager.Query(System.String)">
             <summary>
@@ -277,11 +297,21 @@
             </summary>
             <param name="graphUri">URI of the Graph to delete</param>
         </member>
+        <member name="P:VDS.RDF.Storage.VirtuosoManager.DeleteSupported">
+            <summary>
+            Returns that deleting Graphs is supported
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Storage.VirtuosoManager.ListGraphs">
             <summary>
             Lists the Graphs in the store
             </summary>
             <returns></returns>
+        </member>
+        <member name="P:VDS.RDF.Storage.VirtuosoManager.ListGraphsSupported">
+            <summary>
+            Returns that listing graphs is supported
+            </summary>
         </member>
         <member name="M:VDS.RDF.Storage.VirtuosoManager.Open(System.Boolean)">
             <summary>
@@ -329,6 +359,16 @@
             <param name="sqlCmd">SQL Command</param>
             <returns>First Column of First Row of the Results</returns>
         </member>
+        <member name="P:VDS.RDF.Storage.VirtuosoManager.HasOpenConnection">
+            <summary>
+            Gets whether there is an active connection to the Virtuoso database
+            </summary>
+        </member>
+        <member name="P:VDS.RDF.Storage.VirtuosoManager.HasActiveTransaction">
+            <summary>
+            Gets whether there is any active transaction on the Virtuoso database
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Storage.VirtuosoManager.Dispose">
             <summary>
             Disposes of the Manager
@@ -345,46 +385,6 @@
             Serializes the connection's configuration
             </summary>
             <param name="context">Configuration Serialization Context</param>
-        </member>
-        <member name="P:VDS.RDF.Storage.VirtuosoManager.IOBehaviour">
-            <summary>
-            Gets the IO Behaviour of the store
-            </summary>
-        </member>
-        <member name="P:VDS.RDF.Storage.VirtuosoManager.UpdateSupported">
-            <summary>
-            Indicates that Updates are supported by the Virtuoso Native Quad Store
-            </summary>
-        </member>
-        <member name="P:VDS.RDF.Storage.VirtuosoManager.IsReady">
-            <summary>
-            Returns that the Manager is ready
-            </summary>
-        </member>
-        <member name="P:VDS.RDF.Storage.VirtuosoManager.IsReadOnly">
-            <summary>
-            Returns that the Manager is not read-only
-            </summary>
-        </member>
-        <member name="P:VDS.RDF.Storage.VirtuosoManager.DeleteSupported">
-            <summary>
-            Returns that deleting Graphs is supported
-            </summary>
-        </member>
-        <member name="P:VDS.RDF.Storage.VirtuosoManager.ListGraphsSupported">
-            <summary>
-            Returns that listing graphs is supported
-            </summary>
-        </member>
-        <member name="P:VDS.RDF.Storage.VirtuosoManager.HasOpenConnection">
-            <summary>
-            Gets whether there is an active connection to the Virtuoso database
-            </summary>
-        </member>
-        <member name="P:VDS.RDF.Storage.VirtuosoManager.HasActiveTransaction">
-            <summary>
-            Gets whether there is any active transaction on the Virtuoso database
-            </summary>
         </member>
         <member name="T:VDS.RDF.Configuration.VirtuosoObjectFactory">
             <summary>

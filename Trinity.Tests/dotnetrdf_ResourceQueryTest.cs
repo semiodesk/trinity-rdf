@@ -175,6 +175,7 @@ namespace Semiodesk.Trinity.Test
         {
 
             Assert.Inconclusive("Test with newer version of dotNetRDF");
+
             ResourceQuery b = new ResourceQuery(nco.PersonContact);
             b.Where(nco.birthDate).LessThan(new DateTime(1990, 1, 1)).SortAscending();
 

@@ -64,7 +64,7 @@ namespace Semiodesk.Trinity.Test.Stardog
                 ResourceMappingTest.RegisteredOntology = true;
             }
 
-            Store = StoreFactory.CreateStore("provider=stardog;host=http://localhost:5820;uid=admin;pw=admin;sid=MyStore");
+            Store = StoreFactory.CreateStore("provider=stardog;host=http://localhost:5820;uid=admin;pw=admin;sid=test");
 
             Uri testModel = new Uri("ex:Test");
             Model = Store.CreateModel(testModel);
@@ -896,27 +896,6 @@ namespace Semiodesk.Trinity.Test.Stardog
             Resource r3 = m.GetResource<Resource>(t3Uri);
             Assert.AreEqual(t3, r3);
         }
-
-        [Test]
-        public void MappingTypeWithInferencingTest()
-        {
-            Assert.Inconclusive();
-            //IModel m = GetModel();
-            //m.Clear();
-
-            //Uri t3Uri = new Uri("semio:test:testInstance3");
-            //PersonContact t3 = m.CreateResource<PersonContact>(t3Uri);
-            //t3.NameGiven = "Hans";
-            //t3.Commit();
-
-            //ResourceQuery q = new ResourceQuery(nco.Contact);
-
-            //var queryResult = m.ExecuteQuery(q, true);
-
-            //var resources = queryResult.GetResources().ToList();
-
-        }
-
 
 
         [Test]

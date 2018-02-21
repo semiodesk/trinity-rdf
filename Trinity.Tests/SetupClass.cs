@@ -21,6 +21,8 @@ namespace Semiodesk.Trinity.Test
         [OneTimeSetUp]
         public void Setup()
         {
+            Directory.SetCurrentDirectory(TestContext.CurrentContext.TestDirectory);
+
             OntologyDiscovery.AddAssembly(Assembly.GetExecutingAssembly());
             MappingDiscovery.RegisterAssembly(Assembly.GetExecutingAssembly());
 

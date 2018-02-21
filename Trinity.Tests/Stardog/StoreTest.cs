@@ -55,11 +55,13 @@ namespace Semiodesk.Trinity.Test.Stardog
     class StoreTest
     {
         IStore Store;
+        Uri testModel = new Uri("ex:Test");
 
         [SetUp]
         public void SetUp()
         {
-            Store = StoreFactory.CreateStore("provider=stardog;host=http://localhost:5820;uid=admin;pw=admin;sid=MyStore");
+            Store = StoreFactory.CreateStore("provider=stardog;host=http://localhost:5820;uid=admin;pw=admin;sid=test");
+            Store.RemoveModel(testModel);
         }
 
         [TearDown]
@@ -72,7 +74,7 @@ namespace Semiodesk.Trinity.Test.Stardog
         [Test]
         public void LoadOntologiesTest()
         {
-            Uri testModel = new Uri("ex:Test");
+            
 
             Store.LoadOntologySettings();
 
@@ -82,12 +84,15 @@ namespace Semiodesk.Trinity.Test.Stardog
         [Test]
         public void LoadOntologiesFromFileTest()
         {
-            Uri testModel = new Uri("ex:Test");
+            Assert.Inconclusive("How to make sure we have an empty store");
+            /*
             DirectoryInfo asm = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory;
             string configFile = Path.Combine(asm.FullName, "custom.config");
             Store.LoadOntologySettings(configFile);
 
             Assert.AreEqual(4, Store.ListModels().Count());
+            */
+
         }
 
         [Test]
@@ -101,7 +106,6 @@ namespace Semiodesk.Trinity.Test.Stardog
         [Test]
         public void AddModelTest()
         {
-            Uri testModel = new Uri("ex:Test");
 
             IModel m = Store.CreateModel(testModel);
 
@@ -111,7 +115,6 @@ namespace Semiodesk.Trinity.Test.Stardog
         [Test]
         public void ContainsModelTest()
         {
-            Uri testModel = new Uri("ex:Test");
             Store.RemoveModel(testModel);
 
             Assert.IsFalse(Store.ContainsModel(testModel));
@@ -130,9 +133,10 @@ namespace Semiodesk.Trinity.Test.Stardog
         [Test]
         public void GetModelTest()
         {
-            Uri testModel = new Uri("ex:Test");
 
             IModel m1 = Store.CreateModel(testModel);
+            Assert.IsTrue(m1.IsEmpty);
+
 
             IResource r = m1.CreateResource(new Uri("ex:test:resource"));
             r.AddProperty(new Property(new Uri("ex:test:property")), "var");
@@ -147,7 +151,6 @@ namespace Semiodesk.Trinity.Test.Stardog
         [Test]
         public void RemoveModelTest()
         {
-            Uri testModel = new Uri("ex:Test");
 
             Store.RemoveModel(testModel);
 

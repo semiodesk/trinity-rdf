@@ -32,24 +32,49 @@ using System.Text;
 
 namespace Semiodesk.Trinity
 {
+    /// <summary>
+    /// A generic sparql query interface.  
+    /// </summary>
     public interface ISparqlQuery
     {
         #region Members
 
+        /// <summary>
+        /// The model on which the query will be run.
+        /// </summary>
         IModel Model { get; set; }
 
+        /// <summary>
+        /// The type of the query.
+        /// </summary>
         SparqlQueryType QueryType { get; }
 
+        /// <summary>
+        /// Indicates if inference should be enabled. It depends on the underlying store if and how this is used.
+        /// </summary>
         bool IsInferenceEnabled { get; set; }
 
         #endregion
 
         #region Methods
 
+        /// <summary>
+        /// Bind parameters to specified values.
+        /// </summary>
+        /// <param name="parameter"></param>
+        /// <param name="value"></param>
         void Bind(string parameter, object value);
 
+        /// <summary>
+        /// Returns all prefixes that were specified by the query.
+        /// </summary>
+        /// <returns></returns>
         IEnumerable<string> GetDeclaredPrefixes();
 
+        /// <summary>
+        /// Enumerates the graphs which are declared in FROM and FROM NAMED directives at the root level.
+        /// </summary>
+        /// <returns>An enumeration of URI strings.</returns>
         IEnumerable<string> GetDefaultModels();
 
         string[] GetGlobalScopeVariableNames();
@@ -60,6 +85,10 @@ namespace Semiodesk.Trinity
 
         bool ProvidesStatements();
 
+        /// <summary>
+        /// Returns the string representation of the query.
+        /// </summary>
+        /// <returns></returns>
         string ToString();
 
         #endregion
