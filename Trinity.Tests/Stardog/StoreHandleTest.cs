@@ -42,7 +42,7 @@ namespace Semiodesk.Trinity.Test.Stardog
         [Test]
         public void TestOpenClose()
         {
-            string connectionString = "provider=stardog;host=http://localhost:5820;uid=admin;pw=admin;sid=MyStore";
+            string connectionString = "provider=stardog;host=http://localhost:5820;uid=admin;pw=admin;sid=test";
             var p = new Property(new Uri("ex:myProperty"));
 
             var Store = StoreFactory.CreateStore(connectionString);

@@ -26,24 +26,54 @@
 // Copyright (c) Semiodesk GmbH 2017
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using VDS.RDF;
 
 namespace Semiodesk.Trinity.Store
 {
-    internal interface ITripleProvider
+    /// <summary>
+    /// A generic triple provider interface
+    /// </summary>
+    public interface ITripleProvider
     {
-        INode S { get; }
-
-        Uri P { get; }
-
-        INode O { get; }
-
-        int Count { get; }
-
+        /// <summary>
+        /// Indicates if another triple is available
+        /// </summary>
         bool HasNext { get; }
 
+        /// <summary>
+        /// Iterates to the next triple
+        /// </summary>
         void SetNext();
 
+        /// <summary>
+        /// Subject
+        /// </summary>
+        INode S { get; }
+
+        /// <summary>
+        /// Predicate
+        /// </summary>
+        Uri P { get; }
+
+        /// <summary>
+        /// Object
+        /// </summary>
+        INode O { get; }
+
+        /// <summary>
+        /// Number of total triples
+        /// </summary>
+        int Count { get; }
+
+        /// <summary>
+        /// Resets the provider
+        /// </summary>
         void Reset();
+
+
     }
+
 }

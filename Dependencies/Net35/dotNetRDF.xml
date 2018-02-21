@@ -35622,6 +35622,21 @@
             The Expression is a Unary Operator that applies to a Graph Pattern
             </summary>
         </member>
+        <member name="P:VDS.RDF.Query.Expressions.ISparqlExpressionBase.Type">
+            <summary>
+            Gets the SPARQL Expression Type
+            </summary>
+        </member>
+        <member name="P:VDS.RDF.Query.Expressions.ISparqlExpressionBase.Functor">
+            <summary>
+            Gets the Function Name or Operator Symbol - function names may be URIs of Keywords or the empty string in the case of primary expressions
+            </summary>
+        </member>
+        <member name="P:VDS.RDF.Query.Expressions.ISparqlExpressionBase.Arguments">
+            <summary>
+            Gets the Arguments of this Expression
+            </summary>
+        </member>
         <member name="T:VDS.RDF.Query.Expressions.ISparqlExpression">
             <summary>
             Interface for SPARQL Expression Terms that can be used in Expression Trees while evaluating Sparql Queries
@@ -35643,21 +35658,6 @@
         <member name="P:VDS.RDF.Query.Expressions.ISparqlExpression.Variables">
             <summary>
             Gets an enumeration of all the Variables used in an expression
-            </summary>
-        </member>
-        <member name="P:VDS.RDF.Query.Expressions.ISparqlExpression.Type">
-            <summary>
-            Gets the SPARQL Expression Type
-            </summary>
-        </member>
-        <member name="P:VDS.RDF.Query.Expressions.ISparqlExpression.Functor">
-            <summary>
-            Gets the Function Name or Operator Symbol - function names may be URIs of Keywords or the empty string in the case of primary expressions
-            </summary>
-        </member>
-        <member name="P:VDS.RDF.Query.Expressions.ISparqlExpression.Arguments">
-            <summary>
-            Gets the Arguments of this Expression
             </summary>
         </member>
         <member name="M:VDS.RDF.Query.Expressions.ISparqlExpression.Transform(VDS.RDF.Query.Expressions.IExpressionTransformer)">
@@ -40774,21 +40774,6 @@
         <member name="P:VDS.RDF.Query.Aggregates.ISparqlAggregate.Expression">
             <summary>
             Gets the Expression that the Aggregate is applied to
-            </summary>
-        </member>
-        <member name="P:VDS.RDF.Query.Aggregates.ISparqlAggregate.Type">
-            <summary>
-            Gets the Type of the Aggregate
-            </summary>
-        </member>
-        <member name="P:VDS.RDF.Query.Aggregates.ISparqlAggregate.Functor">
-            <summary>
-            Gets the URI/Keyword of the Aggregate
-            </summary>
-        </member>
-        <member name="P:VDS.RDF.Query.Aggregates.ISparqlAggregate.Arguments">
-            <summary>
-            Gets the Arguments of the Aggregate
             </summary>
         </member>
         <member name="T:VDS.RDF.Query.Construct.NamespaceDoc">
@@ -47415,13 +47400,14 @@
         </member>
         <member name="T:VDS.RDF.Query.Builder.Expressions.SparqlExpression">
             <summary>
-            Represents a SPARQL expression (variable, function, operator or term)
+            Represents a SPARQL expression which is not an aggregate
             </summary>
         </member>
-        <member name="P:VDS.RDF.Query.Builder.Expressions.SparqlExpression.Expression">
+        <member name="M:VDS.RDF.Query.Builder.Expressions.SparqlExpression.#ctor(VDS.RDF.Query.Expressions.ISparqlExpression)">
             <summary>
-            The undelrying expression
+            Initializes a new instance of the <see cref="T:VDS.RDF.Query.Builder.Expressions.SparqlExpression"/> class.
             </summary>
+            <param name="expression">The expression.</param>
         </member>
         <member name="M:VDS.RDF.Query.Builder.Expressions.SparqlExpression.In(VDS.RDF.Query.Builder.Expressions.SparqlExpression[])">
             <summary>
@@ -47499,179 +47485,154 @@
             Wraps the <paramref name="expression"/> as a numeric expression
             </summary>
         </member>
+        <member name="T:VDS.RDF.Query.Builder.Expressions.AggregateExpression">
+            <summary>
+            Represents a SPARQL aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.Expressions.AggregateExpression.#ctor(VDS.RDF.Query.Aggregates.ISparqlAggregate)">
+            <summary>
+            Initializes a new instance of the <see cref="T:VDS.RDF.Query.Builder.Expressions.AggregateExpression"/> class.
+            </summary>
+        </member>
+        <member name="T:VDS.RDF.Query.Builder.Expressions.PrimaryExpression`1">
+            <summary>
+            Represents a SPARQL expression (variable, function, operator, term or aggregate)
+            </summary>
+        </member>
+        <member name="P:VDS.RDF.Query.Builder.Expressions.PrimaryExpression`1.Expression">
+            <summary>
+            The undelrying expression
+            </summary>
+        </member>
         <member name="T:VDS.RDF.Query.Builder.ExpressionBuilder">
-            <summary>
-            Provides methods for building SPARQL expressions
-            </summary>
+            <inheritdoc />
         </member>
-        <member name="P:VDS.RDF.Query.Builder.ExpressionBuilder.SparqlVersion">
-            <summary>
-            SPARQL syntax verions to use when creating expressions
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.VariableExpression,System.String)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Variable(System.String)">
-            <summary>
-            Creates a SPARQL variable
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Constant(System.String)">
-            <summary>
-            Creates a string constant 
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.LiteralExpression,System.String)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Constant(System.Int32)">
-            <summary>
-            Creates a numeric constant 
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.LiteralExpression)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Constant(System.Decimal)">
-            <summary>
-            Creates a numeric constant 
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Constant(System.Single)">
-            <summary>
-            Creates a numeric constant 
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.SparqlExpression,System.String,System.String)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Constant(System.Double)">
-            <summary>
-            Creates a numeric constant 
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression,System.String)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Constant(System.Boolean)">
-            <summary>
-            Creates a boolean constant 
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.LiteralExpression,System.String,System.String)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Constant(System.Byte)">
-            <summary>
-            Creates a numeric constant 
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.LiteralExpression,System.String)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Constant(System.SByte)">
-            <summary>
-            Creates a numeric constant 
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression,System.String)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Constant(System.Int16)">
-            <summary>
-            Creates a numeric constant 
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.StrLen(VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Constant(System.DateTime)">
-            <summary>
-            Creates a datetime constant 
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.StrLen(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String})">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Constant(System.Uri)">
-            <summary>
-            Creates an IRI constant 
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Cast(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
-            <summary>
-            Builds a SPARQL constructor function call
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <inheritdoc />
         </member>
-        <member name="T:VDS.RDF.Query.Builder.ExpressionBuilderFunctionalFormsExtensions">
-            <summary>
-            Provides methods for creating SPARQL functional forms
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},System.Int32)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderFunctionalFormsExtensions.Bound(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the BOUND function with a variable parameter
-            </summary>
-            <param name="eb"></param>
-            <param name="var">a SPARQL variable</param>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderFunctionalFormsExtensions.Bound(VDS.RDF.Query.Builder.ExpressionBuilder,System.String)">
-            <summary>
-            Creates a call to the BOUND function with a variable parameter
-            </summary>
-            <param name="eb"></param>
-            <param name="var">a SPARQL variable name</param>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderFunctionalFormsExtensions.If(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.BooleanExpression)">
-            <summary>
-            Creates a call to the IF function with an expression for the first parameter
-            </summary>
-            <param name="eb"></param>
-            <param name="ifExpression">conditional clause expression</param>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderFunctionalFormsExtensions.If(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the IF function with a variable for the first parameter
-            </summary>
-            <param name="eb"></param>
-            <param name="ifExpression">conditional clause variable expression</param>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},System.Int32)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderFunctionalFormsExtensions.Coalesce(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression[])">
-            <summary>
-            Creates a call of the COALESCE function with a variable number of expression parameters
-            </summary>
-            <param name="eb"></param>
-            <param name="expressions">SPARQL expressions</param>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderFunctionalFormsExtensions.Exists(VDS.RDF.Query.Builder.ExpressionBuilder,System.Action{VDS.RDF.Query.Builder.IGraphPatternBuilder})">
-            <summary>
-            Creates a call of the EXISTS function
-            </summary>
-            <param name="eb"></param>
-            <param name="buildExistsPattern">a function, which will create the graph pattern parameter</param>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},System.Int32,System.Int32)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderFunctionalFormsExtensions.SameTerm(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression,VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
-            <summary>
-            Creates a call of the SAMETERM function with two expression parameters
-            </summary>
-            <param name="eb"></param>
-            <param name="left">a SPARQL expression</param>
-            <param name="right">a SPARQL expression</param>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},System.Int32)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderFunctionalFormsExtensions.SameTerm(VDS.RDF.Query.Builder.ExpressionBuilder,System.String,VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
-            <summary>
-            Creates a call of the SAMETERM function with variable and expression parameters
-            </summary>
-            <param name="eb"></param>
-            <param name="left">a variable name</param>
-            <param name="right">a SPARQL expression</param>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32,System.Int32)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderFunctionalFormsExtensions.SameTerm(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression,System.String)">
-            <summary>
-            Creates a call of the SAMETERM function with expression and variable parameters
-            </summary>
-            <param name="eb"></param>
-            <param name="left">a SPARQL expression</param>
-            <param name="right">a variable name</param>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32)">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderFunctionalFormsExtensions.SameTerm(VDS.RDF.Query.Builder.ExpressionBuilder,System.String,System.String)">
-            <summary>
-            Creates a call of the SAMETERM function with two variable parameters
-            </summary>
-            <param name="eb"></param>
-            <param name="left">a variable name</param>
-            <param name="right">a variable name</param>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
+            <inheritdoc />
         </member>
-        <member name="T:VDS.RDF.Query.Builder.IfThenPart">
-            <summary>
-            Provides methods to supply the "then" expression for the IF function call
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.IfThenPart.Then(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
-            <summary>
-            Sets the second parameter of the IF function call
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},System.Int32,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
+            <inheritdoc />
         </member>
-        <member name="T:VDS.RDF.Query.Builder.IfElsePart">
-            <summary>
-            Provides methods to supply the "else" expression for the IF function call
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
+            <inheritdoc />
         </member>
-        <member name="M:VDS.RDF.Query.Builder.IfElsePart.Else(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
-            <summary>
-            Sets the third parameter of the IF function call
-            </summary>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
+            <inheritdoc />
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
+            <inheritdoc />
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <inheritdoc />
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <inheritdoc />
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},System.Int32,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <inheritdoc />
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <inheritdoc />
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <inheritdoc />
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <inheritdoc />
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.LangMatches(VDS.RDF.Query.Builder.Expressions.LiteralExpression,System.String)">
+            <inheritdoc />
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.LangMatches(VDS.RDF.Query.Builder.Expressions.VariableExpression,System.String)">
+            <inheritdoc />
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.LangMatches(VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.LiteralExpression)">
+            <inheritdoc />
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.LangMatches(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.LiteralExpression)">
+            <inheritdoc />
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.LangMatches(VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <inheritdoc />
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilder.LangMatches(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <inheritdoc />
         </member>
         <member name="M:VDS.RDF.Query.Builder.GraphPatternBuilder.#ctor">
             <summary>
@@ -47689,9 +47650,26 @@
             Provides methods for building graph patterns
             </summary>
         </member>
-        <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Union(System.Action{VDS.RDF.Query.Builder.IGraphPatternBuilder})">
+        <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Group(VDS.RDF.Query.Builder.GraphPatternBuilder)">
             <summary>
-            Creates a UNION of the current graph pattern and a new one
+            Adds another child graph pattern builder.
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Group(System.Action{VDS.RDF.Query.Builder.IGraphPatternBuilder})">
+            <summary>
+            Adds another child graph pattern builder.
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Union(VDS.RDF.Query.Builder.GraphPatternBuilder,VDS.RDF.Query.Builder.GraphPatternBuilder[])">
+            <summary>
+            Creates a UNION of multiple graph patterns. If <paramref name="unionedGraphPatternBuilders"/> is null or empty,
+            acts as a call to the <see cref="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Child(VDS.RDF.Query.Builder.IQueryBuilder)"/> method.
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Union(System.Action{VDS.RDF.Query.Builder.IGraphPatternBuilder},System.Action{VDS.RDF.Query.Builder.IGraphPatternBuilder}[])">
+            <summary>
+            Creates a UNION of multiple graph patterns. If <paramref name="unionedGraphPatternBuilders"/> is null or empty,
+            acts as a call to the <see cref="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Child(VDS.RDF.Query.Builder.IQueryBuilder)"/> method.
             </summary>
         </member>
         <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Where(VDS.RDF.Query.Patterns.ITriplePattern[])">
@@ -47709,7 +47687,7 @@
             Adds an OPTIONAL graph pattern to the SPARQL query or graph pattern
             </summary>
         </member>
-        <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Filter(System.Func{VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.BooleanExpression})">
+        <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Filter(System.Func{VDS.RDF.Query.Builder.INonAggregateExpressionBuilder,VDS.RDF.Query.Builder.Expressions.BooleanExpression})">
             <summary>
             Adds a FILTER to the SPARQL query or graph pattern
             </summary>
@@ -47739,14 +47717,24 @@
             Adds a SERVICE graph pattern to the graph pattern
             </summary>
         </member>
-        <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Bind(System.Func{VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression})">
+        <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Bind(System.Func{VDS.RDF.Query.Builder.INonAggregateExpressionBuilder,VDS.RDF.Query.Builder.Expressions.PrimaryExpression{VDS.RDF.Query.Expressions.ISparqlExpression}})">
             <summary>
             Adds a BIND variable assignment to the graph pattern
             </summary>
         </member>
+        <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Child(VDS.RDF.Query.Builder.IQueryBuilder)">
+            <summary>
+            Adds a "normal" child graph pattern
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Child(VDS.RDF.Query.Builder.GraphPatternBuilder)">
+            <summary>
+            Adds a "normal" child graph pattern
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Query.Builder.IGraphPatternBuilder.Child(System.Action{VDS.RDF.Query.Builder.IGraphPatternBuilder})">
             <summary>
-            Addsa "normal" child graph pattern
+            Adds a "normal" child graph pattern
             </summary>
         </member>
         <member name="T:VDS.RDF.Query.Builder.ITriplePatternBuilder">
@@ -47755,6 +47743,11 @@
             </summary>
         </member>
         <member name="M:VDS.RDF.Query.Builder.ITriplePatternBuilder.Subject(System.String)">
+            <summary>
+            Sets a variable as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Subject"/>
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.ITriplePatternBuilder.Subject(VDS.RDF.Query.SparqlVariable)">
             <summary>
             Sets a variable as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Subject"/>
             </summary>
@@ -47793,6 +47786,11 @@
             </summary>
         </member>
         <member name="M:VDS.RDF.Query.Builder.TriplePatternObjectPart.Object(System.String)">
+            <summary>
+            Sets a SPARQL variable as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Object"/>
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.TriplePatternObjectPart.Object(VDS.RDF.Query.SparqlVariable)">
             <summary>
             Sets a SPARQL variable as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Object"/>
             </summary>
@@ -47844,6 +47842,11 @@
             Sets a SPARQL variable as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Predicate"/>
             </summary>
         </member>
+        <member name="M:VDS.RDF.Query.Builder.TriplePatternPredicatePart.Predicate(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Sets a SPARQL variable as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Predicate"/>
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Query.Builder.TriplePatternPredicatePart.Predicate(VDS.RDF.Query.Patterns.PatternItem)">
             <summary>
             Sets a <see cref="T:VDS.RDF.Query.Patterns.PatternItem"/> as <see cref="P:VDS.RDF.Query.Patterns.IMatchTriplePattern.Predicate"/>
@@ -47868,6 +47871,16 @@
         <member name="T:VDS.RDF.Query.Builder.IQueryBuilder">
             <summary>
             Interface for building SPARQL queries 
+            </summary>
+        </member>
+        <member name="P:VDS.RDF.Query.Builder.IQueryBuilder.QueryType">
+            <summary>
+            Gets the query type of the generated SPARQL query.
+            </summary>
+        </member>
+        <member name="P:VDS.RDF.Query.Builder.IQueryBuilder.RootGraphPatternBuilder">
+            <summary>
+            Gets the builder associated with the root graph pattern.
             </summary>
         </member>
         <member name="P:VDS.RDF.Query.Builder.IQueryBuilder.Prefixes">
@@ -47896,19 +47909,49 @@
             Adds ascending ordering by a variable to the query
             </summary>
         </member>
+        <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.OrderBy(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Adds ascending ordering by a variable to the query
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.OrderByDescending(System.String)">
             <summary>
             Adds descending ordering by a variable to the query
             </summary>
         </member>
-        <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.OrderBy(System.Func{VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression})">
+        <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.OrderByDescending(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Adds descending ordering by a variable to the query
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.OrderBy(System.Func{VDS.RDF.Query.Builder.IExpressionBuilder,VDS.RDF.Query.Builder.Expressions.PrimaryExpression{VDS.RDF.Query.Expressions.ISparqlExpression}})">
             <summary>
             Adds ascending ordering by an expression to the query
             </summary>
         </member>
-        <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.OrderByDescending(System.Func{VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression})">
+        <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.OrderByDescending(System.Func{VDS.RDF.Query.Builder.IExpressionBuilder,VDS.RDF.Query.Builder.Expressions.PrimaryExpression{VDS.RDF.Query.Expressions.ISparqlExpression}})">
             <summary>
             Adds descending ordering by an expression to the query
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.GroupBy(System.String)">
+            <summary>
+            Adds a GROUP BY clause to the query.
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.GroupBy(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Adds a GROUP BY clause to the query.
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.GroupBy(System.Func{VDS.RDF.Query.Builder.INonAggregateExpressionBuilder,VDS.RDF.Query.Builder.Expressions.PrimaryExpression{VDS.RDF.Query.Expressions.ISparqlExpression}})">
+            <summary>
+            Adds a GROUP BY clause to the query.
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.Having(System.Func{VDS.RDF.Query.Builder.IExpressionBuilder,VDS.RDF.Query.Builder.Expressions.BooleanExpression})">
+            <summary>
+            Adds a HAVING clause to the query.
             </summary>
         </member>
         <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.BuildQuery">
@@ -47916,7 +47959,7 @@
             Builds and returns a <see cref="T:VDS.RDF.Query.SparqlQuery"/>
             </summary>
         </member>
-        <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.Bind(System.Func{VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression})">
+        <member name="M:VDS.RDF.Query.Builder.IQueryBuilder.Bind(System.Func{VDS.RDF.Query.Builder.INonAggregateExpressionBuilder,VDS.RDF.Query.Builder.Expressions.PrimaryExpression{VDS.RDF.Query.Expressions.ISparqlExpression}})">
             <summary>
             Adds a BIND variable assignment to the root graph pattern
             </summary>
@@ -47970,7 +48013,7 @@
             </summary>
             <param name="variables">query result variables</param>
         </member>
-        <member name="M:VDS.RDF.Query.Builder.QueryBuilder.Select(System.Func{VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression})">
+        <member name="M:VDS.RDF.Query.Builder.QueryBuilder.Select``1(System.Func{VDS.RDF.Query.Builder.IExpressionBuilder,VDS.RDF.Query.Builder.Expressions.PrimaryExpression{``0}})">
             <summary>
             Creates a new SELECT query which will return an expression
             </summary>
@@ -48006,17 +48049,27 @@
             Adds ascending ordering by a variable to the query
             </summary>
         </member>
+        <member name="M:VDS.RDF.Query.Builder.QueryBuilder.OrderBy(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Adds ascending ordering by a variable to the query
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Query.Builder.QueryBuilder.OrderByDescending(System.String)">
             <summary>
             Adds descending ordering by a variable to the query
             </summary>
         </member>
-        <member name="M:VDS.RDF.Query.Builder.QueryBuilder.OrderBy(System.Func{VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression})">
+        <member name="M:VDS.RDF.Query.Builder.QueryBuilder.OrderByDescending(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Adds descending ordering by a variable to the query
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.QueryBuilder.OrderBy(System.Func{VDS.RDF.Query.Builder.IExpressionBuilder,VDS.RDF.Query.Builder.Expressions.PrimaryExpression{VDS.RDF.Query.Expressions.ISparqlExpression}})">
             <summary>
             Adds ascending ordering by an expression to the query
             </summary>
         </member>
-        <member name="M:VDS.RDF.Query.Builder.QueryBuilder.OrderByDescending(System.Func{VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression})">
+        <member name="M:VDS.RDF.Query.Builder.QueryBuilder.OrderByDescending(System.Func{VDS.RDF.Query.Builder.IExpressionBuilder,VDS.RDF.Query.Builder.Expressions.PrimaryExpression{VDS.RDF.Query.Expressions.ISparqlExpression}})">
             <summary>
             Adds descending ordering by an expression to the query
             </summary>
@@ -48031,531 +48084,6 @@
             Set the expression's variable name
             </summary>
             <returns>the parent query or graph pattern builder</returns>
-        </member>
-        <member name="T:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions">
-            <summary>
-            Provides methods for creating SPARQL functions, which operate on RDF Terms
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.IsIRI(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
-            <summary>
-            Creates a call to the isIRI function with an expression parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="term">any SPARQL expression</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.IsIRI(VDS.RDF.Query.Builder.ExpressionBuilder,System.String)">
-            <summary>
-            Creates a call to the isIRI function with a variable parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="variableName">name of variable to check</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.IsBlank(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
-            <summary>
-            Creates a call to the isBlank function with an expression parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="term">any SPARQL expression</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.IsBlank(VDS.RDF.Query.Builder.ExpressionBuilder,System.String)">
-            <summary>
-            Creates a call to the isBlank function with a variable parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="variableName">name of variable to check</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.IsLiteral(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
-            <summary>
-            Creates a call to the isLiteral function with an expression parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="term">any SPARQL expression</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.IsLiteral(VDS.RDF.Query.Builder.ExpressionBuilder,System.String)">
-            <summary>
-            Creates a call to the isLiteral function with a variable parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="variableName">name of variable to check</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.IsNumeric(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
-            <summary>
-            Creates a call to the isNumeric function with an expression parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="term">any SPARQL expression</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.IsNumeric(VDS.RDF.Query.Builder.ExpressionBuilder,System.String)">
-            <summary>
-            Creates a call to the isNumeric function with a variable parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="variableName">name of variable to check</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.Str(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the STR function with a variable parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="variable">a SPARQL variable</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.Str(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.LiteralExpression)">
-            <summary>
-            Creates a call to the STR function with a literal expression parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="literal">a SPARQL literal expression</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.Str(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.IriExpression)">
-            <summary>
-            Creates a call to the STR function with an variable parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="iriTerm">an RDF IRI term</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.Lang(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the LANG function with a variable parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="variable">a SPARQL variable</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.Lang(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.LiteralExpression)">
-            <summary>
-            Creates a call to the LANG function with a literal expression parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="literal">a SPARQL literal expression</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.Datatype(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the DATATYPE function with a variable parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="variable">a SPARQL variable</param>
-            <remarks>depending on <see cref="P:VDS.RDF.Query.Builder.ExpressionBuilder.SparqlVersion"/> will use a different flavour of datatype function</remarks>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.Datatype(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.LiteralExpression)">
-            <summary>
-            Creates a call to the DATATYPE function with a literal expression parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="literal">a SPARQL literal expression</param>
-            <remarks>depending on <see cref="P:VDS.RDF.Query.Builder.ExpressionBuilder.SparqlVersion"/> will use a different flavour of datatype function</remarks>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.BNode(VDS.RDF.Query.Builder.ExpressionBuilder)">
-            <summary>
-            Creates a parameterless call to the BNODE function
-            </summary>
-            <param name="eb"> </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.BNode(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.LiteralExpression)">
-            <summary>
-            Creates a call to the BNODE function with a simple literal parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="simpleLiteral">a SPARQL simple literal</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.BNode(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String})">
-            <summary>
-            Creates a call to the BNODE function with a string literal parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="stringLiteral">a SPARQL string literal</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.StrDt(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.IriExpression)">
-            <summary>
-            Creates a call to the STRDT function with a simple literal and a IRI expression parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="lexicalForm">a SPARQL simple literal</param>
-            <param name="datatypeIri">datatype IRI</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.StrDt(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.LiteralExpression,System.Uri)">
-            <summary>
-            Creates a call to the STRDT function with a simple literal and a <see cref="T:System.Uri"/> parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="lexicalForm">a SPARQL simple literal</param>
-            <param name="datatypeIri">datatype IRI</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.StrDt(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the STRDT function with a simple literal and a variable parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="lexicalForm">a SPARQL simple literal</param>
-            <param name="datatypeIri">datatype IRI</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.StrDt(VDS.RDF.Query.Builder.ExpressionBuilder,System.String,VDS.RDF.Query.Builder.Expressions.IriExpression)">
-            <summary>
-            Creates a call to the STRDT function with a simple literal and a IRI expression parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="lexicalForm">a literal</param>
-            <param name="datatypeIri">datatype IRI</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.StrDt(VDS.RDF.Query.Builder.ExpressionBuilder,System.String,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the STRDT function with a simple literal and a IRI expression parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="lexicalForm">a literal</param>
-            <param name="datatypeIri">datatype IRI</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.StrDt(VDS.RDF.Query.Builder.ExpressionBuilder,System.String,System.Uri)">
-            <summary>
-            Creates a call to the STRDT function with a simple literal and a <see cref="T:System.Uri"/> parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="lexicalForm">a literal</param>
-            <param name="datatypeIri">datatype IRI</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.StrDt(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Uri)">
-            <summary>
-            Creates a call to the STRDT function with a variable and a <see cref="T:System.Uri"/> parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="lexicalForm">a literal</param>
-            <param name="datatypeIri">datatype IRI</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.StrDt(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the STRDT function with a variable and a <see cref="T:System.Uri"/> parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="lexicalForm">a literal</param>
-            <param name="datatypeIri">datatype IRI</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.StrDt(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.IriExpression)">
-            <summary>
-            Creates a call to the STRDT function with a variable and a IRI expression parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="lexicalForm">a literal</param>
-            <param name="datatypeIri">datatype IRI</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.UUID(VDS.RDF.Query.Builder.ExpressionBuilder)">
-            <summary>
-            Creates a call to the UUID function
-            </summary>
-            <param name="eb"> </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderRdfTermsFunctionsExtensions.StrUUID(VDS.RDF.Query.Builder.ExpressionBuilder)">
-            <summary>
-            Creates a call to the StrUUID function
-            </summary>
-            <param name="eb"> </param>
-        </member>
-        <member name="T:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions">
-            <summary>
-            Provides methods for creating SPARQL functions, which operate on strings
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Regex(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,System.String)">
-            <summary>
-            Creates a call to the REGEX function
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Regex(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the REGEX function
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Regex(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.LiteralExpression,System.String)">
-            <summary>
-            Creates a call to the REGEX function
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Regex(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.LiteralExpression)">
-            <summary>
-            Creates a call to the REGEX function
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Regex(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the REGEX function
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Regex(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression,System.String,System.String)">
-            <summary>
-            Creates a call to the REGEX function
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Regex(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression,System.String)">
-            <summary>
-            Creates a call to the REGEX function
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Regex(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.LiteralExpression,System.String,System.String)">
-            <summary>
-            Creates a call to the REGEX function
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Regex(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.LiteralExpression,System.String)">
-            <summary>
-            Creates a call to the REGEX function
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Regex(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression,System.String)">
-            <summary>
-            Creates a call to the REGEX function
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.StrLen(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the STRLEN function with a variable parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a SPARQL variable</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.StrLen(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String})">
-            <summary>
-            Creates a call to the STRLEN function with a string literal parameter
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a string literal parameter</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
-            <summary>
-            Creates a call to the SUBSTR function with a string literal and variable parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a string literal parameter</param>
-            <param name="startingLoc">1-based start index</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the SUBSTR function with a string literal and interger expression parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a string literal parameter</param>
-            <param name="startingLoc">a SPARQL variable</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},System.Int32)">
-            <summary>
-            Creates a call to the SUBSTR function with a string literal and interger parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a string literal parameter</param>
-            <param name="startingLoc">1-based start index</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
-            <summary>
-            Creates a call to the SUBSTR function with a variable and interger expression parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a SPARQL variable</param>
-            <param name="startingLoc">1-based start index</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32)">
-            <summary>
-            Creates a call to the SUBSTR function with a variable and interger parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a SPARQL variable</param>
-            <param name="startingLoc">1-based start index</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the SUBSTR function with two variable parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a SPARQL variable</param>
-            <param name="startingLoc">a SPARQL variable</param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},System.Int32)">
-            <summary>
-            Creates a call to the SUBSTR function with a string literal and variable parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a string literal parameter</param>
-            <param name="startingLoc">1-based start index</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32)">
-            <summary>
-            Creates a call to the SUBSTR function with a string literal and interger expression parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a string literal parameter</param>
-            <param name="startingLoc">a SPARQL variable</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},System.Int32,System.Int32)">
-            <summary>
-            Creates a call to the SUBSTR function with a string literal and interger parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a string literal parameter</param>
-            <param name="startingLoc">1-based start index</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},System.Int32)">
-            <summary>
-            Creates a call to the SUBSTR function with a variable and interger expression parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a SPARQL variable</param>
-            <param name="startingLoc">1-based start index</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32,System.Int32)">
-            <summary>
-            Creates a call to the SUBSTR function with a variable and interger parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a SPARQL variable</param>
-            <param name="startingLoc">1-based start index</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32)">
-            <summary>
-            Creates a call to the SUBSTR function with two variable parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a SPARQL variable</param>
-            <param name="startingLoc">a SPARQL variable</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
-            <summary>
-            Creates a call to the SUBSTR function with a string literal and two integer expressions parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a string literal parameter</param>
-            <param name="startingLoc">1-based start index</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
-            <summary>
-            Creates a call to the SUBSTR function with a string literal, variable and interger expression parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a string literal parameter</param>
-            <param name="startingLoc">a SPARQL variable</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},System.Int32,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
-            <summary>
-            Creates a call to the SUBSTR function with a string literal, interger and integer expression parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a string literal parameter</param>
-            <param name="startingLoc">1-based start index</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
-            <summary>
-            Creates a call to the SUBSTR function with a variable, interger expression and integer expression parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a SPARQL variable</param>
-            <param name="startingLoc">1-based start index</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
-            <summary>
-            Creates a call to the SUBSTR function with a variable, interger and a numeric expression parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a SPARQL variable</param>
-            <param name="startingLoc">1-based start index</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
-            <summary>
-            Creates a call to the SUBSTR function with two variable parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a SPARQL variable</param>
-            <param name="startingLoc">a SPARQL variable</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the SUBSTR function with a string literal, interger expression and a numeric expression parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a string literal parameter</param>
-            <param name="startingLoc">1-based start index</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the SUBSTR function with a string literal, interger expression and a variable parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a string literal parameter</param>
-            <param name="startingLoc">a SPARQL variable</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},System.Int32,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the SUBSTR function with a string literal, interger and a variable parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a string literal parameter</param>
-            <param name="startingLoc">1-based start index</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the SUBSTR function with a variable, interger expression and a variable parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a SPARQL variable</param>
-            <param name="startingLoc">1-based start index</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the SUBSTR function with a variable, interger and a variable parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a SPARQL variable</param>
-            <param name="startingLoc">1-based start index</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.Substr(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the SUBSTR function with three variable parameters
-            </summary>
-            <param name="eb"> </param>
-            <param name="str">a SPARQL variable</param>
-            <param name="startingLoc">a SPARQL variable</param>
-            <param name="length">substring length </param>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.LangMatches(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.LiteralExpression,System.String)">
-            <summary>
-            Creates a call to the LANGMATCHES function
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.LangMatches(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,System.String)">
-            <summary>
-            Creates a call to the LANGMATCHES function
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.LangMatches(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.LiteralExpression)">
-            <summary>
-            Creates a call to the LANGMATCHES function
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.LangMatches(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.LiteralExpression)">
-            <summary>
-            Creates a call to the LANGMATCHES function
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.LangMatches(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the LANGMATCHES function
-            </summary>
-        </member>
-        <member name="M:VDS.RDF.Query.Builder.ExpressionBuilderStringExtensions.LangMatches(VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
-            <summary>
-            Creates a call to the LANGMATCHES function
-            </summary>
         </member>
         <member name="T:VDS.RDF.Query.Builder.IDescribeGraphPatternBuilder">
             <summary>
@@ -48612,7 +48140,7 @@
             Adds additional SELECT return <paramref name="variables"/>
             </summary>
         </member>
-        <member name="M:VDS.RDF.Query.Builder.ISelectBuilder.And(System.Func{VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression})">
+        <member name="M:VDS.RDF.Query.Builder.ISelectBuilder.And``1(System.Func{VDS.RDF.Query.Builder.IExpressionBuilder,VDS.RDF.Query.Builder.Expressions.PrimaryExpression{``0}})">
             <summary>
             Adds additional SELECT expression
             </summary>
@@ -48627,7 +48155,7 @@
             Adds additional SELECT <paramref name="variables"/>
             </summary>
         </member>
-        <member name="M:VDS.RDF.Query.Builder.SelectBuilder.And(System.Func{VDS.RDF.Query.Builder.ExpressionBuilder,VDS.RDF.Query.Builder.Expressions.SparqlExpression})">
+        <member name="M:VDS.RDF.Query.Builder.SelectBuilder.And``1(System.Func{VDS.RDF.Query.Builder.IExpressionBuilder,VDS.RDF.Query.Builder.Expressions.PrimaryExpression{``0}})">
             <summary>
             Adds additional SELECT expression
             </summary>
@@ -48649,8 +48177,20 @@
         </member>
         <member name="M:VDS.RDF.Query.Builder.QueryBuilderExtensions.BuildQuery(VDS.RDF.Query.Builder.IDescribeBuilder)">
             <summary>
-            Builds a simple DESCRIBE query without the WHERE part
+            Build a simple DESCRIBE query without the WHERE part.
             </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.QueryBuilderExtensions.Child(VDS.RDF.Query.Builder.IQueryBuilder,VDS.RDF.Query.Builder.IQueryBuilder)">
+            <summary>
+            Add a group graph pattern or a sub query to the query.
+            </summary>
+            <param name="childBuilder"></param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.QueryBuilderExtensions.Child(VDS.RDF.Query.Builder.IQueryBuilder,System.Action{VDS.RDF.Query.Builder.IGraphPatternBuilder})">
+            <summary>
+            Add a group graph pattern or a sub query to the query.
+            </summary>
+            <param name="buildGraphPattern"></param>
         </member>
         <member name="T:VDS.RDF.Query.Builder.SparqlCastBuilder">
             <summary>
@@ -48690,6 +48230,778 @@
         <member name="M:VDS.RDF.Query.Builder.SparqlCastBuilder.AsString">
             <summary>
             Creates a cast to xsd:string
+            </summary>
+        </member>
+        <member name="T:VDS.RDF.Query.Builder.IfThenPart">
+            <summary>
+            Provides methods to supply the "then" expression for the IF function call
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IfThenPart.Then(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
+            <summary>
+            Sets the second parameter of the IF function call
+            </summary>
+        </member>
+        <member name="T:VDS.RDF.Query.Builder.IfElsePart">
+            <summary>
+            Provides methods to supply the "else" expression for the IF function call
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IfElsePart.Else(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
+            <summary>
+            Sets the third parameter of the IF function call
+            </summary>
+        </member>
+        <member name="T:VDS.RDF.Query.Builder.IAggregateBuilder">
+            <summary>
+            Provides methods for creating aggregates expressions
+            </summary>
+        </member>
+        <member name="P:VDS.RDF.Query.Builder.IAggregateBuilder.Distinct">
+            <summary>
+            Gets a builder which builds a DISTICT aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IAggregateBuilder.Sample(VDS.RDF.Query.Expressions.Primary.VariableTerm)">
+            <summary>
+            Creates a SAMPLE aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IAggregateBuilder.Sample(System.String)">
+            <summary>
+            Creates a SAMPLE aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IAggregateBuilder.Sample(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
+            <summary>
+            Creates a SAMPLE aggregate
+            </summary>
+        </member>
+        <member name="T:VDS.RDF.Query.Builder.IDistinctAggregateBuilder">
+            <summary>
+            Provides methods for creating aggregates expressions but only those allowing DISTINCT
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Sum(VDS.RDF.Query.Expressions.Primary.VariableTerm)">
+            <summary>
+            Creates a SUM aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Sum(System.String)">
+            <summary>
+            Creates a SUM aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Sum(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Creates a SUM aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Sum(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
+            <summary>
+            Creates a SUM aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Avg(VDS.RDF.Query.Expressions.Primary.VariableTerm)">
+            <summary>
+            Creates a AVG aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Avg(System.String)">
+            <summary>
+            Creates a AVG aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Avg(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Creates a AVG aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Avg(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
+            <summary>
+            Creates a AVG aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Min(VDS.RDF.Query.Expressions.Primary.VariableTerm)">
+            <summary>
+            Creates a MIN aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Min(System.String)">
+            <summary>
+            Creates a MIN aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Min(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Creates a MIN aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Min(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
+            <summary>
+            Creates a MIN aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Max(VDS.RDF.Query.Expressions.Primary.VariableTerm)">
+            <summary>
+            Creates a MAX aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Max(System.String)">
+            <summary>
+            Creates a MAX aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Max(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Creates a MAX aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Max(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
+            <summary>
+            Creates a MAX aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.GroupConcat(VDS.RDF.Query.Expressions.Primary.VariableTerm,System.String)">
+            <summary>
+            Creates a GROUP_CONCAT aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.GroupConcat(System.String,System.String)">
+            <summary>
+            Creates a GROUP_CONCAT aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.GroupConcat(VDS.RDF.Query.Builder.Expressions.SparqlExpression,System.String)">
+            <summary>
+            Creates a GROUP_CONCAT aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Count">
+            <summary>
+            Creates a COUNT(*) aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Count(VDS.RDF.Query.Expressions.Primary.VariableTerm)">
+            <summary>
+            Creates a COUNT aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Count(System.String)">
+            <summary>
+            Creates a COUNT aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Count(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Creates a COUNT aggregate
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.IDistinctAggregateBuilder.Count(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
+            <summary>
+            Creates a COUNT aggregate
+            </summary>
+        </member>
+        <member name="T:VDS.RDF.Query.Builder.IExpressionBuilder">
+            <summary>
+            Provides methods for building SPARQL expressions, including aggregates
+            </summary>
+        </member>
+        <member name="T:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder">
+            <summary>
+            Provides methods for building SPARQL expressions, but not aggregates
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.VariableExpression,System.String)">
+            <summary>
+            Creates a call to the REGEX function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the REGEX function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.LiteralExpression,System.String)">
+            <summary>
+            Creates a call to the REGEX function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.LiteralExpression)">
+            <summary>
+            Creates a call to the REGEX function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the REGEX function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.SparqlExpression,System.String,System.String)">
+            <summary>
+            Creates a call to the REGEX function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression,System.String)">
+            <summary>
+            Creates a call to the REGEX function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.LiteralExpression,System.String,System.String)">
+            <summary>
+            Creates a call to the REGEX function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.LiteralExpression,System.String)">
+            <summary>
+            Creates a call to the REGEX function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Regex(VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression,System.String)">
+            <summary>
+            Creates a call to the REGEX function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.StrLen(VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the STRLEN function with a variable parameter
+            </summary>
+            <param name="str">a SPARQL variable</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.StrLen(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String})">
+            <summary>
+            Creates a call to the STRLEN function with a string literal parameter
+            </summary>
+            <param name="str">a string literal parameter</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
+            <summary>
+            Creates a call to the SUBSTR function with a string literal and variable parameters
+            </summary>
+            <param name="str">a string literal parameter</param>
+            <param name="startingLoc">1-based start index</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the SUBSTR function with a string literal and interger expression parameters
+            </summary>
+            <param name="str">a string literal parameter</param>
+            <param name="startingLoc">a SPARQL variable</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},System.Int32)">
+            <summary>
+            Creates a call to the SUBSTR function with a string literal and interger parameters
+            </summary>
+            <param name="str">a string literal parameter</param>
+            <param name="startingLoc">1-based start index</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
+            <summary>
+            Creates a call to the SUBSTR function with a variable and interger expression parameters
+            </summary>
+            <param name="str">a SPARQL variable</param>
+            <param name="startingLoc">1-based start index</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32)">
+            <summary>
+            Creates a call to the SUBSTR function with a variable and interger parameters
+            </summary>
+            <param name="str">a SPARQL variable</param>
+            <param name="startingLoc">1-based start index</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the SUBSTR function with two variable parameters
+            </summary>
+            <param name="str">a SPARQL variable</param>
+            <param name="startingLoc">a SPARQL variable</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},System.Int32)">
+            <summary>
+            Creates a call to the SUBSTR function with a string literal and variable parameters
+            </summary>
+            <param name="str">a string literal parameter</param>
+            <param name="startingLoc">1-based start index</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32)">
+            <summary>
+            Creates a call to the SUBSTR function with a string literal and interger expression parameters
+            </summary>
+            <param name="str">a string literal parameter</param>
+            <param name="startingLoc">a SPARQL variable</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},System.Int32,System.Int32)">
+            <summary>
+            Creates a call to the SUBSTR function with a string literal and interger parameters
+            </summary>
+            <param name="str">a string literal parameter</param>
+            <param name="startingLoc">1-based start index</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},System.Int32)">
+            <summary>
+            Creates a call to the SUBSTR function with a variable and interger expression parameters
+            </summary>
+            <param name="str">a SPARQL variable</param>
+            <param name="startingLoc">1-based start index</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32,System.Int32)">
+            <summary>
+            Creates a call to the SUBSTR function with a variable and interger parameters
+            </summary>
+            <param name="str">a SPARQL variable</param>
+            <param name="startingLoc">1-based start index</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32)">
+            <summary>
+            Creates a call to the SUBSTR function with two variable parameters
+            </summary>
+            <param name="str">a SPARQL variable</param>
+            <param name="startingLoc">a SPARQL variable</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
+            <summary>
+            Creates a call to the SUBSTR function with a string literal and two integer expressions parameters
+            </summary>
+            <param name="str">a string literal parameter</param>
+            <param name="startingLoc">1-based start index</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
+            <summary>
+            Creates a call to the SUBSTR function with a string literal, variable and interger expression parameters
+            </summary>
+            <param name="str">a string literal parameter</param>
+            <param name="startingLoc">a SPARQL variable</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},System.Int32,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
+            <summary>
+            Creates a call to the SUBSTR function with a string literal, interger and integer expression parameters
+            </summary>
+            <param name="str">a string literal parameter</param>
+            <param name="startingLoc">1-based start index</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
+            <summary>
+            Creates a call to the SUBSTR function with a variable, interger expression and integer expression parameters
+            </summary>
+            <param name="str">a SPARQL variable</param>
+            <param name="startingLoc">1-based start index</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
+            <summary>
+            Creates a call to the SUBSTR function with a variable, interger and a numeric expression parameters
+            </summary>
+            <param name="str">a SPARQL variable</param>
+            <param name="startingLoc">1-based start index</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32})">
+            <summary>
+            Creates a call to the SUBSTR function with two variable parameters
+            </summary>
+            <param name="str">a SPARQL variable</param>
+            <param name="startingLoc">a SPARQL variable</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the SUBSTR function with a string literal, interger expression and a numeric expression parameters
+            </summary>
+            <param name="str">a string literal parameter</param>
+            <param name="startingLoc">1-based start index</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the SUBSTR function with a string literal, interger expression and a variable parameters
+            </summary>
+            <param name="str">a string literal parameter</param>
+            <param name="startingLoc">a SPARQL variable</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String},System.Int32,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the SUBSTR function with a string literal, interger and a variable parameters
+            </summary>
+            <param name="str">a string literal parameter</param>
+            <param name="startingLoc">1-based start index</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.NumericExpression{System.Int32},VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the SUBSTR function with a variable, interger expression and a variable parameters
+            </summary>
+            <param name="str">a SPARQL variable</param>
+            <param name="startingLoc">1-based start index</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Int32,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the SUBSTR function with a variable, interger and a variable parameters
+            </summary>
+            <param name="str">a SPARQL variable</param>
+            <param name="startingLoc">1-based start index</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Substr(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the SUBSTR function with three variable parameters
+            </summary>
+            <param name="str">a SPARQL variable</param>
+            <param name="startingLoc">a SPARQL variable</param>
+            <param name="length">substring length </param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.LangMatches(VDS.RDF.Query.Builder.Expressions.LiteralExpression,System.String)">
+            <summary>
+            Creates a call to the LANGMATCHES function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.LangMatches(VDS.RDF.Query.Builder.Expressions.VariableExpression,System.String)">
+            <summary>
+            Creates a call to the LANGMATCHES function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.LangMatches(VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.LiteralExpression)">
+            <summary>
+            Creates a call to the LANGMATCHES function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.LangMatches(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.LiteralExpression)">
+            <summary>
+            Creates a call to the LANGMATCHES function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.LangMatches(VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the LANGMATCHES function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.LangMatches(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the LANGMATCHES function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.IsIRI(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
+            <summary>
+            Creates a call to the isIRI function with an expression parameter
+            </summary>
+            <param name="term">any SPARQL expression</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.IsIRI(System.String)">
+            <summary>
+            Creates a call to the isIRI function with a variable parameter
+            </summary>
+            <param name="variableName">name of variable to check</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.IsBlank(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
+            <summary>
+            Creates a call to the isBlank function with an expression parameter
+            </summary>
+            <param name="term">any SPARQL expression</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.IsBlank(System.String)">
+            <summary>
+            Creates a call to the isBlank function with a variable parameter
+            </summary>
+            <param name="variableName">name of variable to check</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.IsLiteral(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
+            <summary>
+            Creates a call to the isLiteral function with an expression parameter
+            </summary>
+            <param name="term">any SPARQL expression</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.IsLiteral(System.String)">
+            <summary>
+            Creates a call to the isLiteral function with a variable parameter
+            </summary>
+            <param name="variableName">name of variable to check</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.IsNumeric(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
+            <summary>
+            Creates a call to the isNumeric function with an expression parameter
+            </summary>
+            <param name="term">any SPARQL expression</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.IsNumeric(System.String)">
+            <summary>
+            Creates a call to the isNumeric function with a variable parameter
+            </summary>
+            <param name="variableName">name of variable to check</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Str(VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the STR function with a variable parameter
+            </summary>
+            <param name="variable">a SPARQL variable</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Str(VDS.RDF.Query.Builder.Expressions.LiteralExpression)">
+            <summary>
+            Creates a call to the STR function with a literal expression parameter
+            </summary>
+            <param name="literal">a SPARQL literal expression</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Str(VDS.RDF.Query.Builder.Expressions.IriExpression)">
+            <summary>
+            Creates a call to the STR function with an variable parameter
+            </summary>
+            <param name="iriTerm">an RDF IRI term</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Lang(VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the LANG function with a variable parameter
+            </summary>
+            <param name="variable">a SPARQL variable</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Lang(VDS.RDF.Query.Builder.Expressions.LiteralExpression)">
+            <summary>
+            Creates a call to the LANG function with a literal expression parameter
+            </summary>
+            <param name="literal">a SPARQL literal expression</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Datatype``1(VDS.RDF.Query.Builder.Expressions.PrimaryExpression{``0})">
+            <summary>
+            Creates a call to the DATATYPE function with a literal expression parameter
+            </summary>
+            <param name="literal">a SPARQL literal expression</param>
+            <remarks>depending on <see cref="P:VDS.RDF.Query.Builder.ExpressionBuilder.SparqlVersion"/> will use a different flavour of datatype function</remarks>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.BNode">
+            <summary>
+            Creates a parameterless call to the BNODE function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.BNode(VDS.RDF.Query.Builder.Expressions.LiteralExpression)">
+            <summary>
+            Creates a call to the BNODE function with a simple literal parameter
+            </summary>
+            <param name="simpleLiteral">a SPARQL simple literal</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.BNode(VDS.RDF.Query.Builder.Expressions.TypedLiteralExpression{System.String})">
+            <summary>
+            Creates a call to the BNODE function with a string literal parameter
+            </summary>
+            <param name="stringLiteral">a SPARQL string literal</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.StrDt(VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.IriExpression)">
+            <summary>
+            Creates a call to the STRDT function with a simple literal and a IRI expression parameters
+            </summary>
+            <param name="lexicalForm">a SPARQL simple literal</param>
+            <param name="datatypeIri">datatype IRI</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.StrDt(VDS.RDF.Query.Builder.Expressions.LiteralExpression,System.Uri)">
+            <summary>
+            Creates a call to the STRDT function with a simple literal and a <see cref="T:System.Uri"/> parameters
+            </summary>
+            <param name="lexicalForm">a SPARQL simple literal</param>
+            <param name="datatypeIri">datatype IRI</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.StrDt(VDS.RDF.Query.Builder.Expressions.LiteralExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the STRDT function with a simple literal and a variable parameters
+            </summary>
+            <param name="lexicalForm">a SPARQL simple literal</param>
+            <param name="datatypeIri">datatype IRI</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.StrDt(System.String,VDS.RDF.Query.Builder.Expressions.IriExpression)">
+            <summary>
+            Creates a call to the STRDT function with a simple literal and a IRI expression parameters
+            </summary>
+            <param name="lexicalForm">a literal</param>
+            <param name="datatypeIri">datatype IRI</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.StrDt(System.String,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the STRDT function with a simple literal and a IRI expression parameters
+            </summary>
+            <param name="lexicalForm">a literal</param>
+            <param name="datatypeIri">datatype IRI</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.StrDt(System.String,System.Uri)">
+            <summary>
+            Creates a call to the STRDT function with a simple literal and a <see cref="T:System.Uri"/> parameters
+            </summary>
+            <param name="lexicalForm">a literal</param>
+            <param name="datatypeIri">datatype IRI</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.StrDt(VDS.RDF.Query.Builder.Expressions.VariableExpression,System.Uri)">
+            <summary>
+            Creates a call to the STRDT function with a variable and a <see cref="T:System.Uri"/> parameters
+            </summary>
+            <param name="lexicalForm">a literal</param>
+            <param name="datatypeIri">datatype IRI</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.StrDt(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the STRDT function with a variable and a <see cref="T:System.Uri"/> parameters
+            </summary>
+            <param name="lexicalForm">a literal</param>
+            <param name="datatypeIri">datatype IRI</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.StrDt(VDS.RDF.Query.Builder.Expressions.VariableExpression,VDS.RDF.Query.Builder.Expressions.IriExpression)">
+            <summary>
+            Creates a call to the STRDT function with a variable and a IRI expression parameters
+            </summary>
+            <param name="lexicalForm">a literal</param>
+            <param name="datatypeIri">datatype IRI</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.UUID">
+            <summary>
+            Creates a call to the UUID function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.StrUUID">
+            <summary>
+            Creates a call to the StrUUID function
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Bound(VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the BOUND function with a variable parameter
+            </summary>
+            <param name="var">a SPARQL variable</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Bound(System.String)">
+            <summary>
+            Creates a call to the BOUND function with a variable parameter
+            </summary>
+            <param name="var">a SPARQL variable name</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.If(VDS.RDF.Query.Builder.Expressions.BooleanExpression)">
+            <summary>
+            Creates a call to the IF function with an expression for the first parameter
+            </summary>
+            <param name="ifExpression">conditional clause expression</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.If(VDS.RDF.Query.Builder.Expressions.VariableExpression)">
+            <summary>
+            Creates a call to the IF function with a variable for the first parameter
+            </summary>
+            <param name="ifExpression">conditional clause variable expression</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Coalesce(VDS.RDF.Query.Builder.Expressions.SparqlExpression[])">
+            <summary>
+            Creates a call of the COALESCE function with a variable number of expression parameters
+            </summary>
+            <param name="expressions">SPARQL expressions</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Exists(System.Action{VDS.RDF.Query.Builder.IGraphPatternBuilder})">
+            <summary>
+            Creates a call of the EXISTS function
+            </summary>
+            <param name="buildExistsPattern">a function, which will create the graph pattern parameter</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.SameTerm(VDS.RDF.Query.Builder.Expressions.SparqlExpression,VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
+            <summary>
+            Creates a call of the SAMETERM function with two expression parameters
+            </summary>
+            <param name="left">a SPARQL expression</param>
+            <param name="right">a SPARQL expression</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.SameTerm(System.String,VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
+            <summary>
+            Creates a call of the SAMETERM function with variable and expression parameters
+            </summary>
+            <param name="left">a variable name</param>
+            <param name="right">a SPARQL expression</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.SameTerm(VDS.RDF.Query.Builder.Expressions.SparqlExpression,System.String)">
+            <summary>
+            Creates a call of the SAMETERM function with expression and variable parameters
+            </summary>
+            <param name="left">a SPARQL expression</param>
+            <param name="right">a variable name</param>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.SameTerm(System.String,System.String)">
+            <summary>
+            Creates a call of the SAMETERM function with two variable parameters
+            </summary>
+            <param name="left">a variable name</param>
+            <param name="right">a variable name</param>
+        </member>
+        <member name="P:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.SparqlVersion">
+            <summary>
+            SPARQL syntax verions to use when creating expressions
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Variable(System.String)">
+            <summary>
+            Creates a SPARQL variable
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Variable(VDS.RDF.Query.SparqlVariable)">
+            <summary>
+            Creates a SPARQL variable
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Constant(System.String)">
+            <summary>
+            Creates a string constant 
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Constant(System.Int32)">
+            <summary>
+            Creates a numeric constant 
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Constant(System.Decimal)">
+            <summary>
+            Creates a numeric constant 
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Constant(System.Single)">
+            <summary>
+            Creates a numeric constant 
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Constant(System.Double)">
+            <summary>
+            Creates a numeric constant 
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Constant(System.Boolean)">
+            <summary>
+            Creates a boolean constant 
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Constant(System.Byte)">
+            <summary>
+            Creates a numeric constant 
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Constant(System.SByte)">
+            <summary>
+            Creates a numeric constant 
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Constant(System.Int16)">
+            <summary>
+            Creates a numeric constant 
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Constant(System.DateTime)">
+            <summary>
+            Creates a datetime constant 
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Constant(System.Uri)">
+            <summary>
+            Creates an IRI constant 
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Query.Builder.INonAggregateExpressionBuilder.Cast(VDS.RDF.Query.Builder.Expressions.SparqlExpression)">
+            <summary>
+            Builds a SPARQL constructor function call
             </summary>
         </member>
         <member name="T:VDS.RDF.Storage.RdfStorageException">
@@ -49235,6 +49547,36 @@
             <param name="rdfHandler">RDF Handler</param>
             <param name="resultsHandler">SPARQL Results Handler</param>
             <param name="sparqlQuery">SPARQL Query</param>
+            <exception cref="T:VDS.RDF.Query.RdfQueryException">Thrown if an error occurs performing the query</exception>
+            <exception cref="T:VDS.RDF.Storage.RdfStorageException">Thrown if an error occurs performing the query</exception>
+            <exception cref="T:VDS.RDF.Parsing.RdfParseException">Thrown if the query is invalid when validated by dotNetRDF prior to passing the query request to the store or if the request succeeds but the store returns malformed results</exception>
+            <exception cref="T:VDS.RDF.Parsing.RdfParserSelectionException">Thrown if the store returns results in a format dotNetRDF does not understand</exception>
+        </member>
+        <member name="T:VDS.RDF.Storage.IReasoningQueryableStorage">
+            <summary>
+            Interface for storage providers which allow SPARQL Queries to be made against them with reasoning set by query
+            </summary>
+        </member>
+        <member name="M:VDS.RDF.Storage.IReasoningQueryableStorage.Query(System.String,System.Boolean)">
+            <summary>
+            Makes a SPARQL Query against the underlying store
+            </summary>
+            <param name="sparqlQuery">SPARQL Query</param>
+            <param name="reasoning">rReasoning On demand by query</param>
+            <returns><see cref="T:VDS.RDF.Query.SparqlResultSet">SparqlResultSet</see> or a <see cref="T:VDS.RDF.Graph">Graph</see> depending on the Sparql Query</returns>
+            <exception cref="T:VDS.RDF.Query.RdfQueryException">Thrown if an error occurs performing the query</exception>
+            <exception cref="T:VDS.RDF.Storage.RdfStorageException">Thrown if an error occurs performing the query</exception>
+            <exception cref="T:VDS.RDF.Parsing.RdfParseException">Thrown if the query is invalid when validated by dotNetRDF prior to passing the query request to the store or if the request succeeds but the store returns malformed results</exception>
+            <exception cref="T:VDS.RDF.Parsing.RdfParserSelectionException">Thrown if the store returns results in a format dotNetRDF does not understand</exception>
+        </member>
+        <member name="M:VDS.RDF.Storage.IReasoningQueryableStorage.Query(VDS.RDF.IRdfHandler,VDS.RDF.ISparqlResultsHandler,System.String,System.Boolean)">
+            <summary>
+            Makes a SPARQL Query against the underlying store processing the resulting Graph/Result Set with a handler of your choice
+            </summary>
+            <param name="rdfHandler">RDF Handler</param>
+            <param name="resultsHandler">SPARQL Results Handler</param>
+            <param name="sparqlQuery">SPARQL Query</param>
+            <param name="reasoning">rReasoning On demand by query</param>
             <exception cref="T:VDS.RDF.Query.RdfQueryException">Thrown if an error occurs performing the query</exception>
             <exception cref="T:VDS.RDF.Storage.RdfStorageException">Thrown if an error occurs performing the query</exception>
             <exception cref="T:VDS.RDF.Parsing.RdfParseException">Thrown if the query is invalid when validated by dotNetRDF prior to passing the query request to the store or if the request succeeds but the store returns malformed results</exception>
@@ -51507,6 +51849,11 @@
             Creates a new connector
             </summary>
         </member>
+        <member name="F:VDS.RDF.Storage.BaseHttpConnector._hasCredentials">
+            <summary>
+            Whether the User has provided credentials for accessing the Store using authentication
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Storage.BaseHttpConnector.SetProxy(System.String)">
             <summary>
             Sets a Proxy Server to be used
@@ -51573,6 +51920,16 @@
             </para>
             </remarks>
         </member>
+        <member name="P:VDS.RDF.Storage.BaseHttpConnector.Username">
+            <summary>
+            Password for accessing the Store
+            </summary>
+        </member>
+        <member name="P:VDS.RDF.Storage.BaseHttpConnector.Password">
+            <summary>
+            Password for accessing the Store
+            </summary>
+        </member>
         <member name="M:VDS.RDF.Storage.BaseHttpConnector.ApplyRequestOptions(System.Net.HttpWebRequest)">
             <summary>
             Helper method which applies standard request options to the request, these currently include proxy settings and HTTP timeout
@@ -51586,6 +51943,11 @@
             </summary>
             <param name="objNode">Object Node representing the <see cref="T:VDS.RDF.Storage.IStorageProvider">IStorageProvider</see> whose configuration is being serialized</param>
             <param name="context">Serialization Context</param>
+        </member>
+        <member name="M:VDS.RDF.Storage.BaseHttpConnector.SetCredentials(System.String,System.String)">
+            <summary>
+            Sets the credentials to be used with basic authentication
+            </summary>
         </member>
         <member name="T:VDS.RDF.Storage.BaseAsyncHttpConnector">
             <summary>
@@ -52098,6 +52460,14 @@
             <param name="sparqlQuery">Sparql Query</param>
             <returns></returns>
         </member>
+        <member name="M:VDS.RDF.Storage.BaseStardogConnector.Query(System.String,System.Boolean)">
+            <summary>
+            Makes a SPARQL Query against the underlying Store using whatever reasoning mode is currently in-use, the reasoning can be set by query
+            </summary>
+            <param name="sparqlQuery">Sparql Query</param>
+            <param name="reasoning"></param>
+            <returns></returns>
+        </member>
         <member name="M:VDS.RDF.Storage.BaseStardogConnector.Query(VDS.RDF.IRdfHandler,VDS.RDF.ISparqlResultsHandler,System.String)">
             <summary>
             Makes a SPARQL Query against the underlying Store using whatever reasoning mode is currently in-use processing the results using an appropriate handler from those provided
@@ -52105,6 +52475,16 @@
             <param name="rdfHandler">RDF Handler</param>
             <param name="resultsHandler">Results Handler</param>
             <param name="sparqlQuery">SPARQL Query</param>
+            <returns></returns>
+        </member>
+        <member name="M:VDS.RDF.Storage.BaseStardogConnector.Query(VDS.RDF.IRdfHandler,VDS.RDF.ISparqlResultsHandler,System.String,System.Boolean)">
+            <summary>
+            Makes a SPARQL Query against the underlying Store using whatever reasoning mode is currently in-use processing the results using an appropriate handler from those provided, the reasoning can be set by query
+            </summary>
+            <param name="rdfHandler">RDF Handler</param>
+            <param name="resultsHandler">Results Handler</param>
+            <param name="sparqlQuery">SPARQL Query</param>
+            <param name="reasoning"></param>
             <returns></returns>
         </member>
         <member name="M:VDS.RDF.Storage.BaseStardogConnector.LoadGraph(VDS.RDF.IGraph,System.Uri)">
@@ -55917,21 +56297,6 @@
         <member name="F:VDS.RDF.Storage.BaseSesameHttpProtocolConnector._store">
             <summary>
             Store ID
-            </summary>
-        </member>
-        <member name="F:VDS.RDF.Storage.BaseSesameHttpProtocolConnector._username">
-            <summary>
-            Username for accessing the Store
-            </summary>
-        </member>
-        <member name="F:VDS.RDF.Storage.BaseSesameHttpProtocolConnector._pwd">
-            <summary>
-            Password for accessing the Store
-            </summary>
-        </member>
-        <member name="F:VDS.RDF.Storage.BaseSesameHttpProtocolConnector._hasCredentials">
-            <summary>
-            Whether the User has provided credentials for accessing the Store using authentication
             </summary>
         </member>
         <member name="F:VDS.RDF.Storage.BaseSesameHttpProtocolConnector._repositoriesPrefix">
@@ -69958,6 +70323,12 @@
             </summary>
             <param name="prefix">Prefix to test</param>
             <returns></returns>
+        </member>
+        <member name="M:VDS.RDF.NamespaceMapper.HasNamespace(System.Uri)">
+            <summary>
+            Method which checks whether a given Namespace is defined
+            </summary>
+            <param name="ns">Namespace to test</param>
         </member>
         <member name="M:VDS.RDF.NamespaceMapper.Clear">
             <summary>

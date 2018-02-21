@@ -103,6 +103,8 @@ namespace Semiodesk.Trinity.Store
             return graph;
         }
 
+        #region IStore implementation
+
         public IModel CreateModel(Uri uri)
         {
             return new Model(this, new UriRef(uri));
@@ -396,6 +398,7 @@ namespace Semiodesk.Trinity.Store
             updater.UpdateOntologies(settings.Ontologies);
         }
 
+        #endregion
         #endregion
     }
 }

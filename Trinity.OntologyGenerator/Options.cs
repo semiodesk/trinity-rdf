@@ -242,7 +242,7 @@ namespace Mono.Options
     }
   }
 
-  public class OptionValueCollection : IList, IList<string>
+  class OptionValueCollection : IList, IList<string>
   {
 
     List<string> values = new List<string>();
@@ -336,7 +336,7 @@ namespace Mono.Options
     }
   }
 
-  public class OptionContext
+  class OptionContext
   {
     private Option option;
     private string name;
@@ -379,14 +379,14 @@ namespace Mono.Options
     }
   }
 
-  public enum OptionValueType
+  enum OptionValueType
   {
     None,
     Optional,
     Required,
   }
 
-  public abstract class Option
+  abstract class Option
   {
     string prototype, description;
     string[] names;
@@ -587,7 +587,7 @@ namespace Mono.Options
     }
   }
 
-  public abstract class ArgumentSource
+  abstract class ArgumentSource
   {
 
     protected ArgumentSource()
@@ -663,7 +663,7 @@ namespace Mono.Options
     }
   }
 
-  public class ResponseFileSource : ArgumentSource
+  class ResponseFileSource : ArgumentSource
   {
 
     public override string[] GetNames()
@@ -689,7 +689,7 @@ namespace Mono.Options
   }
 
   [Serializable]
-  public class OptionException : Exception
+  class OptionException : Exception
   {
     private string option;
 
@@ -728,9 +728,9 @@ namespace Mono.Options
     }
   }
 
-  public delegate void OptionAction<TKey, TValue>(TKey key, TValue value);
+  delegate void OptionAction<TKey, TValue>(TKey key, TValue value);
 
-  public class OptionSet : KeyedCollection<string, Option>
+  class OptionSet : KeyedCollection<string, Option>
   {
     public OptionSet()
       : this(delegate(string f) { return f; })

@@ -27,3 +27,8 @@ obj/*
 bin/*
 Build/*
 packages/*
+TestResult.xml
+tools/*
+api/.manifest
+api/*.yml
+doc/docfx_project/_site/**

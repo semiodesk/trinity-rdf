@@ -46,9 +46,8 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Dependencies\Net35\HtmlAgilityPack.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\..\Net35\packages\Newtonsoft.Json.8.0.3\lib\net35\Newtonsoft.Json.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\..\Net35\packages\Newtonsoft.Json.9.0.1\lib\net35\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="OpenLink.Data.Virtuoso, Version=6.2.3128.1, Culture=neutral, PublicKeyToken=6654f6917d07cb95, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -238,6 +237,27 @@
     <Compile Include="..\Query\StatementPattern.cs">
       <Link>Query\StatementPattern.cs</Link>
     </Compile>
+    <Compile Include="..\Stores\dotNetRDF\GraphTripleProvider.cs">
+      <Link>Stores\dotNetRDF\GraphTripleProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\Stores\dotNetRDF\ITripleProvider.cs">
+      <Link>Stores\dotNetRDF\ITripleProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\Stores\dotNetRDF\SparqlResultSetTripleProvider.cs">
+      <Link>Stores\dotNetRDF\SparqlResultSetTripleProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\Stores\Stardog\StardogQueryResult.cs">
+      <Link>Stores\Stardog\StardogQueryResult.cs</Link>
+    </Compile>
+    <Compile Include="..\Stores\Stardog\StardogRdfHandler.cs">
+      <Link>Stores\Stardog\StardogRdfHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\Stores\Stardog\StardogStore.cs">
+      <Link>Stores\Stardog\StardogStore.cs</Link>
+    </Compile>
+    <Compile Include="..\Stores\Stardog\StardogStoreProvider.cs">
+      <Link>Stores\Stardog\StardogStoreProvider.cs</Link>
+    </Compile>
     <Compile Include="..\Stores\StoreProvider.cs">
       <Link>Stores\StoreProvider.cs</Link>
     </Compile>
@@ -318,6 +338,7 @@
     <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

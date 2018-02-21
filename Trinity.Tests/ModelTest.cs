@@ -557,7 +557,7 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestAddMultipleResources()
         {
-            Assert.Inconclusive("Reevaluate with more recent version of virtuoso client library.");
+            Assert.Inconclusive("This test should work, it just takes too long.");
             Model.Clear();
             for (int j = 1; j < 7; j++)
             {
