@@ -431,12 +431,12 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestCount()
         {
-            SparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o. ?s rdf:type nfo:PoneNumber. }");
+            SparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o. ?s rdf:type nco:PhoneNumber. }");
             ISparqlQueryResult result = Model.ExecuteQuery(query);
 
             Assert.AreEqual(2, result.Count());
 
-            query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o. ?s rdf:type nfo:PoneNumber. }");
+            query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o. ?s rdf:type nco:PhoneNumber. }");
             result = Model.ExecuteQuery(query);
 
             Assert.AreEqual(2, result.Count());
