@@ -86,6 +86,7 @@
     <Compile Include="Cilg\CilgResourceMappingTest.cs" />
     <Compile Include="Cilg\MappingClasses.cs" />
     <Compile Include="DotNetRdf\ModelTest.cs" />
+    <Compile Include="DotNetRdf\SetupClass.cs" />
     <Compile Include="dotnetrdf_ResourceQueryTest.cs" />
     <Compile Include="dotnetrdf_SparqlQueryTest.cs" />
     <Compile Include="ModelGroupTest.cs" />

@@ -118,8 +118,9 @@ namespace Semiodesk.Trinity.Store.Stardog
 
         public ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
+            bool reasoning = query.IsInferenceEnabled;
             StardogResultHandler resultHandler = new StardogResultHandler();
-            this._connector.Query(_rdfHandler, resultHandler, query.ToString());
+            this._connector.Query(_rdfHandler, resultHandler, query.ToString(), reasoning);
 
             return new StardogQueryResult(this, query, resultHandler);
         }

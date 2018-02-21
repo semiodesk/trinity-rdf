@@ -44,7 +44,7 @@ namespace Semiodesk.Trinity.Test.Stardog
         [SetUp]
         public void SetUp()
         {
-            Store = StoreFactory.CreateStore("provider=stardog;host=http://localhost:5820;uid=admin;pw=admin;sid=MyStore");
+            Store = StoreFactory.CreateStore("provider=stardog;host=http://localhost:5820;uid=admin;pw=admin;sid=test");
 
             Uri testModel = new Uri("ex:Test");
             Model = Store.CreateModel(testModel);

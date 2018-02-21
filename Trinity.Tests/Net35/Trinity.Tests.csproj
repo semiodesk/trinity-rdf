@@ -112,6 +112,10 @@
     <Compile Include="..\UriRefTest.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\Ontologies\dces.ttl">
+      <Link>Ontologies\dces.ttl</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="..\Ontologies\fo af.rdf">
       <Link>Ontologies\fo af.rdf</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -136,7 +140,9 @@
       <Link>Ontologies\rdfs.n3</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TinyVirtuoso\database\virtuoso.ini" />
+    <None Include="TinyVirtuoso\database\virtuoso.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TinyVirtuoso\virtuoso\doc\AUTHORS" />
     <None Include="TinyVirtuoso\virtuoso\doc\COPYING" />
     <None Include="TinyVirtuoso\virtuoso\doc\CREDITS" />
@@ -183,6 +189,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
+  </ItemGroup>
+  <ItemGroup>
     <Content Include="TinyVirtuoso\virtuoso\win\CtrlCSender.exe">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -205,10 +214,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-  <ItemGroup>
-    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
-  </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
