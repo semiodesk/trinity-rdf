@@ -25,6 +25,8 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
+using Remotion.Linq.Parsing.Structure;
+using Semiodesk.Trinity.Query;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -111,6 +113,11 @@ namespace Semiodesk.Trinity
                     break;
                 }
             }
+        }
+
+        public ModelGroup(IStore store, params IModel[] models) : this(store, (IEnumerable<IModel>)models)
+        {
+            
         }
         #endregion
 
@@ -532,9 +539,13 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public IQueryable<T> AsQueryable<T>() where T : Resource
+        public IQueryable<T> AsQueryable<T>(bool inferenceEnabled = false) where T : Resource
         {
-            throw new NotImplementedException();
+            SparqlQueryExecutor executor = new SparqlQueryExecutor(this, inferenceEnabled);
+
+            QueryParser queryParser = QueryParser.CreateDefault();
+
+            return new SparqlQueryable<T>(queryParser, executor);
         }
 
         public IEnumerable<BindingSet> GetBindings(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)

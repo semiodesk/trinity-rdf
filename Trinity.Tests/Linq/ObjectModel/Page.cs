@@ -26,50 +26,26 @@
 // Copyright (c) Semiodesk GmbH 2017
 
 using System;
-using System.Collections.Generic;
 
 namespace Semiodesk.Trinity.Test.Linq
 {
-    [RdfClass(FOAF.Person)]
-    internal class Person : Resource
+    [RdfClass(FOAF.Document)]
+    internal class Document : Resource
     {
         #region Members
 
-        [RdfProperty(FOAF.firstName)]
-        public string FirstName { get; set; }
+        [RdfProperty(FOAF.maker)]
+        public Person Maker { get; set; }
 
-        [RdfProperty(FOAF.lastName)]
-        public string LastName { get; set; }
 
-        [RdfProperty(FOAF.age)]
-        public int Age { get; set; }
-
-        [RdfProperty(FOAF.birthday)]
-        public DateTime Birthday { get; set; }
-
-        [RdfProperty(FOAF.knows)]
-        public List<Person> KnownPeople { get; set; }
-
-        [RdfProperty(FOAF.member)]
-        public Group Group { get; set; }
-
-        [RdfProperty(FOAF.status)]
-        public bool Status { get; set; }
-
-        [RdfProperty(FOAF.account)]
-        public float AccountBalance { get; set; }
-
-        [RdfProperty(FOAF.interest)]
-        public List<Resource> Interests { get; set; }
-
-        [RdfProperty(FOAF.made)]
-        public List<Document> Made { get; set; }
+        [RdfProperty("http://www.w3.org/2000/01/rdf-schema#label")]
+        public string Title { get; set; }
 
         #endregion
 
         #region Constructors
 
-        public Person(Uri uri) : base(uri) {}
+        public Document(Uri uri) : base(uri) { }
 
         #endregion
     }

@@ -19,13 +19,17 @@ namespace Semiodesk.Trinity.Query
         // for implementing the ExecuteCollection(QueryModel) method that supports runtime type specification.
         private MethodInfo _getResourceMethod;
 
+        private bool _inferenceEnabled;
+
         #endregion
 
         #region Constructors
 
-        public SparqlQueryExecutor(IModel model)
+        public SparqlQueryExecutor(IModel model, bool inferenceEnabled)
         {
             Model = model;
+
+            _inferenceEnabled = inferenceEnabled;
 
             // Searches for the generic method IEnumerable<T> GetResources<T>(ResourceQuery) and saves a handle
             // for later use within ExecuteCollection(QueryModel);
@@ -47,7 +51,7 @@ namespace Semiodesk.Trinity.Query
                 visitor.VisitQueryModel(queryModel);
 
                 MethodInfo getResources = _getResourceMethod.MakeGenericMethod(typeof(T));
-                object[] args = new object[] { visitor.GetQuery(), false, null };
+                object[] args = new object[] { visitor.GetQuery(), _inferenceEnabled, null };
 
                 foreach (T value in getResources.Invoke(Model, args) as IEnumerable<T>)
                 {
