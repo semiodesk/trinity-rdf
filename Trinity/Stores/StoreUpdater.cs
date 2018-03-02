@@ -31,12 +31,14 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using Semiodesk.Trinity.Configuration;
+using System.ComponentModel;
 
 namespace Semiodesk.Trinity
 {
     /// <summary>
     /// This class can be used to load or update ontologies in stores. It provides convinence methods to load directly from the ontologies.config file.
     /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]   
     public class StoreUpdater
     {
         #region Fields

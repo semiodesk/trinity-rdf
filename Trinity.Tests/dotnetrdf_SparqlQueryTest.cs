@@ -198,7 +198,7 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestConstruct()
         {
-            Assert.Inconclusive("Blank nodes are currently problematic.");
+//            Assert.Inconclusive("Blank nodes are currently problematic.");
             SparqlQuery query = new SparqlQuery(@"
                 CONSTRUCT
                 {
@@ -219,7 +219,6 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestInferencing()
         {
-            Assert.Inconclusive("dotnetrdf does not support inferencing.");
             Store = StoreFactory.CreateStore("provider=dotnetrdf;schema=Models/test-vocab.rdf");
 
 

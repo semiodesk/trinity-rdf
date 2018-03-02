@@ -70,6 +70,7 @@ namespace Semiodesk.Trinity
             public static Uri _ulong = new Uri(ns, "#unsignedLong");
             public static Uri _decimal = new Uri(ns, "#decimal");
             public static Uri nonNegativeInteger = new Uri(ns, "#nonNegativeInteger");
+            public static Uri anyUri = new Uri(ns, "#anyURI");
         }
 
         /// <summary>
@@ -88,7 +89,8 @@ namespace Semiodesk.Trinity
             {typeof(bool), xsd.boolean_},
             {typeof(decimal), xsd._decimal},
             {typeof(double), xsd._double},
-            {typeof(float), xsd._float}
+            {typeof(float), xsd._float},
+            {typeof(Uri), xsd.anyUri},
         };
 
         /// <summary>
@@ -111,6 +113,7 @@ namespace Semiodesk.Trinity
             {xsd._double.AbsoluteUri, typeof(double)},
             {xsd._float.AbsoluteUri, typeof(float)},
             {xsd.base64Binary.AbsoluteUri, typeof(byte[])},
+            {xsd.anyUri.AbsoluteUri, typeof(Uri)},
         };
 
         /// <summary>
@@ -159,7 +162,8 @@ namespace Semiodesk.Trinity
             {xsd._double.AbsoluteUri, DeserializeDouble},
             {xsd._float.AbsoluteUri, DeserializeSingle},
             {"http://www.w3.org/1999/02/22-rdf-syntax-ns#resource", DeserializeResource},
-            {xsd.base64Binary.AbsoluteUri, DeserializeByteArray}
+            {xsd.base64Binary.AbsoluteUri, DeserializeByteArray},
+            {xsd.anyUri.AbsoluteUri, DeserializeUri},
         };
 
         #endregion
@@ -526,6 +530,10 @@ namespace Semiodesk.Trinity
             return new Resource(new Uri(str));
         }
 
+        public static object DeserializeUri(string str)
+        {
+            return new Uri(str);
+        }
         public static object DeserializeByteArray(string str)
         {
             return Convert.FromBase64String(str);

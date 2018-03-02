@@ -66,7 +66,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
                     if (filename.EndsWith("app.config") || filename.EndsWith("web.config")) 
                     {
                         string contents = File.ReadAllText(file);
-                        if (contents.Contains("TrinitySettings namespace=\"Semiodesk.Trinity.Test\")"));
+                        if (contents.Contains("TrinitySettings namespace=\"Semiodesk.Trinity.Test\")"))
                         {
                             configFile = new FileInfo(file);
                             break;

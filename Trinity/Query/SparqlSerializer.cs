@@ -199,10 +199,14 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string SerializeResource(IResource resource)
         {
+            var valueList = resource.ListValues();
+            if (!valueList.Any())
+                return string.Empty;
+
             StringBuilder result = new StringBuilder(SerializeUri(resource.Uri));
             result.Append(' ');
 
-            foreach (var value in resource.ListValues())
+            foreach (var value in valueList)
             {
                 if (value.Item2 == null)
                 {
