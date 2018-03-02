@@ -31,83 +31,20 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Collections.Generic;
 
 namespace Semiodesk.Trinity.Test.Linq
 {
     [TestFixture]
-    public class LinqTest
+    public abstract class LinqTestBase
     {
         protected IStore Store;
 
         protected IModel Model;
 
-        public LinqTest() {}
+        public LinqTestBase() { }
 
         [SetUp]
-        public void SetUp()
-        {
-            // DotNetRdf memory store.
-            //string connectionString = "provider=dotnetrdf";
-
-            // OpenLink Virtoso store.
-            string connectionString = string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString);
-
-            Store = StoreFactory.CreateStore(connectionString);
-
-            Model = Store.CreateModel(ex.Namespace);
-            Model.Clear();
-
-            Assert.IsTrue(Model.IsEmpty);
-
-            Group g1 = Model.CreateResource<Group>();
-            g1.Name = "The Spiders";
-            g1.Commit();
-
-            Group g2 = Model.CreateResource<Group>();
-            g2.Name = "Alicia Keys";
-            g2.Commit();
-
-            Person p1 = Model.CreateResource<Person>(ex.Alice);
-            p1.FirstName = "Alice";
-            p1.LastName = "Cooper";
-            p1.Age = 69;
-            p1.Birthday = new DateTime(1948, 2, 4);
-            p1.Group = g1;
-            p1.Status = true;
-            p1.AccountBalance = 10000000.1f;
-            p1.Commit();
-
-            Person p2 = Model.CreateResource<Person>(ex.Bob);
-            p2.FirstName = "Bob";
-            p2.LastName = "Dylan";
-            p2.Age = 76;
-            p2.Birthday = new DateTime(1941, 5, 24);
-            p2.AccountBalance = 1000000.1f;
-            p2.Commit();
-
-            Person p3 = Model.CreateResource<Person>(ex.Eve);
-            p3.FirstName = "Eve";
-            p3.LastName = "Jeffers-Cooper";
-            p3.Birthday = new DateTime(1978, 11, 10);
-            p3.Age = 38;
-            p3.Group = g2;
-            p3.AccountBalance = 100000.0f;
-            p3.Commit();
-
-            p1.KnownPeople.Add(p2);
-            p1.Commit();
-
-            p2.KnownPeople.Add(p1);
-            p2.KnownPeople.Add(p2);
-            p2.Commit();
-
-            p3.Interests.Add(g2);
-            p3.Interests.Add(p3);
-            p3.Commit();
-
-            Assert.IsFalse(Model.IsEmpty);
-        }
+        public abstract void SetUp();
 
         [Test]
         public void CanAskResourceWithBinaryExpressionOnBoolean()
@@ -426,6 +363,14 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
+        public void CanSelectResourcesWithAsQueryable()
+        {
+            var groups = Model.AsQueryable<Person>();
+
+            Assert.AreEqual(3, groups.ToList().Count);
+        }
+
+        [Test]
         public void CanSelectResourceWithBinaryExpression()
         {
             var groups = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Group;
@@ -556,7 +501,7 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectResourcesWithBinaryExpressionOnString()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice"  select person;
+            var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
 
@@ -822,7 +767,7 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectResourcesWithVariableExpression()
         {
-            foreach(int age in new [] { 40, 50, 60 })
+            foreach (int age in new[] { 40, 50, 60 })
             {
                 CanSelectResourcesWithVariableExpression(age);
             }
@@ -861,7 +806,7 @@ namespace Semiodesk.Trinity.Test.Linq
 
             ISparqlQuery q = new SparqlQuery(@"SELECT * WHERE { ?s ?p ?o . }");
 
-            foreach(BindingSet b in Model.GetBindings(q))
+            foreach (BindingSet b in Model.GetBindings(q))
             {
                 Debug.WriteLine(b["s"] + " " + b["p"] + " " + b["o"]);
             }

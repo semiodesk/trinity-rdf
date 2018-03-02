@@ -31,8 +31,10 @@ using System;
 namespace Semiodesk.Trinity.Test.Linq
 {
     [TestFixture]
-    public class LinqModelGroupTest : LinqTestBase
+    public class LinqModelTest : LinqTestBase
     {
+        public LinqModelTest() {}
+
         [SetUp]
         public override void SetUp()
         {
@@ -44,24 +46,20 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Store = StoreFactory.CreateStore(connectionString);
 
-            IModel model1 = Store.CreateModel(new Uri("http://test.com/test1"));
-            model1.Clear();
+            Model = Store.CreateModel(ex.Namespace);
+            Model.Clear();
 
-            IModel model2 = Store.CreateModel(new Uri("http://test.com/test2"));
-            model2.Clear();
+            Assert.IsTrue(Model.IsEmpty);
 
-            Assert.IsTrue(model1.IsEmpty);
-            Assert.IsTrue(model2.IsEmpty);
-
-            Group g1 = model1.CreateResource<Group>();
+            Group g1 = Model.CreateResource<Group>();
             g1.Name = "The Spiders";
             g1.Commit();
 
-            Group g2 = model2.CreateResource<Group>();
+            Group g2 = Model.CreateResource<Group>();
             g2.Name = "Alicia Keys";
             g2.Commit();
 
-            Person p1 = model1.CreateResource<Person>(ex.Alice);
+            Person p1 = Model.CreateResource<Person>(ex.Alice);
             p1.FirstName = "Alice";
             p1.LastName = "Cooper";
             p1.Age = 69;
@@ -71,7 +69,7 @@ namespace Semiodesk.Trinity.Test.Linq
             p1.AccountBalance = 10000000.1f;
             p1.Commit();
 
-            Person p2 = model1.CreateResource<Person>(ex.Bob);
+            Person p2 = Model.CreateResource<Person>(ex.Bob);
             p2.FirstName = "Bob";
             p2.LastName = "Dylan";
             p2.Age = 76;
@@ -79,7 +77,7 @@ namespace Semiodesk.Trinity.Test.Linq
             p2.AccountBalance = 1000000.1f;
             p2.Commit();
 
-            Person p3 = model2.CreateResource<Person>(ex.Eve);
+            Person p3 = Model.CreateResource<Person>(ex.Eve);
             p3.FirstName = "Eve";
             p3.LastName = "Jeffers-Cooper";
             p3.Birthday = new DateTime(1978, 11, 10);
@@ -99,10 +97,7 @@ namespace Semiodesk.Trinity.Test.Linq
             p3.Interests.Add(p3);
             p3.Commit();
 
-            Assert.IsFalse(model1.IsEmpty);
-            Assert.IsFalse(model2.IsEmpty);
-
-            Model = Store.CreateModelGroup(model1, model2);
+            Assert.IsFalse(Model.IsEmpty);
         }
     }
 }
