@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
+using System.Configuration;
 
 namespace Semiodesk.Trinity.OntologyGenerator
 {
@@ -62,6 +63,16 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 foreach (string file in allFiles)
                 {
                     string filename = file.ToLower();
+                    if (filename.EndsWith("app.config") || filename.EndsWith("web.config")) 
+                    {
+                        string contents = File.ReadAllText(file);
+                        if (contents.Contains("TrinitySettings namespace=\"Semiodesk.Trinity.Test\")"));
+                        {
+                            configFile = new FileInfo(file);
+                            break;
+                        }
+                    }
+
                     if( filename.EndsWith("ontologies.config"))
                     {
                         configFile = new FileInfo(file);

@@ -66,13 +66,13 @@ namespace Semiodesk.Trinity
         /// A model will be created for each ontology. If it already exists, it wil be replaced.
         /// </summary>
         /// <param name="ontologies">A collection of ontologies to be loaded.</param>
-        public void UpdateOntologies(IEnumerable<Semiodesk.Trinity.Configuration.Ontology> ontologies)
+        public void UpdateOntologies(IEnumerable<Semiodesk.Trinity.Configuration.IOntologyConfiguration> ontologies)
         {
             foreach (var onto in ontologies)
             {
-                if( onto.FileSource != null )
-                { 
-                    Uri path = GetPathFromSource(onto.FileSource);
+                if (!string.IsNullOrEmpty(onto.Location))
+                {
+                    Uri path = GetPathFromLocation(onto.Location);
 
                     RdfSerializationFormat format = GetSerializationFormatFromUri(path);
 
@@ -85,6 +85,23 @@ namespace Semiodesk.Trinity
             }
         }
 
+        protected Uri GetPathFromLocation(string location)
+        {
+            Uri result = null;
+
+            if (Path.IsPathRooted(location))
+            {
+                result = new Uri(location);
+            }
+            else
+            {
+                string fullPath = Path.Combine(_sourceDirectory.FullName, location);
+                result = new Uri(fullPath);
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// This method can be used to load storage specific configuration.
         /// </summary>
@@ -94,25 +111,6 @@ namespace Semiodesk.Trinity
             storageSpecific.Update(_store);
         }
 
-        protected Uri GetPathFromSource(FileSource source)
-        {
-            Uri result = null;
-            if (source != null && source is FileSource)
-            {
-                string sourcePath = (source as FileSource).Location;
-
-                if (Path.IsPathRooted(sourcePath))
-                {
-                    result = new Uri(sourcePath);
-                }
-                else
-                {
-                    string fullPath = Path.Combine(_sourceDirectory.FullName, sourcePath);
-                    result = new Uri(fullPath);
-                }
-            }
-            return result;
-        }
 
         private RdfSerializationFormat GetSerializationFormatFromUri(Uri uri)
         {

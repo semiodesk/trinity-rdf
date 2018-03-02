@@ -25,41 +25,30 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-using System.Collections.Generic;
-#if ! NET_3_5
-using System.ComponentModel.Composition;
-#endif
-using System.IO;
 using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Linq;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Xml.Serialization;
 
-namespace Semiodesk.Trinity.Store
+namespace Semiodesk.Trinity.Configuration.Legacy
 {
-#if ! NET_3_5
-    [Export(typeof(StoreProvider))]
-#endif
-    public class SparqlEndpointStoreProvider : StoreProvider
+    /// <summary>
+    /// A file source of a element
+    /// </summary>
+    public class FileSource : ConfigurationElement
     {
-        #region Constructor
-
-        public SparqlEndpointStoreProvider()
+        /// <summary>
+        /// The location of this file source
+        /// </summary>
+        [ConfigurationProperty("Location", IsRequired=true)]
+        public string Location
         {
-            Name = "sparqlendpoint";
-        }
-
-        #endregion
-
-
-
-        public override IStore GetStore(Dictionary<string, string> configurationDictionary)
-        {
-            string endpointKey = "endpoint";
-            if (configurationDictionary.ContainsKey(endpointKey))
-            {
-                Uri endpoint = new Uri(configurationDictionary[endpointKey]);
-
-                return new SparqlEndpointStore(endpoint);
-            }
-            return null;
+            get { return (string)base["Location"]; }
+            set { base["Location"] = value; }
         }
     }
+
 }

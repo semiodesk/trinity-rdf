@@ -61,7 +61,7 @@ namespace dotNetRDFStore.Test
 
             Store.LoadOntologies();
 
-            Assert.AreEqual(4, Store.ListModels().Count());
+            Assert.AreEqual(7, Store.ListModels().Count());
         }
 
         [Test]
