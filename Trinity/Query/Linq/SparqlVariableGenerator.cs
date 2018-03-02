@@ -31,6 +31,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text;
 using VDS.RDF.Query;
 
 namespace Semiodesk.Trinity.Query
@@ -57,6 +58,41 @@ namespace Semiodesk.Trinity.Query
             return _expressionVariables.ContainsKey(expression.ToString());
         }
 
+        /// <summary>
+        /// Removes special characters from the variable name and returns a valid SPARQL variable name.
+        /// </summary>
+        /// <param name="name">A variable name.</param>
+        /// <returns>A variable name in canonical form.</returns>
+        private string GetCanonicalVariableName(string name)
+        {
+            StringBuilder builder = new StringBuilder();
+
+            for(int i = 0; i < name.Length; i++)
+            {
+                var c = name[i];
+
+                // Note: SPARQL supports more characters in variable names.
+                // We reduce it to letters, digits and '_' as a separator.
+                if(char.IsLetterOrDigit(c))
+                {
+                    if (i == 0)
+                    {
+                        builder.Append(char.ToLowerInvariant(c));
+                    }
+                    else
+                    {
+                        builder.Append(c);
+                    }
+                }
+                else if(c == '_')
+                {
+                    builder.Append(c);
+                }
+            }
+
+            return builder.ToString();
+        }
+
         public SparqlVariable GetVariable(Expression expression)
         {
             QuerySourceReferenceExpression querySource = expression.TryGetQuerySourceReference();
@@ -80,6 +116,8 @@ namespace Semiodesk.Trinity.Query
             {
                 throw new ArgumentNullException("name");
             }
+
+            name = GetCanonicalVariableName(name);
 
             int n = 0;
 
@@ -124,7 +162,7 @@ namespace Semiodesk.Trinity.Query
                 throw new ArgumentNullException("name");
             }
 
-            return new SparqlVariable(name.ToCamelCase() + "_");
+            return new SparqlVariable(GetCanonicalVariableName(name) + "_");
         }
 
         public SparqlVariable GetGlobalVariable(QuerySourceReferenceExpression expression)
@@ -151,7 +189,7 @@ namespace Semiodesk.Trinity.Query
 
         public SparqlVariable GetMemberVariable(MemberInfo member)
         {
-            return GetVariable(member.Name.ToCamelCase());
+            return GetVariable(GetCanonicalVariableName(member.Name));
         }
 
         public SparqlVariable GetPredicateVariable(string name = "p")
