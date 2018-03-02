@@ -1,0 +1,9 @@
+apiRules:
+- exclude: 
+      uidRegex: ^Mono\.Options
+      type: Namespace
+- exclude:
+      hasAttribute:
+        uid: System.ComponentModel.EditorBrowsableAttribute
+        ctorArguments:
+        - System.ComponentModel.EditorBrowsableState.Never

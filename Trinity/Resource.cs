@@ -518,6 +518,15 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// Add a property with an Uri as value.
+        /// If this property is mapped with a compatible type, it will be filled with the given value.
+        /// </summary>
+        public virtual void AddProperty(Property property, Uri value)
+        {
+            AddPropertyToMapping(property, value, false);
+        }
+
+        /// <summary>
         /// Internal method to remove the values. This is not public because the value is of type object and thus not typesafe for rdf.
         /// </summary>
         /// <param name="property"></param>
@@ -690,6 +699,15 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// Removes a property with an Uri value.
+        /// If this property is mapped with a compatible type, the given value will be removed.
+        /// </summary>
+        public void RemoveProperty(Property property, Uri value)
+        {
+            RemovePropertyFromMapping(property, value);
+        }
+
+        /// <summary>
         /// Internal method to remove all properties.
         /// </summary>
         internal virtual void ClearProperties()
@@ -801,6 +819,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public virtual IEnumerable<Tuple<Property, object>> ListValues()
         {
+            // List values from properties
             foreach (var key in _properties)
             {
                 foreach (object value in key.Value)
@@ -809,6 +828,7 @@ namespace Semiodesk.Trinity
                 }
             }
 
+            // List values from mapping
             foreach (IPropertyMapping propertyMapping in _mappings.Values)
             {
                 if (!propertyMapping.IsUnsetValue)
@@ -836,8 +856,8 @@ namespace Semiodesk.Trinity
                 }
             }
 
+            // List values from associated types
             var types = GetTypes();
-
             if (types.Any())
             {
                 Property rdfType;
@@ -1042,6 +1062,24 @@ namespace Semiodesk.Trinity
             // NOTE: We do not need to copy the classes, we have to assume the mapped type stays the same.
         }
 
+        /// <summary>
+        /// This method returns if property is mapped.
+        /// </summary>
+        /// <param name="property">Rdf property to be tested.</param>
+        /// <param name="type">Type of the mapping.</param>
+        /// <returns></returns>
+        public bool HasPropertyMapping(Property property, Type type)
+        {
+            foreach (IPropertyMapping mappingObject in _mappings.Values)
+            {
+                if (mappingObject.Property.Uri.OriginalString == property.Uri.OriginalString && mappingObject.IsTypeCompatible(type))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
         /// <summary>
         /// This method returns the mapped property of the given rdf property and type. It returns null if this mapping is not available.
         /// </summary>

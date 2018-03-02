@@ -34,8 +34,6 @@ using System.Reflection;
 
 namespace dotNetRDFStore.Test
 {
-
-
     [TestFixture]
     class StoreTest
     {
@@ -70,6 +68,7 @@ namespace dotNetRDFStore.Test
             Uri testModel = new Uri("ex:Test");
             string configFile = Path.Combine(Environment.CurrentDirectory, "custom.config");
             Store.LoadOntologies(configFile);
+
 
             Assert.AreEqual(4, Store.ListModels().Count());
 
@@ -109,21 +108,16 @@ namespace dotNetRDFStore.Test
         {
             Uri testModel = new Uri("ex:Test");
 
-            Assert.IsFalse(Store.ContainsModel(testModel));
+            IModel m1 = Store.CreateModel(testModel);
 
-            IModel m = Store.CreateModel(testModel);
+            IResource r = m1.CreateResource(new Uri("ex:test:resource"));
+            r.AddProperty(new Property(new Uri("ex:test:property")), "var");
+            r.Commit();
 
-            var res = m.CreateResource(new Uri("ex:test:resource"));
+            IModel m2 = Store.GetModel(testModel);
 
-            res.AddProperty(new Property(new Uri("ex:test:property")), "var");
-            res.Commit();
-
-            Assert.IsTrue(Store.ContainsModel(testModel));
-
-            IModel model2 = Store.GetModel(testModel);
-            Assert.AreEqual(testModel, model2.Uri);
-
-            Assert.IsTrue(model2.ContainsResource(res));
+            Assert.AreEqual(testModel, m2.Uri);
+            Assert.IsTrue(m2.ContainsResource(r));
         }
 
         [Test]
@@ -131,26 +125,20 @@ namespace dotNetRDFStore.Test
         {
             Uri testModel = new Uri("ex:Test");
 
-            Assert.IsFalse(Store.ContainsModel(testModel));
+            IModel m1 = Store.CreateModel(testModel);
 
-            IModel m = Store.CreateModel(testModel);
-
-            var res = m.CreateResource(new Uri("ex:test:resource"));
-
+            var res = m1.CreateResource(new Uri("ex:test:resource"));
             res.AddProperty(new Property(new Uri("ex:test:property")), "var");
             res.Commit();
 
-            Assert.IsTrue(Store.ContainsModel(testModel));
-
-            IModel model2 = Store.GetModel(testModel);
-            Assert.AreEqual(testModel, model2.Uri);
+            IModel m2 = Store.GetModel(testModel);
+            Assert.AreEqual(testModel, m2.Uri);
 
             Store.RemoveModel(testModel);
-            Assert.IsFalse(Store.ContainsModel(testModel));
 
-            model2 = Store.GetModel(testModel);
-            Assert.IsTrue(model2.IsEmpty);
+            m2 = Store.GetModel(testModel);
+
+            Assert.IsTrue(m2.IsEmpty);
         }
-
     }
 }

@@ -132,7 +132,8 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestLoad()
         {
-            SparqlUpdate update = new SparqlUpdate(@"LOAD <http://gov.tso.co.uk/research/sparql> INTO <ex:TestModel>");
+            Assert.Inconclusive();
+            SparqlUpdate update = new SparqlUpdate(@"LOAD <http://eurostat.linked-statistics.org/sparql> INTO <ex:TestModel>");
 
             _model.ExecuteUpdate(update);
 

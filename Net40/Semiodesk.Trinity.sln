@@ -15,13 +15,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.OntologyGenerator",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.CilGenerator", "..\Trinity.CilGenerator\Trinity.CilGenerator.csproj", "{146FE869-CCA9-4B39-8FBE-58FD6515AFF9}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{884F64B1-D97E-494A-A238-208528A5D4F6}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.exe = .nuget\NuGet.exe
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.Virtuoso", "..\Trinity.Virtuoso\Trinity.Virtuoso.csproj", "{5E69F2CE-5F36-4E8B-8269-F10733608FE8}"
 EndProject
 Global
@@ -37,6 +30,7 @@ Global
 		{5E1FCE3C-9436-44F8-8DB6-18F6282DE70C}.Debug|Any CPU.ActiveCfg = Debug|x86
 		{5E1FCE3C-9436-44F8-8DB6-18F6282DE70C}.Debug|Any CPU.Build.0 = Debug|x86
 		{5E1FCE3C-9436-44F8-8DB6-18F6282DE70C}.Release|Any CPU.ActiveCfg = Release|x86
+		{5E1FCE3C-9436-44F8-8DB6-18F6282DE70C}.Release|Any CPU.Build.0 = Release|x86
 		{55D0E154-DE17-40E3-B434-A3A0D9BA17DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{55D0E154-DE17-40E3-B434-A3A0D9BA17DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{55D0E154-DE17-40E3-B434-A3A0D9BA17DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -46,9 +40,7 @@ Global
 		{146FE869-CCA9-4B39-8FBE-58FD6515AFF9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{146FE869-CCA9-4B39-8FBE-58FD6515AFF9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5E69F2CE-5F36-4E8B-8269-F10733608FE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5E69F2CE-5F36-4E8B-8269-F10733608FE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5E69F2CE-5F36-4E8B-8269-F10733608FE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5E69F2CE-5F36-4E8B-8269-F10733608FE8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

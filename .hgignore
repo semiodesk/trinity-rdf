@@ -28,5 +28,6 @@ bin/*
 Build/*
 packages/*
 api/*
-tools/docfx.msbuild/*
-tools/Addins/*
+TestResult.xml
+tools/*
+doc/docfx_project/_site/**

@@ -307,14 +307,33 @@ namespace Semiodesk.Trinity.Test
             set { SetValue(uniqueResourceTestMapping, value); }
         }
 
-        protected PropertyMapping<Resource> uriPropertyMapping =
-            new PropertyMapping<Resource>("uriProperty", TestOntology.uriTest);
+        protected PropertyMapping<Resource> resPropertyMapping =
+            new PropertyMapping<Resource>("resProperty", TestOntology.resTest);
 
-        public Resource uriProperty
+        public Resource resProperty
         {
-            get { return (Resource)GetValue(uriPropertyMapping); }
-            set { SetValue(uriPropertyMapping, value); }
+            get { return (Resource)GetValue(resPropertyMapping); }
+            set { SetValue(resPropertyMapping, value); }
         }
+
+        protected PropertyMapping<ObservableCollection<Uri>> uriTestMapping =
+            new PropertyMapping<ObservableCollection<Uri>>("uriTest", TestOntology.uriTest, new ObservableCollection<Uri>());
+
+        public ObservableCollection<Uri> uriTest
+        {
+            get { return GetValue(uriTestMapping); }
+            set { SetValue(uriTestMapping, value); }
+        }
+
+        protected PropertyMapping<Uri> uniqueUriTestMapping =
+            new PropertyMapping<Uri>("uniqueUriTest", TestOntology.uniqueUriTest);
+
+        public Uri uniqueUriTest
+        {
+            get { return GetValue(uniqueUriTestMapping); }
+            set { SetValue(uniqueUriTestMapping, value); }
+        }
+
 
         #endregion
 
@@ -1071,7 +1090,7 @@ namespace Semiodesk.Trinity.Test
             testResource.Commit();
 
             storedResource = m.GetResource<MappingTestClass>(uri);
-            Assert.AreEqual(5, testResource.DoubleTest.Count);
+            Assert.AreEqual(5, storedResource.DoubleTest.Count);
 
             m.Clear();
         }
@@ -1165,7 +1184,7 @@ namespace Semiodesk.Trinity.Test
 
             // Test if ListProperties works
             l = t_actual.ListProperties().ToList();
-            Assert.False(l.Contains(TestOntology.uniqueBoolTest));
+            Assert.False(l.Contains(TestOntology.uniqueDatetimeTest));
 
             // Test if ListValues works
             Assert.AreEqual(0, t_actual.ListValues(TestOntology.uniqueDatetimeTest).Count());
@@ -1199,26 +1218,81 @@ namespace Semiodesk.Trinity.Test
 
             // 1. Create a new instance of the test class and commit it to the model.
             MappingTestClass test1 = model.CreateResource<MappingTestClass>(uri1);
-            test1.uriProperty = new Resource(uri2);
+            test1.resProperty = new Resource(uri2);
             test1.Commit();
 
             // 2. Retrieve a new copy of the instance and validate the mapped URI property.
             test1 = model.GetResource<MappingTestClass>(uri1);
 
-            Assert.NotNull(test1.uriProperty);
-            Assert.AreEqual(test1.uriProperty.Uri, uri2);
+            Assert.NotNull(test1.resProperty);
+            Assert.AreEqual(test1.resProperty.Uri, uri2);
 
             // 3. Change the property and commit the resource.
-            test1.uriProperty = new Resource(uri3);
+            test1.resProperty = new Resource(uri3);
             test1.Commit();
 
             // 4. Retrieve a new copy of the instance and validate the changed URI property.
             test1 = model.GetResource<MappingTestClass>(uri1);
 
-            Assert.NotNull(test1.uriProperty);
-            Assert.AreEqual(test1.uriProperty.Uri, uri3);
+            Assert.NotNull(test1.resProperty);
+            Assert.AreEqual(test1.resProperty.Uri, uri3);
         }
 
+        [Test]
+        public void AddRemoveUriPropTest()
+        {
+            IModel m = GetModel();
+            m.Clear();
+
+            Uri t1Uri = new Uri("semio:test:testInstance1");
+            MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
+
+            // Add value using the mapping interface
+            Uri Value = new Uri("urn:test#myUri");
+            t1.uniqueUriTest = Value;
+            t1.Commit();
+
+            MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
+
+            // Test if value was stored
+            Assert.AreEqual(Value.ToString(), t_actual.uniqueUriTest.ToString());
+
+            // Test if property is present
+            var l = t_actual.ListProperties();
+            Assert.True(l.Contains(TestOntology.uniqueUriTest));
+            Assert.AreEqual(2, l.Count());
+
+            // Test if ListValues works
+            Assert.IsTrue( t_actual.ListValues(TestOntology.uniqueUriTest).First() is Uri);
+            Uri u = (Uri)t_actual.ListValues(TestOntology.uniqueUriTest).First();
+            Assert.AreEqual(Value.ToString(), u.ToString());
+
+            // Remove with RemoveProperty
+            t1.RemoveProperty(TestOntology.uniqueUriTest, Value);
+            t1.Commit();
+
+            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+
+            // Test if ListProperties works
+            l = t_actual.ListProperties().ToList();
+            Assert.False(l.Contains(TestOntology.uniqueUriTest));
+
+            // Test if ListValues works
+            Assert.AreEqual(0, t_actual.ListValues(TestOntology.uniqueUriTest).Count());
+
+            t1.uriTest.Add(new Uri("urn:test#myUri1"));
+            t1.uriTest.Add(new Uri("urn:test#myUri2"));
+            t1.uriTest.Add(new Uri("urn:test3"));
+            t1.uriTest.Add(new Uri("urn:test/my#Uri4"));
+            t1.uriTest.Add(new Uri("urn:test#5"));
+            t1.Commit();
+
+            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+            Assert.AreEqual(t1.uriTest.Count, t_actual.uriTest.Count);
+
+
+            m.Clear();
+        }
         [Test]
         public void TimeZoneTest()
         {
@@ -1497,6 +1571,8 @@ namespace Semiodesk.Trinity.Test
             t3.Commit();
 
             Resource r3 = m.GetResource<Resource>(t3Uri);
+            Type tr3 = r3.GetType();
+            Type tt3 = typeof(MappingTestClass5);
             Assert.AreEqual(typeof(MappingTestClass5), r3.GetType());
 
             m.Clear();
@@ -1537,18 +1613,7 @@ namespace Semiodesk.Trinity.Test
 
             Uri testModelUri = new Uri("http://example.org/TestModel");
 
-            IModel model;
-
-            if (_store.ContainsModel(testModelUri))
-            {
-                model = _store.GetModel(testModelUri);
-            }
-            else
-            {
-                model = _store.CreateModel(testModelUri);
-            }
-
-            return model;
+            return _store.GetModel(testModelUri); ;
         }
 
         [Test]
