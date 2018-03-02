@@ -48,28 +48,17 @@ namespace Semiodesk.Trinity
             LoadOntologies(config, sourceDir);
         }
 
-        protected OntologyConfiguration LoadConfiguration(string configPath = null)
+        protected IConfiguration LoadConfiguration(string configPath = null)
         {
-            FileInfo configFile;
-            if (!string.IsNullOrEmpty(configPath) && File.Exists(configPath))
-            {
-                // Take the provided config file.
+            FileInfo configFile = null;
+            if( !string.IsNullOrEmpty(configPath) )
                 configFile = new FileInfo(configPath);
-            }
-            else
-            {
-                // Load the default configuration file.
-                var path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "ontologies.config");
-                configFile = new FileInfo(path);
-            }
+            IConfiguration settings = Configuration.ConfigurationLoader.LoadConfiguration(configFile);
 
-            var settings = Configuration.ConfigurationLoader.LoadConfiguration(configFile);
-
-            
             return settings;
         }
 
-        protected void LoadOntologies(OntologyConfiguration configuration, string sourceDir = null) 
+        protected void LoadOntologies(IConfiguration configuration, string sourceDir = null) 
         {
             DirectoryInfo srcDir;
             if (string.IsNullOrEmpty(sourceDir))
@@ -83,7 +72,7 @@ namespace Semiodesk.Trinity
 
             StoreUpdater updater = new StoreUpdater(this, srcDir);
 
-            updater.UpdateOntologies(configuration.Ontologies.OntologyList);
+            updater.UpdateOntologies(configuration.ListOntologies());
 
         }
 

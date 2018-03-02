@@ -25,41 +25,30 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-using System.Collections.Generic;
-#if ! NET_3_5
-using System.ComponentModel.Composition;
-#endif
-using System.IO;
+
+using Semiodesk.Trinity.Configuration.Legacy;
 using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Linq;
+using System.Text;
 
-namespace Semiodesk.Trinity.Store
+// This namespace needs to be this for legacy applications to resolve the configuration correctly
+namespace Semiodesk.Trinity.Configuration.Legacy
 {
-#if ! NET_3_5
-    [Export(typeof(StoreProvider))]
-#endif
-    public class SparqlEndpointStoreProvider : StoreProvider
+    /// <summary>
+    /// Constains Virtuoso specific settings
+    /// </summary>
+    public class VirtuosoStoreSettings : ConfigurationElement
     {
-        #region Constructor
-
-        public SparqlEndpointStoreProvider()
+        /// <summary>
+        /// A collection of rule sets
+        /// </summary>
+        [ConfigurationProperty("RuleSets", IsDefaultCollection = true)]
+        public RuleSetCollection RuleSets
         {
-            Name = "sparqlendpoint";
+            get { return (RuleSetCollection)base["RuleSets"]; }
         }
 
-        #endregion
-
-
-
-        public override IStore GetStore(Dictionary<string, string> configurationDictionary)
-        {
-            string endpointKey = "endpoint";
-            if (configurationDictionary.ContainsKey(endpointKey))
-            {
-                Uri endpoint = new Uri(configurationDictionary[endpointKey]);
-
-                return new SparqlEndpointStore(endpoint);
-            }
-            return null;
-        }
     }
 }

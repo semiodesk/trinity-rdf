@@ -68,9 +68,9 @@ namespace Semiodesk.Trinity.Test
 
             Model2 = Store.GetModel(new Uri("semiodesk:Trinity:Test"));
 
-            if (!Model.IsEmpty)
+            if (!Model2.IsEmpty)
             {
-                Model.Clear();
+                Model2.Clear();
             }
 
             IResource model_resource = Model.CreateResource(new Uri("http://example.org/MyResource"));

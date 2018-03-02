@@ -14,7 +14,7 @@ namespace Semiodesk.Trinity.Configuration
     }
 
     [XmlRoot(ElementName = "ontology")]
-    public class Ontology
+    public class Ontology : IOntologyConfiguration
     {
         [XmlAttribute(AttributeName = "uri")]
         public string _uri { get; set; }
@@ -44,6 +44,17 @@ namespace Semiodesk.Trinity.Configuration
         public override int GetHashCode()
         {
             return base.GetHashCode();
+        }
+
+
+        public string Location
+        {
+            get
+            { 
+                if (FileSource != null) 
+                    return FileSource.Location; 
+                return null; 
+            }
         }
     }
 
@@ -82,12 +93,27 @@ namespace Semiodesk.Trinity.Configuration
     }
 
     [XmlRoot(ElementName = "configuration")]
-    public class OntologyConfiguration
+    public class Configuration : IConfiguration
     {
         [XmlElement(ElementName = "ontologies")]
         public Ontologies Ontologies { get; set; }
         [XmlElement(ElementName = "stores")]
         public Stores Stores { get; set; }
+
+        public string Namespace
+        {
+            get 
+            {
+                if( Ontologies != null ) 
+                    return Ontologies.Namespace;
+                return null;
+            }
+        }
+
+        public IEnumerable<IOntologyConfiguration> ListOntologies()
+        {
+            return Ontologies.OntologyList;
+        }
     }
 
 
