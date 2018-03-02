@@ -108,7 +108,6 @@ namespace Semiodesk.Trinity.Test.Linq
             p3.Interests.Add(p3);
             p3.Commit();
 
-
             Assert.IsFalse(Model1.IsEmpty);
             Assert.IsFalse(Model2.IsEmpty);
 

@@ -39,17 +39,7 @@ namespace Semiodesk.Trinity.Query
     {
         public static ISparqlExpression AsSparqlExpression(this ConstantExpression constant)
         {
-            string value = GetValue(constant);
-            Uri datatype = GetDataType(constant);
-
-            if(datatype == null)
-            {
-                return new ConstantTerm(new NodeFactory().CreateLiteralNode(value));
-            }
-            else
-            {
-                return new ConstantTerm(new NodeFactory().CreateLiteralNode(value, datatype));
-            }
+            return new ConstantTerm(constant.AsNode());
         }
 
         public static LiteralExpression AsLiteralExpression(this ConstantExpression constant)
@@ -64,16 +54,23 @@ namespace Semiodesk.Trinity.Query
 
         public static INode AsNode(this ConstantExpression constant)
         {
-            string value = GetValue(constant);
-            Uri datatype = GetDataType(constant);
-
-            if (datatype == null)
+            if(typeof(Uri).IsAssignableFrom(constant.Type))
             {
-                return new NodeFactory().CreateLiteralNode(value);
+                return new NodeFactory().CreateUriNode(constant.Value as Uri);
             }
             else
             {
-                return new NodeFactory().CreateLiteralNode(value, datatype);
+                string value = GetValue(constant);
+                Uri datatype = GetDataType(constant);
+
+                if (datatype == null)
+                {
+                    return new NodeFactory().CreateLiteralNode(value);
+                }
+                else
+                {
+                    return new NodeFactory().CreateLiteralNode(value, datatype);
+                }
             }
         }
 

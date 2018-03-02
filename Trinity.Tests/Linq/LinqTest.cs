@@ -55,7 +55,7 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Store = StoreFactory.CreateStore(connectionString);
 
-            Model = Store.CreateModel(new Uri("http://test.com/test"));
+            Model = Store.CreateModel(ex.Namespace);
             Model.Clear();
 
             Assert.IsTrue(Model.IsEmpty);
@@ -68,7 +68,7 @@ namespace Semiodesk.Trinity.Test.Linq
             g2.Name = "Alicia Keys";
             g2.Commit();
 
-            Person p1 = Model.CreateResource<Person>();
+            Person p1 = Model.CreateResource<Person>(ex.Alice);
             p1.FirstName = "Alice";
             p1.LastName = "Cooper";
             p1.Age = 69;
@@ -78,7 +78,7 @@ namespace Semiodesk.Trinity.Test.Linq
             p1.AccountBalance = 10000000.1f;
             p1.Commit();
 
-            Person p2 = Model.CreateResource<Person>();
+            Person p2 = Model.CreateResource<Person>(ex.Bob);
             p2.FirstName = "Bob";
             p2.LastName = "Dylan";
             p2.Age = 76;
@@ -86,7 +86,7 @@ namespace Semiodesk.Trinity.Test.Linq
             p2.AccountBalance = 1000000.1f;
             p2.Commit();
 
-            Person p3 = Model.CreateResource<Person>();
+            Person p3 = Model.CreateResource<Person>(ex.Eve);
             p3.FirstName = "Eve";
             p3.LastName = "Jeffers-Cooper";
             p3.Birthday = new DateTime(1978, 11, 10);
@@ -579,6 +579,20 @@ namespace Semiodesk.Trinity.Test.Linq
             persons = from person in Model.AsQueryable<Person>() where person.Group.Name != "The Spiders" select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectResourcesWithBinaryExpressionOnUri()
+        {
+            Person p = new Person(ex.Alice);
+
+            var persons = from person in Model.AsQueryable<Person>() where person.Uri == p.Uri select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Uri != p.Uri select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
         }
 
         [Test]
