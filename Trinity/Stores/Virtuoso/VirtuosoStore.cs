@@ -585,7 +585,7 @@ namespace Semiodesk.Trinity.Store
             // This approach might seem a bit redundant, but we want to make sure to get the model from the right store.
             foreach (var x in models)
             {
-                this.GetModel(x.Uri);
+                modelList.Add(this.GetModel(x.Uri));
             }
 
             return new ModelGroup(this, modelList);
