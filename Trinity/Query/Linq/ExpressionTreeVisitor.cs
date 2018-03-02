@@ -142,6 +142,31 @@ namespace Semiodesk.Trinity.Query
 
                 VisitBinarySubQueryExpression(expression.NodeType, subQuery, constant);
             }
+            else if(expression.HasExpressionOfType<QuerySourceReferenceExpression>())
+            {
+                QuerySourceReferenceExpression querySource = expression.TryGetExpressionOfType<QuerySourceReferenceExpression>();
+
+                VisitBinaryQuerySourceReferenceExpression(expression.NodeType, querySource, constant);
+            }
+        }
+
+        private void VisitBinaryQuerySourceReferenceExpression(ExpressionType type, QuerySourceReferenceExpression querySource, ConstantExpression constant)
+        {
+            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+
+            SparqlVariable s = _variableGenerator.GetVariable(querySource);
+
+            switch (type)
+            {
+                case ExpressionType.Equal:
+                    currentGenerator.WhereEqual(s, constant);
+                    break;
+                case ExpressionType.NotEqual:
+                    currentGenerator.WhereNotEqual(s, constant);
+                    break;
+                default:
+                    throw new NotSupportedException(type.ToString());
+            }
         }
 
         private void VisitBinaryMemberExpression(ExpressionType type, MemberExpression member, ConstantExpression constant)
