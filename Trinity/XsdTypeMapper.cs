@@ -180,6 +180,16 @@ namespace Semiodesk.Trinity
             return NativeToXsd[type];
         }
 
+        /// <summary>
+        /// Indicates if there is a registered XML Schema type URI for the given .NET type.
+        /// </summary>
+        /// <param name="type">A .NET type object.</param>
+        /// <returns><c>true</c> if there is a XML schema type, <c>false</c> otherwise.</returns>
+        public static bool HasXsdTypeUri(Type type)
+        {
+            return NativeToXsd.ContainsKey(type);
+        }
+
         #endregion
 
         #region Serialization

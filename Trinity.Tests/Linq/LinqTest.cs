@@ -568,6 +568,20 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectResourcesWithBinaryExpressionOnResource()
         {
+            Person p = new Person(ex.Alice);
+
+            var persons = from person in Model.AsQueryable<Person>() where person == p select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person != p select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+        }
+
+        [Test]
+        public void CanSelectResourcesWithBinaryExpressionOnResourceMember()
+        {
             var persons = from person in Model.AsQueryable<Person>() where person.Group.Name.Equals("The Spiders") select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
