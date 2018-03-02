@@ -44,6 +44,20 @@ namespace Semiodesk.Trinity.Query
             return type.IsAssignableFrom(member.GetMemberType());
         }
 
+        public static bool IsUriType(this MemberInfo member)
+        {
+            PropertyInfo property = member as PropertyInfo;
+
+            if(property != null)
+            {
+                return typeof(Uri).IsAssignableFrom(property.PropertyType);
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         public static bool IsSystemType(this MemberInfo member)
         {
             HashSet<Type> systemTypes = new HashSet<Type>()

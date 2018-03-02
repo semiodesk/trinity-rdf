@@ -92,6 +92,7 @@
     <Compile Include="Linq\LinqInferencingTest.cs" />
     <Compile Include="Linq\LinqModelGroupTest.cs" />
     <Compile Include="Linq\LinqTest.cs" />
+    <Compile Include="Linq\ObjectModel\ex.cs" />
     <Compile Include="Linq\ObjectModel\foaf.cs" />
     <Compile Include="Linq\ObjectModel\Page.cs" />
     <Compile Include="Linq\ObjectModel\Group.cs" />

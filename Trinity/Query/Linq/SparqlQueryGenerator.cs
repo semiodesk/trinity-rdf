@@ -180,7 +180,7 @@ namespace Semiodesk.Trinity.Query
                 MemberExpression memberExpression = expression as MemberExpression;
                 MemberInfo member = memberExpression.Member;
 
-                if(member.IsSystemType())
+                if(member.IsSystemType() || member.IsUriType())
                 {
                     return VariableGenerator.GetVariable(memberExpression.Expression);
                 }
@@ -222,12 +222,29 @@ namespace Semiodesk.Trinity.Query
                         PatternBuilder.Filter(e => buildFilter(e.StrLen(e.Variable(o.Name))));
                         break;
                     default:
-                        throw new NotSupportedException();
+                        throw new NotSupportedException(expression.ToString());
                 }
             }
             else if (member.DeclaringType == typeof(DateTime))
             {
-                throw new NotImplementedException();
+                throw new NotImplementedException(member.DeclaringType.ToString());
+            }
+        }
+
+        protected void BuildFilterOnUriType(MemberExpression expression, Func<VariableExpression, BooleanExpression> buildFilter)
+        {
+            SparqlVariable o = VariableGenerator.GetVariable(expression.Expression);
+
+            PropertyInfo property = expression.Member as PropertyInfo;
+
+            if(property != null)
+            {
+                PatternBuilder.Filter(e => buildFilter(e.Variable(o.Name)));
+            }
+            else
+            {
+                string msg = string.Format("{0} is not a property with type {1}.", expression.Member, typeof(Uri));
+                throw new ArgumentException(msg);
             }
         }
 
@@ -338,6 +355,10 @@ namespace Semiodesk.Trinity.Query
             {
                 BuildFilterOnSystemType(expression, e => e == constant.AsNumericExpression());
             }
+            else if(expression.Member.IsUriType())
+            {
+                BuildFilterOnUriType(expression, e => e == constant.AsLiteralExpression());
+            }
         }
 
         public void WhereNotEqual(SparqlVariable variable, ConstantExpression constant)
@@ -354,6 +375,10 @@ namespace Semiodesk.Trinity.Query
             if (expression.Member.IsSystemType())
             {
                 BuildFilterOnSystemType(expression, e => e != constant.AsNumericExpression());
+            }
+            else if (expression.Member.IsUriType())
+            {
+                BuildFilterOnUriType(expression, e => e != constant.AsLiteralExpression());
             }
             else
             {
