@@ -319,6 +319,18 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
+        public void CanSelectStringWithAsQueryable()
+        {
+            var names = Model.AsQueryable<Person>().Select(p => p.FirstName);
+
+            Assert.AreEqual(3, names.ToList().Count);
+
+            names = from p in Model.AsQueryable<Person>() select p.FirstName;
+
+            Assert.AreEqual(3, names.ToList().Count);
+        }
+
+        [Test]
         public void CanSelectStringWithMethodContains()
         {
             var names = from person in Model.AsQueryable<Person>() where person.FirstName.Contains("e") select person.FirstName;
@@ -365,9 +377,9 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectResourcesWithAsQueryable()
         {
-            var groups = Model.AsQueryable<Person>();
+            var persons = Model.AsQueryable<Person>();
 
-            Assert.AreEqual(3, groups.ToList().Count);
+            Assert.AreEqual(3, persons.ToList().Count);
         }
 
         [Test]
@@ -683,7 +695,7 @@ namespace Semiodesk.Trinity.Test.Linq
         {
             var resources = from resource in Model.AsQueryable<Resource>() select resource;
 
-            Assert.AreEqual(5, resources.ToList().Count);
+            Assert.AreEqual(6, resources.ToList().Count);
 
             resources = from resource in Model.AsQueryable<Resource>() where resource is Person select resource;
 

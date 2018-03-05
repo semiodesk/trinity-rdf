@@ -69,11 +69,9 @@ namespace Semiodesk.Trinity.Query
                     Where(member, o);
 
                     // Assert the object type.
-                    Type type = member.Member.GetMemberType();
-
-                    if (typeof(Resource).IsAssignableFrom(type))
+                    if (querySource.Type.IsSubclassOf(typeof(Resource)))
                     {
-                        WhereResourceOfType(s, type);
+                        WhereResourceOfType(s, querySource.Type);
                     }
                 }
             }
