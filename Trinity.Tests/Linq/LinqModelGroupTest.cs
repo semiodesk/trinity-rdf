@@ -53,6 +53,12 @@ namespace Semiodesk.Trinity.Test.Linq
             Assert.IsTrue(model1.IsEmpty);
             Assert.IsTrue(model2.IsEmpty);
 
+            // Add an agent so we can check if types are correctly queried.
+            Agent a1 = model1.CreateResource<Agent>(ex.John);
+            a1.FirstName = "John";
+            a1.LastName = "Doe";
+            a1.Commit();
+
             Group g1 = model1.CreateResource<Group>();
             g1.Name = "The Spiders";
             g1.Commit();

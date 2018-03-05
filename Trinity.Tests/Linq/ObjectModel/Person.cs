@@ -31,15 +31,9 @@ using System.Collections.Generic;
 namespace Semiodesk.Trinity.Test.Linq
 {
     [RdfClass(FOAF.Person)]
-    internal class Person : Resource
+    internal class Person : Agent
     {
         #region Members
-
-        [RdfProperty(FOAF.firstName)]
-        public string FirstName { get; set; }
-
-        [RdfProperty(FOAF.lastName)]
-        public string LastName { get; set; }
 
         [RdfProperty(FOAF.age)]
         public int Age { get; set; }
