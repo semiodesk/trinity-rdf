@@ -102,6 +102,7 @@ namespace Semiodesk.Trinity.Test
         public void GetModelTest()
         {
             Uri testModel = new Uri("ex:Test");
+            Store.RemoveModel(testModel);
 
             Assert.IsFalse(Store.ContainsModel(testModel));
 
@@ -124,6 +125,7 @@ namespace Semiodesk.Trinity.Test
         public void RemoveModelTest()
         {
             Uri testModel = new Uri("ex:Test");
+            Store.RemoveModel(testModel);
 
             Assert.IsFalse(Store.ContainsModel(testModel));
 
