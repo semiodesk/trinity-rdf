@@ -34,7 +34,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Semiodesk.Trinity.Store;
 using System.Configuration;
-#if !NET_3_5
+#if NETSTANDARD2_0
+using System.Composition.Hosting;
+#elif !NET_3_5
 using System.ComponentModel.Composition.Hosting;
 #endif
 
@@ -48,13 +50,15 @@ namespace Semiodesk.Trinity
     {
         private static readonly Dictionary<string, StoreProvider> _storeConfigurations = new Dictionary<string, StoreProvider>()
         {
+            #if !NETSTANDARD2_0
             {"virtuoso", new VirtuosoStoreProvider()},
+            #endif
             {"dotnetrdf", new dotNetRDFStoreProvider()},
             {"sparqlendpoint", new SparqlEndpointStoreProvider()},
             {"stardog", new StardogStoreProvider()}
         };
 
-        #region Factory Methods
+#region Factory Methods
 
         /// <summary>
         /// Tests if the given connection string is valid.
@@ -132,19 +136,19 @@ namespace Semiodesk.Trinity
             bool result = false;
             try
             {
-            #if !NET_3_5
-                AssemblyCatalog catalog = new AssemblyCatalog(assemblyPath);
-                var container = new CompositionContainer(catalog);
-                foreach (var item in container.GetExports<StoreProvider>())
+#if NETSTANDARD2_0
+                ContainerConfiguration config = new ContainerConfiguration().WithAssembly(Assembly.LoadFrom(assemblyPath));
+                var container = config.CreateContainer();
+                foreach (StoreProvider provider in container.GetExports<StoreProvider>())
                 {
-                    StoreProvider provider = item.Value;
                     if (!_storeConfigurations.ContainsKey(provider.Name))
                     {
                         _storeConfigurations.Add(provider.Name, provider);
                         result = true;
                     }
                 }
-            #else
+#elif NET_3_5
+
                 Assembly assembly = Assembly.LoadFrom(assemblyPath);
                 var types = assembly.GetTypes().Where(x => x.IsSubclassOf(typeof(StoreProvider)));
                 foreach (var item in types)
@@ -156,7 +160,19 @@ namespace Semiodesk.Trinity
                         result = true;
                     }
                 }
-            #endif
+#else
+                AssemblyCatalog catalog = new AssemblyCatalog(assemblyPath);
+                var container = new CompositionContainer(catalog);
+                foreach (var item in container.GetExports<StoreProvider>())
+                {
+                    StoreProvider provider = item.Value;
+                    if (!_storeConfigurations.ContainsKey(provider.Name))
+                    {
+                        _storeConfigurations.Add(provider.Name, provider);
+                        result = true;
+                    }
+                }
+#endif
             }
             catch (Exception)
             {
@@ -175,6 +191,6 @@ namespace Semiodesk.Trinity
             return LoadProvider(assembly.FullName);
         }
 
-    #endregion
+#endregion
     }
 }
