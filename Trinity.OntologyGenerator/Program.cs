@@ -31,6 +31,7 @@ using System;
 using System.Configuration;
 using System.IO;
 using System.Reflection;
+using System.Xml.Serialization;
 
 namespace Semiodesk.Trinity.OntologyGenerator
 {
@@ -40,13 +41,13 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
         private int _verbosity = 0;
 
-        private System.Configuration.Configuration _configuration = null;
-
-        private TrinitySettings _settings = null;
+        private IConfiguration _configuration = null;
 
         private string _generatePath = null;
 
         private string _configPath = null;
+
+        private FileInfo _configFile = null;
 
         private DirectoryInfo _sourceDir;
 
@@ -65,7 +66,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
             OptionSet optionSet = new OptionSet()
             {
                 { "c|config=", "Path of the config file.", v =>SetConfig(v)  },
-                { "g|generate=", "Path of the ontologies.cs file to generate.", v =>SetGenerate(v)  },
+                { "g|generate=", "Path of the ontologies.cs file to generate.", v =>SetTarget(v)  },
                 { "v", "increase debug message verbosity", v => { if (v != null) ++_verbosity; } },
                 { "h|help",  "Show this message and exit", v => showHelp = v != null }
             };
@@ -80,8 +81,6 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 }
                 else
                 {
-                    LoadConfigFile(_configPath);
-
                     Run();
                 }
             }
@@ -117,9 +116,13 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
         public int Run()
         {
-            if (_settings == null)
+            LoadLegacyConfigFile();
+            if (_configuration == null)
+                LoadConfigFile();
+
+            if (_configuration == null)
             {
-                throw new Exception("Trinity config file (app.config or web.config) not initialized.");
+                throw new Exception("Trinity config file not fount. The project does neither have a new style (ontologies.config) or legacy (app.config or web.config) configuration file available.");
             }
 
             _sourceDir = new FileInfo(_configPath).Directory;
@@ -128,37 +131,31 @@ namespace Semiodesk.Trinity.OntologyGenerator
             {
                 FileInfo fileInfo = new FileInfo(_generatePath);
 
-                using (OntologyGenerator generator = new OntologyGenerator(_settings.Namespace))
+                using (OntologyGenerator generator = new OntologyGenerator(_configuration.Namespace))
                 {
                     generator.Logger = Logger;
 
-                    if (_settings.Ontologies != null)
+
+                    foreach (var ontology in _configuration.ListOntologies())
                     {
-                        foreach (var ontology in _settings.Ontologies)
+                        UriRef t = GetPathFromLocation(ontology.Location);
+
+                        if (!generator.ImportOntology(ontology.Uri, t))
                         {
-                            UriRef t = GetPathFromSource(ontology.FileSource);
+                            FileInfo ontologyFile = new FileInfo(t.LocalPath);
 
-                            if (!generator.ImportOntology(ontology.Uri, t))
-                            {
-                                FileInfo ontologyFile = new FileInfo(t.LocalPath);
-
-                                ElementInformation info = ontology.ElementInformation;
-
-                                Logger.LogWarning(string.Format("Could not read ontology <{0}> from path {1}.", ontology.Uri, ontologyFile.FullName), info);
-                            }
-
-                            if (!generator.AddOntology(ontology.Uri, ontology.MetadataUri, ontology.Prefix))
-                            {
-                                Logger.LogMessage("Ontology with uri <{0}> or uri <{1}> could not be found in store.", ontology.Uri, ontology.MetadataUri);
-                            }
+                           
+                            Logger.LogWarning(string.Format("Could not read ontology <{0}> from path {1}.", ontology.Uri, ontologyFile.FullName));
                         }
 
-                        generator.GenerateFile(fileInfo);
+                        if (!generator.AddOntology(ontology.Uri, null, ontology.Prefix))
+                        {
+                            Logger.LogMessage("Ontology with uri <{0}> or uri <{1}> could not be found in store.", ontology.Uri, null);
+                        }
                     }
-                    else
-                    {
-                        Logger.LogMessage("No ontologies configured in TrinitySettings section in app.config or web.config.");
-                    }
+
+                    generator.GenerateFile(fileInfo);
+      
                 }
 
                 return 0;
@@ -169,53 +166,71 @@ namespace Semiodesk.Trinity.OntologyGenerator
             }
         }
 
-        protected void SetConfig(string config)
+        public void SetConfig(string configPath)
         {
-            Logger.LogMessage("Reading config from {0}", config);
+            Logger.LogMessage("Reading config from {0}", configPath);
 
-            if (string.IsNullOrEmpty(config))
-            {
-                return;
-            }
+            if (string.IsNullOrEmpty(configPath))
+                throw new ArgumentException("Configuration path was null or empty.");
 
-            FileInfo configFile = new FileInfo(config);
+            _configPath = configPath;
+            _configFile = new FileInfo(configPath);
+            if (!_configFile.Exists)
+                throw new ArgumentException("Could not read config file from {0}. Reason: File does not exist.", _configPath);
 
-            _configPath = configFile.FullName;
+            _sourceDir = _configFile.Directory;
         }
 
-        public bool LoadConfigFile(string configPath)
+        /// <summary>
+        /// This method loads the new configuration format (ontologies.config)
+        /// </summary>
+        /// <returns></returns>
+        public bool LoadConfigFile()
         {
-            _configPath = configPath;
+            XmlSerializer serializer = new XmlSerializer(typeof(Configuration.Configuration));
 
-            FileInfo configFile = new FileInfo(configPath);
+            using (var stream = _configFile.OpenRead())
+            {
+                IConfiguration result = (Configuration.Configuration)serializer.Deserialize(stream);
+                _configuration = result;
+            }
 
-            if (configFile.Exists)
+            return true;
+        }
+
+        /// <summary>
+        /// This method loads the legacy configuration from app.config/web.config
+        /// </summary>
+        /// <returns></returns>
+        private bool LoadLegacyConfigFile()
+        {
+            if (_configFile.Exists)
             {
                 ExeConfigurationFileMap configMap = new ExeConfigurationFileMap();
 
-                configMap.ExeConfigFilename = configFile.FullName;
+                configMap.ExeConfigFilename = _configFile.FullName;
 
-                _configuration = ConfigurationManager.OpenMappedExeConfiguration(configMap, ConfigurationUserLevel.None);
+                var cfg = ConfigurationManager.OpenMappedExeConfiguration(configMap, ConfigurationUserLevel.None);
 
                 AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
 
                 try
                 {
-                    _settings = (TrinitySettings)_configuration.GetSection("TrinitySettings");
+                    _configuration = (IConfiguration)cfg.GetSection("TrinitySettings");
                 }
                 catch (Exception e)
                 {
-                    Logger.LogError("Could not read config file from {0}. Reason: {1}", configPath, e.Message);
+                    Logger.LogError("Could not read config file from {0}. Reason: {1}", _configPath, e.Message);
                 }
 
                 AppDomain.CurrentDomain.AssemblyResolve -= CurrentDomain_AssemblyResolve;
             }
             else
             {
-                Logger.LogError("Could not read config file from {0}. Reason: File does not exist.", configPath);
+                Logger.LogError("Could not read config file from {0}. Reason: File does not exist.", _configPath);
             }
 
-            return _settings == null;
+            return _configuration == null;
         }
 
         private Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
@@ -223,7 +238,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
             return args.Name == "Semiodesk.Trinity" ? Assembly.GetAssembly(typeof(Resource)) : null;
         }
 
-        public void SetGenerate(string generate)
+        public void SetTarget(string generate)
         {
             Logger.LogMessage("Generating to {0}", generate);
 
@@ -240,13 +255,12 @@ namespace Semiodesk.Trinity.OntologyGenerator
             p.WriteOptionDescriptions(Console.Out);
         }
 
-        protected UriRef GetPathFromSource(FileSource source)
+        protected UriRef GetPathFromLocation(string location)
         {
             UriRef result = null;
-
-            if (source != null )
+            if (!string.IsNullOrEmpty(location))
             {
-                string sourcePath = (source as FileSource).Location;
+                string sourcePath = location;
 
                 if (Path.IsPathRooted(sourcePath))
                 {
@@ -258,7 +272,6 @@ namespace Semiodesk.Trinity.OntologyGenerator
                     result = new UriRef(fullPath);
                 }
             }
-
             return result;
         }
 

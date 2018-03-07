@@ -32,7 +32,7 @@ using System.Configuration;
 using System.Linq;
 using System.Text;
 
-namespace Semiodesk.Trinity.Configuration
+namespace Semiodesk.Trinity.Configuration.Legacy
 {
     public sealed class OntologyCollection : ConfigurationElementCollection, IEnumerable<Ontology>
     {

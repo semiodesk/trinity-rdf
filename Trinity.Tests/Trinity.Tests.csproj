@@ -62,8 +62,8 @@
       <HintPath>..\Net40\packages\ini-parser.2.4.0\lib\net20\INIFileParser.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\Net40\packages\Newtonsoft.Json.9.0.1\lib\net40\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\Net40\packages\Newtonsoft.Json.10.0.3\lib\net40\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="nunit.framework, Version=3.6.1.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
@@ -85,15 +85,15 @@
   <ItemGroup>
     <Compile Include="Cilg\CilgResourceMappingTest.cs" />
     <Compile Include="Cilg\MappingClasses.cs" />
-    <Compile Include="DotNetRdf\ModelTest.cs" />
-    <Compile Include="DotNetRdf\SetupClass.cs" />
+    <Compile Include="dotNetRdf\ModelTest.cs" />
+    <Compile Include="dotNetRdf\SetupClass.cs" />
     <Compile Include="dotnetrdf_ResourceQueryTest.cs" />
     <Compile Include="dotnetrdf_SparqlQueryTest.cs" />
     <Compile Include="ModelGroupTest.cs" />
-    <Compile Include="DotNetRdf\ResourceMappingTest.cs" />
-    <Compile Include="DotNetRdf\ResourceTest.cs" />
-    <Compile Include="DotNetRdf\StoreHandleTest.cs" />
-    <Compile Include="DotNetRdf\StoreTest.cs" />
+    <Compile Include="dotNetRdf\ResourceMappingTest.cs" />
+    <Compile Include="dotNetRdf\ResourceTest.cs" />
+    <Compile Include="dotNetRdf\StoreHandleTest.cs" />
+    <Compile Include="dotNetRdf\StoreTest.cs" />
     <Compile Include="Ontologies.cs" />
     <Compile Include="SetupClass.cs" />
     <Compile Include="SparqlEndpointTest.cs" />
@@ -148,6 +148,10 @@
     <None Include="Models\test-tmo.trig">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="ontologies.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <SubType>Designer</SubType>
+    </None>
     <None Include="Ontologies\dces.ttl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -182,6 +186,10 @@
     <None Include="TinyVirtuoso\virtuoso\doc\README" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Trinity.Virtuoso\Trinity.Virtuoso.csproj">
+      <Project>{5e69f2ce-5f36-4e8b-8269-f10733608fe8}</Project>
+      <Name>Trinity.Virtuoso</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Trinity\Trinity.csproj">
       <Project>{0D10D2AD-CA61-46E3-88C8-0AB8318647BA}</Project>
       <Name>Trinity</Name>

@@ -60,7 +60,7 @@ namespace Semiodesk.Trinity.Store
             {
                 Uri endpoint = new Uri(configurationDictionary[endpointKey]);
 
-                return new SparqlEndpointStorage(endpoint);
+                return new SparqlEndpointStore(endpoint);
             }
             return null;
         }

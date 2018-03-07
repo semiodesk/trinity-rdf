@@ -40,14 +40,14 @@ using VDS.RDF.Query.Datasets;
 using VDS.RDF.Query.Inference;
 using VDS.RDF.Update;
 using VDS.RDF.Writing;
-using TrinitySettings = Semiodesk.Trinity.Configuration.TrinitySettings;
+
 
 namespace Semiodesk.Trinity.Store
 {
     /// <summary>
     /// </summary>
 
-    public class dotNetRDFStore : IStore
+    public class dotNetRDFStore : StoreBase
     {
         #region Members
 
@@ -111,29 +111,20 @@ namespace Semiodesk.Trinity.Store
 
         #region IStore implementation
         
-        public IModel CreateModel(Uri uri)
-        {
-            return new Model(this, new UriRef(uri));
-        }
 
-        public bool ContainsModel(IModel model)
-        {
-            return ContainsModel(model.Uri);
-        }
-
-        public bool ContainsModel(Uri uri)
+        public override bool ContainsModel(Uri uri)
         {
             return _store.HasGraph(uri);
         }
 
-        public void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
+        public override void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
         {
             SparqlUpdateCommandSet cmds = _parser.ParseFromString(query.ToString());
 
             _updateProcessor.ProcessCommandSet(cmds);
         }
 
-        public ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
+        public override ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
             if (query.IsInferenceEnabled && _reasoner != null)
             {
@@ -165,17 +156,7 @@ namespace Semiodesk.Trinity.Store
             return _queryProcessor.ProcessQuery(q);
         }
 
-        public IModel GetModel(Uri uri)
-        {
-            return new Model(this, new UriRef(uri));
-        }
-
-        public bool IsReady
-        {
-            get { return true; }
-        }
-
-        public IEnumerable<IModel> ListModels()
+        public override IEnumerable<IModel> ListModels()
         {
             foreach (var g in _store.Graphs)
             {
@@ -222,8 +203,7 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-
-        public Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
+        public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
         {
             TextReader reader = new StreamReader(stream);
             IGraph graph = new Graph();
@@ -237,7 +217,7 @@ namespace Semiodesk.Trinity.Store
             return graphUri;
         }
 
-        public Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update)
+        public override Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update)
         {
             IGraph graph = null;
 
@@ -295,18 +275,13 @@ namespace Semiodesk.Trinity.Store
             return null;
         }
 
-        public void RemoveModel(IModel model)
-        {
-            RemoveModel(model.Uri);
-        }
-
-        public void RemoveModel(Uri uri)
+        public override void RemoveModel(Uri uri)
         {
             if (_store.HasGraph(uri))
                 _store.Remove(uri);
         }
 
-        public void Write(Stream stream, Uri graphUri, RdfSerializationFormat format)
+        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format)
         {
             if (_store.HasGraph(graphUri))
             {
@@ -318,12 +293,12 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-        public ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
+        public override ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
             return null;
         }
 
-        public IModelGroup CreateModelGroup(params Uri[] models)
+        public override IModelGroup CreateModelGroup(params Uri[] models)
         {
             List<IModel> modelList = new List<IModel>();
 
@@ -335,49 +310,13 @@ namespace Semiodesk.Trinity.Store
             return new ModelGroup(this, modelList);
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             _updateProcessor.Discard();
             _store.Dispose();
         }
 
-        public void LoadOntologySettings(string configPath = null, string sourceDir = "")
-        {
-            Trinity.Configuration.TrinitySettings settings;
-            if (!string.IsNullOrEmpty(configPath) && File.Exists(configPath))
-            {
-                ExeConfigurationFileMap configMap = new ExeConfigurationFileMap();
-
-                configMap.ExeConfigFilename = configPath;
-
-                var configuration = ConfigurationManager.OpenMappedExeConfiguration(configMap, ConfigurationUserLevel.None);
-                try
-                {
-                    settings = (TrinitySettings)configuration.GetSection("TrinitySettings");
-                }
-                catch (Exception e)
-                {
-                    throw new Exception(string.Format("Could not read config file from {0}. Reason: {1}", configPath, e.Message));
-                }
-
-            }
-            else
-            {
-                settings = (TrinitySettings)ConfigurationManager.GetSection("TrinitySettings");
-            }
-
-            DirectoryInfo srcDir;
-            if (string.IsNullOrEmpty(sourceDir))
-            {
-                srcDir = new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
-            }
-            else
-            {
-                srcDir = new DirectoryInfo(sourceDir);
-            }
-            StoreUpdater updater = new StoreUpdater(this, srcDir);
-            updater.UpdateOntologies(settings.Ontologies);
-        }
+        
         #endregion
         #endregion
     }

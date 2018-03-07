@@ -4,34 +4,34 @@ using System.Configuration;
 using System.Linq;
 using System.Text;
 
-namespace Semiodesk.Trinity.Configuration
+namespace Semiodesk.Trinity.Configuration.Legacy
 {
     /// <summary>
-    /// A collection containing all graphs in the configuration
+    /// Collection of rule sets
     /// </summary>
-    public sealed class GraphCollection : ConfigurationElementCollection, IEnumerable<Graph>
+    public sealed class RuleSetCollection : ConfigurationElementCollection, IEnumerable<RuleSet>
     {
         /// <summary>
-        /// Create a new graph element
+        /// Creates a new RuleSet element
         /// </summary>
         /// <returns></returns>
         protected override ConfigurationElement CreateNewElement()
         {
-            return new Graph();
+            return new RuleSet();
         }
 
         /// <summary>
-        /// Gets the key of the given graph element. Uri is used.
+        /// Gets the key (the uri) of a RuleSet element.
         /// </summary>
         /// <param name="element"></param>
         /// <returns></returns>
         protected override object GetElementKey(ConfigurationElement element)
         {
-            return ((Graph)element).Uri;
+            return ((RuleSet)element).Uri;
         }
 
         /// <summary>
-        /// The type of the collection
+        /// The collection type
         /// </summary>
         public override ConfigurationElementCollectionType CollectionType
         {
@@ -39,11 +39,11 @@ namespace Semiodesk.Trinity.Configuration
         }
 
         /// <summary>
-        /// The name of the element
+        /// Contains the name of the element
         /// </summary>
         protected override string ElementName
         {
-            get { return "Graph"; }
+            get { return "RuleSet"; }
         }
 
         /// <summary>
@@ -51,9 +51,9 @@ namespace Semiodesk.Trinity.Configuration
         /// </summary>
         /// <param name="index"></param>
         /// <returns></returns>
-        public Graph this[int index]
+        public RuleSet this[int index]
         {
-            get { return (Graph)BaseGet(index); }
+            get { return (RuleSet)BaseGet(index); }
             set
             {
                 if (BaseGet(index) != null)
@@ -65,17 +65,17 @@ namespace Semiodesk.Trinity.Configuration
         }
 
         /// <summary>
-        /// Get the element by the key
+        /// Index operator with key name
         /// </summary>
-        /// <param name="key"></param>
+        /// <param name="employeeID"></param>
         /// <returns></returns>
-        new public Graph this[string key]
+        new public RuleSet this[string key]
         {
-            get { return (Graph)BaseGet(key); }
+            get { return (RuleSet)BaseGet(key); }
         }
 
         /// <summary>
-        /// Test if key exists
+        /// Can be used to test if the key exists.
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
@@ -97,14 +97,14 @@ namespace Semiodesk.Trinity.Configuration
         #region IEnumerable<Graph> Members
 
         /// <summary>
-        /// Get enumerator of collection
+        /// Enumerator for the collection.
         /// </summary>
         /// <returns></returns>
-        public new IEnumerator<Graph> GetEnumerator()
+        public new IEnumerator<RuleSet> GetEnumerator()
         {
             foreach (var k in BaseGetAllKeys())
             {
-                yield return (Graph)BaseGet(k);
+                yield return (RuleSet)BaseGet(k);
             }
         }
 

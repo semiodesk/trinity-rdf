@@ -36,8 +36,9 @@ using Semiodesk.Trinity.Store;
 
 namespace Semiodesk.Trinity
 {
-    internal class VirtuosoSettings : IStorageSpecific
+    public class VirtuosoSettings 
     {
+        /*
         #region Members
         public VirtuosoStoreSettings Settings { get; set; }
         #endregion
@@ -94,7 +95,7 @@ namespace Semiodesk.Trinity
             string query = string.Format("rdfs_rule_set ('{0}', '{1}')", ruleSet, graph);
             store.ExecuteQuery(query);
         }
-
+        */
     }
 
 

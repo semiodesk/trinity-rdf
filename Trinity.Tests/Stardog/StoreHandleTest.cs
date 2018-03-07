@@ -36,7 +36,7 @@ using System.Text;
 namespace Semiodesk.Trinity.Test.Stardog
 {
     [TestFixture]
-    class StoreHandleTest
+    class StardogStoreHandleTest
     {
 
         [Test]
