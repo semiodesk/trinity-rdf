@@ -26,15 +26,10 @@
 // Copyright (c) Semiodesk GmbH 2015
 
 using System;
-using System.Globalization;
-using System.ComponentModel;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.IO;
 using System.Reflection;
-using OpenLink.Data.Virtuoso;
 using Newtonsoft.Json;
 
 namespace Semiodesk.Trinity

@@ -26,12 +26,15 @@
 // Copyright (c) Semiodesk GmbH 2015
 
 using System.Collections.Generic;
-#if ! NET_3_5
-using System.ComponentModel.Composition;
-#endif
 using System.IO;
 using VDS.RDF.Storage.Management;
 using Semiodesk.Trinity.Store.Stardog;
+
+#if NETSTANDARD2_0
+using System.Composition;
+#elif !NET_3_5
+using System.ComponentModel.Composition;
+#endif
 
 namespace Semiodesk.Trinity.Store
 {
