@@ -74,6 +74,7 @@ namespace Semiodesk.Trinity.CilGenerator
         #endregion
 
         #region Methods
+        public static TypeDefinition propertyMapping;
 
         public bool ProcessFile(string sourceFile, string targetFile = "")
         {
@@ -90,13 +91,20 @@ namespace Semiodesk.Trinity.CilGenerator
             try
             {
                 var resolver = new DefaultAssemblyResolver();
-                resolver.AddSearchDirectory(GetAssemblyDirectoryFromType(typeof(Resource)));
+                //resolver.AddSearchDirectory(GetAssemblyDirectoryFromType(typeof(Resource)));
                 FileInfo sourceDll = new FileInfo(sourceFile);
                 resolver.AddSearchDirectory(sourceDll.DirectoryName);
+                resolver.RemoveSearchDirectory(".");
 
-                var parameters = new ReaderParameters { AssemblyResolver = resolver };
+                var parameters = new ReaderParameters { AssemblyResolver = resolver, ReadWrite = true, ReadSymbols = true };
 
                 Assembly = AssemblyDefinition.ReadAssembly(sourceFile, parameters);
+
+                var trinityRef = Assembly.MainModule.AssemblyReferences.Where(x => x.Name == "Semiodesk.Trinity").First();
+                var trinity = resolver.Resolve(trinityRef);
+                var g = trinity.MainModule.Types.Where(b => b.FullName == "Semiodesk.Trinity.PropertyMapping`1").First();
+                propertyMapping = g;
+
 
                 Log.LogMessage("------ Begin Task: ImplementRdfMapping [{0}]", Assembly.Name);
 
@@ -109,11 +117,11 @@ namespace Semiodesk.Trinity.CilGenerator
                     //  - PropertyAttribute with PropertyChangedAttribute
                     //  - PropertyAttribute without PropertyChangedAttribute
                     //  - PropertyChangedAttribute only
-                    HashSet<PropertyDefinition> mapping = type.GetPropertiesWithAttribute<RdfPropertyAttribute>().ToHashSet();
-                    HashSet<PropertyDefinition> notifying = type.GetPropertiesWithAttribute<NotifyPropertyChangedAttribute>().ToHashSet();
+                    HashSet<PropertyDefinition> mapping = type.GetPropertiesWithAttribute("RdfPropertyAttribute").ToHashSet();
+                    HashSet<PropertyDefinition> notifying = type.GetPropertiesWithAttribute("NotifyPropertyChangedAttribute").ToHashSet();
 
                     // Implement the GetTypes()-method for the given type.
-                    if (mapping.Any() || type.TryGetCustomAttribute<RdfClassAttribute>().Any())
+                    if (mapping.Any() || type.TryGetCustomAttribute("RdfClassAttribute").Any())
                     {
                         ImplementRdfClassTask implementClass = new ImplementRdfClassTask(this, type);
 
@@ -148,32 +156,13 @@ namespace Semiodesk.Trinity.CilGenerator
 
                 if (assemblyModified)
                 {
-                    if(WriteSymbols)
-                    {
-                        // Use the correct debug symbol reader and writer on Mono and .NET
-                        if (Type.GetType("Mono.Runtime") != null)
-                        {
-                            using (ISymbolReader symbolReader = new MdbReaderProvider().GetSymbolReader(Assembly.MainModule, sourceFile))
-                            {
-                                ISymbolWriterProvider symbolWriter = new MdbWriterProvider();
+                    var param = new WriterParameters { WriteSymbols = WriteSymbols };
 
-                                WriteSymbolsToAssembly(targetFile, symbolReader, symbolWriter);
-                            }
-                        }
-                        else
-                        {
-                            using (ISymbolReader symbolReader = new PdbReaderProvider().GetSymbolReader(Assembly.MainModule, sourceFile))
-                            {
-                                ISymbolWriterProvider symbolWriter = new PdbWriterProvider();
-
-                                WriteSymbolsToAssembly(targetFile, symbolReader, symbolWriter);
-                            }
-                        }
-                    }
+                    FileInfo targetDll = new FileInfo(targetFile);
+                    if (sourceDll.FullName != targetDll.FullName)
+                        Assembly.Write(targetDll.FullName, param);
                     else
-                    {
-                        Assembly.Write(targetFile, new WriterParameters { WriteSymbols = false });
-                    }
+                        Assembly.Write(param);
                 }
 
                 result = true;
