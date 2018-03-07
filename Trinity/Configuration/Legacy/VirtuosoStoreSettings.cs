@@ -26,59 +26,29 @@
 // Copyright (c) Semiodesk GmbH 2015
 
 
+using Semiodesk.Trinity.Configuration.Legacy;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Text;
 
-namespace Semiodesk.Trinity.Configuration
+// This namespace needs to be this for legacy applications to resolve the configuration correctly
+namespace Semiodesk.Trinity.Configuration.Legacy
 {
     /// <summary>
-    /// Constains the settings for the Semiodesk.Trinity framework.
+    /// Constains Virtuoso specific settings
     /// </summary>
-    public class TrinitySettings : ConfigurationSection
+    public class VirtuosoStoreSettings : ConfigurationElement
     {
         /// <summary>
-        /// Namespace of the generated ontology file.
+        /// A collection of rule sets
         /// </summary>
-        [ConfigurationProperty("namespace", DefaultValue = "Semiodesk.Trinity.Model", IsRequired = true)]
-        [StringValidator(InvalidCharacters = "  ~!@#$%^&*()[]{}/;’\"|\\")]
-        public string Namespace
+        [ConfigurationProperty("RuleSets", IsDefaultCollection = true)]
+        public RuleSetCollection RuleSets
         {
-            get
-            {
-                return (string)this["namespace"];
-            }
-            set
-            {
-                this["namespace"] = value;
-            }
+            get { return (RuleSetCollection)base["RuleSets"]; }
         }
 
-        /// <summary>
-        /// Collection of ontologies
-        /// </summary>
-        [ConfigurationProperty("OntologySettings", IsDefaultCollection = true)]
-        public OntologyCollection Ontologies
-        {
-            get { return (OntologyCollection)base["OntologySettings"]; }
-        }
-
-        /// <summary>
-        /// Virtuoso specific settings
-        /// </summary>
-        [ConfigurationProperty("VirtuosoStoreSettings")]
-        public VirtuosoStoreSettings VirtuosoStoreSettings
-        {
-            get
-            {
-                return (VirtuosoStoreSettings)this["VirtuosoStoreSettings"];
-            }
-            set
-            {
-                this["VirtuosoStoreSettings"] = value;
-            }
-        }
     }
 }

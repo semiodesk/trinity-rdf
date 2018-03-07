@@ -208,7 +208,7 @@ namespace Semiodesk.Trinity
 
         #region Methods
 
-        internal void SetModel(IModel model)
+        public void SetModel(IModel model)
         {
             Model = model;
         }

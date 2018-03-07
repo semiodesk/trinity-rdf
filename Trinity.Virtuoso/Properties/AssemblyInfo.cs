@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Trinity.CilGenerator")]
+[assembly: AssemblyTitle("Trinity.Virtuoso")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Semiodesk")]
-[assembly: AssemblyProduct("Trinity.CilGenerator")]
-[assembly: AssemblyCopyright("Copyright © Semiodesk GmbH 2017")]
+[assembly: AssemblyCompany("")]
+[assembly: AssemblyProduct("Trinity.Virtuoso")]
+[assembly: AssemblyCopyright("Copyright Semiodesk ©  2017")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("56608623-5ba9-469a-bb31-dc2f164e3950")]
+[assembly: Guid("5780ed96-ed98-4676-b10d-a4d0b1fc3cb9")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -32,6 +32,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0.0.0")]
+[assembly: AssemblyVersion("0.9.0.0")]
+[assembly: AssemblyFileVersion("0.9.0.0")]

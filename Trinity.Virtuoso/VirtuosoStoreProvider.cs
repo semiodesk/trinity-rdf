@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Composition;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -34,12 +35,13 @@ using System.Text.RegularExpressions;
 
 namespace Semiodesk.Trinity.Store
 {
-    internal class VirtuosoStoreProvider : StoreProvider
+    [Export(typeof(StoreProvider))]
+    public class VirtuosoStoreProvider : StoreProvider
     {
 
         public VirtuosoStoreProvider()
         {
-            Name = "Virtuoso";
+            Name = "virtuoso";
         }
 
         public override IStore GetStore(Dictionary<string, string> configurationDictionary )

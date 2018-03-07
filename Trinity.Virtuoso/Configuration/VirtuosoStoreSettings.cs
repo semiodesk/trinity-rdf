@@ -25,30 +25,43 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
+
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Text;
 using System.Xml.Serialization;
 
 namespace Semiodesk.Trinity.Configuration
 {
-    /// <summary>
-    /// A file source of a element
-    /// </summary>
-    public class FileSource : ConfigurationElement
+
+    [XmlRoot(ElementName = "graph")]
+    public class Graph
     {
-        /// <summary>
-        /// The location of this file source
-        /// </summary>
-        [ConfigurationProperty("Location", IsRequired=true)]
-        public string Location
-        {
-            get { return (string)base["Location"]; }
-            set { base["Location"] = value; }
-        }
+        [XmlAttribute(AttributeName = "uri")]
+        public string Uri { get; set; }
     }
+
+    [XmlRoot(ElementName = "ruleset")]
+    public class Ruleset
+    {
+        [XmlElement(ElementName = "graph")]
+        public List<Graph> Graph { get; set; }
+        [XmlAttribute(AttributeName = "uri")]
+        public string Uri { get; set; }
+    }
+
+    [XmlRoot(ElementName = "rulesets")]
+    public class Rulesets
+    {
+        [XmlElement(ElementName = "ruleset")]
+        public Ruleset Ruleset { get; set; }
+    }
+
+
+       
+
+     
 
 }

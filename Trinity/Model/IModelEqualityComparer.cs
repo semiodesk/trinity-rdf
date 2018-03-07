@@ -23,35 +23,45 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2017
 
 
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Text;
 
-namespace Semiodesk.Trinity.Configuration
+namespace Semiodesk.Trinity
 {
     /// <summary>
-    /// Constains Virtuoso specific settings
+    /// Compares two models by their uris
     /// </summary>
-    public class VirtuosoStoreSettings : ConfigurationElement
+    class IModelEqualityComparer : IEqualityComparer<IModel>
     {
+        #region IEqualityComparer<IModel> Members
+
         /// <summary>
-        /// A collection of rule sets
+        /// Equals
         /// </summary>
-        [ConfigurationProperty("RuleSets", IsDefaultCollection = true)]
-        public RuleSetCollection RuleSets
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
+        public bool Equals(IModel x, IModel y)
         {
-            get { return (RuleSetCollection)base["RuleSets"]; }
+            return x.Uri.Equals(y.Uri);
         }
 
+        /// <summary>
+        /// HashCode
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public int GetHashCode(IModel obj)
+        {
+            return obj.Uri.AbsoluteUri.GetHashCode();
+        }
+
+        #endregion
     }
-
-       
-
-     
 
 }

@@ -36,7 +36,8 @@ using System.Globalization;
 
 namespace Semiodesk.Trinity.Test.Stardog
 {
-    class ResourceTest
+    [TestFixture]
+    class StardogResourceTest
     {
         IStore Store;
         IModel Model;

@@ -32,12 +32,12 @@ using System.Configuration;
 using System.Linq;
 using System.Text;
 
-namespace Semiodesk.Trinity.Configuration
+namespace Semiodesk.Trinity.Configuration.Legacy
 {
     /// <summary>
     /// A ontology element
     /// </summary>
-    public class Ontology : ConfigurationElement
+    public class Ontology : ConfigurationElement, IOntologyConfiguration
     {
         /// <summary>
         /// Prefix of this ontology
@@ -52,7 +52,7 @@ namespace Semiodesk.Trinity.Configuration
         /// <summary>
         /// Uri of this ontology
         /// </summary>
-        public UriRef Uri
+        public Uri Uri
         {
             get
             {
@@ -142,6 +142,18 @@ namespace Semiodesk.Trinity.Configuration
             return base.GetHashCode();
         }
 
-}
+
+        public string Location
+        {
+            get 
+            {
+                if (FileSource != null)
+                    return FileSource.Location;
+
+                return null;
+                
+            }
+        }
+    }
 
 }

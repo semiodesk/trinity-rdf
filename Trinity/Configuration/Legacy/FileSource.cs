@@ -27,21 +27,28 @@
 
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
+using System.Xml.Serialization;
 
-namespace Semiodesk.Trinity
+namespace Semiodesk.Trinity.Configuration.Legacy
 {
-    public class ResourceLockedException : Exception
+    /// <summary>
+    /// A file source of a element
+    /// </summary>
+    public class FileSource : ConfigurationElement
     {
-        #region Constructor
-
-        public ResourceLockedException(Exception inner)
-            : base(string.Format("ResourceLockedException: One or more resources you tried to access was locked. Either try using transactions or try to repeat the action after reloading your resources."), inner)
+        /// <summary>
+        /// The location of this file source
+        /// </summary>
+        [ConfigurationProperty("Location", IsRequired=true)]
+        public string Location
         {
-
+            get { return (string)base["Location"]; }
+            set { base["Location"] = value; }
         }
-
-        #endregion
     }
+
 }

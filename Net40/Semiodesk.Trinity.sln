@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.OntologyGenerator",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.CilGenerator", "..\Trinity.CilGenerator\Trinity.CilGenerator.csproj", "{146FE869-CCA9-4B39-8FBE-58FD6515AFF9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.Virtuoso", "..\Trinity.Virtuoso\Trinity.Virtuoso.csproj", "{5E69F2CE-5F36-4E8B-8269-F10733608FE8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,6 +39,8 @@ Global
 		{146FE869-CCA9-4B39-8FBE-58FD6515AFF9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{146FE869-CCA9-4B39-8FBE-58FD6515AFF9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{146FE869-CCA9-4B39-8FBE-58FD6515AFF9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E69F2CE-5F36-4E8B-8269-F10733608FE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E69F2CE-5F36-4E8B-8269-F10733608FE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
