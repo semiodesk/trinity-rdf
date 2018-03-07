@@ -121,7 +121,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                 generator.Method.Body.MaxStackSize = 3;
                 generator.Method.Body.InitLocals = true;
                 generator.Method.Body.Variables.Add(new VariableDefinition(MainModule.Import(getTypeBase.ReturnType)));
-                generator.Method.Body.Variables.Add(new VariableDefinition(MainModule.Import(typeof(Class))));
+                generator.Method.Body.Variables.Add(new VariableDefinition(MainModule.Import(typeof(Class[]))));
                 generator.Execute();
             }
 
