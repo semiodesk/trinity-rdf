@@ -567,6 +567,26 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
+        public void CanSelectResourcesWithBinaryExpressionOnNull()
+        {
+            var persons = from person in Model.AsQueryable<Person>() where person.Group == null select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Group != null select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Bob" && person.Group == null select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.FirstName != "Bob" && person.Group == null select person;
+
+            Assert.AreEqual(0, persons.ToList().Count);
+        }
+
+        [Test]
         public void CanSelectResourcesWithNodeTypeAndAlso()
         {
             var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" && person.LastName == "Cooper" select person;
