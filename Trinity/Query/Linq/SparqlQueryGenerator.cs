@@ -349,15 +349,35 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereEqual(MemberExpression expression, ConstantExpression constant)
         {
-            BuildMemberAccess(expression, constant.AsNode());
+            if(constant.Value != null)
+            {
+                BuildMemberAccess(expression, constant.AsNode());
 
-            if (expression.Member.IsSystemType())
-            {
-                BuildFilterOnSystemType(expression, e => e == constant.AsNumericExpression());
+                if (expression.Member.IsSystemType())
+                {
+                    BuildFilterOnSystemType(expression, e => e == constant.AsNumericExpression());
+                }
+                else if (expression.Member.IsUriType())
+                {
+                    BuildFilterOnUriType(expression, e => e == constant.AsLiteralExpression());
+                }
             }
-            else if(expression.Member.IsUriType())
+            else
             {
-                BuildFilterOnUriType(expression, e => e == constant.AsLiteralExpression());
+                SparqlVariable o = VariableGenerator.GetObjectVariable();
+
+                // If we want to filter for non-bound values we need to mark the properties as optional.
+                var optionalBuilder = new GraphPatternBuilder(GraphPatternType.Optional);
+                var currentBuilder = PatternBuilder;
+
+                Child(optionalBuilder);
+
+                PatternBuilder = optionalBuilder;
+
+                BuildMemberAccess(expression, o);
+
+                PatternBuilder = currentBuilder;
+                PatternBuilder.Filter(e => !e.Bound(o.Name));
             }
         }
 
@@ -379,6 +399,10 @@ namespace Semiodesk.Trinity.Query
             else if (expression.Member.IsUriType())
             {
                 BuildFilterOnUriType(expression, e => e != constant.AsLiteralExpression());
+            }
+            else if (constant.Value == null)
+            {
+                PatternBuilder.Filter(e => e.Bound(o.Name));
             }
             else
             {
