@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+  
+  
+  <PropertyGroup>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <RootNamespace>netstandard20</RootNamespace>
+  </PropertyGroup>
+  
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>..\build\debug\netstandard20</OutputPath>
+  </PropertyGroup>
+
+  
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>..\build\release\netstandard20</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Semiodesk.Trinity">
+      <HintPath>..\..\..\Build\netstandard2.0\Release\Semiodesk.Trinity.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

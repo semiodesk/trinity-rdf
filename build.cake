@@ -12,33 +12,73 @@ struct PathStruct{
     public DirectoryPath ProjectPath;
     public DirectoryPath OutputPath; 
     public FilePathCollection Solutions;
+    public DirectoryPath IntegrationTestPath;
+    public FilePathCollection TestSolutions;
 }
 
-var Paths = new PathStruct(){ 
+PathStruct Paths = new PathStruct{
     ProjectPath = MakeAbsolute(Directory("./")),
     OutputPath = MakeAbsolute(Directory("./Build")),
-    Solutions = GetFiles("./**/*.sln")
+    IntegrationTestPath = MakeAbsolute(Directory("./tests")),
+    Solutions = GetFiles("./**/*.sln", (fsInfo) => { 
+        // Filter out the integration tests here
+        var exclude =  MakeAbsolute(Directory("./tests"));
+        return !fsInfo.Path.FullPath.StartsWith(exclude.FullPath);
+    }),
+    TestSolutions = GetFiles("./tests/**/*.sln")
+
 };
+
+void Clean(FilePath solution)
+{
+    Section("Clean and remove obj");
+        DotNetBuild(solution, settings => settings
+                        .SetConfiguration(configuration)
+                        .WithTarget("Clean")
+                        .SetVerbosity(Verbosity.Quiet));
+
+        var parsedSolution = ParseSolution(solution);
+        foreach( var project in parsedSolution.Projects )
+        {
+            var dir = GetDirectories(project.Path.GetDirectory()+"/obj");
+            CleanDirectories(dir);
+        }
+}
+
+void Build(FilePath solution)
+{
+    Section("BEGIN: "+solution);
+
+    Clean(solution);
+
+    NuGetRestore(solution);
+
+    Section("Build");
+    DotNetBuild(solution, settings => settings
+            .SetConfiguration(configuration)
+            .WithTarget("Rebuild")
+            .SetVerbosity(Verbosity.Quiet));
+
+    Section("DONE: "+solution);
+}
+
+void Section(string info)
+{
+    Information("\n****************************************\n* "+info+"\n****************************************\n");
+}
+
+
+Setup(context =>
+{
+    foreach( var x in Paths.Solutions)
+        Information(x);
+});
 
 Task("Clean-Outputs")
 	.Does(() => 
 	{
 		CleanDirectory(Paths.OutputPath);
 	});
-
-Task("Clean")
-	.IsDependentOn("Clean-Outputs")
-	.Does(() => 
-	{
-        foreach( var solutionFile in Paths.Solutions )
-        {
-            DotNetBuild(solutionFile, settings => settings
-                .SetConfiguration(configuration)
-                .WithTarget("Clean")
-                .SetVerbosity(Verbosity.Minimal));
-        }
-	});
-
 
 /* 
 Task("StyleCop")
@@ -51,27 +91,17 @@ Task("StyleCop")
 	});
 */
 
-Task("Build")
-	.IsDependentOn("Clean")
+Task("Build-Solutions")
+    .IsDependentOn("Clean-Outputs")
 	//.IsDependentOn("StyleCop")	TODO: enable
-    .Does(() =>
-	{
-        foreach( var solutionFile in Paths.Solutions )
-        {
-            Information(solutionFile);
-            
-            NuGetRestore(solutionFile);
-
-            DotNetBuild(solutionFile, settings => settings
-                .SetConfiguration(configuration)
-                .WithTarget("Rebuild")
-                .SetVerbosity(Verbosity.Minimal));
-                 
-        }
+    .DoesForEach(Paths.Solutions, (solution, ctx) => {
+        
+       Build(solution);
     });
 
+
 Task("Test")
-	.IsDependentOn("Build")
+	.IsDependentOn("Build-Solutions")
     .Does(() =>
 	{
         var testAssemblies = GetFiles(Paths.OutputPath+"/**/Trinity.Test.dll");
@@ -83,7 +113,7 @@ Task("Test")
             //   
             //    });
         }
-        catch(Exception exp) {}
+        catch(Exception) {}
     });
 
 Task("Documentation")
@@ -93,7 +123,27 @@ Task("Documentation")
         DocFxBuild("./doc/docfx_project/docfx.json");
     });
 
+Task("Integration-Test-Build")
+    .IsDependentOn("Build-Solutions")
+    .DoesForEach( Paths.TestSolutions, (solution) => {
+
+        Build(solution);
+        
+    });
+
+Task("Integration-Test")
+    .IsDependentOn("Integration-Test-Build")
+    .DoesForEach(Paths.TestSolutions, (solution) => {
+        
+        var script = solution.GetDirectory()+"/run.cake";
+        CakeExecuteScript(script, new CakeSettings {
+            Arguments = new Dictionary<string, string>{
+                { "configuration", configuration }
+              
+            }});
+    });
+
 Task("Default")
-	.IsDependentOn("Documentation");
+	.IsDependentOn("Integration-Test");
 
 RunTarget(target);
