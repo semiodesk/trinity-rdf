@@ -59,11 +59,11 @@ namespace Semiodesk.Trinity.Test.Linq
             a1.LastName = "Doe";
             a1.Commit();
 
-            Group g1 = model1.CreateResource<Group>();
+            Group g1 = model1.CreateResource<Group>(ex.TheSpiders);
             g1.Name = "The Spiders";
             g1.Commit();
 
-            Group g2 = model2.CreateResource<Group>();
+            Group g2 = model2.CreateResource<Group>(ex.AlicaKeys);
             g2.Name = "Alicia Keys";
             g2.Commit();
 
@@ -104,6 +104,10 @@ namespace Semiodesk.Trinity.Test.Linq
             p3.Interests.Add(g2);
             p3.Interests.Add(p3);
             p3.Commit();
+
+            Image i1 = model1.CreateResource<Image>();
+            i1.DepictedAgent = p1;
+            i1.Commit();
 
             Assert.IsFalse(model1.IsEmpty);
             Assert.IsFalse(model2.IsEmpty);

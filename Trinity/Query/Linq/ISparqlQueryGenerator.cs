@@ -71,6 +71,8 @@ namespace Semiodesk.Trinity.Query
 
         void SetSubjectVariable(SparqlVariable variable, bool select = false);
 
+        void SetSubjectOperator(ResultOperatorBase resultOperator);
+
         void DeselectVariable(SparqlVariable variable);
 
         void SelectVariable(string variable);

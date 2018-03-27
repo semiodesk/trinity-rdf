@@ -156,17 +156,33 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        protected void BuildMemberAccess(MemberExpression member, INode o)
+        protected SparqlVariable BuildMemberAccessOptional(MemberExpression member, SparqlVariable o)
         {
-            BuildMemberAccess(member, (s, p) =>
+            var optionalBuilder = new GraphPatternBuilder(GraphPatternType.Optional);
+            var currentBuilder = PatternBuilder;
+
+            Child(optionalBuilder);
+
+            PatternBuilder = optionalBuilder;
+
+            var v = BuildMemberAccess(member, o);
+
+            PatternBuilder = currentBuilder;
+
+            return v;
+        }
+
+        protected SparqlVariable BuildMemberAccess(MemberExpression member, INode o)
+        {
+            return BuildMemberAccess(member, (s, p) =>
             {
                 PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(p).Object(o));
             });
         }
 
-        protected void BuildMemberAccess(MemberExpression member, SparqlVariable o)
+        protected SparqlVariable BuildMemberAccess(MemberExpression member, SparqlVariable o)
         {
-            BuildMemberAccess(member, (s, p) =>
+            return BuildMemberAccess(member, (s, p) =>
             {
                 PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(p).Object(o.Name));
             });
@@ -174,28 +190,47 @@ namespace Semiodesk.Trinity.Query
 
         private SparqlVariable BuildMemberAccess(Expression expression, Action<SparqlVariable, Uri> buildMemberAccessTriple)
         {
-            // Recursively generate the property path which leads to the query source.
             if (expression is MemberExpression)
             {
                 MemberExpression memberExpression = expression as MemberExpression;
                 MemberInfo member = memberExpression.Member;
 
-                if(member.IsSystemType() || member.IsUriType())
+                if(member.IsSystemType())
                 {
                     return VariableGenerator.GetVariable(memberExpression.Expression);
                 }
                 else
                 {
+                    // Recursively generate the property path which leads to the query source (buildMemberAccessTriple = null).
                     var s = BuildMemberAccess(memberExpression.Expression, null);
-                    var p = member.TryGetRdfPropertyAttribute();
+                    var p = memberExpression.TryGetRdfPropertyAttribute();
                     var o = new SparqlVariable(member.Name.ToLowerInvariant());
 
                     if (buildMemberAccessTriple == null)
                     {
+                        // We are recursively building the property path. We need a property mapping for _each_ node.
+                        ThrowOnUndefinedPropertyAttribute(p, member);
+
                         PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(p.MappedUri).Object(o.Name));
+
+                        return o;
                     }
-                    else
+                    else if (member.IsUriType())
                     {
+                        // We access the .Uri member of a resource. We do not need a property mapping and return the subject.
+
+                        // Make the variable known for building filters on it later.
+                        VariableGenerator.RegisterExpression(memberExpression.Expression, s);
+
+                        return s;
+                    }
+
+                    if(buildMemberAccessTriple != null)
+                    {
+                        // In all other cases we require a property mapping.
+                        ThrowOnUndefinedPropertyAttribute(p, member);
+
+                        // Invoke the final user-handled member access triple builder callback.
                         buildMemberAccessTriple(s, p.MappedUri);
                     }
 
@@ -205,6 +240,15 @@ namespace Semiodesk.Trinity.Query
             else
             {
                 return VariableGenerator.GetVariable(expression);
+            }
+        }
+
+        private void ThrowOnUndefinedPropertyAttribute(RdfPropertyAttribute p, MemberInfo member)
+        {
+            if(p == null)
+            {
+                string msg = string.Format("Property mapping not found for member: {0}", member.Name);
+                throw new Exception(msg);
             }
         }
 
@@ -231,23 +275,6 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        protected void BuildFilterOnUriType(MemberExpression expression, Func<VariableExpression, BooleanExpression> buildFilter)
-        {
-            SparqlVariable o = VariableGenerator.GetVariable(expression.Expression);
-
-            PropertyInfo property = expression.Member as PropertyInfo;
-
-            if(property != null)
-            {
-                PatternBuilder.Filter(e => buildFilter(e.Variable(o.Name)));
-            }
-            else
-            {
-                string msg = string.Format("{0} is not a property with type {1}.", expression.Member, typeof(Uri));
-                throw new ArgumentException(msg);
-            }
-        }
-
         public virtual void SetObjectOperator(ResultOperatorBase resultOperator)
         {
         }
@@ -268,7 +295,7 @@ namespace Semiodesk.Trinity.Query
 
         public void SetSubjectVariable(SparqlVariable variable, bool select = false)
         {
-            if (variable != null && !variable.IsAggregate)
+            if (variable != null)
             {
                 if (select)
                 {
@@ -278,6 +305,10 @@ namespace Semiodesk.Trinity.Query
 
                 SubjectVariable = variable;
             }
+        }
+
+        public virtual void SetSubjectOperator(ResultOperatorBase resultOperator)
+        {
         }
 
         public void DeselectVariable(SparqlVariable variable)
@@ -351,7 +382,7 @@ namespace Semiodesk.Trinity.Query
         {
             if(constant.Value != null)
             {
-                BuildMemberAccess(expression, constant.AsNode());
+                SparqlVariable so = BuildMemberAccess(expression, constant.AsNode());
 
                 if (expression.Member.IsSystemType())
                 {
@@ -359,7 +390,7 @@ namespace Semiodesk.Trinity.Query
                 }
                 else if (expression.Member.IsUriType())
                 {
-                    BuildFilterOnUriType(expression, e => e == constant.AsLiteralExpression());
+                    PatternBuilder.Filter(e => e.Variable(so.Name) == constant.AsIriExpression());
                 }
             }
             else
@@ -367,16 +398,9 @@ namespace Semiodesk.Trinity.Query
                 SparqlVariable o = VariableGenerator.GetObjectVariable();
 
                 // If we want to filter for non-bound values we need to mark the properties as optional.
-                var optionalBuilder = new GraphPatternBuilder(GraphPatternType.Optional);
-                var currentBuilder = PatternBuilder;
+                BuildMemberAccessOptional(expression, o);
 
-                Child(optionalBuilder);
-
-                PatternBuilder = optionalBuilder;
-
-                BuildMemberAccess(expression, o);
-
-                PatternBuilder = currentBuilder;
+                // Comparing with null means the variable is not bound.
                 PatternBuilder.Filter(e => !e.Bound(o.Name));
             }
         }
@@ -388,24 +412,48 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereNotEqual(MemberExpression expression, ConstantExpression constant)
         {
+            // TODO: We do not need this object variable in any cases. Let BuildMemberAccess return the variable it generated or referenced.
             SparqlVariable o = VariableGenerator.GetObjectVariable();
-
-            BuildMemberAccess(expression, o);
 
             if (expression.Member.IsSystemType())
             {
+                // Literal value types do not have an undefined state 'null' value.
+                // Therefore, the member access must not be optional.
+                BuildMemberAccess(expression, o);
+
                 BuildFilterOnSystemType(expression, e => e != constant.AsNumericExpression());
             }
             else if (expression.Member.IsUriType())
             {
-                BuildFilterOnUriType(expression, e => e != constant.AsLiteralExpression());
+                if(expression.Expression is QuerySourceReferenceExpression)
+                {
+                    // Here we compare the URI property of the subject.
+                    SparqlVariable s = BuildMemberAccess(expression, o);
+
+                    PatternBuilder.Filter(e => e.Variable(s.Name) != constant.AsIriExpression());
+                }
+                else
+                {
+                    // If we compare URIs of query source members, then we compare reference values. 
+                    // In this case we also need to include resources in the result where the member
+                    // value is 'null'. Therefore, we make the member access optional.
+                    SparqlVariable so = BuildMemberAccessOptional(expression, o);
+
+                    PatternBuilder.Filter(e => e.Bound(so.Name) && e.Variable(so.Name) != constant.AsIriExpression() || !e.Bound(so.Name));
+                }
             }
             else if (constant.Value == null)
             {
+                // The member access must not be optional.
+                BuildMemberAccess(expression, o);
+
+                // The value must be bound.
                 PatternBuilder.Filter(e => e.Bound(o.Name));
             }
             else
             {
+                BuildMemberAccess(expression, o);
+
                 PatternBuilder.Filter(e => e.Variable(o.Name) != constant.AsNumericExpression());
             }
         }

@@ -339,6 +339,14 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
+        public void CanSelectStringWithMethodCount()
+        {
+            var count = Model.AsQueryable<Person>().Count(p => p.FirstName == "Bob");
+
+            Assert.AreEqual(1, count);
+        }
+
+        [Test]
         public void CanSelectStringWithMethodStartsWith()
         {
             var names = from person in Model.AsQueryable<Person>() where person.FirstName.StartsWith("A") select person.FirstName;
@@ -564,6 +572,14 @@ namespace Semiodesk.Trinity.Test.Linq
             persons = from person in Model.AsQueryable<Person>() where person.Uri != p.Uri select person;
 
             Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Group.Uri == ex.TheSpiders select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Group.Uri != ex.TheSpiders select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
         }
 
         [Test]
@@ -715,7 +731,7 @@ namespace Semiodesk.Trinity.Test.Linq
         {
             var resources = from resource in Model.AsQueryable<Resource>() select resource;
 
-            Assert.AreEqual(6, resources.ToList().Count);
+            Assert.AreEqual(7, resources.ToList().Count);
 
             resources = from resource in Model.AsQueryable<Resource>() where resource is Person select resource;
 
@@ -803,6 +819,22 @@ namespace Semiodesk.Trinity.Test.Linq
             {
                 CanSelectResourcesWithVariableExpression(age);
             }
+        }
+
+        [Test]
+        public void CanSelectResourcesWhichImplementInterface()
+        {
+            var images = (from image in Model.AsQueryable<Image>() where image.DepictedAgent.Uri == ex.Alice select image).ToList();
+
+            Assert.AreEqual(1, images.Count);
+
+            // Tests if retrieving resources is possible through extension methods 
+            // that have generic parameters with iterfaces.
+            Agent agent = Model.GetResource<Agent>(ex.Alice);
+
+            images = agent.GetImages<Image>(Model).Where(i => i.DepictedAgent == agent).ToList();
+
+            Assert.AreEqual(1, images.Count);
         }
 
         private void CanSelectResourcesWithVariableExpression(int minAge)

@@ -1,6 +1,7 @@
 ﻿
 
 using Remotion.Linq;
+using Remotion.Linq.Clauses.ResultOperators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -100,9 +101,28 @@ namespace Semiodesk.Trinity.Query
 
                 return new object[] { result.GetAnwser() }.OfType<T>().First();
             }
+            else if(queryModel.ResultOperators.Any(o => o is CountResultOperator))
+            {
+                SparqlQueryModelVisitor<T> visitor = new SparqlQueryModelVisitor<T>(new SelectBindingsQueryGenerator());
+                visitor.VisitQueryModel(queryModel);
+
+                ISparqlQuery query = visitor.GetQuery();
+                ISparqlQueryResult result = Model.ExecuteQuery(query);
+
+                BindingSet b = result.GetBindings().FirstOrDefault();
+
+                if(b != null)
+                {
+                    return new object[] { b.First().Value }.OfType<T>().First();
+                }
+                else
+                {
+                    return new object[] { 0 }.OfType<T>().First();
+                }
+            }
             else
             {
-                // ??
+                // Unknown scalar type.
                 throw new NotImplementedException();
             }
         }

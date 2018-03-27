@@ -41,6 +41,5 @@ namespace Semiodesk.Trinity.Test
         {
             instance.Stop();
         }
-
     }
 }
