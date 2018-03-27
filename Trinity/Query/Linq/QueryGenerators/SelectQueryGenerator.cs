@@ -52,7 +52,9 @@ namespace Semiodesk.Trinity.Query
         {
             base.OnSelectClauseVisited(selector);
 
-            if (IsRoot && VariableGenerator.HasVariable(selector))
+            // If we are in the root query generator and have not yet selected the
+            // subject variable, set it from the given selector.
+            if (IsRoot && SubjectVariable == null && VariableGenerator.HasVariable(selector))
             {
                 SparqlVariable v = VariableGenerator.GetVariable(selector);
 
@@ -137,6 +139,24 @@ namespace Semiodesk.Trinity.Query
                 {
                     TakeResultOperator op = resultOperator as TakeResultOperator;
                     Limit(int.Parse(op.Count.ToString()));
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+            }
+        }
+
+        public override void SetSubjectOperator(ResultOperatorBase resultOperator)
+        {
+            base.SetSubjectOperator(resultOperator);
+
+            if (SubjectVariable != null)
+            {
+                if (resultOperator is CountResultOperator)
+                {
+                    var aggregate = new CountDistinctAggregate(new VariableTerm(SubjectVariable.Name));
+                    SetSubjectVariable(aggregate.AsSparqlVariable(), true);
                 }
                 else
                 {

@@ -26,6 +26,7 @@
 // Copyright (c) Semiodesk GmbH 2017
 
 using Remotion.Linq.Clauses.Expressions;
+using Remotion.Linq.Clauses.ResultOperators;
 using System;
 using System.Linq.Expressions;
 using VDS.RDF.Query;
@@ -73,6 +74,12 @@ namespace Semiodesk.Trinity.Query
                     {
                         WhereResourceOfType(s, querySource.Type);
                     }
+                }
+                else if(HasNumericResultOperator())
+                {
+                    // If we have a numeric result operator on the root query, make the
+                    // subject variable known so that the model visitor can handle it.
+                    SetSubjectVariable(s);
                 }
             }
         }

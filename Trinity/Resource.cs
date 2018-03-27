@@ -119,6 +119,7 @@ namespace Semiodesk.Trinity
         public bool IsReadOnly { get; internal set; }
 
         private string _language;
+
         [JsonIgnore]
         public string Language
         {
@@ -383,7 +384,6 @@ namespace Semiodesk.Trinity
 
             AddPropertyToMapping(property, aggregation, false);
         }
-
 
         /// <summary>
         /// Add a property with a string and language as value.
@@ -1098,7 +1098,6 @@ namespace Semiodesk.Trinity
 
             return null;
         }
-
 
         internal IPropertyMapping GetPropertyMapping(string propertyName)
         {

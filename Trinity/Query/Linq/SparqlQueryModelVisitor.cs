@@ -132,7 +132,15 @@ namespace Semiodesk.Trinity.Query
         {
             ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
-            generator.SetObjectOperator(resultOperator);
+            // If we are in a sub query, apply the operator on the query object.
+            if(generator.ObjectVariable != null)
+            {
+                generator.SetObjectOperator(resultOperator);
+            }
+            else if(generator.SubjectVariable != null && generator.IsRoot)
+            {
+                generator.SetSubjectOperator(resultOperator);
+            }
         }
 
         public override void VisitSelectClause(SelectClause selectClause, QueryModel queryModel)

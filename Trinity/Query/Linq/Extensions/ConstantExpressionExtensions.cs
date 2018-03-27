@@ -42,6 +42,11 @@ namespace Semiodesk.Trinity.Query
             return new ConstantTerm(constant.AsNode());
         }
 
+        public static IriExpression AsIriExpression(this ConstantExpression constant)
+        {
+            return new IriExpression(constant.AsSparqlExpression());
+        }
+
         public static LiteralExpression AsLiteralExpression(this ConstantExpression constant)
         {
             return new LiteralExpression(constant.AsSparqlExpression());
@@ -54,7 +59,12 @@ namespace Semiodesk.Trinity.Query
 
         public static INode AsNode(this ConstantExpression constant)
         {
-            if (XsdTypeMapper.HasXsdTypeUri(constant.Type) || constant.Value is string)
+            if (typeof(Uri).IsAssignableFrom(constant.Type))
+            {
+                // If we have a URI constant, return a URI node.
+                return new NodeFactory().CreateUriNode(constant.Value as Uri);
+            }
+            else if (XsdTypeMapper.HasXsdTypeUri(constant.Type) || constant.Value is string)
             {
                 // If we have a literal value, return literal nodes.
                 string value = GetValue(constant);
@@ -68,11 +78,6 @@ namespace Semiodesk.Trinity.Query
                 {
                     return new NodeFactory().CreateLiteralNode(value, datatype);
                 }
-            }
-            else if(typeof(Uri).IsAssignableFrom(constant.Type))
-            {
-                // If we have a URI constant, return a URI node.
-                return new NodeFactory().CreateUriNode(constant.Value as Uri);
             }
             else if(typeof(Resource).IsAssignableFrom(constant.Type))
             {

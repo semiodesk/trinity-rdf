@@ -23,33 +23,26 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2018
+// Copyright (c) Semiodesk GmbH 2017
 
 using System;
 
 namespace Semiodesk.Trinity.Test.Linq
 {
-    ///<summary>
-    ///Example vocabulary.
-    ///</summary>
-    public class ex : Ontology
+    [RdfClass(FOAF.Image)]
+    public class Image : Resource, IImage
     {
-        public static readonly Uri Namespace = new Uri("http://example.org/test");
-        public static Uri GetNamespace() { return Namespace; }
+        #region Members
 
-        public static readonly string Prefix = "ex";
-        public static string GetPrefix() { return Prefix; }
+        [RdfProperty(FOAF.depicts)]
+        public Agent DepictedAgent { get; set; }
 
-        public static readonly Uri Alice = new Uri("http://example.org/test/Alice");
+        #endregion
 
-        public static readonly Uri Bob = new Uri("http://example.org/test/Bob");
+        #region Constructors
 
-        public static readonly Uri Eve = new Uri("http://example.org/test/Eve");
+        public Image(Uri uri) : base(uri) { }
 
-        public static readonly Uri John = new Uri("http://example.org/test/John");
-
-        public static readonly Uri TheSpiders = new Uri("http://example.org/test/TheSpiders");
-
-        public static readonly Uri AlicaKeys = new Uri("http://example.org/test/AlicaKeys");
+        #endregion
     }
 }

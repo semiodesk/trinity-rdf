@@ -26,6 +26,7 @@
 // Copyright (c) Semiodesk GmbH 2017
 
 using System;
+using System.Linq;
 
 namespace Semiodesk.Trinity.Test.Linq
 {
@@ -47,5 +48,25 @@ namespace Semiodesk.Trinity.Test.Linq
         public Agent(Uri uri) : base(uri) { }
 
         #endregion
+    }
+
+    public static class AgentExtensions
+    {
+        /// <summary>
+        /// A generic extension method used for testing purposes.
+        /// </summary>
+        /// <remarks>
+        /// Used for a test where Remotion LINQ delivers the interface type on a MemberInfo rather 
+        /// than the instance type. Since interfaces have no RdfPropertyAttributes, the SPARQL query
+        /// generator failed in these cases.
+        /// </remarks>
+        /// <typeparam name="T">A resource which implements an interface.</typeparam>
+        /// <param name="agent">An agent</param>
+        /// <param name="model">The model to be queried.</param>
+        /// <returns>A queryable object.</returns>
+        public static IQueryable<T> GetImages<T>(this Agent agent, IModel model) where T : Resource, IImage
+        {
+            return model.AsQueryable<T>().Where(i => i.DepictedAgent == agent);
+        }
     }
 }

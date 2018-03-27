@@ -28,16 +28,28 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace Semiodesk.Trinity.Query
 {
     internal static class MemberExpressionExtensions
     {
-        public static RdfPropertyAttribute GetRdfPropertyAttribute(this MemberExpression expression)
+        public static RdfPropertyAttribute TryGetRdfPropertyAttribute(this MemberExpression expression)
         {
             Type attributeType = typeof(RdfPropertyAttribute);
 
-            return expression.Member.GetCustomAttributes(attributeType, true).First() as RdfPropertyAttribute;
+            MemberInfo member;
+
+            if(expression.Member.DeclaringType.IsInterface)
+            {
+                member = expression.Expression.Type.GetMember(expression.Member.Name).First();
+            }
+            else
+            {
+                member = expression.Member;
+            }
+
+            return member.GetCustomAttributes(attributeType, true).FirstOrDefault() as RdfPropertyAttribute;
         }
     }
 }
