@@ -25,56 +25,44 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-
-using Semiodesk.Trinity.Configuration.Legacy;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Text;
-using System.Xml;
-using System.Xml.Linq;
-using System.Xml.Serialization;
+using NUnit.Framework;
+using Semiodesk.Trinity.Store;
+using Semiodesk.Trinity.Configuration;
 
-namespace Semiodesk.Trinity.Configuration.Legacy
+namespace Semiodesk.Trinity.Test
 {
-    /// <summary>
-    /// Constains Virtuoso specific settings
-    /// </summary>
-    public class VirtuosoStoreSettings : ConfigurationElement, IStoreConfiguration
+    [TestFixture]
+    class LegacyConfigurationTest
     {
-        /// <summary>
-        /// A collection of rule sets
-        /// </summary>
-        [ConfigurationProperty("RuleSets", IsDefaultCollection = true)]
-        public RuleSetCollection RuleSets
+
+        [Test]
+        public void TestAppConfig()
         {
-            get { return (RuleSetCollection)base["RuleSets"]; }
+            IConfiguration config = ConfigurationLoader.LoadConfiguration(null);
+
+            Assert.AreEqual("Semiodesk.Trinity.Test", config.Namespace);
+            var ontologies = config.ListOntologies();
+            Assert.AreEqual(7, ontologies.Count());
+            var x = config.ListStoreConfigurations().ToList();
+            var b = x.First().Data;
+
         }
 
 
-        public string Type
+        [Test]
+        public void TestInitialize()
         {
-            get { return "virtuoso"; }
+            string connectionString = SetupClass.ConnectionString;
+
+            var Store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+            Store.InitializeFromConfiguration();
+
+
         }
 
-        public XElement Data
-        {
-            get 
-            {
-                StringBuilder content = new StringBuilder();
-                content.Append("<rulesets>");
-                foreach (var set in RuleSets)
-                {
-                    content.AppendFormat("<ruleset uri=\"{0}\">", set.Uri);
-                    foreach( var graph in set.Graphs )
-                        content.AppendFormat("<graph uri=\"{0}\"/>", graph.Uri);
-
-                    content.Append("</ruleset>");
-                }
-                content.Append("</rulesets>");
-                return XElement.Parse(content.ToString());
-            }
-        }
     }
 }

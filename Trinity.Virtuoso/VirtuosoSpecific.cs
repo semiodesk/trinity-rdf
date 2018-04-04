@@ -36,31 +36,55 @@ using Semiodesk.Trinity.Store;
 
 namespace Semiodesk.Trinity
 {
-    public class VirtuosoSettings 
+    [XmlRoot(ElementName = "graph")]
+    public class Graph
     {
-        /*
+        [XmlAttribute(AttributeName = "uri")]
+        public string Uri { get; set; }
+    }
+
+    [XmlRoot(ElementName = "ruleset")]
+    public class Ruleset
+    {
+        [XmlElement(ElementName = "graph")]
+        public List<Graph> GraphCollection { get; set; }
+        [XmlAttribute(AttributeName = "uri")]
+        public string Uri { get; set; }
+    }
+
+    [XmlRoot(ElementName = "rulesets")]
+    public class Rulesets
+    {
+        [XmlElement(ElementName = "ruleset")]
+        public List<Ruleset> RulesetCollection { get; set; }
+    }
+
+
+    internal class VirtuosoSettings 
+    {
+        
         #region Members
-        public VirtuosoStoreSettings Settings { get; set; }
+        public IStoreConfiguration Settings { get; set; }
+        public Rulesets Rulesets { get; set; }
         #endregion
 
-        public VirtuosoSettings(VirtuosoStoreSettings settings)
+        public VirtuosoSettings(IStoreConfiguration settings)
         {
             Settings = settings;
+            var serializer = new XmlSerializer(typeof(Rulesets));
+            Rulesets = (Rulesets)serializer.Deserialize(settings.Data.CreateReader());
         }
 
-        public void Update(IStore store)
+        public void Update(VirtuosoStore store)
         {
-            if (store is VirtuosoStore)
-            {
-                VirtuosoStore virtuosoStore = (store as VirtuosoStore);
+            VirtuosoStore virtuosoStore = (store as VirtuosoStore);
 
-                foreach (RuleSet set in Settings.RuleSets)
+            foreach (Ruleset set in Rulesets.RulesetCollection)
+            {
+                ClearRuleSet(new Uri(set.Uri), virtuosoStore);
+                foreach (var item in set.GraphCollection)
                 {
-                    ClearRuleSet(new Uri(set.Uri), virtuosoStore);
-                    foreach (var item in set.Graphs)
-                    {
-                        AddGraphToRuleSet(new Uri(set.Uri), new Uri(item.Uri), virtuosoStore);
-                    }
+                    AddGraphToRuleSet(new Uri(set.Uri), new Uri(item.Uri), virtuosoStore);
                 }
             }
         }
@@ -85,17 +109,15 @@ namespace Semiodesk.Trinity
             }
             catch (Exception)
             {
-
             }
         }
 
         private void AddGraphToRuleSet(Uri ruleSet, Uri graph, VirtuosoStore store)
         {
-
             string query = string.Format("rdfs_rule_set ('{0}', '{1}')", ruleSet, graph);
             store.ExecuteQuery(query);
         }
-        */
+        
     }
 
 

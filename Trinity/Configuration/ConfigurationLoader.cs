@@ -10,10 +10,8 @@ using System.Xml.Serialization;
 
 namespace Semiodesk.Trinity.Configuration
 {
-    class ConfigurationLoader
+    internal class ConfigurationLoader
     {
-
-
         #region Constructor
         public static IConfiguration LoadConfiguration(FileInfo configFile)
         {

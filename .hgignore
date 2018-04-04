@@ -31,3 +31,5 @@ api/*
 TestResult.xml
 tools/*
 doc/docfx_project/_site/**
+tests/cilg-integration/build/*
+**/.vs/**

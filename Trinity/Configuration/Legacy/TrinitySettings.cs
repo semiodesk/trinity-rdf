@@ -33,6 +33,7 @@ using System.Configuration;
 using System.Linq;
 using System.Text;
 
+// This namespace needs to be this for legacy applications to resolve the configuration correctly
 namespace Semiodesk.Trinity.Configuration
 {
     /// <summary>
@@ -92,6 +93,11 @@ namespace Semiodesk.Trinity.Configuration
         public IEnumerable<IOntologyConfiguration> ListOntologies()
         {
             return Ontologies;
+        }
+
+        public IEnumerable<IStoreConfiguration> ListStoreConfigurations()
+        {
+            yield return VirtuosoStoreSettings;
         }
     }
 }

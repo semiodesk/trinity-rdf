@@ -85,6 +85,8 @@
   <ItemGroup>
     <Compile Include="Cilg\CilgResourceMappingTest.cs" />
     <Compile Include="Cilg\MappingClasses.cs" />
+    <Compile Include="Configuration\ConfigurationTest.cs" />
+    <Compile Include="Configuration\LegacyConfigurationTest.cs" />
     <Compile Include="dotNetRdf\ModelTest.cs" />
     <Compile Include="dotNetRdf\SetupClass.cs" />
     <Compile Include="dotnetrdf_ResourceQueryTest.cs" />
@@ -148,6 +150,10 @@
     <None Include="Models\test-tmo.trig">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="ontologies-test.config">
+      <SubType>Designer</SubType>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="ontologies.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <SubType>Designer</SubType>
@@ -155,7 +161,7 @@
     <None Include="Ontologies\dces.ttl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Ontologies\space test ontology.rdf">
+    <None Include="Ontologies\space test ontology.ttl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Ontologies\foaf.rdf">

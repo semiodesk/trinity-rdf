@@ -32,6 +32,9 @@ namespace Semiodesk.Trinity.Test
 
             FileInfo i = new FileInfo(Assembly.GetExecutingAssembly().Location);
             DirectoryInfo dir = new DirectoryInfo(Path.Combine(i.DirectoryName, "nunit"));
+            if( dir.Exists)
+                dir.Delete(true);
+            dir.Create();
 
             TinyVirtuoso.TinyVirtuoso v = new TinyVirtuoso.TinyVirtuoso(dir);
             instance = v.GetOrCreateInstance("NUnit");

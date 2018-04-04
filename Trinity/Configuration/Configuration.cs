@@ -76,7 +76,7 @@ namespace Semiodesk.Trinity.Configuration
 
 
     [XmlRoot(ElementName = "store")]
-    public class StoreConfiguration
+    public class StoreConfiguration : IStoreConfiguration
     {
         [XmlAttribute(AttributeName = "type")]
         public string Type { get; set; }
@@ -89,7 +89,7 @@ namespace Semiodesk.Trinity.Configuration
     public class Stores
     {
         [XmlElement(ElementName = "store")]
-        public StoreConfiguration Store { get; set; }
+        public List<StoreConfiguration> StoreList { get; set; }
     }
 
     [XmlRoot(ElementName = "configuration")]
@@ -113,6 +113,12 @@ namespace Semiodesk.Trinity.Configuration
         public IEnumerable<IOntologyConfiguration> ListOntologies()
         {
             return Ontologies.OntologyList;
+        }
+
+        
+        public IEnumerable<IStoreConfiguration> ListStoreConfigurations()
+        {
+            return Stores.StoreList;
         }
     }
 

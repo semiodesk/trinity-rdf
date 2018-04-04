@@ -79,6 +79,7 @@
     <Compile Include="Configuration\ConfigurationLoader.cs" />
     <Compile Include="Configuration\IConfiguration.cs" />
     <Compile Include="Configuration\IOntologyConfiguration.cs" />
+    <Compile Include="Configuration\IStoreConfiguration.cs" />
     <Compile Include="Configuration\Legacy\FileSource.cs" />
     <Compile Include="Configuration\Legacy\Graph.cs" />
     <Compile Include="Configuration\Legacy\GraphCollection.cs" />

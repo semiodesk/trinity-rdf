@@ -74,7 +74,7 @@ namespace Semiodesk.Trinity.Test.Stardog
         {
             Uri testModel = new Uri("ex:Test");
 
-            Store.LoadOntologies();
+            Store.InitializeFromConfiguration();
 
             Assert.AreEqual(7, Store.ListModels().Count());
         }
@@ -84,7 +84,7 @@ namespace Semiodesk.Trinity.Test.Stardog
         {
             Uri testModel = new Uri("ex:Test");
             string configFile = Path.Combine(Environment.CurrentDirectory, "custom.config");
-            Store.LoadOntologies(configFile);
+            Store.InitializeFromConfiguration(configFile);
 
             Assert.AreEqual(4, Store.ListModels().Count());
 
