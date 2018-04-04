@@ -86,6 +86,11 @@ namespace Semiodesk.Trinity.Store
         }
 
 
+        public void InitializeFromConfiguration(string configPath = null, string sourceDir = null)
+        {
+            throw new NotSupportedException();
+        }
+
         public void LoadOntologies(string configPath = null, string sourceDir = null)
         {
             throw new NotSupportedException();

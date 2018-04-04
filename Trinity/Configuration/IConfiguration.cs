@@ -9,5 +9,7 @@ namespace Semiodesk.Trinity.Configuration
     {
         string Namespace { get; }
         IEnumerable<IOntologyConfiguration> ListOntologies();
+
+        IEnumerable<IStoreConfiguration> ListStoreConfigurations();
     }
 }

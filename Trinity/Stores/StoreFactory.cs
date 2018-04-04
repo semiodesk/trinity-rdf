@@ -30,10 +30,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Text.RegularExpressions;
 using Semiodesk.Trinity.Store;
 using System.Configuration;
+using Semiodesk.Trinity.Exceptions;
+
 #if NETSTANDARD2_0
 using System.Composition.Hosting;
 #elif !NET_3_5
@@ -58,7 +59,7 @@ namespace Semiodesk.Trinity
             {"stardog", new StardogStoreProvider()}
         };
 
-#region Factory Methods
+        #region Factory Methods
 
         /// <summary>
         /// Tests if the given connection string is valid.
@@ -148,7 +149,7 @@ namespace Semiodesk.Trinity
             bool result = false;
             try
             {
-#if NETSTANDARD2_0
+                #if NETSTANDARD2_0
                 ContainerConfiguration config = new ContainerConfiguration().WithAssembly(Assembly.LoadFrom(assemblyPath));
                 var container = config.CreateContainer();
                 foreach (StoreProvider provider in container.GetExports<StoreProvider>())
@@ -159,7 +160,7 @@ namespace Semiodesk.Trinity
                         result = true;
                     }
                 }
-#elif NET_3_5
+                #elif NET_3_5
 
                 Assembly assembly = Assembly.LoadFrom(assemblyPath);
                 var types = assembly.GetTypes().Where(x => x.IsSubclassOf(typeof(StoreProvider)));
@@ -172,7 +173,7 @@ namespace Semiodesk.Trinity
                         result = true;
                     }
                 }
-#else
+                #else
                 AssemblyCatalog catalog = new AssemblyCatalog(assemblyPath);
                 var container = new CompositionContainer(catalog);
                 foreach (var item in container.GetExports<StoreProvider>())
@@ -184,7 +185,7 @@ namespace Semiodesk.Trinity
                         result = true;
                     }
                 }
-#endif
+                #endif
             }
             catch (Exception)
             {

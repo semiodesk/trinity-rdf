@@ -48,6 +48,13 @@ namespace Semiodesk.Trinity
             LoadOntologies(config, sourceDir);
         }
 
+
+        public virtual void InitializeFromConfiguration(string configPath = null, string sourceDir = null)
+        {
+            var config = LoadConfiguration(configPath);
+            LoadOntologies(config, sourceDir);
+        }
+
         protected IConfiguration LoadConfiguration(string configPath = null)
         {
             FileInfo configFile = null;

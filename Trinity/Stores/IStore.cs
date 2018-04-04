@@ -154,13 +154,23 @@ namespace Semiodesk.Trinity
         void Write(Stream fs, Uri graphUri, RdfSerializationFormat format);
 
         /// <summary>
-        /// Loads the configuration either from the provided file or attempts to load from "ontologies.config" located next to the executing assembly.
-        /// An alternative path to the ontology files can be provided.
+        /// Initializes the store from the configuration. It uses either the provided file or attempts to load from "ontologies.config" located next to the executing assembly.
+        /// For legacy reasons it also looks in the app.config file.
+        /// If the ontology files are in a different path, this can be supplied as a base path..
         /// </summary>
         /// <param name="configPath">Load a specific configuration file.</param>
         /// <param name="sourceDir">If given, this function tries to load the ontologies from this folder.</param>
-        void LoadOntologies(string configPath = null, string sourceDir = null);
+        void InitializeFromConfiguration(string configPath = null, string sourceDir = null);
 
+        /// <summary>
+        /// Initializes the store from the configuration. It uses either the provided file or attempts to load from "ontologies.config" located next to the executing assembly.
+        /// For legacy reasons it also looks in the app.config file.
+        /// If the ontology files are in a different path, this can be supplied as a base path..
+        /// </summary>
+        /// <param name="configPath">Load a specific configuration file.</param>
+        /// <param name="sourceDir">If given, this function tries to load the ontologies from this folder.</param>
+        [Obsolete("This method will be removed in the future. Use InitializeFromConfiguration() instead.")]
+        void LoadOntologies(string configPath = null, string sourceDir = null);
 
         #endregion
     }

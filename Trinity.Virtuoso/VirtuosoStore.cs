@@ -575,11 +575,20 @@ namespace Semiodesk.Trinity.Store
             return ModelGroupFactory.CreateModelGroup(this, result);
         }
 
-        public override void LoadOntologies(string configPath = null, string sourceDir = "")
+        public override void InitializeFromConfiguration(string configPath = null, string sourceDir = "")
         {
             var config = LoadConfiguration(configPath);
             LoadOntologies(config, sourceDir);
 
+            var settings = from x in config.ListStoreConfigurations() where x.Type == "virtuoso" select x;
+            if ( settings.Any() )
+            {
+                VirtuosoSettings s = new VirtuosoSettings(settings.First());
+                s.Update(this);
+            }
+                
+            
+            
             /*
             var virtuosoSettings = (VirtuosoStoreSettings)settings.GetSettings("VirtuosoStoreSettings");
             if (virtuosoSettings != null)

@@ -25,43 +25,33 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Text;
-using System.Xml.Serialization;
+using NUnit.Framework;
+using Semiodesk.Trinity.Store;
+using Semiodesk.Trinity.Configuration;
+using System.IO;
 
-namespace Semiodesk.Trinity.Configuration
+namespace Semiodesk.Trinity.Test
 {
-
-    [XmlRoot(ElementName = "graph")]
-    public class Graph
+    [TestFixture]
+    class ConfigurationTest
     {
-        [XmlAttribute(AttributeName = "uri")]
-        public string Uri { get; set; }
+
+        [Test]
+        public void TestAppConfig()
+        {
+            FileInfo file = new FileInfo("ontologies-test.config");
+            IConfiguration config = ConfigurationLoader.LoadConfiguration(file);
+
+            Assert.AreEqual("Semiodesk.Trinity.Test", config.Namespace);
+            var ontologies = config.ListOntologies();
+            Assert.AreEqual(5, ontologies.Count());
+            var x = config.ListStoreConfigurations().ToList();
+            var b = x.First().Data;
+        }
+
     }
-
-    [XmlRoot(ElementName = "ruleset")]
-    public class Ruleset
-    {
-        [XmlElement(ElementName = "graph")]
-        public List<Graph> Graph { get; set; }
-        [XmlAttribute(AttributeName = "uri")]
-        public string Uri { get; set; }
-    }
-
-    [XmlRoot(ElementName = "rulesets")]
-    public class Rulesets
-    {
-        [XmlElement(ElementName = "ruleset")]
-        public List<Ruleset> Ruleset { get; set; }
-    }
-
-
-       
-
-     
-
 }
