@@ -89,6 +89,7 @@
     <Compile Include="DotNetRdf\SetupClass.cs" />
     <Compile Include="dotnetrdf_ResourceQueryTest.cs" />
     <Compile Include="dotnetrdf_SparqlQueryTest.cs" />
+    <Compile Include="MappingDiscoveryTest.cs" />
     <Compile Include="ModelGroupTest.cs" />
     <Compile Include="DotNetRdf\ResourceMappingTest.cs" />
     <Compile Include="DotNetRdf\ResourceTest.cs" />
