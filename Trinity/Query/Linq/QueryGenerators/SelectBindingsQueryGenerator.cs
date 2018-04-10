@@ -56,7 +56,13 @@ namespace Semiodesk.Trinity.Query
                 // Register the query source with the global variable for sub-queries.
                 SparqlVariable s = VariableGenerator.GetGlobalVariable(querySource);
 
-                if(selector is MemberExpression)
+                // Assert the object type.
+                if (querySource.Type.IsSubclassOf(typeof(Resource)))
+                {
+                    WhereResourceOfType(s, querySource.Type);
+                }
+
+                if (selector is MemberExpression)
                 {
                     SparqlVariable o = VariableGenerator.GetObjectVariable();
 
@@ -68,12 +74,6 @@ namespace Semiodesk.Trinity.Query
                     MemberExpression member = selector as MemberExpression;
 
                     Where(member, o);
-
-                    // Assert the object type.
-                    if (querySource.Type.IsSubclassOf(typeof(Resource)))
-                    {
-                        WhereResourceOfType(s, querySource.Type);
-                    }
                 }
                 else if(HasNumericResultOperator())
                 {

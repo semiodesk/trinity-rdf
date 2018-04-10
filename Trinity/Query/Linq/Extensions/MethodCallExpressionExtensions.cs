@@ -25,12 +25,44 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
+using System.Linq;
 using System.Linq.Expressions;
 
 namespace Semiodesk.Trinity.Query
 {
     public static class MethodCallExpressionExtensions
     {
+        public static bool HasArgumentValue(this MethodCallExpression expression, int index, object value)
+        {
+            if (index < expression.Arguments.Count)
+            {
+                ConstantExpression arg = expression.Arguments[index] as ConstantExpression;
+
+                return arg.Value == value;
+            }
+
+            return false;
+        }
+
+        public static bool HasArgumentValueFromAlternatives(this MethodCallExpression expression, int index, params object[] values)
+        {
+            if (index < expression.Arguments.Count)
+            {
+                ConstantExpression arg = expression.Arguments[index] as ConstantExpression;
+
+                if(arg.Value != null)
+                {
+                    return values.Any(v => arg.Value.Equals(v));
+                }
+                else
+                {
+                    return values.Any(v => arg.Value == v);
+                }
+            }
+
+            return false;
+        }
+
         public static T GetArgumentValue<T>(this MethodCallExpression expression, int index)
         {
             ConstantExpression arg = expression.Arguments[index] as ConstantExpression;

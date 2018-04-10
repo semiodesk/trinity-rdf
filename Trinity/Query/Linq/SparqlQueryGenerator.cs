@@ -172,9 +172,17 @@ namespace Semiodesk.Trinity.Query
             return v;
         }
 
+        protected SparqlVariable BuildMemberAccess(MemberExpression member)
+        {
+            return BuildMemberAccess(member, (s, p, o) =>
+            {
+                PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(p).Object(o));
+            });
+        }
+
         protected SparqlVariable BuildMemberAccess(MemberExpression member, INode o)
         {
-            return BuildMemberAccess(member, (s, p) =>
+            return BuildMemberAccess(member, (s, p, x) =>
             {
                 PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(p).Object(o));
             });
@@ -182,13 +190,17 @@ namespace Semiodesk.Trinity.Query
 
         protected SparqlVariable BuildMemberAccess(MemberExpression member, SparqlVariable o)
         {
-            return BuildMemberAccess(member, (s, p) =>
+            return BuildMemberAccess(member, (s, p, x) =>
             {
                 PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(p).Object(o.Name));
             });
         }
 
-        private SparqlVariable BuildMemberAccess(Expression expression, Action<SparqlVariable, Uri> buildMemberAccessTriple)
+        /// <todo>
+        /// Refactor: The method does not call buildMemberAccessTriple in any case. Therefore when calling
+        /// BuildMemberAccess with a node or sparql variable the passed parameter is not always used as expected.
+        /// </todo>
+        private SparqlVariable BuildMemberAccess(Expression expression, Action<SparqlVariable, Uri, SparqlVariable> buildMemberAccessTriple)
         {
             if (expression is MemberExpression)
             {
@@ -231,7 +243,7 @@ namespace Semiodesk.Trinity.Query
                         ThrowOnUndefinedPropertyAttribute(p, member);
 
                         // Invoke the final user-handled member access triple builder callback.
-                        buildMemberAccessTriple(s, p.MappedUri);
+                        buildMemberAccessTriple(s, p.MappedUri, o);
                     }
 
                     return o;
@@ -556,7 +568,8 @@ namespace Semiodesk.Trinity.Query
 
         public void FilterRegex(MemberExpression expression, string pattern, bool ignoreCase)
         {
-            SparqlVariable o = VariableGenerator.GetVariable(expression);
+            SparqlVariable s = VariableGenerator.GetVariable(expression);
+            SparqlVariable o = BuildMemberAccess(expression);
 
             FilterRegex(o, pattern, ignoreCase);
         }

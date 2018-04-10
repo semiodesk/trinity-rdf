@@ -27,6 +27,7 @@
 
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
+using Remotion.Linq.Clauses.ResultOperators;
 using Remotion.Linq.Parsing;
 using System;
 using System.Linq.Expressions;
@@ -331,6 +332,12 @@ namespace Semiodesk.Trinity.Query
                 // Handle the results of the subquery.
                 VisitExpression(expression);
             }
+            else if(expression is ConstantExpression)
+            {
+                ConstantExpression constantExpression = expression as ConstantExpression;
+
+                SparqlVariable s = currentGenerator.SubjectVariable;
+            }
 
             return expression;
         }
@@ -405,9 +412,16 @@ namespace Semiodesk.Trinity.Query
                     }
                 case "StartsWith":
                     {
+                        object[] args = new object[]
+                        {
+                            true,
+                            StringComparison.CurrentCultureIgnoreCase,
+                            StringComparison.InvariantCultureIgnoreCase
+                        };
+
                         Expression o = expression.Object;
                         string pattern = "^" + expression.GetArgumentValue<string>(0);
-                        bool ignoreCase = expression.GetArgumentValue(1, false);
+                        bool ignoreCase = expression.HasArgumentValueFromAlternatives(1, args);
 
                         HandleRegexMethodCallExpression(o, pattern, ignoreCase);
 
@@ -415,9 +429,16 @@ namespace Semiodesk.Trinity.Query
                     }
                 case "EndsWith":
                     {
+                        object[] args = new object[]
+                        {
+                            true,
+                            StringComparison.CurrentCultureIgnoreCase,
+                            StringComparison.InvariantCultureIgnoreCase
+                        };
+
                         Expression o = expression.Object;
                         string pattern = expression.GetArgumentValue<string>(0) + "$";
-                        bool ignoreCase = expression.GetArgumentValue(1, false);
+                        bool ignoreCase = expression.HasArgumentValueFromAlternatives(1, args);
 
                         HandleRegexMethodCallExpression(o, pattern, ignoreCase);
 
@@ -525,6 +546,11 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitUnaryExpression(UnaryExpression expression)
         {
+            if(expression.NodeType == ExpressionType.Not)
+            {
+                // TODO: Implement.
+            }
+
             throw new NotImplementedException();
         }
 
