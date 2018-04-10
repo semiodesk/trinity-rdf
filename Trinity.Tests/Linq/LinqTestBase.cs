@@ -344,6 +344,30 @@ namespace Semiodesk.Trinity.Test.Linq
             var count = Model.AsQueryable<Person>().Count(p => p.FirstName == "Bob");
 
             Assert.AreEqual(1, count);
+
+            count = Model.AsQueryable<Person>().Count(p => p.FirstName != "Bob");
+
+            Assert.AreEqual(2, count);
+
+            count = Model.AsQueryable<Agent>().Count(p => p.FirstName != "Bob");
+
+            Assert.AreEqual(1, count);
+
+            count = Model.AsQueryable<Person>().Count(p => p.KnownPeople.Any(q => q.FirstName.Equals("Alice") && q.LastName.StartsWith("C")));
+
+            Assert.AreEqual(1, count);
+
+            count = Model.AsQueryable<Person>().Count(p => p.KnownPeople.Any(q => q.FirstName.Equals("Alice") && q.LastName.StartsWith("X")));
+
+            Assert.AreEqual(0, count);
+
+            count = Model.AsQueryable<Person>().Count(p => p.KnownPeople.Any(q => q.FirstName.Equals("Alice") || q.LastName.StartsWith("d", StringComparison.InvariantCultureIgnoreCase)));
+
+            Assert.AreEqual(2, count);
+
+            //count = Model.AsQueryable<Person>().Count(p => !p.Interests.Any());
+
+            //Assert.AreEqual(2, count);
         }
 
         [Test]
@@ -356,6 +380,14 @@ namespace Semiodesk.Trinity.Test.Linq
             names = from person in Model.AsQueryable<Person>() where person.FirstName.StartsWith("a", true, CultureInfo.CurrentCulture) select person.FirstName;
 
             Assert.AreEqual(1, names.ToList().Count);
+
+            names = from person in Model.AsQueryable<Person>() where person.FirstName.StartsWith("a", StringComparison.CurrentCultureIgnoreCase) select person.FirstName;
+
+            Assert.AreEqual(1, names.ToList().Count);
+
+            names = from person in Model.AsQueryable<Person>() where person.FirstName.StartsWith("a", StringComparison.InvariantCultureIgnoreCase) select person.FirstName;
+
+            Assert.AreEqual(1, names.ToList().Count);
         }
 
         [Test]
@@ -366,6 +398,14 @@ namespace Semiodesk.Trinity.Test.Linq
             Assert.AreEqual(2, names.ToList().Count);
 
             names = from person in Model.AsQueryable<Person>() where person.FirstName.EndsWith("E", true, CultureInfo.CurrentCulture) select person.FirstName;
+
+            Assert.AreEqual(2, names.ToList().Count);
+
+            names = from person in Model.AsQueryable<Person>() where person.FirstName.EndsWith("E", StringComparison.CurrentCultureIgnoreCase) select person.FirstName;
+
+            Assert.AreEqual(2, names.ToList().Count);
+
+            names = from person in Model.AsQueryable<Person>() where person.FirstName.EndsWith("E", StringComparison.InvariantCultureIgnoreCase) select person.FirstName;
 
             Assert.AreEqual(2, names.ToList().Count);
         }
@@ -614,6 +654,10 @@ namespace Semiodesk.Trinity.Test.Linq
             Assert.AreEqual(0, persons.ToList().Count);
 
             persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" && person.LastName == "Cooper" && person.KnownPeople.Count == 1 select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Any(q => q.FirstName.Equals("Alice") && q.LastName.StartsWith("C")) select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
         }

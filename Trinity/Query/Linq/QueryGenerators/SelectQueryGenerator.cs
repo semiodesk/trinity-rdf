@@ -88,9 +88,8 @@ namespace Semiodesk.Trinity.Query
                 }
                 else if (resultOperator is FirstResultOperator)
                 {
-                    //var aggregate = new MinAggregate(new VariableTerm(ObjectVariable.Name));
-                    //SetObjectVariable(aggregate.AsSparqlVariable(), true);
-                    //OrderBy(ObjectVariable);
+                    //FirstResultOperator op = resultOperator as FirstResultOperator;
+                    //Limit(1);
 
                     throw new NotSupportedException();
                 }
