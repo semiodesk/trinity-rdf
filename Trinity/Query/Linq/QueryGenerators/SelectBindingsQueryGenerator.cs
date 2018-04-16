@@ -49,22 +49,22 @@ namespace Semiodesk.Trinity.Query
         {
             base.OnBeforeSelectClauseVisited(selector);
 
-            QuerySourceReferenceExpression querySource = selector.TryGetQuerySourceReference();
+            QuerySourceReferenceExpression sourceExpression = selector.TryGetQuerySourceReference();
 
-            if (querySource != null)
+            if (sourceExpression != null)
             {
                 // Register the query source with the global variable for sub-queries.
-                SparqlVariable s = VariableGenerator.GetGlobalVariable(querySource);
+                SparqlVariable s = VariableGenerator.CreateExpressionVariable(sourceExpression, SparqlVariableScope.Global);
 
                 // Assert the object type.
-                if (querySource.Type.IsSubclassOf(typeof(Resource)))
+                if (sourceExpression.Type.IsSubclassOf(typeof(Resource)))
                 {
-                    WhereResourceOfType(s, querySource.Type);
+                    WhereResourceOfType(s, sourceExpression.Type);
                 }
 
                 if (selector is MemberExpression)
                 {
-                    SparqlVariable o = VariableGenerator.GetObjectVariable();
+                    SparqlVariable o = VariableGenerator.CreateObjectVariable();
 
                     // Select all triples having the resource as subject.
                     SetSubjectVariable(s);

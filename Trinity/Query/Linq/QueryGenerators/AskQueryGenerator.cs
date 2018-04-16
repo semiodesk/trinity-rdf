@@ -53,9 +53,10 @@ namespace Semiodesk.Trinity.Query
             {
                 QuerySourceReferenceExpression sourceExpression = selector as QuerySourceReferenceExpression;
 
-                SparqlVariable s = VariableGenerator.GetGlobalVariable(sourceExpression);
-                SparqlVariable p = VariableGenerator.GetGlobalVariable("p");
-                SparqlVariable o = VariableGenerator.GetGlobalVariable("o");
+                // TODO: Handle the case that the variable name returned from 'sourceExpression' is 'p'.
+                SparqlVariable s = VariableGenerator.CreateExpressionVariable(sourceExpression, SparqlVariableScope.Global);
+                SparqlVariable p = VariableGenerator.GetGlobalPredicateVariable();
+                SparqlVariable o = VariableGenerator.GetGlobalObjectVariable();
 
                 // Select all triples having the resource as subject.
                 SetSubjectVariable(s);

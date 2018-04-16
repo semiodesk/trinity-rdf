@@ -713,10 +713,37 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectResourcesWithResultOperatorFirst()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.First().KnownPeople.Count == 1 select person;
+        }
 
-            // Trinity does not store list values in a defined order yet.
-            // TODO: Add support for SPARQL list syntax to Trinity. Breaks compatibility.
+        [Test]
+        public void CanSelectResourcesWithResultOperatorFirstOrDefault()
+        {
+            var person = Model.AsQueryable<Person>().FirstOrDefault();
+
+            Assert.IsNotNull(person);
+
+            person = Model.AsQueryable<Person>().FirstOrDefault(p => p.Age > 40);
+
+            Assert.IsNotNull(person);
+            Assert.IsTrue(person.Age > 40);
+
+            person = Model.AsQueryable<Person>().FirstOrDefault(p => p.Age > 40 && p.Age < 40);
+
+            Assert.IsNull(person);
+
+            person = Model.AsQueryable<Person>().FirstOrDefault(p => p.Age < 10 || p.Age > 40);
+
+            Assert.IsNotNull(person);
+            Assert.IsTrue(person.Age > 40);
+
+            person = Model.AsQueryable<Person>().FirstOrDefault(p => p.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
+
+            Assert.IsNotNull(person);
+            Assert.IsTrue(person.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
+
+            // Not supported yet.
+            var persons = Model.AsQueryable<Person>().Where(p => p.KnownPeople.FirstOrDefault().KnownPeople.Count == 1);
+
             Assert.Throws<NotSupportedException>(() => { persons.ToList(); });
         }
 

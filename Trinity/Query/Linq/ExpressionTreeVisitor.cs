@@ -151,11 +151,11 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        private void VisitBinaryQuerySourceReferenceExpression(ExpressionType type, QuerySourceReferenceExpression querySource, ConstantExpression constant)
+        private void VisitBinaryQuerySourceReferenceExpression(ExpressionType type, QuerySourceReferenceExpression sourceExpression, ConstantExpression constant)
         {
             ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
-            SparqlVariable s = _variableGenerator.GetVariable(querySource);
+            SparqlVariable s = _variableGenerator.GetExpressionVariable(sourceExpression);
 
             switch (type)
             {
@@ -259,7 +259,7 @@ namespace Semiodesk.Trinity.Query
 
                 if (subGenerator.ObjectVariable != null)
                 {
-                    SparqlVariable o = _variableGenerator.GetObjectVariable();
+                    SparqlVariable o = _variableGenerator.CreateObjectVariable();
 
                     // The object of the sub query is the subject of the enclosing query.
                     currentGenerator.SetSubjectVariable(subGenerator.ObjectVariable);
@@ -269,17 +269,17 @@ namespace Semiodesk.Trinity.Query
                     currentGenerator.SelectVariable(subGenerator.SubjectVariable);
                     currentGenerator.SelectVariable(o);
 
-                    _variableGenerator.RegisterExpression(expression, o);
+                    _variableGenerator.SetExpressionVariable(expression, o);
                 }
             }
             else
             {
-                QuerySourceReferenceExpression querySource = expression.TryGetQuerySourceReference();
+                QuerySourceReferenceExpression sourceExpression = expression.TryGetQuerySourceReference();
 
-                if (querySource != null)
+                if (sourceExpression != null)
                 {
-                    SparqlVariable s = _variableGenerator.GetVariable(querySource);
-                    SparqlVariable o = _variableGenerator.GetObjectVariable();
+                    SparqlVariable s = _variableGenerator.GetExpressionVariable(sourceExpression);
+                    SparqlVariable o = _variableGenerator.CreateObjectVariable();
 
                     // Set the variable name of the query source reference as subject of the current query.
                     currentGenerator.SetSubjectVariable(s);
@@ -289,9 +289,9 @@ namespace Semiodesk.Trinity.Query
                     currentGenerator.SelectVariable(s);
                     currentGenerator.SelectVariable(o);
 
-                    if (expression != querySource)
+                    if (expression != sourceExpression)
                     {
-                        _variableGenerator.RegisterExpression(expression, o);
+                        _variableGenerator.SetExpressionVariable(expression, o);
                     }
                 }
             }
@@ -331,12 +331,6 @@ namespace Semiodesk.Trinity.Query
 
                 // Handle the results of the subquery.
                 VisitExpression(expression);
-            }
-            else if(expression is ConstantExpression)
-            {
-                ConstantExpression constantExpression = expression as ConstantExpression;
-
-                SparqlVariable s = currentGenerator.SubjectVariable;
             }
 
             return expression;
@@ -521,9 +515,11 @@ namespace Semiodesk.Trinity.Query
             expression.QueryModel.Accept(_queryModelVisitor);
 
             // Register the sub query expression with the variable generator.
-            if(!_variableGenerator.HasVariable(expression))
+            if(!_variableGenerator.HasExpressionVariable(expression))
             {
-                _variableGenerator.RegisterExpression(expression, subGenerator.ObjectVariable);
+                SparqlVariable o = subGenerator.ObjectVariable;
+
+                _variableGenerator.SetExpressionVariable(expression, o);
             }
 
             // Reset the query generator and continue with implementing the outer query.
@@ -565,9 +561,9 @@ namespace Semiodesk.Trinity.Query
 
             VisitExpression(expression);
 
-            if (_variableGenerator.HasVariable(expression))
+            if (_variableGenerator.HasExpressionVariable(expression))
             {
-                SparqlVariable v = _variableGenerator.GetVariable(expression);
+                SparqlVariable v = _variableGenerator.GetExpressionVariable(expression);
 
                 ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
