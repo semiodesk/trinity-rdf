@@ -36,6 +36,8 @@ using VDS.RDF.Query;
 
 namespace Semiodesk.Trinity.Query
 {
+    internal enum SparqlVariableScope { Global, Local };
+
     internal class SparqlVariableGenerator
     {
         #region Members
@@ -46,34 +48,32 @@ namespace Semiodesk.Trinity.Query
 
         #endregion
 
+        #region Constructors
+
+        public SparqlVariableGenerator()
+        {
+        }
+
+        #endregion
+
         #region Methods
-
-        public void RegisterExpression(Expression expression, SparqlVariable variable)
-        {
-            _expressionVariables[expression.ToString()] = variable;
-        }
-
-        public bool HasVariable(Expression expression)
-        {
-            return _expressionVariables.ContainsKey(expression.ToString());
-        }
 
         /// <summary>
         /// Removes special characters from the variable name and returns a valid SPARQL variable name.
         /// </summary>
         /// <param name="name">A variable name.</param>
         /// <returns>A variable name in canonical form.</returns>
-        private string GetCanonicalVariableName(string name)
+        private string GetCanonicalVariableName(string name, SparqlVariableScope scope)
         {
             StringBuilder builder = new StringBuilder();
 
-            for(int i = 0; i < name.Length; i++)
+            for (int i = 0; i < name.Length; i++)
             {
                 var c = name[i];
 
                 // Note: SPARQL supports more characters in variable names.
                 // We reduce it to letters, digits and '_' as a separator.
-                if(char.IsLetterOrDigit(c))
+                if (char.IsLetterOrDigit(c))
                 {
                     if (i == 0)
                     {
@@ -84,16 +84,44 @@ namespace Semiodesk.Trinity.Query
                         builder.Append(c);
                     }
                 }
-                else if(c == '_')
+                else if (c == '_')
                 {
                     builder.Append(c);
                 }
             }
 
-            return builder.ToString();
+            string v = builder.ToString();
+
+            if(scope == SparqlVariableScope.Global)
+            {
+                v += "_";
+
+                return v.StartsWith("s_") ? v : "s_" + v;
+            }
+
+            return v;
         }
 
-        public SparqlVariable GetVariable(Expression expression)
+        private string GetUnusedVariableName(string name)
+        {
+            int n = 0;
+
+            if (_variableCounters.ContainsKey(name))
+            {
+                n = _variableCounters[name] + 1;
+            }
+
+            _variableCounters[name] = n;
+
+            return name + n;
+        }
+
+        public bool HasExpressionVariable(Expression expression)
+        {
+            return _expressionVariables.ContainsKey(expression.ToString());
+        }
+
+        public SparqlVariable GetExpressionVariable(Expression expression)
         {
             QuerySourceReferenceExpression querySource = expression.TryGetQuerySourceReference();
 
@@ -101,7 +129,7 @@ namespace Semiodesk.Trinity.Query
             {
                 MainFromClause fromClause = querySource.ReferencedQuerySource as MainFromClause;
 
-                if(fromClause.FromExpression is MemberExpression)
+                if (fromClause.FromExpression is MemberExpression)
                 {
                     return _expressionVariables[fromClause.FromExpression.ToString()];
                 }
@@ -110,96 +138,81 @@ namespace Semiodesk.Trinity.Query
             return _expressionVariables[expression.ToString()];
         }
 
-        public SparqlVariable GetVariable(string name)
+        public void SetExpressionVariable(Expression expression, SparqlVariable variable)
         {
-            if(string.IsNullOrEmpty(name))
-            {
-                throw new ArgumentNullException("name");
-            }
-
-            name = GetCanonicalVariableName(name);
-
-            int n = 0;
-
-            if(_variableCounters.ContainsKey(name))
-            {
-                n = _variableCounters[name] + 1;
-
-                _variableCounters[name] = n;
-            }
-
-            _variableCounters[name] = n;
-
-            return new SparqlVariable(name + n);
+            _expressionVariables[expression.ToString()] = variable;
         }
 
-        public SparqlVariable GetVariable(QuerySourceReferenceExpression expression)
+        public SparqlVariable GetVariable(string name, SparqlVariableScope scope)
         {
+            string cname = GetCanonicalVariableName(name, scope);
+
             SparqlVariable v;
 
-            string e = expression.ToString();
-
-            if (!_expressionVariables.ContainsKey(e))
+            if (scope == SparqlVariableScope.Global)
             {
-                IQuerySource querySource = expression.ReferencedQuerySource;
-
-                v = GetVariable(querySource.ItemName);
-
-                _expressionVariables[e] = v;
+                v = new SparqlVariable(cname);
             }
             else
             {
-                v = _expressionVariables[e];
+                v = new SparqlVariable(GetUnusedVariableName(cname));
             }
 
             return v;
         }
 
-        public SparqlVariable GetGlobalVariable(string name)
+        public SparqlVariable CreateExpressionVariable(QuerySourceReferenceExpression expression, SparqlVariableScope scope)
         {
-            if (string.IsNullOrEmpty(name))
-            {
-                throw new ArgumentNullException("name");
-            }
+            string key = expression.ToString();
 
-            return new SparqlVariable(GetCanonicalVariableName(name) + "_");
-        }
-
-        public SparqlVariable GetGlobalVariable(QuerySourceReferenceExpression expression)
-        {
-            SparqlVariable v;
-
-            string e = expression.ToString();
-
-            if (!_expressionVariables.ContainsKey(e))
+            if (!_expressionVariables.ContainsKey(key))
             {
                 IQuerySource querySource = expression.ReferencedQuerySource;
 
-                v = GetGlobalVariable(querySource.ItemName);
+                SparqlVariable v = GetVariable(querySource.ItemName, scope);
 
-                _expressionVariables[e] = v;
+                _expressionVariables[key] = v;
+
+                return v;
             }
             else
             {
-                v = _expressionVariables[e];
+                throw new Exception("Expression variable already exists: " + key);
             }
-
-            return v;
         }
 
-        public SparqlVariable GetMemberVariable(MemberInfo member)
+        public SparqlVariable CreatePredicateVariable()
         {
-            return GetVariable(GetCanonicalVariableName(member.Name));
+            return new SparqlVariable(GetUnusedVariableName("p"));
         }
 
-        public SparqlVariable GetPredicateVariable(string name = "p")
+        public SparqlVariable CreateObjectVariable()
         {
-            return GetVariable(name);
+            return new SparqlVariable(GetUnusedVariableName("o"));
         }
 
-        public SparqlVariable GetObjectVariable(string name = "o")
+        public SparqlVariable GetGlobalSubjectVariable()
         {
-            return GetVariable(name);
+            return new SparqlVariable("s_");
+        }
+
+        public SparqlVariable GetGlobalSubjectVariable(Expression expression)
+        {
+            SparqlVariable s = GetGlobalSubjectVariable();
+
+            _expressionVariables["s_"] = s;
+
+            return s;
+        }
+
+        public SparqlVariable GetGlobalPredicateVariable()
+        {
+            return new SparqlVariable("p_");
+        }
+
+        public SparqlVariable GetGlobalObjectVariable()
+        {
+            return new SparqlVariable("o_");
         }
 
         #endregion
