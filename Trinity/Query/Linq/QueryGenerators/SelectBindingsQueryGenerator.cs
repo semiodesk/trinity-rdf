@@ -54,7 +54,7 @@ namespace Semiodesk.Trinity.Query
             if (sourceExpression != null)
             {
                 // Register the query source with the global variable for sub-queries.
-                SparqlVariable s = VariableGenerator.CreateExpressionVariable(sourceExpression, SparqlVariableScope.Global);
+                SparqlVariable s = VariableGenerator.GetGlobalSubjectVariable(sourceExpression);
 
                 // Assert the object type.
                 if (sourceExpression.Type.IsSubclassOf(typeof(Resource)))
@@ -64,7 +64,7 @@ namespace Semiodesk.Trinity.Query
 
                 if (selector is MemberExpression)
                 {
-                    SparqlVariable o = VariableGenerator.CreateObjectVariable();
+                    SparqlVariable o = VariableGenerator.CreateLocalObjectVariable();
 
                     // Select all triples having the resource as subject.
                     SetSubjectVariable(s);

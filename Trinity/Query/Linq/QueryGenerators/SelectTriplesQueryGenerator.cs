@@ -56,14 +56,13 @@ namespace Semiodesk.Trinity.Query
             if(HasResultOperator<SkipResultOperator>() || HasResultOperator<TakeResultOperator>())
             {
                 // We create an outer query which selects all triples for the resources..
-                SparqlVariable s = null;
+                SparqlVariable s = VariableGenerator.GetGlobalSubjectVariable(); // TODO: Always create the subject variable here and register the expression later..
                 SparqlVariable p = VariableGenerator.GetGlobalPredicateVariable();
                 SparqlVariable o = VariableGenerator.GetGlobalObjectVariable();
 
                 if(expression is ConstantExpression)
                 {
-                    // TODO: Handle the case that the variable name in ItemName is 'p'.
-                    s = VariableGenerator.GetVariable(QueryModel.MainFromClause.ItemName, SparqlVariableScope.Global);
+                    VariableGenerator.SetExpressionVariable(expression, s);
                 }
                 else
                 {
@@ -71,7 +70,7 @@ namespace Semiodesk.Trinity.Query
 
                     if(sourceExpression != null)
                     {
-                        s = VariableGenerator.CreateExpressionVariable(sourceExpression, SparqlVariableScope.Global);
+                        VariableGenerator.SetExpressionVariable(sourceExpression, s);
                     }
                     else
                     {
@@ -112,7 +111,7 @@ namespace Semiodesk.Trinity.Query
 
                 if (selector is MemberExpression)
                 {
-                    s = VariableGenerator.CreateExpressionVariable(sourceExpression, SparqlVariableScope.Local);
+                    s = VariableGenerator.CreateLocalSubjectVariable(sourceExpression);
 
                     // We set the query subject, just in case there are any sub queries.
                     SetSubjectVariable(s);
@@ -121,8 +120,7 @@ namespace Semiodesk.Trinity.Query
                     // the triples of the resource and generate the required member access triples.
                     MemberExpression memberExpression = selector as MemberExpression;
 
-                    // TODO: Handle the case that the variable name in Member is 'p'.
-                    SparqlVariable m = VariableGenerator.GetVariable(memberExpression.Member.Name, SparqlVariableScope.Global);
+                    SparqlVariable m = VariableGenerator.GetGlobalSubjectVariable(memberExpression);
 
                     SelectVariable(m);
                     SelectVariable(p);
@@ -137,7 +135,7 @@ namespace Semiodesk.Trinity.Query
                 }
                 else if (selector is QuerySourceReferenceExpression)
                 {
-                    s = VariableGenerator.CreateExpressionVariable(sourceExpression, SparqlVariableScope.Global);
+                    s = VariableGenerator.GetGlobalSubjectVariable(sourceExpression);
 
                     // We set the query subject, just in case there are any sub queries.
                     SetSubjectVariable(s);

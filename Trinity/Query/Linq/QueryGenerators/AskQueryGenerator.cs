@@ -53,8 +53,7 @@ namespace Semiodesk.Trinity.Query
             {
                 QuerySourceReferenceExpression sourceExpression = selector as QuerySourceReferenceExpression;
 
-                // TODO: Handle the case that the variable name returned from 'sourceExpression' is 'p'.
-                SparqlVariable s = VariableGenerator.CreateExpressionVariable(sourceExpression, SparqlVariableScope.Global);
+                SparqlVariable s = VariableGenerator.GetGlobalSubjectVariable(sourceExpression);
                 SparqlVariable p = VariableGenerator.GetGlobalPredicateVariable();
                 SparqlVariable o = VariableGenerator.GetGlobalObjectVariable();
 
