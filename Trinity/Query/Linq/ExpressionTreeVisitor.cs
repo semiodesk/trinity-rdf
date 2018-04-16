@@ -259,7 +259,7 @@ namespace Semiodesk.Trinity.Query
 
                 if (subGenerator.ObjectVariable != null)
                 {
-                    SparqlVariable o = _variableGenerator.CreateObjectVariable();
+                    SparqlVariable o = _variableGenerator.CreateLocalObjectVariable();
 
                     // The object of the sub query is the subject of the enclosing query.
                     currentGenerator.SetSubjectVariable(subGenerator.ObjectVariable);
@@ -279,7 +279,7 @@ namespace Semiodesk.Trinity.Query
                 if (sourceExpression != null)
                 {
                     SparqlVariable s = _variableGenerator.GetExpressionVariable(sourceExpression);
-                    SparqlVariable o = _variableGenerator.CreateObjectVariable();
+                    SparqlVariable o = _variableGenerator.CreateLocalObjectVariable();
 
                     // Set the variable name of the query source reference as subject of the current query.
                     currentGenerator.SetSubjectVariable(s);

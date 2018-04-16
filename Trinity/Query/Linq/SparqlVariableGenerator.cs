@@ -36,8 +36,6 @@ using VDS.RDF.Query;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal enum SparqlVariableScope { Global, Local };
-
     internal class SparqlVariableGenerator
     {
         #region Members
@@ -58,51 +56,7 @@ namespace Semiodesk.Trinity.Query
 
         #region Methods
 
-        /// <summary>
-        /// Removes special characters from the variable name and returns a valid SPARQL variable name.
-        /// </summary>
-        /// <param name="name">A variable name.</param>
-        /// <returns>A variable name in canonical form.</returns>
-        private string GetCanonicalVariableName(string name, SparqlVariableScope scope)
-        {
-            StringBuilder builder = new StringBuilder();
-
-            for (int i = 0; i < name.Length; i++)
-            {
-                var c = name[i];
-
-                // Note: SPARQL supports more characters in variable names.
-                // We reduce it to letters, digits and '_' as a separator.
-                if (char.IsLetterOrDigit(c))
-                {
-                    if (i == 0)
-                    {
-                        builder.Append(char.ToLowerInvariant(c));
-                    }
-                    else
-                    {
-                        builder.Append(c);
-                    }
-                }
-                else if (c == '_')
-                {
-                    builder.Append(c);
-                }
-            }
-
-            string v = builder.ToString();
-
-            if(scope == SparqlVariableScope.Global)
-            {
-                v += "_";
-
-                return v.StartsWith("s_") ? v : "s_" + v;
-            }
-
-            return v;
-        }
-
-        private string GetUnusedVariableName(string name)
+        private string GetNextAvailableVariableName(string name)
         {
             int n = 0;
 
@@ -118,7 +72,9 @@ namespace Semiodesk.Trinity.Query
 
         public bool HasExpressionVariable(Expression expression)
         {
-            return _expressionVariables.ContainsKey(expression.ToString());
+            string key = expression.ToString();
+
+            return _expressionVariables.ContainsKey(key);
         }
 
         public SparqlVariable GetExpressionVariable(Expression expression)
@@ -140,55 +96,30 @@ namespace Semiodesk.Trinity.Query
 
         public void SetExpressionVariable(Expression expression, SparqlVariable variable)
         {
-            _expressionVariables[expression.ToString()] = variable;
+            string key = expression.ToString();
+
+            _expressionVariables[key] = variable;
         }
 
-        public SparqlVariable GetVariable(string name, SparqlVariableScope scope)
-        {
-            string cname = GetCanonicalVariableName(name, scope);
-
-            SparqlVariable v;
-
-            if (scope == SparqlVariableScope.Global)
-            {
-                v = new SparqlVariable(cname);
-            }
-            else
-            {
-                v = new SparqlVariable(GetUnusedVariableName(cname));
-            }
-
-            return v;
-        }
-
-        public SparqlVariable CreateExpressionVariable(QuerySourceReferenceExpression expression, SparqlVariableScope scope)
+        public SparqlVariable CreateLocalSubjectVariable(Expression expression)
         {
             string key = expression.ToString();
 
-            if (!_expressionVariables.ContainsKey(key))
-            {
-                IQuerySource querySource = expression.ReferencedQuerySource;
+            SparqlVariable s = new SparqlVariable(GetNextAvailableVariableName("s"));
 
-                SparqlVariable v = GetVariable(querySource.ItemName, scope);
+            _expressionVariables[key] = s;
 
-                _expressionVariables[key] = v;
-
-                return v;
-            }
-            else
-            {
-                throw new Exception("Expression variable already exists: " + key);
-            }
+            return s;
         }
 
-        public SparqlVariable CreatePredicateVariable()
+        public SparqlVariable CreateLocalPredicateVariable()
         {
-            return new SparqlVariable(GetUnusedVariableName("p"));
+            return new SparqlVariable(GetNextAvailableVariableName("p"));
         }
 
-        public SparqlVariable CreateObjectVariable()
+        public SparqlVariable CreateLocalObjectVariable()
         {
-            return new SparqlVariable(GetUnusedVariableName("o"));
+            return new SparqlVariable(GetNextAvailableVariableName("o"));
         }
 
         public SparqlVariable GetGlobalSubjectVariable()
@@ -198,9 +129,11 @@ namespace Semiodesk.Trinity.Query
 
         public SparqlVariable GetGlobalSubjectVariable(Expression expression)
         {
+            string key = expression.ToString();
+
             SparqlVariable s = GetGlobalSubjectVariable();
 
-            _expressionVariables["s_"] = s;
+            _expressionVariables[key] = s;
 
             return s;
         }

@@ -417,7 +417,7 @@ namespace Semiodesk.Trinity.Query
             }
             else
             {
-                SparqlVariable o = VariableGenerator.CreateObjectVariable();
+                SparqlVariable o = VariableGenerator.CreateLocalObjectVariable();
 
                 // If we want to filter for non-bound values we need to mark the properties as optional.
                 BuildMemberAccessOptional(expression, o);
@@ -435,7 +435,7 @@ namespace Semiodesk.Trinity.Query
         public void WhereNotEqual(MemberExpression expression, ConstantExpression constant)
         {
             // TODO: We do not need this object variable in any cases. Let BuildMemberAccess return the variable it generated or referenced.
-            SparqlVariable o = VariableGenerator.CreateObjectVariable();
+            SparqlVariable o = VariableGenerator.CreateLocalObjectVariable();
 
             if (expression.Member.IsSystemType())
             {
@@ -487,7 +487,7 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereGreaterThan(MemberExpression expression, ConstantExpression constant)
         {
-            SparqlVariable o = VariableGenerator.CreateObjectVariable();
+            SparqlVariable o = VariableGenerator.CreateLocalObjectVariable();
 
             BuildMemberAccess(expression, o);
 
@@ -508,7 +508,7 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereGreaterThanOrEqual(MemberExpression expression, ConstantExpression constant)
         {
-            SparqlVariable o = VariableGenerator.CreateObjectVariable();
+            SparqlVariable o = VariableGenerator.CreateLocalObjectVariable();
 
             BuildMemberAccess(expression, o);
 
@@ -529,7 +529,7 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereLessThan(MemberExpression expression, ConstantExpression constant)
         {
-            SparqlVariable o = VariableGenerator.CreateObjectVariable();
+            SparqlVariable o = VariableGenerator.CreateLocalObjectVariable();
 
             BuildMemberAccess(expression, o);
 
@@ -550,7 +550,7 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereLessThanOrEqual(MemberExpression expression, ConstantExpression constant)
         {
-            SparqlVariable o = VariableGenerator.CreateObjectVariable();
+            SparqlVariable o = VariableGenerator.CreateLocalObjectVariable();
 
             BuildMemberAccess(expression, o);
 
@@ -586,8 +586,8 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereResource(SparqlVariable subject)
         {
-            SparqlVariable p = VariableGenerator.CreatePredicateVariable();
-            SparqlVariable o = VariableGenerator.CreateObjectVariable();
+            SparqlVariable p = VariableGenerator.CreateLocalPredicateVariable();
+            SparqlVariable o = VariableGenerator.CreateLocalObjectVariable();
 
             PatternBuilder.Where(t => t.Subject(subject.Name).Predicate(p.Name).Object(o.Name));
         }
