@@ -26,8 +26,6 @@
 // Copyright (c) Semiodesk GmbH 2017
 
 using Remotion.Linq.Clauses.Expressions;
-using Remotion.Linq.Clauses.ResultOperators;
-using System;
 using System.Linq.Expressions;
 using VDS.RDF.Query;
 

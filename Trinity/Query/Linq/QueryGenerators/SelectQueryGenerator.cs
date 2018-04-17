@@ -88,10 +88,14 @@ namespace Semiodesk.Trinity.Query
                 }
                 else if (resultOperator is FirstResultOperator)
                 {
-                    FirstResultOperator op = resultOperator as FirstResultOperator;
-                    Limit(1);
-
-                    //throw new NotSupportedException();
+                    if (QueryModel.MainFromClause.FromExpression is MemberExpression)
+                    {
+                        throw new NotSupportedException("The First()-result operator is not supported for accessing members.");
+                    }
+                    else
+                    {
+                        Limit(1);
+                    }
                 }
                 else if (resultOperator is LastResultOperator)
                 {
@@ -156,6 +160,14 @@ namespace Semiodesk.Trinity.Query
                 {
                     var aggregate = new CountDistinctAggregate(new VariableTerm(SubjectVariable.Name));
                     SetSubjectVariable(aggregate.AsSparqlVariable(), true);
+                }
+                else if (resultOperator is FirstResultOperator)
+                {
+                    if(!IsRoot)
+                    {
+                        // Note: We currently only support First operators on root queries.
+                        throw new NotSupportedException();
+                    }
                 }
                 else
                 {

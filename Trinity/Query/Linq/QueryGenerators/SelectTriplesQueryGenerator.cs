@@ -53,7 +53,9 @@ namespace Semiodesk.Trinity.Query
             // If we are describing resources using a skip or take operator, we need to make sure that
             // these operations are on a per-resource basis and all triples for the described resources
             // are contained in the result.
-            if(HasResultOperator<SkipResultOperator>() || HasResultOperator<TakeResultOperator>())
+            if(HasResultOperator<SkipResultOperator>()
+                || HasResultOperator<TakeResultOperator>()
+                || HasResultOperator<FirstResultOperator>())
             {
                 // We create an outer query which selects all triples for the resources..
                 SparqlVariable s = VariableGenerator.GetGlobalSubjectVariable(); // TODO: Always create the subject variable here and register the expression later..
@@ -166,7 +168,9 @@ namespace Semiodesk.Trinity.Query
                 // query generator as a child.
                 ISparqlQueryGenerator rootGenerator = QueryGeneratorTree.GetRootQueryGenerator();
 
-                if(rootGenerator.HasResultOperator<SkipResultOperator>() || rootGenerator.HasResultOperator<TakeResultOperator>())
+                if(rootGenerator.HasResultOperator<SkipResultOperator>()
+                    || rootGenerator.HasResultOperator<TakeResultOperator>()
+                    || rootGenerator.HasResultOperator<FirstResultOperator>())
                 {
                     rootGenerator.Child(this);
                 }
