@@ -27,12 +27,8 @@
 
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
-using Remotion.Linq.Clauses.Expressions;
-using Remotion.Linq.Clauses.ResultOperators;
 using System;
 using System.Diagnostics;
-using System.Linq.Expressions;
-using VDS.RDF.Query;
 
 namespace Semiodesk.Trinity.Query
 {
