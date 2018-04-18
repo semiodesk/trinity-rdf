@@ -32,6 +32,7 @@ using VDS.RDF.Query.Aggregates.Sparql;
 using VDS.RDF.Query.Expressions.Primary;
 using System.Linq.Expressions;
 using VDS.RDF.Query;
+using System.Linq;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -90,20 +91,54 @@ namespace Semiodesk.Trinity.Query
                 {
                     if (QueryModel.MainFromClause.FromExpression is MemberExpression)
                     {
-                        throw new NotSupportedException("The First()-result operator is not supported for accessing members.");
+                        throw new NotSupportedException("The First and FirstOrDefault operators are not supported in subqueries.");
                     }
                     else
                     {
+                        // "Using LIMIT and OFFSET to select different subsets of the query solutions 
+                        // will not be useful unless the order is made predictable by using ORDER BY."
+                        // Source: https://www.w3.org/TR/2013/REC-sparql11-query-20130321/#modOffset
+
+                        // Therefore, if no ordering exists we add an ordering on the current subject 
+                        // to make the query result predictable.
+                        if (!QueryModel.BodyClauses.OfType<OrderByClause>().Any())
+                        {
+                            OrderBy(SubjectVariable);
+                        }
+                        else
+                        {
+                            // In case the order was make explicit, we have to do nothing.
+                        }
+
                         Limit(1);
                     }
                 }
                 else if (resultOperator is LastResultOperator)
                 {
-                    //var aggregate = new MinAggregate(new VariableTerm(ObjectVariable.Name));
-                    //SetObjectVariable(aggregate.AsSparqlVariable(), true);
-                    //OrderByDescending(ObjectVariable);
+                    if (QueryModel.MainFromClause.FromExpression is MemberExpression)
+                    {
+                        throw new NotSupportedException("The Last and LastOrDefault operators are not supported in subqueries.");
+                    }
+                    else
+                    {
+                        // "Using LIMIT and OFFSET to select different subsets of the query solutions 
+                        // will not be useful unless the order is made predictable by using ORDER BY."
+                        // Source: https://www.w3.org/TR/2013/REC-sparql11-query-20130321/#modOffset
 
-                    throw new NotSupportedException();
+                        // Therefore, if no ordering exists we add an ordering on the current subject 
+                        // to make the query result predictable.
+                        if (!QueryModel.BodyClauses.OfType<OrderByClause>().Any())
+                        {
+                            OrderByDescending(SubjectVariable);
+                        }
+                        else
+                        {
+                            // Inverting the direction of the first ordering is handled in SparqlQueryModelVisitor.VisitOrdering().
+                            // This is because the orderings are not necessarily processed *before* the result operators..
+                        }
+
+                        Limit(1);
+                    }
                 }
                 else if (resultOperator is MaxResultOperator)
                 {

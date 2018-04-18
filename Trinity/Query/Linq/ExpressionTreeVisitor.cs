@@ -359,7 +359,16 @@ namespace Semiodesk.Trinity.Query
             {
                 ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
-                currentGenerator.Where(expression, currentGenerator.ObjectVariable);
+                if(_variableGenerator.HasExpressionVariable(expression))
+                {
+                    currentGenerator.Where(expression, _variableGenerator.GetExpressionVariable(expression));
+                }
+                else
+                {
+                    SparqlVariable v = _variableGenerator.CreateLocalObjectVariable();
+
+                    currentGenerator.Where(expression, v);
+                }
             }
 
             return expression;
@@ -553,31 +562,6 @@ namespace Semiodesk.Trinity.Query
         protected override Exception CreateUnhandledItemException<T>(T unhandledItem, string visitMethod)
         {
             return null;
-        }
-
-        public Expression VisitOrdering(Ordering ordering)
-        {
-            Expression expression = ordering.Expression;
-
-            VisitExpression(expression);
-
-            if (_variableGenerator.HasExpressionVariable(expression))
-            {
-                SparqlVariable v = _variableGenerator.GetExpressionVariable(expression);
-
-                ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
-
-                if(ordering.OrderingDirection == OrderingDirection.Asc)
-                {
-                    currentGenerator.OrderBy(v);
-                }
-                else
-                {
-                    currentGenerator.OrderByDescending(v);
-                }
-            }
-
-            return ordering.Expression;
         }
 
         #endregion

@@ -713,48 +713,179 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectResourcesWithResultOperatorFirst()
         {
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Model.AsQueryable<Person>().OrderBy(p => p.FirstName).First(p => p.Age > 40 && p.Age < 40);
+            });
         }
 
         [Test]
         public void CanSelectResourcesWithResultOperatorFirstOrDefault()
         {
-            var person = Model.AsQueryable<Person>().FirstOrDefault();
+            var persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).ToList();
+            var person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).FirstOrDefault();
 
             Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
 
-            person = Model.AsQueryable<Person>().FirstOrDefault(p => p.Age > 40);
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.Age).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.Age).FirstOrDefault();
 
             Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
+
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.Birthday).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.Birthday).FirstOrDefault();
+
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
+
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age > 40).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).FirstOrDefault(p => p.Age > 40);
+
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
             Assert.IsTrue(person.Age > 40);
 
-            person = Model.AsQueryable<Person>().FirstOrDefault(p => p.Age > 40 && p.Age < 40);
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age > 40).FirstOrDefault();
 
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
+            Assert.IsTrue(person.Age > 40);
+
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age > 40 && p.Age < 40).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).FirstOrDefault(p => p.Age > 40 && p.Age < 40);
+
+            Assert.IsEmpty(persons);
             Assert.IsNull(person);
 
-            person = Model.AsQueryable<Person>().FirstOrDefault(p => p.Age < 10 || p.Age > 40);
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age > 40 && p.Age < 40).FirstOrDefault();
+
+            Assert.IsEmpty(persons);
+            Assert.IsNull(person);
+
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age < 10 || p.Age > 40).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).FirstOrDefault(p => p.Age < 10 || p.Age > 40);
 
             Assert.IsNotNull(person);
-            Assert.IsTrue(person.Age > 40);
+            Assert.AreEqual(person, persons.FirstOrDefault());
+            Assert.IsTrue(person.Age < 10 || person.Age > 40);
 
-            person = Model.AsQueryable<Person>().FirstOrDefault(p => p.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age < 10 || p.Age > 40).FirstOrDefault();
 
             Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
+            Assert.IsTrue(person.Age < 10 || person.Age > 40);
+
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.KnownPeople.Any(p0 => p0.FirstName == "Alice")).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).FirstOrDefault(p => p.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
+
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
             Assert.IsTrue(person.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
 
-            // Not supported yet.
-            var persons = Model.AsQueryable<Person>().Where(p => p.KnownPeople.FirstOrDefault().KnownPeople.Count == 1);
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.KnownPeople.Any(p0 => p0.FirstName == "Alice")).FirstOrDefault();
 
-            Assert.Throws<NotSupportedException>(() => { persons.ToList(); });
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
+            Assert.IsTrue(person.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
+
+            // Using FirstOrDefault in subqueries is not yet supported.
+            Assert.Throws<NotSupportedException>(() =>
+            {
+                Model.AsQueryable<Person>().Where(p => p.KnownPeople.FirstOrDefault().KnownPeople.Count == 1).ToList();
+            });
+
+            Assert.Throws<NotSupportedException>(() =>
+            {
+                Model.AsQueryable<Person>().Where(p => p.KnownPeople.FirstOrDefault(q => q.KnownPeople.Count == 1) != null).ToList();
+            });
         }
 
         [Test]
         public void CanSelectResourcesWithResultOperatorLast()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Last().KnownPeople.Count == 1 select person;
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Last(p => p.Age > 40 && p.Age < 40);
+            });
+        }
 
-            // Trinity does not store list values in a defined order yet.
-            // TODO: Add support for SPARQL list syntax to Trinity. Breaks compatibility.
-            Assert.Throws<NotSupportedException>(() => { persons.ToList(); });
+        [Test]
+        public void CanSelectResourcesWithResultOperatorLastOrDefault()
+        {
+            var persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).ToList();
+            var person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).LastOrDefault();
+
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.LastOrDefault());
+
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.Age).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.Age).LastOrDefault();
+
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.LastOrDefault());
+
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.Birthday).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.Birthday).LastOrDefault();
+
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.LastOrDefault());
+
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age > 40).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).LastOrDefault(p => p.Age > 40);
+
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.LastOrDefault());
+            Assert.IsTrue(person.Age > 40);
+
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age > 40 && p.Age < 40).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).LastOrDefault(p => p.Age > 40 && p.Age < 40);
+
+            Assert.IsEmpty(persons);
+            Assert.IsNull(person);
+
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age > 40 && p.Age < 40).LastOrDefault();
+
+            Assert.IsEmpty(persons);
+            Assert.IsNull(person);
+
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age < 10 || p.Age > 40).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).LastOrDefault(p => p.Age < 10 || p.Age > 40);
+
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.LastOrDefault());
+            Assert.IsTrue(person.Age < 10 || person.Age > 40);
+
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age < 10 || p.Age > 40).LastOrDefault();
+
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.LastOrDefault());
+            Assert.IsTrue(person.Age < 10 || person.Age > 40);
+
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.KnownPeople.Any(p0 => p0.FirstName == "Alice")).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).LastOrDefault(p => p.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
+
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.LastOrDefault());
+            Assert.IsTrue(person.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
+
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.KnownPeople.Any(p0 => p0.FirstName == "Alice")).LastOrDefault();
+
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.LastOrDefault());
+            Assert.IsTrue(person.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
+
+            // Using LastOrDefault in subqueries is not yet supported.
+            Assert.Throws<NotSupportedException>(() =>
+            {
+                Model.AsQueryable<Person>().Where(p => p.KnownPeople.LastOrDefault().KnownPeople.Count == 1).ToList();
+            });
+
+            Assert.Throws<NotSupportedException>(() =>
+            {
+                Model.AsQueryable<Person>().Where(p => p.KnownPeople.LastOrDefault(q => q.KnownPeople.Count == 1) != null).ToList();
+            });
         }
 
         [Test]
