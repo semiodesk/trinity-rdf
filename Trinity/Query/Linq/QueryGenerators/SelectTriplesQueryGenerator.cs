@@ -55,7 +55,8 @@ namespace Semiodesk.Trinity.Query
             // are contained in the result.
             if(HasResultOperator<SkipResultOperator>()
                 || HasResultOperator<TakeResultOperator>()
-                || HasResultOperator<FirstResultOperator>())
+                || HasResultOperator<FirstResultOperator>()
+                || HasResultOperator<LastResultOperator>())
             {
                 // We create an outer query which selects all triples for the resources..
                 SparqlVariable s = VariableGenerator.GetGlobalSubjectVariable(); // TODO: Always create the subject variable here and register the expression later..
@@ -170,7 +171,8 @@ namespace Semiodesk.Trinity.Query
 
                 if(rootGenerator.HasResultOperator<SkipResultOperator>()
                     || rootGenerator.HasResultOperator<TakeResultOperator>()
-                    || rootGenerator.HasResultOperator<FirstResultOperator>())
+                    || rootGenerator.HasResultOperator<FirstResultOperator>()
+                    || rootGenerator.HasResultOperator<LastResultOperator>())
                 {
                     rootGenerator.Child(this);
                 }

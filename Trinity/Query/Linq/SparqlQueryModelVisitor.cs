@@ -27,8 +27,10 @@
 
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
+using Remotion.Linq.Clauses.ResultOperators;
 using System;
 using System.Diagnostics;
+using VDS.RDF.Query;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -176,7 +178,40 @@ namespace Semiodesk.Trinity.Query
         {
             base.VisitOrdering(ordering, queryModel, orderByClause, index);
 
-            _expressionVisitor.VisitOrdering(ordering);
+            _expressionVisitor.VisitExpression(ordering.Expression);
+
+            if (_variableGenerator.HasExpressionVariable(ordering.Expression))
+            {
+                SparqlVariable v = _variableGenerator.GetExpressionVariable(ordering.Expression);
+
+                ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+
+                // In case the query has a LastResultOperator, we invert the direction of the first
+                // ordering to retrieve the last element of the result set.
+                // See: SelectQueryGenerator.SetObjectOperator()
+                if (currentGenerator.HasResultOperator<LastResultOperator>() && index == 0)
+                {
+                    if (ordering.OrderingDirection == OrderingDirection.Asc)
+                    {
+                        currentGenerator.OrderByDescending(v);
+                    }
+                    else
+                    {
+                        currentGenerator.OrderBy(v);
+                    }
+                }
+                else
+                {
+                    if (ordering.OrderingDirection == OrderingDirection.Asc)
+                    {
+                        currentGenerator.OrderBy(v);
+                    }
+                    else
+                    {
+                        currentGenerator.OrderByDescending(v);
+                    }
+                }
+            }
         }
 
         public ISparqlQuery GetQuery()
