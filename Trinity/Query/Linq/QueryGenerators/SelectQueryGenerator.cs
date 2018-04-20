@@ -91,7 +91,7 @@ namespace Semiodesk.Trinity.Query
                 {
                     if (QueryModel.MainFromClause.FromExpression is MemberExpression)
                     {
-                        throw new NotSupportedException("The First and FirstOrDefault operators are not supported in subqueries.");
+                        //throw new NotSupportedException("The First and FirstOrDefault operators are not supported in subqueries.");
                     }
                     else
                     {
@@ -117,7 +117,7 @@ namespace Semiodesk.Trinity.Query
                 {
                     if (QueryModel.MainFromClause.FromExpression is MemberExpression)
                     {
-                        throw new NotSupportedException("The Last and LastOrDefault operators are not supported in subqueries.");
+                        //throw new NotSupportedException("The Last and LastOrDefault operators are not supported in subqueries.");
                     }
                     else
                     {

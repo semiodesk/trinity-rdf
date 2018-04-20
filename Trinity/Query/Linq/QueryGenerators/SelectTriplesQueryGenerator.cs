@@ -77,7 +77,8 @@ namespace Semiodesk.Trinity.Query
                     }
                     else
                     {
-                        throw new Exception("Unable to determine query subject from the given from-expression.");
+                        string msg = "Unable to determine query subject from the given expression:" + sourceExpression.ToString();
+                        throw new Exception(msg);
                     }
                 }
 

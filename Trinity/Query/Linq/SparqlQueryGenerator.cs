@@ -369,7 +369,7 @@ namespace Semiodesk.Trinity.Query
         {
             if(SelectBuilder != null)
             {
-                if (variable != null && !SelectedVariables.Contains(variable))
+                if (variable != null && !SelectedVariables.Any(v => v.Name == variable.Name))
                 {
                     SelectedVariables.Add(variable);
                 }
@@ -397,7 +397,14 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereEqual(SparqlVariable variable, ConstantExpression constant)
         {
-            PatternBuilder.Filter(e => e.Variable(variable.Name) == constant.AsLiteralExpression());
+            if (constant.Value != null)
+            {
+                PatternBuilder.Filter(e => e.Variable(variable.Name) == constant.AsLiteralExpression());
+            }
+            else
+            {
+                PatternBuilder.Filter(e => !e.Bound(variable.Name));
+            }
         }
 
         public void WhereEqual(MemberExpression expression, ConstantExpression constant)
@@ -429,7 +436,14 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereNotEqual(SparqlVariable variable, ConstantExpression constant)
         {
-            PatternBuilder.Filter(e => e.Variable(variable.Name) != new LiteralExpression(constant.AsSparqlExpression()));
+            if(constant.Value != null)
+            {
+                PatternBuilder.Filter(e => e.Variable(variable.Name) != new LiteralExpression(constant.AsSparqlExpression()));
+            }
+            else
+            {
+                PatternBuilder.Filter(e => e.Bound(variable.Name));
+            }
         }
 
         public void WhereNotEqual(MemberExpression expression, ConstantExpression constant)
