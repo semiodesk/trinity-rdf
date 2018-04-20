@@ -274,13 +274,32 @@ namespace Semiodesk.Trinity.Query
             }
             else
             {
-                QuerySourceReferenceExpression sourceExpression = expression.TryGetQuerySourceReference();
+                SparqlVariable s = null;
+                SparqlVariable o = null;
 
-                if (sourceExpression != null)
+                if (_variableGenerator.HasExpressionVariable(expression))
                 {
-                    SparqlVariable s = _variableGenerator.GetExpressionVariable(sourceExpression);
-                    SparqlVariable o = _variableGenerator.CreateLocalObjectVariable();
+                    s = _variableGenerator.GetExpressionVariable(expression);
+                    o = _variableGenerator.CreateLocalObjectVariable();
+                }
+                else
+                {
+                    QuerySourceReferenceExpression sourceExpression = expression.TryGetQuerySourceReference();
 
+                    if(sourceExpression != null)
+                    {
+                        s = _variableGenerator.GetExpressionVariable(sourceExpression);
+                        o = _variableGenerator.CreateLocalObjectVariable();
+
+                        if (expression != sourceExpression)
+                        {
+                            _variableGenerator.SetExpressionVariable(expression, o);
+                        }
+                    }
+                }
+
+                if (s != null && o != null)
+                {
                     // Set the variable name of the query source reference as subject of the current query.
                     currentGenerator.SetSubjectVariable(s);
                     currentGenerator.SetObjectVariable(o);
@@ -288,11 +307,6 @@ namespace Semiodesk.Trinity.Query
                     // Make the subject variable of sub queries available for outer queries.
                     currentGenerator.SelectVariable(s);
                     currentGenerator.SelectVariable(o);
-
-                    if (expression != sourceExpression)
-                    {
-                        _variableGenerator.SetExpressionVariable(expression, o);
-                    }
                 }
             }
 
@@ -515,7 +529,7 @@ namespace Semiodesk.Trinity.Query
             ISparqlQueryGenerator subGenerator = _queryGeneratorTree.CreateSubQueryGenerator<SelectQueryGenerator>(expression);
 
             // Sub queries always select the subject from the select clause of the root query.
-            subGenerator.SelectVariable(currentGenerator.SubjectVariable);
+            //subGenerator.SelectVariable(currentGenerator.SubjectVariable);
 
             // Set the sub query generator as the current query generator to implement the sub query.
             _queryGeneratorTree.SetCurrentQueryGenerator(subGenerator);

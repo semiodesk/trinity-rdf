@@ -29,6 +29,7 @@ using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
@@ -42,7 +43,7 @@ namespace Semiodesk.Trinity.Query
 
         private readonly Dictionary<string, int> _variableCounters = new Dictionary<string, int>();
 
-        private readonly Dictionary<string, SparqlVariable> _expressionVariables = new Dictionary<string, SparqlVariable>();
+        private readonly Dictionary<Expression, SparqlVariable> _expressionVariables = new Dictionary<Expression, SparqlVariable>();
 
         #endregion
 
@@ -72,42 +73,62 @@ namespace Semiodesk.Trinity.Query
 
         public bool HasExpressionVariable(Expression expression)
         {
-            string key = expression.ToString();
-
-            return _expressionVariables.ContainsKey(key);
+            return _expressionVariables.ContainsKey(expression);
         }
 
         public SparqlVariable GetExpressionVariable(Expression expression)
         {
-            QuerySourceReferenceExpression querySource = expression.TryGetQuerySourceReference();
-
-            if (querySource != null && querySource.ReferencedQuerySource is MainFromClause)
+            if(_expressionVariables.ContainsKey(expression))
             {
-                MainFromClause fromClause = querySource.ReferencedQuerySource as MainFromClause;
+                return _expressionVariables[expression];
+            }
+            else
+            {
+                QuerySourceReferenceExpression querySource = expression.TryGetQuerySourceReference();
 
-                if (fromClause.FromExpression is MemberExpression)
+                if (querySource != null && querySource.ReferencedQuerySource is MainFromClause)
                 {
-                    return _expressionVariables[fromClause.FromExpression.ToString()];
+                    MainFromClause fromClause = querySource.ReferencedQuerySource as MainFromClause;
+
+                    if (fromClause.FromExpression is MemberExpression)
+                    {
+                        return _expressionVariables[fromClause.FromExpression];
+                    }
+                }
+
+                string key = expression.ToString();
+
+                SparqlVariable v = _expressionVariables.FirstOrDefault(p => p.Key.ToString() == key).Value;
+
+                if(v != null)
+                {
+                    return v;
+                }
+                else
+                {
+                    throw new KeyNotFoundException(key);
                 }
             }
-
-            return _expressionVariables[expression.ToString()];
         }
 
         public void SetExpressionVariable(Expression expression, SparqlVariable variable)
         {
-            string key = expression.ToString();
-
-            _expressionVariables[key] = variable;
+            if(!_expressionVariables.ContainsKey(expression))
+            {
+                _expressionVariables[expression] = variable;
+            }
+            else if(_expressionVariables[expression] != variable)
+            {
+                string msg = "Variable mapping for expression '{0}' already exists: '{1}'. Cannot set value: '{2}'.";
+                throw new InvalidOperationException(string.Format(msg, expression.ToString(), _expressionVariables[expression].Name, variable.Name));
+            }
         }
 
         public SparqlVariable CreateLocalSubjectVariable(Expression expression)
         {
-            string key = expression.ToString();
-
             SparqlVariable s = new SparqlVariable(GetNextAvailableVariableName("s"));
 
-            _expressionVariables[key] = s;
+            _expressionVariables[expression] = s;
 
             return s;
         }
@@ -129,11 +150,9 @@ namespace Semiodesk.Trinity.Query
 
         public SparqlVariable GetGlobalSubjectVariable(Expression expression)
         {
-            string key = expression.ToString();
-
             SparqlVariable s = GetGlobalSubjectVariable();
 
-            _expressionVariables[key] = s;
+            _expressionVariables[expression] = s;
 
             return s;
         }
