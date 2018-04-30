@@ -117,6 +117,8 @@ namespace Semiodesk.Trinity.Query
             {
                 _generatorTree[generator] = new List<ISparqlQueryGenerator>() { subQueryGenerator };
             }
+
+            subQueryGenerator.ParentGenerator = generator;
         }
 
         public void RegisterQueryModel(ISparqlQueryGenerator generator, QueryModel queryModel)

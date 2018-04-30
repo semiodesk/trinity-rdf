@@ -127,6 +127,7 @@
     <Compile Include="Query\Linq\Extensions\ExpressionExstensions.cs" />
     <Compile Include="Query\Linq\ExpressionTreeVisitor.cs" />
     <Compile Include="Query\Linq\Extensions\MethodCallExpressionExtensions.cs" />
+    <Compile Include="Query\Linq\Extensions\QueryModelExtensions.cs" />
     <Compile Include="Query\Linq\Extensions\ResourceExtensions.cs" />
     <Compile Include="Query\Linq\Extensions\StringExtensions.cs" />
     <Compile Include="Query\Linq\ISparqlQueryGenerator.cs" />

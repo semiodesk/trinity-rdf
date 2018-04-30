@@ -71,6 +71,8 @@ namespace Semiodesk.Trinity.Query
 
         protected ISparqlQueryGeneratorTree QueryGeneratorTree;
 
+        public ISparqlQueryGenerator ParentGenerator { get; set; }
+
         #endregion
 
         #region Constructors
@@ -93,33 +95,6 @@ namespace Semiodesk.Trinity.Query
         #endregion
 
         #region Methods
-
-        public bool HasResultOperator<T>()
-        {
-            return QueryModel.ResultOperators.Any(op => op is T);
-        }
-
-        public bool HasNumericResultOperator()
-        {
-            return QueryModel.ResultOperators.Any(op => IsNumericResultOperator(op));
-        }
-
-        private bool IsNumericResultOperator(ResultOperatorBase op)
-        {
-            if (op is SumResultOperator
-                || op is CountResultOperator
-                || op is LongCountResultOperator
-                || op is AverageResultOperator
-                || op is MinResultOperator
-                || op is MaxResultOperator)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
     
         public string BuildQuery()
         {
@@ -219,7 +194,7 @@ namespace Semiodesk.Trinity.Query
 
                 if(member.IsSystemType())
                 {
-                    return VariableGenerator.GetExpressionVariable(memberExpression.Expression);
+                    return VariableGenerator.TryGetObjectVariable(memberExpression.Expression);
                 }
                 else
                 {
@@ -242,7 +217,7 @@ namespace Semiodesk.Trinity.Query
                         // We access the .Uri member of a resource. We do not need a property mapping and return the subject.
 
                         // Make the variable known for building filters on it later.
-                        VariableGenerator.SetExpressionVariable(memberExpression.Expression, s);
+                        VariableGenerator.SetSubjectVariable(memberExpression.Expression, s);
 
                         return s;
                     }
@@ -254,14 +229,14 @@ namespace Semiodesk.Trinity.Query
 
                         // Invoke the final user-handled member access triple builder callback.
                         buildMemberAccessTriple(s, p.MappedUri, o);
-                    }
+                    }   
 
                     return o;
                 }
             }
             else
             {
-                return VariableGenerator.GetExpressionVariable(expression);
+                return VariableGenerator.TryGetSubjectVariable(expression);
             }
         }
 
@@ -276,7 +251,7 @@ namespace Semiodesk.Trinity.Query
 
         protected void BuildFilterOnSystemType(MemberExpression memberExpression, Func<NumericExpression, BooleanExpression> buildFilter)
         {
-            SparqlVariable o = VariableGenerator.GetExpressionVariable(memberExpression.Expression);
+            SparqlVariable o = VariableGenerator.TryGetObjectVariable(memberExpression.Expression);
 
             MemberInfo member = memberExpression.Member;
 
@@ -392,7 +367,7 @@ namespace Semiodesk.Trinity.Query
 
             PatternBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(attribute.MappedUri).Object(variable.Name));
 
-            VariableGenerator.SetExpressionVariable(member, variable);
+            VariableGenerator.SetObjectVariable(member, variable);
         }
 
         public void WhereEqual(SparqlVariable variable, ConstantExpression constant)
@@ -592,7 +567,7 @@ namespace Semiodesk.Trinity.Query
 
         public void FilterRegex(MemberExpression expression, string pattern, bool ignoreCase)
         {
-            SparqlVariable s = VariableGenerator.GetExpressionVariable(expression);
+            SparqlVariable s = VariableGenerator.TryGetSubjectVariable(expression);
             SparqlVariable o = BuildMemberAccess(expression);
 
             FilterRegex(o, pattern, ignoreCase);
@@ -707,7 +682,7 @@ namespace Semiodesk.Trinity.Query
         {
             // This is a workaround for a bug in OpenLink Virtuoso where it throws an exception
             // when it receives a SPARQL query with a OFFSET but not LIMIT clause.
-            if (HasResultOperator<SkipResultOperator>() && !HasResultOperator<TakeResultOperator>())
+            if (QueryModel.HasResultOperator<SkipResultOperator>() && !QueryModel.HasResultOperator<TakeResultOperator>())
             {
                 SkipResultOperator op = QueryModel.ResultOperators.OfType<SkipResultOperator>().First();
 
