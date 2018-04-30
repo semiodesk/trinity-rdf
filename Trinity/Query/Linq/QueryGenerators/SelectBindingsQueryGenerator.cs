@@ -73,7 +73,7 @@ namespace Semiodesk.Trinity.Query
 
                     Where(member, o);
                 }
-                else if(HasNumericResultOperator())
+                else if(QueryModel.HasNumericResultOperator())
                 {
                     // If we have a numeric result operator on the root query, make the
                     // subject variable known so that the model visitor can handle it.

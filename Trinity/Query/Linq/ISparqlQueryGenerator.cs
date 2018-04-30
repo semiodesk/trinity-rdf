@@ -49,6 +49,10 @@ namespace Semiodesk.Trinity.Query
 
         IList<SparqlVariable> SelectedVariables { get; }
 
+        QueryModel QueryModel { get; }
+
+        ISparqlQueryGenerator ParentGenerator { get; set; }
+
         #endregion
 
         #region Methods
@@ -56,10 +60,6 @@ namespace Semiodesk.Trinity.Query
         string BuildQuery();
 
         void BindSelectVariables();
-
-        bool HasResultOperator<T>();
-
-        bool HasNumericResultOperator();
 
         IGraphPatternBuilder Child(ISparqlQueryGenerator queryGenerator);
 

@@ -55,13 +55,13 @@ namespace Semiodesk.Trinity.Query
 
             // If we are in the root query generator and have not yet selected the
             // subject variable, set it from the given selector.
-            if (IsRoot && SubjectVariable == null && VariableGenerator.HasExpressionVariable(selector))
+            if (IsRoot && SubjectVariable == null)
             {
-                SparqlVariable v = VariableGenerator.GetExpressionVariable(selector);
+                SparqlVariable o = VariableGenerator.TryGetObjectVariable(selector);
 
-                if (!IsSelectedVariable(v))
+                if (o != null && !IsSelectedVariable(o))
                 {
-                    SelectVariable(v.Name);
+                    SelectVariable(o.Name);
                 }
             }
         }

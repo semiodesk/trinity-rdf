@@ -155,7 +155,7 @@ namespace Semiodesk.Trinity.Query
         {
             ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
-            SparqlVariable s = _variableGenerator.GetExpressionVariable(sourceExpression);
+            SparqlVariable s = _variableGenerator.TryGetSubjectVariable(sourceExpression);
 
             switch (type)
             {
@@ -249,102 +249,87 @@ namespace Semiodesk.Trinity.Query
 
         public Expression VisitFromExpression(Expression expression, string itemName, Type itemType)
         {
-            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
-            if (expression is SubQueryExpression)
+            SparqlVariable s = _variableGenerator.TryGetSubjectVariable(expression);
+            SparqlVariable o = null;
+
+            if(s != null)
             {
-                SubQueryExpression subQuery = expression as SubQueryExpression;
-
-                ISparqlQueryGenerator subGenerator = _queryGeneratorTree.GetQueryGenerator(subQuery);
-
-                if (subGenerator.ObjectVariable != null)
-                {
-                    SparqlVariable o = _variableGenerator.CreateLocalObjectVariable();
-
-                    // The object of the sub query is the subject of the enclosing query.
-                    currentGenerator.SetSubjectVariable(subGenerator.ObjectVariable);
-                    currentGenerator.SetObjectVariable(o);
-
-                    // Make the subject variable of sub queries available for outer queries.
-                    currentGenerator.SelectVariable(subGenerator.SubjectVariable);
-                    currentGenerator.SelectVariable(o);
-
-                    _variableGenerator.SetExpressionVariable(expression, o);
-                }
+                o = _variableGenerator.CreateLocalObjectVariable();
             }
             else
             {
-                SparqlVariable s = null;
-                SparqlVariable o = null;
+                s = _variableGenerator.TryGetObjectVariable(expression);
 
-                if (_variableGenerator.HasExpressionVariable(expression))
+                if(s != null)
                 {
-                    s = _variableGenerator.GetExpressionVariable(expression);
                     o = _variableGenerator.CreateLocalObjectVariable();
+
+                    _variableGenerator.SetObjectVariable(expression, o);
                 }
                 else
                 {
                     QuerySourceReferenceExpression sourceExpression = expression.TryGetQuerySourceReference();
 
-                    if(sourceExpression != null)
+                    if (sourceExpression != null)
                     {
-                        s = _variableGenerator.GetExpressionVariable(sourceExpression);
+                        s = _variableGenerator.TryGetSubjectVariable(sourceExpression);
                         o = _variableGenerator.CreateLocalObjectVariable();
 
                         if (expression != sourceExpression)
                         {
-                            _variableGenerator.SetExpressionVariable(expression, o);
+                            //_variableGenerator.SetSubjectVariable(expression, o);
+                            _variableGenerator.SetObjectVariable(expression, o);
                         }
                     }
                 }
-
-                if (s != null && o != null)
-                {
-                    // Set the variable name of the query source reference as subject of the current query.
-                    currentGenerator.SetSubjectVariable(s);
-                    currentGenerator.SetObjectVariable(o);
-
-                    // Make the subject variable of sub queries available for outer queries.
-                    currentGenerator.SelectVariable(s);
-                    currentGenerator.SelectVariable(o);
-                }
             }
 
-            if (expression is MemberExpression)
+            if (s != null && o != null)
             {
-                // The from clause is parsed first when handling a query. This allows us to detect if the
-                // query source is a subquery and proceed with implementing it _before_ hanlding its results.
-                MemberExpression memberExpression = expression as MemberExpression;
+                // Set the variable name of the query source reference as subject of the current query.
+                generator.SetSubjectVariable(s);
+                generator.SetObjectVariable(o);
 
-                // Handle numeric result operators.
-                if (currentGenerator.HasNumericResultOperator())
+                // Make the subject variable of sub queries available for outer queries.
+                generator.SelectVariable(s);
+                generator.SelectVariable(o);
+
+                if (expression is MemberExpression)
                 {
-                    SparqlVariable s = currentGenerator.SubjectVariable;
+                    // The from clause is parsed first when handling a query. This allows us to detect if the
+                    // query source is a subquery and proceed with implementing it _before_ hanlding its results.
+                    MemberExpression memberExpression = expression as MemberExpression;
 
-                    if (s != null && s.IsGlobal())
+                    // Handle numeric result operators.
+                    if (generator.QueryModel.HasNumericResultOperator())
                     {
-                        currentGenerator.WhereResource(s);
-                        currentGenerator.WhereResourceOfType(s, memberExpression.Member.DeclaringType);
+                        if (s.IsGlobal())
+                        {
+                            generator.WhereResource(s);
+                            generator.WhereResourceOfType(s, memberExpression.Member.DeclaringType);
+                        }
+
+                        // If the query model has a numeric result operator, we make all the following
+                        // expressions optional in order to also allow to count zero occurences.
+                        var optionalBuilder = new GraphPatternBuilder(GraphPatternType.Optional);
+
+                        generator.Child(optionalBuilder);
+                        generator.SetPatternBuilder(optionalBuilder);
                     }
 
-                    // If the query model has a numeric result operator, we make all the following
-                    // expressions optional in order to also allow to count zero occurences.
-                    var optionalBuilder = new GraphPatternBuilder(GraphPatternType.Optional);
+                    if (memberExpression.Expression is SubQueryExpression)
+                    {
+                        // First, implement the subquery..
+                        SubQueryExpression subQueryExpression = memberExpression.Expression as SubQueryExpression;
 
-                    currentGenerator.Child(optionalBuilder);
-                    currentGenerator.SetPatternBuilder(optionalBuilder);
+                        VisitExpression(subQueryExpression);
+                    }
+
+                    // Handle the results of the subquery.
+                    VisitExpression(expression);
                 }
-
-                if (memberExpression.Expression is SubQueryExpression)
-                {
-                    // First, implement the subquery..
-                    SubQueryExpression subQueryExpression = memberExpression.Expression as SubQueryExpression;
-
-                    VisitExpression(subQueryExpression);
-                }
-
-                // Handle the results of the subquery.
-                VisitExpression(expression);
             }
 
             return expression;
@@ -371,18 +356,16 @@ namespace Semiodesk.Trinity.Query
 
             if (e is SubQueryExpression || e is QuerySourceReferenceExpression)
             {
-                ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+                ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
-                if(_variableGenerator.HasExpressionVariable(expression))
-                {
-                    currentGenerator.Where(expression, _variableGenerator.GetExpressionVariable(expression));
-                }
-                else
-                {
-                    SparqlVariable v = _variableGenerator.CreateLocalObjectVariable();
+                SparqlVariable o = _variableGenerator.TryGetObjectVariable(expression);
 
-                    currentGenerator.Where(expression, v);
+                if (o == null)
+                {
+                    o = _variableGenerator.CreateLocalObjectVariable();
                 }
+
+                generator.Where(expression, o);
             }
 
             return expression;
@@ -528,21 +511,16 @@ namespace Semiodesk.Trinity.Query
             ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
             ISparqlQueryGenerator subGenerator = _queryGeneratorTree.CreateSubQueryGenerator<SelectQueryGenerator>(expression);
 
-            // Sub queries always select the subject from the select clause of the root query.
-            //subGenerator.SelectVariable(currentGenerator.SubjectVariable);
-
             // Set the sub query generator as the current query generator to implement the sub query.
             _queryGeneratorTree.SetCurrentQueryGenerator(subGenerator);
 
             // Descend the query tree and implement the sub query.
             expression.QueryModel.Accept(_queryModelVisitor);
 
-            // Register the sub query expression with the variable generator.
-            if(!_variableGenerator.HasExpressionVariable(expression))
+            // Register the sub query expression with the variable generator (used for ORDER BYs in the outer query).
+            if(subGenerator.ObjectVariable != null && subGenerator.ObjectVariable.IsResultVariable)
             {
-                SparqlVariable o = subGenerator.ObjectVariable;
-
-                _variableGenerator.SetExpressionVariable(expression, o);
+                _variableGenerator.SetObjectVariable(expression, subGenerator.ObjectVariable);
             }
 
             // Reset the query generator and continue with implementing the outer query.

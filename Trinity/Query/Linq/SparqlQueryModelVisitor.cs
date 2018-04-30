@@ -180,35 +180,35 @@ namespace Semiodesk.Trinity.Query
 
             _expressionVisitor.VisitExpression(ordering.Expression);
 
-            if (_variableGenerator.HasExpressionVariable(ordering.Expression))
-            {
-                SparqlVariable v = _variableGenerator.GetExpressionVariable(ordering.Expression);
+            SparqlVariable o = _variableGenerator.TryGetObjectVariable(ordering.Expression);
 
+            if (o != null)
+            {
                 ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
 
                 // In case the query has a LastResultOperator, we invert the direction of the first
                 // ordering to retrieve the last element of the result set.
                 // See: SelectQueryGenerator.SetObjectOperator()
-                if (currentGenerator.HasResultOperator<LastResultOperator>() && index == 0)
+                if (currentGenerator.QueryModel.HasResultOperator<LastResultOperator>() && index == 0)
                 {
                     if (ordering.OrderingDirection == OrderingDirection.Asc)
                     {
-                        currentGenerator.OrderByDescending(v);
+                        currentGenerator.OrderByDescending(o);
                     }
                     else
                     {
-                        currentGenerator.OrderBy(v);
+                        currentGenerator.OrderBy(o);
                     }
                 }
                 else
                 {
                     if (ordering.OrderingDirection == OrderingDirection.Asc)
                     {
-                        currentGenerator.OrderBy(v);
+                        currentGenerator.OrderBy(o);
                     }
                     else
                     {
-                        currentGenerator.OrderByDescending(v);
+                        currentGenerator.OrderByDescending(o);
                     }
                 }
             }

@@ -43,7 +43,9 @@ namespace Semiodesk.Trinity.Query
 
         private readonly Dictionary<string, int> _variableCounters = new Dictionary<string, int>();
 
-        private readonly Dictionary<Expression, SparqlVariable> _expressionVariables = new Dictionary<Expression, SparqlVariable>();
+        private readonly Dictionary<string, SparqlVariable> _objectVariables = new Dictionary<string, SparqlVariable>();
+
+        private readonly Dictionary<string, SparqlVariable> _subjectVariables = new Dictionary<string, SparqlVariable>();
 
         #endregion
 
@@ -71,16 +73,44 @@ namespace Semiodesk.Trinity.Query
             return name + n;
         }
 
-        public bool HasExpressionVariable(Expression expression)
+        private string GetKey(Expression expression)
         {
-            return _expressionVariables.ContainsKey(expression);
+            if(expression is MemberExpression)
+            {
+                MemberExpression memberExpression = expression as MemberExpression;
+
+                if(memberExpression.Expression is QuerySourceReferenceExpression)
+                {
+                    QuerySourceReferenceExpression sourceExpression = memberExpression.Expression as QuerySourceReferenceExpression;
+
+                    return string.Format("{0}.[{1}].{2}", sourceExpression, sourceExpression.ReferencedQuerySource.ItemName, memberExpression.Member.Name);
+                }
+
+                return expression.ToString();
+            }
+            else
+            {
+                return expression.ToString();
+            }
         }
 
-        public SparqlVariable GetExpressionVariable(Expression expression)
+        public SparqlVariable TryGetSubjectVariable(Expression expression)
         {
-            if(_expressionVariables.ContainsKey(expression))
+            string key = GetKey(expression);
+
+            return _subjectVariables.ContainsKey(key) ? _subjectVariables[key] : null;
+        }
+
+        public SparqlVariable TryGetObjectVariable(Expression expression)
+        {
+            string key = GetKey(expression);
+
+            return _objectVariables.ContainsKey(key) ? _objectVariables[key] : null;
+
+            /*
+            if(_objectVariables.ContainsKey(expression))
             {
-                return _expressionVariables[expression];
+                return _objectVariables[expression];
             }
             else
             {
@@ -92,13 +122,13 @@ namespace Semiodesk.Trinity.Query
 
                     if (fromClause.FromExpression is MemberExpression)
                     {
-                        return _expressionVariables[fromClause.FromExpression];
+                        return _objectVariables[fromClause.FromExpression];
                     }
                 }
 
                 string key = expression.ToString();
 
-                SparqlVariable v = _expressionVariables.FirstOrDefault(p => p.Key.ToString() == key).Value;
+                SparqlVariable v = _objectVariables.FirstOrDefault(p => p.Key.ToString() == key).Value;
 
                 if(v != null)
                 {
@@ -109,18 +139,36 @@ namespace Semiodesk.Trinity.Query
                     throw new KeyNotFoundException(key);
                 }
             }
+            */
         }
 
-        public void SetExpressionVariable(Expression expression, SparqlVariable variable)
+        public void SetSubjectVariable(Expression expression, SparqlVariable variable)
         {
-            if(!_expressionVariables.ContainsKey(expression))
+            string key = GetKey(expression);
+
+            if (!_subjectVariables.ContainsKey(key))
             {
-                _expressionVariables[expression] = variable;
+                _subjectVariables[key] = variable;
             }
-            else if(_expressionVariables[expression] != variable)
+            else if (_subjectVariables[key] != variable)
             {
                 string msg = "Variable mapping for expression '{0}' already exists: '{1}'. Cannot set value: '{2}'.";
-                throw new InvalidOperationException(string.Format(msg, expression.ToString(), _expressionVariables[expression].Name, variable.Name));
+                throw new InvalidOperationException(string.Format(msg, expression.ToString(), _subjectVariables[key].Name, variable.Name));
+            }
+        }
+
+        public void SetObjectVariable(Expression expression, SparqlVariable variable)
+        {
+            string key = GetKey(expression);
+
+            if (!_objectVariables.ContainsKey(key))
+            {
+                _objectVariables[key] = variable;
+            }
+            else if(_objectVariables[key] != variable)
+            {
+                string msg = "Variable mapping for expression '{0}' already exists: '{1}'. Cannot set value: '{2}'.";
+                throw new InvalidOperationException(string.Format(msg, expression.ToString(), _objectVariables[key].Name, variable.Name));
             }
         }
 
@@ -128,7 +176,9 @@ namespace Semiodesk.Trinity.Query
         {
             SparqlVariable s = new SparqlVariable(GetNextAvailableVariableName("s"));
 
-            _expressionVariables[expression] = s;
+            string key = GetKey(expression);
+
+            _subjectVariables[key] = s;
 
             return s;
         }
@@ -152,7 +202,9 @@ namespace Semiodesk.Trinity.Query
         {
             SparqlVariable s = GetGlobalSubjectVariable();
 
-            _expressionVariables[expression] = s;
+            string key = GetKey(expression);
+
+            _subjectVariables[key] = s;
 
             return s;
         }
