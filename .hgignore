@@ -27,10 +27,9 @@ obj/*
 bin/*
 Build/*
 packages/*
+api/*
 TestResult.xml
 tools/*
-api/.manifest
-api/*.yml
 doc/docfx_project/_site/**
-**/.vs/**
 tests/cilg-integration/build/*
+**/.vs/**

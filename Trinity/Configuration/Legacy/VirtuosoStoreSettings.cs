@@ -25,30 +25,56 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
+
+using Semiodesk.Trinity.Configuration.Legacy;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Text;
+using System.Xml;
+using System.Xml.Linq;
 using System.Xml.Serialization;
 
-namespace Semiodesk.Trinity.Configuration
+namespace Semiodesk.Trinity.Configuration.Legacy
 {
     /// <summary>
-    /// A file source of a element
+    /// Constains Virtuoso specific settings
     /// </summary>
-    public class FileSource : ConfigurationElement
+    public class VirtuosoStoreSettings : ConfigurationElement, IStoreConfiguration
     {
         /// <summary>
-        /// The location of this file source
+        /// A collection of rule sets
         /// </summary>
-        [ConfigurationProperty("Location", IsRequired=true)]
-        public string Location
+        [ConfigurationProperty("RuleSets", IsDefaultCollection = true)]
+        public RuleSetCollection RuleSets
         {
-            get { return (string)base["Location"]; }
-            set { base["Location"] = value; }
+            get { return (RuleSetCollection)base["RuleSets"]; }
+        }
+
+
+        public string Type
+        {
+            get { return "virtuoso"; }
+        }
+
+        public XElement Data
+        {
+            get 
+            {
+                StringBuilder content = new StringBuilder();
+                content.Append("<rulesets>");
+                foreach (var set in RuleSets)
+                {
+                    content.AppendFormat("<ruleset uri=\"{0}\">", set.Uri);
+                    foreach( var graph in set.Graphs )
+                        content.AppendFormat("<graph uri=\"{0}\"/>", graph.Uri);
+
+                    content.Append("</ruleset>");
+                }
+                content.Append("</rulesets>");
+                return XElement.Parse(content.ToString());
+            }
         }
     }
-
 }

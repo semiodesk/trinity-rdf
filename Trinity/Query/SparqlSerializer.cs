@@ -546,7 +546,7 @@ namespace Semiodesk.Trinity
             return queryBuilder.ToString();
         }
 
-        internal static string SerializeFetchUris(IModel model, ISparqlQuery query, int offset = -1, int limit = -1)
+        public static string SerializeFetchUris(IModel model, ISparqlQuery query, int offset = -1, int limit = -1)
         {
             string variable = "?" + query.GetGlobalScopeVariableNames()[0];
             string from = GenerateDatasetClause(model);
@@ -583,7 +583,7 @@ namespace Semiodesk.Trinity
             return queryBuilder.ToString();
         }
 
-        internal static string SerializeOffsetLimit(IModel model, ISparqlQuery query, int offset = -1, int limit = -1)
+        public static string SerializeOffsetLimit(IModel model, ISparqlQuery query, int offset = -1, int limit = -1)
         {
             string variable = "?" + query.GetGlobalScopeVariableNames()[0];
             string from = GenerateDatasetClause(model);

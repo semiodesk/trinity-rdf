@@ -30,14 +30,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Text.RegularExpressions;
 using Semiodesk.Trinity.Store;
 using System.Configuration;
+using Semiodesk.Trinity.Exceptions;
+
 #if NETSTANDARD2_0
 using System.Composition.Hosting;
 #elif !NET_3_5
 using System.ComponentModel.Composition.Hosting;
+using Semiodesk.Trinity.Exceptions;
 #endif
 
 namespace Semiodesk.Trinity
@@ -51,14 +53,13 @@ namespace Semiodesk.Trinity
         private static readonly Dictionary<string, StoreProvider> _storeConfigurations = new Dictionary<string, StoreProvider>()
         {
             #if !NETSTANDARD2_0
-            {"virtuoso", new VirtuosoStoreProvider()},
             #endif
             {"dotnetrdf", new dotNetRDFStoreProvider()},
             {"sparqlendpoint", new SparqlEndpointStoreProvider()},
             {"stardog", new StardogStoreProvider()}
         };
 
-#region Factory Methods
+        #region Factory Methods
 
         /// <summary>
         /// Tests if the given connection string is valid.
@@ -95,13 +96,25 @@ namespace Semiodesk.Trinity
             if (config.ContainsKey("provider"))
             {
                 string provider = config["provider"];
+
+
                 if (_storeConfigurations.ContainsKey(provider))
                 {
-                    StoreProvider p = _storeConfigurations[provider];
-                    return p.GetStore(config);
+                    try
+                    {
+                        StoreProvider p = _storeConfigurations[provider];
+                        return p.GetStore(config);
+                    }
+                    catch (Exception e)
+                    {
+                        throw new StoreProviderMissingException("An error occured while trying to create the store with key \"" + provider + "\". Check the inner exception.", e);
+                    }
+
+                    
                 }
+                throw new StoreProviderMissingException("No store provider with key \"" + provider + "\" found. Try to register it with \"StoreFactory.LoadProvider()\"");
             }
-            return null;
+            throw new StoreProviderMissingException("No store provider key specified.");
         }
 
         /// <summary>
@@ -111,16 +124,16 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static IStore CreateStoreFromConfiguration(string name = null)
         {
-            foreach( ConnectionStringSettings setting in ConfigurationManager.ConnectionStrings)
+            foreach (ConnectionStringSettings setting in ConfigurationManager.ConnectionStrings)
             {
                 if (!string.IsNullOrEmpty(name) && setting.Name != name)
                     continue;
-                            
+
                 string conString = setting.ConnectionString;
                 if (setting.ProviderName == "Semiodesk.Trinity" && StoreFactory.TestConnectionString(conString))
                     return CreateStore(conString);
             }
-            if( !string.IsNullOrEmpty(name) )
+            if (!string.IsNullOrEmpty(name))
                 throw new ArgumentException(string.Format("Connection string with given name \"{0}\" not found.", name));
 
             return null;
@@ -136,7 +149,7 @@ namespace Semiodesk.Trinity
             bool result = false;
             try
             {
-#if NETSTANDARD2_0
+                #if NETSTANDARD2_0
                 ContainerConfiguration config = new ContainerConfiguration().WithAssembly(Assembly.LoadFrom(assemblyPath));
                 var container = config.CreateContainer();
                 foreach (StoreProvider provider in container.GetExports<StoreProvider>())
@@ -147,7 +160,7 @@ namespace Semiodesk.Trinity
                         result = true;
                     }
                 }
-#elif NET_3_5
+                #elif NET_3_5
 
                 Assembly assembly = Assembly.LoadFrom(assemblyPath);
                 var types = assembly.GetTypes().Where(x => x.IsSubclassOf(typeof(StoreProvider)));
@@ -160,7 +173,7 @@ namespace Semiodesk.Trinity
                         result = true;
                     }
                 }
-#else
+                #else
                 AssemblyCatalog catalog = new AssemblyCatalog(assemblyPath);
                 var container = new CompositionContainer(catalog);
                 foreach (var item in container.GetExports<StoreProvider>())
@@ -172,7 +185,7 @@ namespace Semiodesk.Trinity
                         result = true;
                     }
                 }
-#endif
+                #endif
             }
             catch (Exception)
             {
@@ -184,13 +197,18 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Tries to load a store provider from the given assembly.
         /// </summary>
-        /// <param name="assembly"></param>
+        /// <param name="assemblyFile"></param>
         /// <returns></returns>
-        public static bool LoadProvider(FileInfo assembly)
+        public static bool LoadProvider(FileInfo assemblyFile)
         {
-            return LoadProvider(assembly.FullName);
+            return LoadProvider(assemblyFile.FullName);
         }
 
-#endregion
+        public static bool LoadProvider(Assembly assembly)
+        {
+            return LoadProvider(assembly.Location);
+        }
+
+        #endregion
     }
 }

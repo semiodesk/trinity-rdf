@@ -57,7 +57,7 @@ namespace dotNetRDFStore.Test
         {
             Uri testModel = new Uri("ex:Test");
 
-            Store.LoadOntologySettings();
+            Store.InitializeFromConfiguration();
 
             Assert.AreEqual(7, Store.ListModels().Count());
         }
@@ -66,12 +66,9 @@ namespace dotNetRDFStore.Test
         public void LoadOntologiesFromFileTest()
         {
             Uri testModel = new Uri("ex:Test");
+            string configFile = Path.Combine(Environment.CurrentDirectory, "custom.config");
+            Store.InitializeFromConfiguration(configFile);
 
-            DirectoryInfo assembly = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory;
-
-            string configFile = Path.Combine(assembly.FullName, "custom.config");
-
-            Store.LoadOntologySettings(configFile);
 
             Assert.AreEqual(4, Store.ListModels().Count());
 

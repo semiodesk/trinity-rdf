@@ -47,7 +47,7 @@ namespace Semiodesk.Trinity.Test.Stardog
 {
 
     [TestFixture]
-    public class ResourceMappingTest
+    public class StardogResourceMappingTest
     {
         public static bool RegisteredOntology = false;
 

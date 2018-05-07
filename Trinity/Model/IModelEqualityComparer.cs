@@ -23,62 +23,45 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2017
 
 
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Text;
 
-namespace Semiodesk.Trinity.Configuration
+namespace Semiodesk.Trinity
 {
     /// <summary>
-    /// Constains the settings for the Semiodesk.Trinity framework.
+    /// Compares two models by their uris
     /// </summary>
-    public class TrinitySettings : ConfigurationSection
+    class IModelEqualityComparer : IEqualityComparer<IModel>
     {
+        #region IEqualityComparer<IModel> Members
+
         /// <summary>
-        /// Namespace of the generated ontology file.
+        /// Equals
         /// </summary>
-        [ConfigurationProperty("namespace", DefaultValue = "Semiodesk.Trinity.Model", IsRequired = true)]
-        [StringValidator(InvalidCharacters = "  ~!@#$%^&*()[]{}/;’\"|\\")]
-        public string Namespace
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
+        public bool Equals(IModel x, IModel y)
         {
-            get
-            {
-                return (string)this["namespace"];
-            }
-            set
-            {
-                this["namespace"] = value;
-            }
+            return x.Uri.Equals(y.Uri);
         }
 
         /// <summary>
-        /// Collection of ontologies
+        /// HashCode
         /// </summary>
-        [ConfigurationProperty("OntologySettings", IsDefaultCollection = true)]
-        public OntologyCollection Ontologies
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public int GetHashCode(IModel obj)
         {
-            get { return (OntologyCollection)base["OntologySettings"]; }
+            return obj.Uri.AbsoluteUri.GetHashCode();
         }
 
-        /// <summary>
-        /// Virtuoso specific settings
-        /// </summary>
-        [ConfigurationProperty("VirtuosoStoreSettings")]
-        public VirtuosoStoreSettings VirtuosoStoreSettings
-        {
-            get
-            {
-                return (VirtuosoStoreSettings)this["VirtuosoStoreSettings"];
-            }
-            set
-            {
-                this["VirtuosoStoreSettings"] = value;
-            }
-        }
+        #endregion
     }
+
 }
