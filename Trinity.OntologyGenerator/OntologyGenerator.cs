@@ -139,16 +139,13 @@ namespace Semiodesk.Trinity.OntologyGenerator
         public bool AddOntology(Uri graphUri, Uri metadataUri, string prefix)
         {
             if (graphUri == null)
-            {
                 return false;
-            }
 
             IModel graphModel = _store.GetModel(graphUri);
 
-            if (graphModel == null)
-            {
+            if (graphModel.IsEmpty) 
                 return false;
-            }
+
 
             IModel metadataModel = null;
 

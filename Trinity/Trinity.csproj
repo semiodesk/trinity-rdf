@@ -39,25 +39,18 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Dependencies\Net40\dotNetRDF.dll</HintPath>
     </Reference>
-    <Reference Include="dotNetRDF.Data.Virtuoso, Version=1.0.10.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\Net40\dotNetRDF.Data.Virtuoso.dll</HintPath>
-    </Reference>
     <Reference Include="HtmlAgilityPack, Version=1.4.9.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Dependencies\Net40\HtmlAgilityPack.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\Net40\packages\Newtonsoft.Json.9.0.1\lib\net40\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\Net40\packages\Newtonsoft.Json.10.0.3\lib\net40\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
-    </Reference>
-    <Reference Include="OpenLink.Data.Virtuoso, Version=6.2.3128.1, Culture=neutral, PublicKeyToken=6654f6917d07cb95, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\OpenLink.Data.Virtuoso.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
@@ -82,17 +75,24 @@
     <Compile Include="Collections\ResourceQueryItemsProvider.cs" />
     <Compile Include="Collections\VirtualizingResourceCollection.cs" />
     <Compile Include="Collections\VirtualizingCollection.cs" />
-    <Compile Include="Configuration\FileSource.cs" />
-    <Compile Include="Configuration\Graph.cs" />
-    <Compile Include="Configuration\GraphCollection.cs" />
-    <Compile Include="Configuration\Ontology.cs" />
-    <Compile Include="Configuration\OntologyCollection.cs" />
-    <Compile Include="Configuration\RuleSet.cs" />
-    <Compile Include="Configuration\RuleSetCollection.cs" />
-    <Compile Include="Configuration\TrinitySettings.cs" />
-    <Compile Include="Configuration\VirtuosoStoreSettings.cs" />
+    <Compile Include="Configuration\Configuration.cs" />
+    <Compile Include="Configuration\ConfigurationLoader.cs" />
+    <Compile Include="Configuration\IConfiguration.cs" />
+    <Compile Include="Configuration\IOntologyConfiguration.cs" />
+    <Compile Include="Configuration\IStoreConfiguration.cs" />
+    <Compile Include="Configuration\Legacy\FileSource.cs" />
+    <Compile Include="Configuration\Legacy\Graph.cs" />
+    <Compile Include="Configuration\Legacy\GraphCollection.cs" />
+    <Compile Include="Configuration\Legacy\Ontology.cs" />
+    <Compile Include="Configuration\Legacy\OntologyCollection.cs" />
+    <Compile Include="Configuration\Legacy\RuleSet.cs" />
+    <Compile Include="Configuration\Legacy\RuleSetCollection.cs" />
+    <Compile Include="Configuration\Legacy\TrinitySettings.cs" />
+    <Compile Include="Configuration\Legacy\VirtuosoStoreSettings.cs" />
     <Compile Include="Exceptions.cs" />
+    <Compile Include="Exceptions\StoreProviderMissingException.cs" />
     <Compile Include="IPropertyMapping.cs" />
+    <Compile Include="Model\IModelEqualityComparer.cs" />
     <Compile Include="Query\IResourceQueryResult.cs" />
     <Compile Include="ITransactional.cs" />
     <Compile Include="Model\IModelGroup.cs" />
@@ -126,6 +126,7 @@
     <Compile Include="Query\StatementPattern.cs" />
     <Compile Include="Serialization\JsonResourceConverter.cs" />
     <Compile Include="Serialization\JsonResourceSerializerSettings.cs" />
+    <Compile Include="Stores\StoreBase.cs" />
     <Compile Include="Stores\dotNetRDF\GraphTripleProvider.cs" />
     <Compile Include="Stores\dotNetRDF\ITripleProvider.cs" />
     <Compile Include="Stores\dotNetRDF\SparqlResultSetTripleProvider.cs" />
@@ -145,15 +146,10 @@
     <Compile Include="Stores\SparqlEndpoint\SparqlEndpointStoreProvider.cs" />
     <Compile Include="Stores\SparqlEndpoint\SparqlEndpointQueryResult.cs" />
     <Compile Include="Stores\SparqlEndpoint\SparqlEndpointStorage.cs" />
-    <Compile Include="Stores\Virtuoso\VirtuosoSpecific.cs" />
-    <Compile Include="Stores\Virtuoso\VirtuosoStoreProvider.cs" />
-    <Compile Include="Stores\Virtuoso\VirtuosoTransaction.cs" />
     <Compile Include="Resource.cs" />
     <Compile Include="ResourceCache.cs" />
     <Compile Include="Query\SparqlQuery.cs" />
-    <Compile Include="Stores\Virtuoso\VirtuosoSparqlQueryResult.cs" />
     <Compile Include="Query\SparqlSerializer.cs" />
-    <Compile Include="Stores\Virtuoso\VirtuosoStore.cs" />
     <Compile Include="Query\SparqlUpdate.cs" />
     <Compile Include="UriRef.cs" />
     <Compile Include="XsdTypeMapper.cs" />

@@ -43,7 +43,7 @@ namespace Semiodesk.Trinity.Store
     /// 
     /// </summary>
     /// <see cref="http://www.w3.org/TR/rdf-sparql-protocol/#SparqlQuery"/>
-    internal class SparqlEndpointStorage : IStore
+    internal class SparqlEndpointStore : IStore
     {
         #region Members
 
@@ -58,7 +58,7 @@ namespace Semiodesk.Trinity.Store
 
         #region Constructor
 
-        public SparqlEndpointStorage(Uri endpointUri, IWebProxy proxy = null, ICredentials credentials = null)
+        public SparqlEndpointStore(Uri endpointUri, IWebProxy proxy = null, ICredentials credentials = null)
         {
             _endpoint = new SparqlRemoteEndpoint(endpointUri);
             
@@ -86,7 +86,12 @@ namespace Semiodesk.Trinity.Store
         }
 
 
-        public void LoadOntologySettings(string configPath = null, string sourceDir = null)
+        public void InitializeFromConfiguration(string configPath = null, string sourceDir = null)
+        {
+            throw new NotSupportedException();
+        }
+
+        public void LoadOntologies(string configPath = null, string sourceDir = null)
         {
             throw new NotSupportedException();
         }

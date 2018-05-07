@@ -47,12 +47,12 @@ namespace Semiodesk.Trinity.Test.Stardog
     /// \> stardog-admin user passwd
     /// 8. Set password to admin when promted
     /// 9. Run 
-    /// \>stardog-admin db create -n MyStore
+    /// \>stardog-admin db create -n test
     /// 
     /// </summary>
 
     [TestFixture]
-    class StoreTest
+    class StardogStoreTest
     {
         IStore Store;
 
@@ -74,18 +74,17 @@ namespace Semiodesk.Trinity.Test.Stardog
         {
             Uri testModel = new Uri("ex:Test");
 
-            Store.LoadOntologySettings();
+            Store.InitializeFromConfiguration();
 
-            Assert.AreEqual(6, Store.ListModels().Count());
+            Assert.AreEqual(7, Store.ListModels().Count());
         }
 
         [Test]
         public void LoadOntologiesFromFileTest()
         {
             Uri testModel = new Uri("ex:Test");
-            DirectoryInfo asm = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory;
-            string configFile = Path.Combine(asm.FullName, "custom.config");
-            Store.LoadOntologySettings(configFile);
+            string configFile = Path.Combine(Environment.CurrentDirectory, "custom.config");
+            Store.InitializeFromConfiguration(configFile);
 
             Assert.AreEqual(4, Store.ListModels().Count());
 

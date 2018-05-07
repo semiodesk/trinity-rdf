@@ -23,7 +23,7 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2017
 
 using System;
 using System.Collections;
@@ -36,35 +36,12 @@ using System.Text;
 
 namespace Semiodesk.Trinity
 {
-    /// <summary>
-    /// Compares two models by their uris
-    /// </summary>
-    class IModelEqualityComparer : IEqualityComparer<IModel>
+    public class ModelGroupFactory
     {
-        #region IEqualityComparer<IModel> Members
-
-        /// <summary>
-        /// Equals
-        /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <returns></returns>
-        public bool Equals(IModel x, IModel y)
+        public static IModelGroup CreateModelGroup(IStore store, IEnumerable<IModel> models)
         {
- 	        return x.Uri.Equals(y.Uri);
+            return new ModelGroup(store, models);
         }
-
-        /// <summary>
-        /// HashCode
-        /// </summary>
-        /// <param name="obj"></param>
-        /// <returns></returns>
-        public int GetHashCode(IModel obj)
-        {
- 	        return obj.Uri.AbsoluteUri.GetHashCode();
-        }
-
-        #endregion
     }
 
     /// <summary>

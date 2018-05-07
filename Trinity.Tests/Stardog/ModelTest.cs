@@ -39,7 +39,7 @@ namespace Semiodesk.Trinity.Test.Stardog
 
 
     [TestFixture]
-    class ModelTest
+    class StardogModelTest
     {
         IStore Store;
         IModel Model;

@@ -180,6 +180,16 @@ namespace Semiodesk.Trinity
             return NativeToXsd[type];
         }
 
+        /// <summary>
+        /// Provides the XML Schema type URI for a given .NET type.
+        /// </summary>
+        /// <param name="type">A .NET type object.</param>
+        /// <returns>A XML Schema type URI.</returns>
+        public static Type GetTypeFromXsd(Uri uri)
+        {
+            return XsdToNative[uri.AbsoluteUri];
+        }
+
         #endregion
 
         #region Serialization

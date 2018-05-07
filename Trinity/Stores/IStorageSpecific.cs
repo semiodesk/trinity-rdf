@@ -33,7 +33,7 @@ using System.Text;
 
 namespace Semiodesk.Trinity
 {
-    [EditorBrowsable(EditorBrowsableState.Never)]
+    
     public interface IStorageSpecific
     {
         void Update(IStore store);
