@@ -27,10 +27,8 @@
 
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
-using Remotion.Linq.Clauses.ResultOperators;
 using System;
 using System.Diagnostics;
-using VDS.RDF.Query;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -46,17 +44,17 @@ namespace Semiodesk.Trinity.Query
         /// <summary>
         /// Allows to access query generators and sub query generators in a tree-like fashion.
         /// </summary>
-        private readonly ISparqlQueryGeneratorTree _queryGeneratorTree;
+        protected readonly ISparqlQueryGeneratorTree QueryGeneratorTree;
 
         /// <summary>
         /// A common variable name generator for all query generators.
         /// </summary>
-        private readonly SparqlVariableGenerator _variableGenerator = new SparqlVariableGenerator();
+        protected readonly SparqlVariableGenerator VariableGenerator = new SparqlVariableGenerator();
 
         /// <summary>
         /// Visits all expressions in a query model and handles the query generation.
         /// </summary>
-        private readonly ExpressionTreeVisitor _expressionVisitor;
+        protected readonly ExpressionTreeVisitor ExpressionVisitor;
 
         #endregion
 
@@ -65,10 +63,10 @@ namespace Semiodesk.Trinity.Query
         public SparqlQueryModelVisitor(ISparqlQueryGenerator queryGenerator)
         {
             // Add the root query builder to the query tree.
-            _queryGeneratorTree = new SparqlQueryGeneratorTree(queryGenerator, _variableGenerator);
+            QueryGeneratorTree = new SparqlQueryGeneratorTree(queryGenerator, VariableGenerator);
 
             // The expression tree visitor needs to be initialized *after* the query builders.
-            _expressionVisitor = new ExpressionTreeVisitor(this, _queryGeneratorTree, _variableGenerator);
+            ExpressionVisitor = new ExpressionTreeVisitor(this, QueryGeneratorTree, VariableGenerator);
         }
 
         #endregion
@@ -97,26 +95,25 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitMainFromClause(MainFromClause fromClause, QueryModel queryModel)
         {
-            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
 
             currentGenerator.OnBeforeFromClauseVisited(fromClause.FromExpression);
 
-            // Try to set the subject and object variable from the from-clause.
-            _expressionVisitor.VisitFromExpression(fromClause.FromExpression, fromClause.ItemName, fromClause.ItemType);
+            ExpressionVisitor.VisitFromExpression(fromClause.FromExpression, fromClause.ItemName, fromClause.ItemType);
 
             currentGenerator.OnFromClauseVisited(fromClause.FromExpression);
         }
 
         public override void VisitQueryModel(QueryModel queryModel)
         {
-            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
 
-            currentGenerator.SetQueryContext(queryModel, _queryGeneratorTree, _variableGenerator);
+            currentGenerator.SetQueryContext(queryModel, QueryGeneratorTree, VariableGenerator);
 
             // The root query generator cannot be registered until this method is invoked.
-            if (!_queryGeneratorTree.HasQueryGenerator(queryModel))
+            if (!QueryGeneratorTree.HasQueryGenerator(queryModel))
             {
-                _queryGeneratorTree.RegisterQueryModel(currentGenerator, queryModel);
+                QueryGeneratorTree.RegisterQueryModel(currentGenerator, queryModel);
             }
 
             // Handle the main from clause before the select.
@@ -128,7 +125,7 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitResultOperator(ResultOperatorBase resultOperator, QueryModel queryModel, int index)
         {
-            ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator generator = QueryGeneratorTree.GetCurrentQueryGenerator();
 
             // If we are in a sub query, apply the operator on the query object.
             if(generator.ObjectVariable != null)
@@ -143,7 +140,7 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitSelectClause(SelectClause selectClause, QueryModel queryModel)
         {
-            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
 
             currentGenerator.OnBeforeSelectClauseVisited(selectClause.Selector);
 
@@ -166,57 +163,19 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitWhereClause(WhereClause whereClause, QueryModel queryModel, int index)
         {
-            _expressionVisitor.VisitExpression(whereClause.Predicate);
-        }
-
-        public override void VisitOrderByClause(OrderByClause orderByClause, QueryModel queryModel, int index)
-        {
-            base.VisitOrderByClause(orderByClause, queryModel, index);
+            ExpressionVisitor.Visit(whereClause.Predicate);
         }
 
         public override void VisitOrdering(Ordering ordering, QueryModel queryModel, OrderByClause orderByClause, int index)
         {
             base.VisitOrdering(ordering, queryModel, orderByClause, index);
 
-            _expressionVisitor.VisitExpression(ordering.Expression);
-
-            SparqlVariable o = _variableGenerator.TryGetObjectVariable(ordering.Expression);
-
-            if (o != null)
-            {
-                ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
-
-                // In case the query has a LastResultOperator, we invert the direction of the first
-                // ordering to retrieve the last element of the result set.
-                // See: SelectQueryGenerator.SetObjectOperator()
-                if (currentGenerator.QueryModel.HasResultOperator<LastResultOperator>() && index == 0)
-                {
-                    if (ordering.OrderingDirection == OrderingDirection.Asc)
-                    {
-                        currentGenerator.OrderByDescending(o);
-                    }
-                    else
-                    {
-                        currentGenerator.OrderBy(o);
-                    }
-                }
-                else
-                {
-                    if (ordering.OrderingDirection == OrderingDirection.Asc)
-                    {
-                        currentGenerator.OrderBy(o);
-                    }
-                    else
-                    {
-                        currentGenerator.OrderByDescending(o);
-                    }
-                }
-            }
+            ExpressionVisitor.VisitOrdering(ordering, index);
         }
 
         public ISparqlQuery GetQuery()
         {
-            string queryString = _queryGeneratorTree.GetRootQueryGenerator().BuildQuery();
+            string queryString = QueryGeneratorTree.GetRootQueryGenerator().BuildQuery();
 
             ISparqlQuery query = new SparqlQuery(queryString);
 

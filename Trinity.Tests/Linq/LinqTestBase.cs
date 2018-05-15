@@ -53,13 +53,25 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Assert.IsTrue(persons.Any());
 
+            persons = from person in Model.AsQueryable<Person>() where person.Status select person;
+
+            Assert.IsTrue(persons.Any());
+
             persons = from person in Model.AsQueryable<Person>() where person.Status == true select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person;
+
+            Assert.IsTrue(persons.Any());
+
+            persons = from person in Model.AsQueryable<Person>() where !person.Status select person;
 
             Assert.IsTrue(persons.Any());
 
             persons = from person in Model.AsQueryable<Person>() where person.Status == false select person;
 
-            Assert.IsFalse(persons.Any());
+            Assert.IsTrue(persons.Any());
         }
 
         [Test]
@@ -173,13 +185,29 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Assert.AreEqual(1, states.ToList().Count);
 
+            states = from person in Model.AsQueryable<Person>() where person.Status select person.Status;
+
+            Assert.AreEqual(1, states.ToList().Count);
+
             states = from person in Model.AsQueryable<Person>() where person.Status == true select person.Status;
 
             Assert.AreEqual(1, states.ToList().Count);
 
+            states = from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person.Status;
+
+            Assert.AreEqual(2, states.ToList().Count);
+
+            states = from person in Model.AsQueryable<Person>() where !person.Status select person.Status;
+
+            Assert.AreEqual(2, states.ToList().Count);
+
             states = from person in Model.AsQueryable<Person>() where person.Status == false select person.Status;
 
-            Assert.AreEqual(0, states.ToList().Count);
+            Assert.AreEqual(2, states.ToList().Count);
+
+            states = from person in Model.AsQueryable<Person>() select person.Status;
+
+            Assert.AreEqual(3, states.ToList().Count);
         }
 
         [Test]
@@ -189,13 +217,25 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Assert.AreEqual(1, ages.ToList().Count);
 
+            ages = from person in Model.AsQueryable<Person>() where person.Status select person.Age;
+
+            Assert.AreEqual(1, ages.ToList().Count);
+
             ages = from person in Model.AsQueryable<Person>() where person.Status == true select person.Age;
 
             Assert.AreEqual(1, ages.ToList().Count);
 
+            ages = from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person.Age;
+
+            Assert.AreEqual(2, ages.ToList().Count);
+
+            ages = from person in Model.AsQueryable<Person>() where !person.Status select person.Age;
+
+            Assert.AreEqual(2, ages.ToList().Count);
+
             ages = from person in Model.AsQueryable<Person>() where person.Status == false select person.Age;
 
-            Assert.AreEqual(0, ages.ToList().Count);
+            Assert.AreEqual(2, ages.ToList().Count);
         }
 
         [Test]
@@ -265,13 +305,25 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Assert.AreEqual(1, birthdays.ToList().Count);
 
+            birthdays = from person in Model.AsQueryable<Person>() where person.Status select person.Birthday;
+
+            Assert.AreEqual(1, birthdays.ToList().Count);
+
             birthdays = from person in Model.AsQueryable<Person>() where person.Status == true select person.Birthday;
 
             Assert.AreEqual(1, birthdays.ToList().Count);
 
+            birthdays = from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person.Birthday;
+
+            Assert.AreEqual(2, birthdays.ToList().Count);
+
+            birthdays = from person in Model.AsQueryable<Person>() where !person.Status select person.Birthday;
+
+            Assert.AreEqual(2, birthdays.ToList().Count);
+
             birthdays = from person in Model.AsQueryable<Person>() where person.Status == false select person.Birthday;
 
-            Assert.AreEqual(0, birthdays.ToList().Count);
+            Assert.AreEqual(2, birthdays.ToList().Count);
         }
 
         [Test]
@@ -281,13 +333,25 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Assert.AreEqual(1, names.ToList().Count);
 
+            names = from person in Model.AsQueryable<Person>() where person.Status select person.FirstName;
+
+            Assert.AreEqual(1, names.ToList().Count);
+
             names = from person in Model.AsQueryable<Person>() where person.Status == true select person.FirstName;
 
             Assert.AreEqual(1, names.ToList().Count);
 
+            names = from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person.FirstName;
+
+            Assert.AreEqual(2, names.ToList().Count);
+
+            names = from person in Model.AsQueryable<Person>() where !person.Status select person.FirstName;
+
+            Assert.AreEqual(2, names.ToList().Count);
+
             names = from person in Model.AsQueryable<Person>() where person.Status == false select person.FirstName;
 
-            Assert.AreEqual(0, names.ToList().Count);
+            Assert.AreEqual(2, names.ToList().Count);
         }
 
         [Test]
@@ -365,9 +429,12 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Assert.AreEqual(2, count);
 
-            //count = Model.AsQueryable<Person>().Count(p => !p.Interests.Any());
+            Assert.Throws<NotImplementedException>(() =>
+            {
+                count = Model.AsQueryable<Person>().Count(p => !p.Interests.Any());
 
-            //Assert.AreEqual(2, count);
+                //Assert.AreEqual(2, count);
+            });
         }
 
         [Test]
@@ -437,13 +504,25 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Assert.AreEqual(1, groups.ToList().Count);
 
+            groups = from person in Model.AsQueryable<Person>() where person.Status select person.Group;
+
+            Assert.AreEqual(1, groups.ToList().Count);
+
             groups = from person in Model.AsQueryable<Person>() where person.Status == true select person.Group;
 
             Assert.AreEqual(1, groups.ToList().Count);
 
+            groups = from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person.Group;
+
+            Assert.AreEqual(2, groups.ToList().Count);
+
+            groups = from person in Model.AsQueryable<Person>() where !person.Status select person.Group;
+
+            Assert.AreEqual(2, groups.ToList().Count);
+
             groups = from person in Model.AsQueryable<Person>() where person.Status == false select person.Group;
 
-            Assert.AreEqual(0, groups.ToList().Count);
+            Assert.AreEqual(2, groups.ToList().Count);
         }
 
         [Test]
@@ -453,13 +532,33 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Assert.AreEqual(1, persons.ToList().Count);
 
+            persons = from person in Model.AsQueryable<Person>() where person.Status select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
             persons = from person in Model.AsQueryable<Person>() where person.Status == true select person;
 
             Assert.AreEqual(1, persons.ToList().Count);
 
+            persons = from person in Model.AsQueryable<Person>() where person.Status != true select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
+
             persons = from person in Model.AsQueryable<Person>() where person.Status == false select person;
 
-            Assert.AreEqual(0, persons.ToList().Count);
+            Assert.AreEqual(2, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where person.Status != false select person;
+
+            Assert.AreEqual(1, persons.ToList().Count);
+
+            persons = from person in Model.AsQueryable<Person>() where !person.Status select person;
+
+            Assert.AreEqual(2, persons.ToList().Count);
         }
 
         [Test]
@@ -722,76 +821,76 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectResourcesWithResultOperatorFirstOrDefault()
         {
-            //var persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).ToList();
-            //var person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).FirstOrDefault();
+            var persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).ToList();
+            var person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).FirstOrDefault();
 
-            //Assert.IsNotNull(person);
-            //Assert.AreEqual(person, persons.FirstOrDefault());
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
 
-            //persons = Model.AsQueryable<Person>().OrderBy(p => p.Age).ToList();
-            //person = Model.AsQueryable<Person>().OrderBy(p => p.Age).FirstOrDefault();
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.Age).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.Age).FirstOrDefault();
 
-            //Assert.IsNotNull(person);
-            //Assert.AreEqual(person, persons.FirstOrDefault());
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
 
-            //persons = Model.AsQueryable<Person>().OrderBy(p => p.Birthday).ToList();
-            //person = Model.AsQueryable<Person>().OrderBy(p => p.Birthday).FirstOrDefault();
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.Birthday).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.Birthday).FirstOrDefault();
 
-            //Assert.IsNotNull(person);
-            //Assert.AreEqual(person, persons.FirstOrDefault());
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
 
-            //persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age > 40).ToList();
-            //person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).FirstOrDefault(p => p.Age > 40);
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age > 40).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).FirstOrDefault(p => p.Age > 40);
 
-            //Assert.IsNotNull(person);
-            //Assert.AreEqual(person, persons.FirstOrDefault());
-            //Assert.IsTrue(person.Age > 40);
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
+            Assert.IsTrue(person.Age > 40);
 
-            //person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age > 40).FirstOrDefault();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age > 40).FirstOrDefault();
 
-            //Assert.IsNotNull(person);
-            //Assert.AreEqual(person, persons.FirstOrDefault());
-            //Assert.IsTrue(person.Age > 40);
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
+            Assert.IsTrue(person.Age > 40);
 
-            //persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age > 40 && p.Age < 40).ToList();
-            //person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).FirstOrDefault(p => p.Age > 40 && p.Age < 40);
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age > 40 && p.Age < 40).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).FirstOrDefault(p => p.Age > 40 && p.Age < 40);
 
-            //Assert.IsEmpty(persons);
-            //Assert.IsNull(person);
+            Assert.IsEmpty(persons);
+            Assert.IsNull(person);
 
-            //person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age > 40 && p.Age < 40).FirstOrDefault();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age > 40 && p.Age < 40).FirstOrDefault();
 
-            //Assert.IsEmpty(persons);
-            //Assert.IsNull(person);
+            Assert.IsEmpty(persons);
+            Assert.IsNull(person);
 
-            //persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age < 10 || p.Age > 40).ToList();
-            //person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).FirstOrDefault(p => p.Age < 10 || p.Age > 40);
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age < 10 || p.Age > 40).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).FirstOrDefault(p => p.Age < 10 || p.Age > 40);
 
-            //Assert.IsNotNull(person);
-            //Assert.AreEqual(person, persons.FirstOrDefault());
-            //Assert.IsTrue(person.Age < 10 || person.Age > 40);
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
+            Assert.IsTrue(person.Age < 10 || person.Age > 40);
 
-            //person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age < 10 || p.Age > 40).FirstOrDefault();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.Age < 10 || p.Age > 40).FirstOrDefault();
 
-            //Assert.IsNotNull(person);
-            //Assert.AreEqual(person, persons.FirstOrDefault());
-            //Assert.IsTrue(person.Age < 10 || person.Age > 40);
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
+            Assert.IsTrue(person.Age < 10 || person.Age > 40);
 
-            //persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.KnownPeople.Any(p0 => p0.FirstName == "Alice")).ToList();
-            //person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).FirstOrDefault(p => p.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
+            persons = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.KnownPeople.Any(p0 => p0.FirstName == "Alice")).ToList();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).FirstOrDefault(p => p.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
 
-            //Assert.IsNotNull(person);
-            //Assert.AreEqual(person, persons.FirstOrDefault());
-            //Assert.IsTrue(person.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
+            Assert.IsTrue(person.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
 
-            //person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.KnownPeople.Any(p0 => p0.FirstName == "Alice")).FirstOrDefault();
+            person = Model.AsQueryable<Person>().OrderBy(p => p.FirstName).Where(p => p.KnownPeople.Any(p0 => p0.FirstName == "Alice")).FirstOrDefault();
 
-            //Assert.IsNotNull(person);
-            //Assert.AreEqual(person, persons.FirstOrDefault());
-            //Assert.IsTrue(person.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
+            Assert.IsNotNull(person);
+            Assert.AreEqual(person, persons.FirstOrDefault());
+            Assert.IsTrue(person.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
 
             // Using FirstOrDefault in subqueries is not yet supported.
-            var persons = Model.AsQueryable<Person>().Where(p => p.KnownPeople.OrderBy(q=> q.FirstName).FirstOrDefault(q => q.KnownPeople.Count == 1) != null).ToList();
+            persons = Model.AsQueryable<Person>().Where(p => p.KnownPeople.OrderBy(q => q.FirstName).FirstOrDefault(q => q.KnownPeople.Count == 1) != null).ToList();
 
             Assert.IsNotEmpty(persons);
 
@@ -802,12 +901,12 @@ namespace Semiodesk.Trinity.Test.Linq
 
             persons = Model.AsQueryable<Person>().Where(p => p.KnownPeople.OrderBy(q => q.FirstName).FirstOrDefault().KnownPeople.Count == 1).ToList();
 
-            //Assert.IsNotEmpty(persons);
+            Assert.IsNotEmpty(persons);
 
-            //foreach(Person p in persons)
-            //{
-            //    Assert.AreEqual(1, p.KnownPeople.OrderBy(q => q.FirstName).FirstOrDefault().KnownPeople.Count);
-            //}
+            foreach (Person p in persons)
+            {
+                Assert.AreEqual(1, p.KnownPeople.OrderBy(q => q.FirstName).FirstOrDefault().KnownPeople.Count);
+            }
         }
 
         [Test]
@@ -885,15 +984,21 @@ namespace Semiodesk.Trinity.Test.Linq
             Assert.IsTrue(person.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
 
             // Using LastOrDefault in subqueries is not yet supported.
-            Assert.Throws<NotSupportedException>(() =>
-            {
-                var x = Model.AsQueryable<Person>().Where(p => p.KnownPeople.LastOrDefault().KnownPeople.Count == 1).ToList();
-            });
+            persons = Model.AsQueryable<Person>().Where(p => p.KnownPeople.OrderBy(q => q.FirstName).LastOrDefault(q => q.KnownPeople.Count == 1) != null).ToList();
 
+            Assert.IsNotEmpty(persons);
+
+            foreach (Person p in persons)
+            {
+                Assert.AreEqual(1, p.KnownPeople.OrderBy(q => q.FirstName).LastOrDefault().KnownPeople.Count);
+            }
+
+            /*
             Assert.Throws<NotSupportedException>(() =>
             {
                 Model.AsQueryable<Person>().Where(p => p.KnownPeople.LastOrDefault(q => q.KnownPeople.Count == 1) != null).ToList();
             });
+            */
         }
 
         [Test]
@@ -1045,6 +1150,51 @@ namespace Semiodesk.Trinity.Test.Linq
             images = agent.GetImages<Image>(Model).Where(i => i.DepictedAgent == agent).ToList();
 
             Assert.AreEqual(1, images.Count);
+        }
+
+        [Test]
+        public void CanExecuteCollectionWithInferencingEnabled()
+        {
+            // See if inferencing works on resource queries.
+            var agents = Model.AsQueryable<Agent>().ToList();
+
+            Assert.AreEqual(1, agents.Count);
+
+            agents = Model.AsQueryable<Agent>(true).ToList();
+
+            Assert.AreEqual(4, agents.Count);
+
+            // See if inferencing works with queries that return bindings.
+
+            var names = Model.AsQueryable<Agent>().Select(a => a.FirstName).ToList();
+
+            Assert.AreEqual(1, names.Count);
+
+            names = Model.AsQueryable<Agent>(true).Select(a => a.FirstName).ToList();
+
+            Assert.AreEqual(4, names.Count);
+        }
+
+        [Test]
+        public void CanExecuteScalarWithInferencingEnabled()
+        {
+            // See if inferencing works for boolean (ASK) queries.
+            bool hasAgent = Model.AsQueryable<Agent>().Where(a => a.FirstName == "Alice").Any();
+
+            Assert.IsFalse(hasAgent);
+
+            hasAgent = Model.AsQueryable<Agent>(true).Where(a => a.FirstName == "Alice").Any();
+
+            Assert.IsTrue(hasAgent);
+
+            // See if inferencing works for queries that return numeric bindings.
+            int agentCount = Model.AsQueryable<Agent>().Where(a => a.FirstName == "Alice").Count();
+
+            Assert.AreEqual(0, agentCount);
+
+            agentCount = Model.AsQueryable<Agent>(true).Where(a => a.FirstName == "Alice").Count();
+
+            Assert.AreEqual(1, agentCount);
         }
 
         private void CanSelectResourcesWithVariableExpression(int minAge)

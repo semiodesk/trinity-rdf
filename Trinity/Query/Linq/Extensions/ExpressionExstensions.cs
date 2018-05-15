@@ -26,6 +26,8 @@
 // Copyright (c) Semiodesk GmbH 2017
 
 using Remotion.Linq.Clauses.Expressions;
+using System;
+using System.Diagnostics;
 using System.Linq.Expressions;
 
 namespace Semiodesk.Trinity.Query
@@ -54,6 +56,34 @@ namespace Semiodesk.Trinity.Query
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Indicate if an expression contains antoher or is equal to it.
+        /// </summary>
+        /// <param name="expression">An expression.</param>
+        /// <param name="e">Expression to be evaluated.</param>
+        /// <returns><c>true</c> if <c>e</c> is equal to the given expression or one of its query sources, <c>false</c> otherwise.</returns>
+        public static bool ContainsOrEquals(this Expression expression, Expression e)
+        {
+            if (expression != null)
+            {
+                if (expression.Equals(e))
+                {
+                    return true;
+                }
+                else
+                {
+                    QuerySourceReferenceExpression sourceExpression = expression.TryGetQuerySourceReference();
+
+                    if (sourceExpression != null && sourceExpression != expression)
+                    {
+                        return sourceExpression.ContainsOrEquals(e);
+                    }
+                }
+            }
+
+            return false;
         }
     }
 }

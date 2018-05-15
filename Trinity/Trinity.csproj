@@ -55,9 +55,8 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Dependencies\OpenLink.Data.Virtuoso.dll</HintPath>
     </Reference>
-    <Reference Include="Remotion.Linq, Version=1.13.183.0, Culture=neutral, PublicKeyToken=fee00910d6e5f53b, processorArchitecture=MSIL">
-      <HintPath>..\Net40\packages\Remotion.Linq.1.13.183.0\lib\net35\Remotion.Linq.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Remotion.Linq, Version=2.2.0.0, Culture=neutral, PublicKeyToken=fee00910d6e5f53b, processorArchitecture=MSIL">
+      <HintPath>..\Net40\packages\Remotion.Linq.2.2.0\lib\net40\Remotion.Linq.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
@@ -127,9 +126,11 @@
     <Compile Include="Query\Linq\Extensions\ExpressionExstensions.cs" />
     <Compile Include="Query\Linq\ExpressionTreeVisitor.cs" />
     <Compile Include="Query\Linq\Extensions\MethodCallExpressionExtensions.cs" />
+    <Compile Include="Query\Linq\Extensions\NodeFactoryExtensions.cs" />
     <Compile Include="Query\Linq\Extensions\QueryModelExtensions.cs" />
     <Compile Include="Query\Linq\Extensions\ResourceExtensions.cs" />
     <Compile Include="Query\Linq\Extensions\StringExtensions.cs" />
+    <Compile Include="Query\Linq\TypeHelper.cs" />
     <Compile Include="Query\Linq\ISparqlQueryGenerator.cs" />
     <Compile Include="Query\Linq\ISparqlQueryGeneratorTree.cs" />
     <Compile Include="Query\Linq\ISparqlQueryModelVisitor.cs" />
@@ -137,6 +138,7 @@
     <Compile Include="Query\Linq\Extensions\MemberInfoExtensions.cs" />
     <Compile Include="Query\Linq\QueryGenerators\AskQueryGenerator.cs" />
     <Compile Include="Query\Linq\QueryGenerators\SelectBindingsQueryGenerator.cs" />
+    <Compile Include="Query\Linq\QueryGenerators\SubSelectQueryGenerator.cs" />
     <Compile Include="Query\Linq\QueryGenerators\SelectQueryGenerator.cs" />
     <Compile Include="Query\Linq\QueryGenerators\SelectTriplesQueryGenerator.cs" />
     <Compile Include="Query\Linq\SparqlQueryGeneratorTree.cs" />

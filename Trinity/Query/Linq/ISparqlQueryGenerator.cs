@@ -75,15 +75,17 @@ namespace Semiodesk.Trinity.Query
 
         void DeselectVariable(SparqlVariable variable);
 
-        void SelectVariable(string variable);
-
         void SelectVariable(SparqlVariable variable);
 
         bool IsSelectedVariable(SparqlVariable variable);
 
-        void WhereResource(SparqlVariable subject);
+        void WhereResource(SparqlVariable s, SparqlVariable p = null, SparqlVariable o = null);
 
-        void WhereResourceOfType(SparqlVariable subject, Type type);
+        void WhereResource(Expression expression, SparqlVariable p = null, SparqlVariable o = null);
+
+        void WhereResourceOfType(SparqlVariable s, Type type);
+
+        void WhereResourceOfType(Expression expression, Type type);
 
         void Where(MemberExpression member, SparqlVariable variable);
 

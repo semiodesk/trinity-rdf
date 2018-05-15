@@ -25,16 +25,8 @@ namespace Semiodesk.Trinity.Query
                 case MemberTypes.Property:
                     return (member as PropertyInfo).PropertyType;
                 default:
-                    throw new ArgumentException
-                    (
-                     "Input MemberInfo must be if type EventInfo, FieldInfo, MethodInfo, or PropertyInfo"
-                    );
+                    throw new ArgumentException("Input MemberInfo must be if type EventInfo, FieldInfo, MethodInfo, or PropertyInfo");
             }
-        }
-
-        public static bool Is(this MemberInfo member, Type type)
-        {
-            return type.IsAssignableFrom(member.GetMemberType());
         }
 
         public static bool IsUriType(this MemberInfo member)
@@ -51,7 +43,7 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public static bool IsSystemType(this MemberInfo member)
+        public static bool IsBuiltInCall(this MemberInfo member)
         {
             HashSet<Type> systemTypes = new HashSet<Type>()
             {

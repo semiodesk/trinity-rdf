@@ -23,7 +23,7 @@
 // Moritz Eberl <moritz@semiodesk.com>
 // Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2017
+// Copyright (c) Semiodesk GmbH 2018
 
 using Remotion.Linq.Clauses.Expressions;
 using System.Linq.Expressions;
@@ -31,6 +31,7 @@ using VDS.RDF.Query;
 using Remotion.Linq;
 using Remotion.Linq.Clauses.ResultOperators;
 using System;
+using System.Linq;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -46,57 +47,29 @@ namespace Semiodesk.Trinity.Query
 
         #region Methods
 
-        public override void OnBeforeFromClauseVisited(Expression expression)
+        private Type TryGetSelectedType(Expression selector)
         {
-            base.OnBeforeFromClauseVisited(expression);
-
-            // If we are describing resources using a skip or take operator, we need to make sure that
-            // these operations are on a per-resource basis and all triples for the described resources
-            // are contained in the result.
-            if(QueryModel.HasResultOperator<SkipResultOperator>()
-                || QueryModel.HasResultOperator<TakeResultOperator>()
-                || QueryModel.HasResultOperator<FirstResultOperator>()
-                || QueryModel.HasResultOperator<LastResultOperator>())
+            if (selector is ConstantExpression)
             {
-                // We create an outer query which selects all triples for the resources..
-                SparqlVariable s = VariableGenerator.GetGlobalSubjectVariable(); // TODO: Always create the subject variable here and register the expression later..
-                SparqlVariable p = VariableGenerator.GetGlobalPredicateVariable();
-                SparqlVariable o = VariableGenerator.GetGlobalObjectVariable();
+                // We can either select a resource as a constant.
+                IQueryable queryable = (selector as ConstantExpression).Value as IQueryable;
 
-                if(expression is ConstantExpression)
-                {
-                    VariableGenerator.SetSubjectVariable(expression, s);
-                }
-                else
-                {
-                    QuerySourceReferenceExpression sourceExpression = QueryModel.MainFromClause.FromExpression.TryGetQuerySourceReference();
-
-                    if(sourceExpression != null)
-                    {
-                        VariableGenerator.SetSubjectVariable(sourceExpression, s);
-                    }
-                    else
-                    {
-                        string msg = "Unable to determine query subject from the given expression:" + sourceExpression.ToString();
-                        throw new Exception(msg);
-                    }
-                }
-
-                SetSubjectVariable(s);
-
-                SelectVariable(s);
-                SelectVariable(p);
-                SelectVariable(o);
-
-                PatternBuilder.Where(t => t.Subject(s).Predicate(p).Object(o));
-
-                // ..which are described in an inner query on which the LIMIT and OFFSET operators are set.
-                // This results in a SELECT query that acts like a DESCRIBE but ist faster on most triple 
-                // stores as the triples can be returend via bindings and must not be parsed.
-                ISparqlQueryGenerator subGenerator = QueryGeneratorTree.CreateSubQueryGenerator<SelectTriplesQueryGenerator>();
-                subGenerator.SetQueryContext(QueryModel, QueryGeneratorTree, VariableGenerator);
-
-                QueryGeneratorTree.SetCurrentQueryGenerator(subGenerator);
+                return (queryable != null) ? queryable.ElementType : null;
+            }
+            else if (selector is MemberExpression)
+            {
+                // Or we can select a resource from a member variable.
+                return (selector as MemberExpression).Type;
+            }
+            else if (selector is QuerySourceReferenceExpression)
+            {
+                // Or we can select resources from a query source reference.
+                return (selector as QuerySourceReferenceExpression).Type;
+            }
+            else
+            {
+                // TODO: Create unit test for handling SubQueryExpression.
+                throw new NotImplementedException();
             }
         }
 
@@ -104,79 +77,98 @@ namespace Semiodesk.Trinity.Query
         {
             base.OnBeforeSelectClauseVisited(selector);
 
-            // In any case, we need to describe the queried object provided by the from expression.
-            QuerySourceReferenceExpression sourceExpression = selector.TryGetQuerySourceReference();
+            Type selectedType = TryGetSelectedType(selector);
 
-            if (sourceExpression != null)
+            if (selectedType == null || !typeof(Resource).IsAssignableFrom(selectedType))
             {
-                SparqlVariable s = null;
-                SparqlVariable p = VariableGenerator.GetGlobalPredicateVariable();
-                SparqlVariable o = VariableGenerator.GetGlobalObjectVariable();
+                throw new NotSupportedException(selectedType.ToString());
+            }
 
-                if (selector is MemberExpression)
-                {
-                    s = VariableGenerator.CreateLocalSubjectVariable(sourceExpression);
+            // 1. We always create an outer query which selects all triples that describe our resources.
+            SparqlVariable s_ = VariableGenerator.GlobalSubject;
+            SparqlVariable p_ = VariableGenerator.GlobalPredicate;
+            SparqlVariable o_ = VariableGenerator.GlobalObject;
 
-                    // We set the query subject, just in case there are any sub queries.
-                    SetSubjectVariable(s);
+            VariableGenerator.SetSubjectVariable(selector, s_);
+            VariableGenerator.SetPredicateVariable(selector, p_);
+            VariableGenerator.SetObjectVariable(selector, o_);
 
-                    // If we are selecting to return a member of an object, we select 
-                    // the triples of the resource and generate the required member access triples.
-                    MemberExpression memberExpression = selector as MemberExpression;
+            SetSubjectVariable(s_);
+            SetObjectVariable(o_);
 
-                    SparqlVariable m = VariableGenerator.GetGlobalSubjectVariable(memberExpression);
+            SelectVariable(s_);
+            SelectVariable(p_);
+            SelectVariable(o_);
 
-                    SelectVariable(m);
-                    SelectVariable(p);
-                    SelectVariable(o);
+            WhereResource(s_, p_, o_);
 
-                    PatternBuilder.Where(t => t.Subject(m).Predicate(p).Object(o));
+            // If we are describing resources using a SKIP or TAKE operator, we need to make sure that
+            // these operations are on a per-resource basis and all triples for the described resources
+            // are contained in the result.
+            if (QueryModel.HasResultOperator<SkipResultOperator>()
+                || QueryModel.HasResultOperator<TakeResultOperator>()
+                || QueryModel.HasResultOperator<FirstResultOperator>()
+                || QueryModel.HasResultOperator<LastResultOperator>())
+            {
+                // ..which are described in an inner query on which the LIMIT and OFFSET operators are set.
+                // This results in a SELECT query that acts like a DESCRIBE but ist faster on most triple 
+                // stores as the triples can be returend via bindings and must not be parsed.
+                ISparqlQueryGenerator subGenerator = QueryGeneratorTree.CreateSubQueryGenerator<SubSelectQueryGenerator>(selector);
 
-                    WhereResourceOfType(m, memberExpression.Member.GetMemberType());
+                subGenerator.SetQueryContext(QueryModel, QueryGeneratorTree, VariableGenerator);
 
-                    // The member can be accessed via chained properties (?s ex:prop1 / ex:prop2 ?m).
-                    BuildMemberAccess(memberExpression, m);
-                }
-                else if (selector is QuerySourceReferenceExpression)
-                {
-                    s = VariableGenerator.GetGlobalSubjectVariable(sourceExpression);
+                subGenerator.SetSubjectVariable(s_, true);
+                subGenerator.SetObjectVariable(o_);
 
-                    // We set the query subject, just in case there are any sub queries.
-                    SetSubjectVariable(s);
-                    SetObjectVariable(o);
+                GenerateTypeConstraintOnSubject(subGenerator, selector);
 
-                    // Only select the query source variables if we directly return the object.
-                    SelectVariable(s);
+                QueryGeneratorTree.SetCurrentQueryGenerator(subGenerator);
 
-                    if (IsRoot)
-                    {
-                        SelectVariable(p);
-                        SelectVariable(o);
+                // NOTE: We set the subGenerator as a child *AFTER* the select clause and body clauses
+                // have been processed (see <c>OnSelectClauseVisited</c>). This is because the dotNetRDF 
+                // query generator does not correctly handle result operators when it is already set as a child.
+            }
+            else
+            {
+                GenerateTypeConstraintOnSubject(this, selector);
+            }
+        }
 
-                        PatternBuilder.Where(t => t.Subject(s).Predicate(p).Object(o));
-                    }
+        private void GenerateTypeConstraintOnSubject(ISparqlQueryGenerator generator, Expression selector)
+        {
+            Type type = null;
 
-                    // Add the type constraint on the referenced query source.
-                    WhereResourceOfType(s, sourceExpression.ReferencedQuerySource.ItemType);
-                }
+            if(selector is ConstantExpression)
+            {
+                type = (selector as ConstantExpression).Value.GetType();
+            }
+            else if(selector is MemberExpression)
+            {
+                type = (selector as MemberExpression).Member.DeclaringType;
+            }
+            else if(selector is QuerySourceReferenceExpression)
+            {
+                type = (selector as QuerySourceReferenceExpression).ReferencedQuerySource.ItemType;
+            }
+
+            if(type != null && type.IsSubclassOf(typeof(Resource)))
+            {
+                generator.WhereResourceOfType(VariableGenerator.GlobalSubject, type);
             }
         }
 
         public override void OnSelectClauseVisited(Expression selector)
         {
-            if(!IsRoot)
+            if (QueryModel.HasResultOperator<SkipResultOperator>()
+                || QueryModel.HasResultOperator<TakeResultOperator>()
+                || QueryModel.HasResultOperator<FirstResultOperator>()
+                || QueryModel.HasResultOperator<LastResultOperator>())
             {
-                // Finally, if we have a skip- or take operator on the root query, set the current 
+                // Finally, if we have a SKIP or TAKE operator on the root query, set the current 
                 // query generator as a child.
-                ISparqlQueryGenerator rootGenerator = QueryGeneratorTree.GetRootQueryGenerator();
+                ISparqlQueryGenerator subGenerator = QueryGeneratorTree.GetQueryGenerator(selector);
 
-                if(rootGenerator.QueryModel.HasResultOperator<SkipResultOperator>()
-                    || rootGenerator.QueryModel.HasResultOperator<TakeResultOperator>()
-                    || rootGenerator.QueryModel.HasResultOperator<FirstResultOperator>()
-                    || rootGenerator.QueryModel.HasResultOperator<LastResultOperator>())
-                {
-                    rootGenerator.Child(this);
-                }
+                Child(subGenerator);
             }
         }
 

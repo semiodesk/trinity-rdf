@@ -100,20 +100,23 @@ namespace Semiodesk.Trinity.Store.Stardog
         public IEnumerable<BindingSet> GetBindings()
         {
             List<BindingSet> result = new List<BindingSet>();
+
             if (_query.QueryType == SparqlQueryType.Select)
             {
                 foreach (var x in _resultHandler.SparqlResultSet)
                 {
                     BindingSet r = new BindingSet();
+
                     foreach (var y in x)
                     {
                         if (y.Value != null)
+                        {
                             r.Add(y.Key, ParseCellValue(y.Value));
+                        }
                     }
+
                     result.Add(r);
                 }
-
-
             }
 
             return result;
@@ -156,14 +159,13 @@ namespace Semiodesk.Trinity.Store.Stardog
                     INode s, o;
                     Property p;
 
-
                     s = _tripleProvider.S;
                     predUri = _tripleProvider.P;
                     o = _tripleProvider.O;
+
                     _tripleProvider.SetNext();
 
                     p = OntologyDiscovery.GetProperty(predUri);
-
 
                     if (s is IUriNode)
                     {
@@ -199,8 +201,7 @@ namespace Semiodesk.Trinity.Store.Stardog
                             catch
                             {
 #if DEBUG
-                                Debug.WriteLine("[SparqlQueryResult] Info: Could not create resource " +
-                                                sUri.OriginalString);
+                                Debug.WriteLine("[SparqlQueryResult] Info: Could not create resource " + sUri.OriginalString);
 #endif
 
                                 continue;
@@ -210,9 +211,11 @@ namespace Semiodesk.Trinity.Store.Stardog
                     else if(s is BlankNode)
                     {
                         //TODO
+                        Debugger.Break();
                     }
                     else
                     {
+                        Debugger.Break();
                     }
 
                     if (o is IUriNode)
@@ -242,9 +245,10 @@ namespace Semiodesk.Trinity.Store.Stardog
                             currentResource.Model = _model;
                         }
                     }
-                    else if( o is BlankNode )
+                    else if(o is BlankNode)
                     {
-                    }else
+                    }
+                    else
                     {
                         currentResource.AddPropertyToMapping(p, ParseCellValue(o), true);
                     }

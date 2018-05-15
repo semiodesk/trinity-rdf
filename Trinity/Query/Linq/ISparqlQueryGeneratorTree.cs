@@ -26,8 +26,8 @@
 // Copyright (c) Semiodesk GmbH 2017
 
 using Remotion.Linq;
-using Remotion.Linq.Clauses.Expressions;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -38,11 +38,11 @@ namespace Semiodesk.Trinity.Query
 
         void Bind();
 
-        ISparqlQueryGenerator CreateSubQueryGenerator<T>(SubQueryExpression expression = null) where T : SelectQueryGenerator, new();
+        ISparqlQueryGenerator CreateSubQueryGenerator<T>(Expression expression = null) where T : SubSelectQueryGenerator, new();
 
         void RegisterQueryModel(ISparqlQueryGenerator queryGenerator, QueryModel queryModel);
 
-        void RegisterQueryExpression(ISparqlQueryGenerator queryGenerator, SubQueryExpression expression);
+        void RegisterQueryExpression(ISparqlQueryGenerator queryGenerator, Expression expression);
 
         bool IsRootQueryGenerator();
 
@@ -56,9 +56,9 @@ namespace Semiodesk.Trinity.Query
 
         ISparqlQueryGenerator GetQueryGenerator(QueryModel queryModel);
 
-        bool HasQueryGenerator(SubQueryExpression subQuery);
+        bool HasQueryGenerator(Expression expression);
 
-        ISparqlQueryGenerator GetQueryGenerator(SubQueryExpression subQuery);
+        ISparqlQueryGenerator GetQueryGenerator(Expression expression);
 
         IEnumerable<ISparqlQueryGenerator> TryGetSubQueries(ISparqlQueryGenerator query);
 

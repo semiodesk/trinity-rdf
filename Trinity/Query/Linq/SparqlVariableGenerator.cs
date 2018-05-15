@@ -29,6 +29,7 @@ using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -43,21 +44,57 @@ namespace Semiodesk.Trinity.Query
 
         private readonly Dictionary<string, int> _variableCounters = new Dictionary<string, int>();
 
+        private readonly Dictionary<string, SparqlVariable> _subjectVariables = new Dictionary<string, SparqlVariable>();
+
+        private readonly Dictionary<string, SparqlVariable> _predicateVariables = new Dictionary<string, SparqlVariable>();
+
         private readonly Dictionary<string, SparqlVariable> _objectVariables = new Dictionary<string, SparqlVariable>();
 
-        private readonly Dictionary<string, SparqlVariable> _subjectVariables = new Dictionary<string, SparqlVariable>();
+        private readonly Dictionary<string, string> _expressionMappings = new Dictionary<string, string>();
+
+        public readonly SparqlVariable GlobalSubject = new SparqlVariable("s_");
+
+        public readonly SparqlVariable GlobalPredicate = new SparqlVariable("p_");
+
+        public readonly SparqlVariable GlobalObject = new SparqlVariable("o_");
 
         #endregion
 
         #region Constructors
 
-        public SparqlVariableGenerator()
-        {
-        }
+        public SparqlVariableGenerator() {}
 
         #endregion
 
         #region Methods
+
+        private string GetKey(Expression expression)
+        {
+            //return expression.ToString().Trim();
+
+            string key = expression.ToString().Trim();
+
+            if (key.EndsWith(".Uri"))
+            {
+                key = key.Substring(0, key.LastIndexOf(".Uri"));
+            }
+
+            return key;
+        }
+
+        public void AddMapping(Expression expression, string itemName)
+        {
+            if(!string.IsNullOrEmpty(itemName))
+            {
+                string key = string.Format("[{0}]", itemName);
+
+                _expressionMappings[key] = expression.ToString();
+            }
+            else
+            {
+                throw new ArgumentNullException("itemName");
+            }
+        }
 
         private string GetNextAvailableVariableName(string name)
         {
@@ -73,150 +110,118 @@ namespace Semiodesk.Trinity.Query
             return name + n;
         }
 
-        private string GetKey(Expression expression)
+        private SparqlVariable TryGetVariable(Dictionary<string, SparqlVariable> source, params Expression[] expressions)
         {
-            if(expression is MemberExpression)
+            foreach(Expression expression in expressions)
             {
-                MemberExpression memberExpression = expression as MemberExpression;
+                string primaryKey = GetKey(expression);
 
-                if(memberExpression.Expression is QuerySourceReferenceExpression)
+                if (source.ContainsKey(primaryKey))
                 {
-                    QuerySourceReferenceExpression sourceExpression = memberExpression.Expression as QuerySourceReferenceExpression;
-
-                    return string.Format("{0}.[{1}].{2}", sourceExpression, sourceExpression.ReferencedQuerySource.ItemName, memberExpression.Member.Name);
+                    return source[primaryKey];
                 }
+                else if(_expressionMappings.ContainsKey(primaryKey))
+                {
+                    string mappedKey = _expressionMappings[primaryKey];
 
-                return expression.ToString();
+                    if(source.ContainsKey(mappedKey))
+                    {
+                        return source[mappedKey];
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Get a variable from an expression that can be used as a subject in triple patterns and represents resources.
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        public SparqlVariable TryGetSubjectVariable(Expression expression)
+        {
+            if (expression is MemberExpression)
+            {
+                QuerySourceReferenceExpression sourceExpression = expression.TryGetQuerySourceReference();
+
+                return TryGetVariable(_subjectVariables, expression, sourceExpression);
             }
             else
             {
-                return expression.ToString();
+                // For instances of ConstantExpression, QuerySourceReferenceExpression and SubQueryExpression there must be a direct mapping.
+                return TryGetVariable(_subjectVariables, expression);
             }
         }
 
-        public SparqlVariable TryGetSubjectVariable(Expression expression)
+        public SparqlVariable TryGetPredicateVariable(Expression expression)
         {
-            string key = GetKey(expression);
-
-            return _subjectVariables.ContainsKey(key) ? _subjectVariables[key] : null;
+            return TryGetVariable(_predicateVariables, expression);
         }
 
         public SparqlVariable TryGetObjectVariable(Expression expression)
         {
-            string key = GetKey(expression);
-
-            return _objectVariables.ContainsKey(key) ? _objectVariables[key] : null;
-
-            /*
-            if(_objectVariables.ContainsKey(expression))
-            {
-                return _objectVariables[expression];
-            }
-            else
-            {
-                QuerySourceReferenceExpression querySource = expression.TryGetQuerySourceReference();
-
-                if (querySource != null && querySource.ReferencedQuerySource is MainFromClause)
-                {
-                    MainFromClause fromClause = querySource.ReferencedQuerySource as MainFromClause;
-
-                    if (fromClause.FromExpression is MemberExpression)
-                    {
-                        return _objectVariables[fromClause.FromExpression];
-                    }
-                }
-
-                string key = expression.ToString();
-
-                SparqlVariable v = _objectVariables.FirstOrDefault(p => p.Key.ToString() == key).Value;
-
-                if(v != null)
-                {
-                    return v;
-                }
-                else
-                {
-                    throw new KeyNotFoundException(key);
-                }
-            }
-            */
+            return TryGetVariable(_objectVariables, expression);
         }
 
-        public void SetSubjectVariable(Expression expression, SparqlVariable variable)
+        public void SetSubjectVariable(Expression expression, SparqlVariable s)
         {
             string key = GetKey(expression);
 
-            if (!_subjectVariables.ContainsKey(key))
+            if (!_subjectVariables.ContainsKey(key) || _subjectVariables[key] != s)
             {
-                _subjectVariables[key] = variable;
-            }
-            else if (_subjectVariables[key] != variable)
-            {
-                string msg = "Variable mapping for expression '{0}' already exists: '{1}'. Cannot set value: '{2}'.";
-                throw new InvalidOperationException(string.Format(msg, expression.ToString(), _subjectVariables[key].Name, variable.Name));
+                _subjectVariables[key] = s;
             }
         }
 
-        public void SetObjectVariable(Expression expression, SparqlVariable variable)
+        public void SetPredicateVariable(Expression expression, SparqlVariable p)
         {
             string key = GetKey(expression);
 
-            if (!_objectVariables.ContainsKey(key))
+            if (!_predicateVariables.ContainsKey(key) || _predicateVariables[key] != p)
             {
-                _objectVariables[key] = variable;
-            }
-            else if(_objectVariables[key] != variable)
-            {
-                string msg = "Variable mapping for expression '{0}' already exists: '{1}'. Cannot set value: '{2}'.";
-                throw new InvalidOperationException(string.Format(msg, expression.ToString(), _objectVariables[key].Name, variable.Name));
+                _predicateVariables[key] = p;
             }
         }
 
-        public SparqlVariable CreateLocalSubjectVariable(Expression expression)
+        public void SetObjectVariable(Expression expression, SparqlVariable o)
+        {
+            string key = GetKey(expression);
+
+            if(!_objectVariables.ContainsKey(key))
+            {
+                _objectVariables[key] = o;
+            }
+        }
+
+        public SparqlVariable CreateSubjectVariable(Expression expression)
         {
             SparqlVariable s = new SparqlVariable(GetNextAvailableVariableName("s"));
 
-            string key = GetKey(expression);
-
-            _subjectVariables[key] = s;
+            SetSubjectVariable(expression, s);
 
             return s;
         }
 
-        public SparqlVariable CreateLocalPredicateVariable()
+        // TODO: Should take a MemberExpression as argument.
+        public SparqlVariable CreatePredicateVariable()
         {
             return new SparqlVariable(GetNextAvailableVariableName("p"));
         }
 
-        public SparqlVariable CreateLocalObjectVariable()
+        // TODO: Deprecated.
+        public SparqlVariable CreateObjectVariable()
         {
             return new SparqlVariable(GetNextAvailableVariableName("o"));
         }
 
-        public SparqlVariable GetGlobalSubjectVariable()
+        public SparqlVariable CreateObjectVariable(Expression expression)
         {
-            return new SparqlVariable("s_");
-        }
+            SparqlVariable o = new SparqlVariable(GetNextAvailableVariableName("o"));
 
-        public SparqlVariable GetGlobalSubjectVariable(Expression expression)
-        {
-            SparqlVariable s = GetGlobalSubjectVariable();
+            SetObjectVariable(expression, o);
 
-            string key = GetKey(expression);
-
-            _subjectVariables[key] = s;
-
-            return s;
-        }
-
-        public SparqlVariable GetGlobalPredicateVariable()
-        {
-            return new SparqlVariable("p_");
-        }
-
-        public SparqlVariable GetGlobalObjectVariable()
-        {
-            return new SparqlVariable("o_");
+            return o;
         }
 
         #endregion
