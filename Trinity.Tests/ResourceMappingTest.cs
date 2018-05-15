@@ -38,7 +38,7 @@ using NUnit.Framework;
 using Semiodesk.Trinity.Test;
 using Semiodesk.Trinity.Serialization;
 using Newtonsoft.Json;
-#if NET_3_5
+#if NET35
 using Semiodesk.Trinity.Utility;
 #endif
 

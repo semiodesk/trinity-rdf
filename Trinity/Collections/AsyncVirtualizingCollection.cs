@@ -33,7 +33,7 @@ using System.Threading;
 
 namespace Semiodesk.Trinity.Collections
 {
-#if !NET_3_5
+#if !NET35
     /// <summary>
     /// Derived VirtualizatingCollection, performing loading asychronously.
     /// </summary>

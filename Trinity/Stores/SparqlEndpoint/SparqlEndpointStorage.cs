@@ -42,7 +42,7 @@ namespace Semiodesk.Trinity.Store
     /// Storage that can can connect to Sparql Endpoints 
     /// 
     /// </summary>
-    /// <see cref="http://www.w3.org/TR/rdf-sparql-protocol/#SparqlQuery"/>
+    /// <see ref="http://www.w3.org/TR/rdf-sparql-protocol/#SparqlQuery"/>
     internal class SparqlEndpointStorage : IStore
     {
         #region Members

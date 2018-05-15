@@ -5,7 +5,7 @@
     <CoreCompileDependsOn>$(CoreCompileDependsOn);GenerateOntologyTarget</CoreCompileDependsOn>
   </PropertyGroup>
   
-  <UsingTask TaskName="GenerateOntologyTask" AssemblyFile="$(MSBuildThisFileDirectory)../../tools/net40/OntologyGenerator.exe" />
+  <UsingTask TaskName="GenerateOntologyTask" AssemblyFile="$(MSBuildThisFileDirectory)../../tools/OntologyGenerator.exe" />
   
   <Target Name="GenerateOntologyTarget">
     <GenerateOntologyTask ProjectPath="$(ProjectDir)/$(ProjectName)$(ProjectExt)" IntermediatePath="$(ProjectDir)/Ontologies/" />
@@ -20,7 +20,7 @@
     <DebugType Condition="'$(TargetFramework)' != '' AND '$(TargetFramework)' != 'netcoreapp1.0'">Full</DebugType>
   </PropertyGroup>
   
-  <UsingTask TaskName="CilGeneratorTask" AssemblyFile="$(MSBuildThisFileDirectory)../../tools/net40/cilg.exe" />
+  <UsingTask TaskName="CilGeneratorTask" AssemblyFile="$(MSBuildThisFileDirectory)../../tools/cilg.exe" />
   
   <Target Name="CilGeneratorTarget" AfterTargets="Build">
     <CilGeneratorTask TargetFile="$(TargetDir)/$(TargetName)$(TargetExt)" WriteSymbols="$(DebugSymbols)" />

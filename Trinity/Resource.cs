@@ -35,7 +35,7 @@ using System.Reflection;
 using System.Linq;
 using System.Collections;
 using Newtonsoft.Json;
-#if NET_3_5
+#if NET35
 using Semiodesk.Trinity.Utility;
 #endif
 
@@ -311,6 +311,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="property"></param>
         /// <param name="value"></param>
+        /// <param name="fromModel"></param>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual void AddPropertyToMapping(Property property, object value, bool fromModel)
         {
@@ -895,7 +896,7 @@ namespace Semiodesk.Trinity
 
             if (property.Uri.OriginalString == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
             {
-#if NET_3_5
+#if NET35
                 foreach (object type in GetTypes().Cast<object>())
                     yield return type;
 #else
@@ -999,6 +1000,7 @@ namespace Semiodesk.Trinity
         /// Return the value for a given property with a predefined default value.
         /// </summary>
         /// <param name="property">A RDF property.</param>
+        /// <param name="defaultValue">Specifies a default value that should be returned if no value exists.</param>
         /// <returns>The value on success, the default value if the object has no such property.</returns>
         public object GetValue(Property property, object defaultValue)
         {

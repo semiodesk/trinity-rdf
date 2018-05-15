@@ -26,9 +26,6 @@
 // Copyright (c) Semiodesk GmbH 2015
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Semiodesk.Trinity
 {
@@ -52,15 +49,5 @@ namespace Semiodesk.Trinity
         public readonly bool FinishedWithCommit;
         public readonly bool FinishedWithRollback;
 
-    }
-    public delegate void FinishedTransaction(object sender, TransactionEventArgs e);
-
-    public interface ITransaction : IDisposable
-    {
-        event FinishedTransaction OnFinishedTransaction;
-
-        void Commit();
-        void Rollback();
-        System.Data.IsolationLevel IsolationLevel { get; }
     }
 }

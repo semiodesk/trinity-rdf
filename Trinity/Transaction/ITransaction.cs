@@ -25,44 +25,40 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-using System.Collections.Generic;
-using System.IO;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
-#if NETSTANDARD2_0 
-using System.Composition;
-#elif !NET35
-using System.ComponentModel.Composition;
-#endif
-
-namespace Semiodesk.Trinity.Store
+namespace Semiodesk.Trinity
 {
-#if ! NET35
-    [Export(typeof(StoreProvider))]
-#endif
-    public class SparqlEndpointStoreProvider : StoreProvider
+    /// <summary>
+    /// Handle for transaction events.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    public delegate void FinishedTransactionEvent(object sender, TransactionEventArgs e);
+
+    public interface ITransaction : IDisposable
     {
-        #region Constructor
+        /// <summary>
+        /// Will be raised if transaction finishes.
+        /// </summary>
+        event FinishedTransactionEvent OnFinishedTransaction;
 
-        public SparqlEndpointStoreProvider()
-        {
-            Name = "sparqlendpoint";
-        }
+        /// <summary>
+        /// Commit the transaction.
+        /// </summary>
+        void Commit();
 
-        #endregion
+        /// <summary>
+        /// Rolls the transaction back.
+        /// </summary>
+        void Rollback();
 
-
-
-        public override IStore GetStore(Dictionary<string, string> configurationDictionary)
-        {
-            string endpointKey = "endpoint";
-            if (configurationDictionary.ContainsKey(endpointKey))
-            {
-                Uri endpoint = new Uri(configurationDictionary[endpointKey]);
-
-                return new SparqlEndpointStorage(endpoint);
-            }
-            return null;
-        }
+        /// <summary>
+        /// The isolation level of the transaction.
+        /// </summary>
+        System.Data.IsolationLevel IsolationLevel { get; }
     }
 }

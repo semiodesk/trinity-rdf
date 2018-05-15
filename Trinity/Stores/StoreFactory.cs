@@ -29,14 +29,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Text.RegularExpressions;
 using Semiodesk.Trinity.Store;
 using System.Configuration;
+using System.Reflection;
+
 #if NETSTANDARD2_0
 using System.Composition.Hosting;
-#elif !NET_3_5
+#elif !NET35
 using System.ComponentModel.Composition.Hosting;
 #endif
 
@@ -50,9 +50,6 @@ namespace Semiodesk.Trinity
     {
         private static readonly Dictionary<string, StoreProvider> _storeConfigurations = new Dictionary<string, StoreProvider>()
         {
-            #if !NETSTANDARD2_0
-            {"virtuoso", new VirtuosoStoreProvider()},
-            #endif
             {"dotnetrdf", new dotNetRDFStoreProvider()},
             {"sparqlendpoint", new SparqlEndpointStoreProvider()},
             {"stardog", new StardogStoreProvider()}
@@ -147,7 +144,7 @@ namespace Semiodesk.Trinity
                         result = true;
                     }
                 }
-#elif NET_3_5
+#elif NET35
 
                 Assembly assembly = Assembly.LoadFrom(assemblyPath);
                 var types = assembly.GetTypes().Where(x => x.IsSubclassOf(typeof(StoreProvider)));

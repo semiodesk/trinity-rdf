@@ -31,7 +31,7 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Globalization;
-#if NET_3_5
+#if NET35
 using Semiodesk.Trinity.Utility;
 #endif
 using VDS.RDF;
@@ -233,9 +233,8 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string SerializeIResource(object obj)
         {
-            IResource resource = obj as IResource;
 
-            if (resource != null)
+            if (obj is IResource resource)
             {
                 // The .NET Uri class makes the host lower case, this is a problem for OpenLink Virtuoso
                 return resource.Uri.OriginalString.ToString();
@@ -282,9 +281,8 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string SerializeStringArray(object obj)
         {
-            string[] array = obj as string[];
 
-            if (array != null)
+            if (obj is string[] array)
             {
                 return array.First();
             }
@@ -301,9 +299,8 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string SerializeStringCultureInfoTuple(object obj)
         {
-            Tuple<string, CultureInfo> tuple = obj as Tuple<string, CultureInfo>;
 
-            if (tuple != null)
+            if (obj is Tuple<string, CultureInfo> tuple)
             {
                 return tuple.Item1;
             }
@@ -330,9 +327,8 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string SerializeByteArray(object obj)
         {
-            byte[] array = obj as byte[];
 
-            if (array != null)
+            if (obj is byte[] array)
             {
                 return Convert.ToBase64String(array);
             }
