@@ -121,5 +121,10 @@ namespace Semiodesk.Trinity.Query
                 return XsdTypeMapper.GetXsdTypeUri(constant.Type);
             }
         }
+
+        public static bool IsNullOrFalse(this ConstantExpression constant)
+        {
+            return constant.Value == null || constant.Value is bool && ((bool)constant.Value) == false;
+        }
     }
 }

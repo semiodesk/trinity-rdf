@@ -34,6 +34,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Xml;
 using VDS.RDF;
 using VDS.RDF.Query;
 using VDS.RDF.Query.Builder;
@@ -67,6 +68,8 @@ namespace Semiodesk.Trinity.Query
 
         public IList<SparqlVariable> SelectedVariables { get; private set; }
 
+        protected Dictionary<SparqlVariable, SparqlExpression> CoalescedVariables { get; private set; }
+
         protected SparqlVariableGenerator VariableGenerator;
 
         protected ISparqlQueryGeneratorTree QueryGeneratorTree;
@@ -80,6 +83,7 @@ namespace Semiodesk.Trinity.Query
         public SparqlQueryGenerator(IQueryBuilder queryBuilder)
         {
             SelectedVariables = new List<SparqlVariable>();
+            CoalescedVariables = new Dictionary<SparqlVariable, SparqlExpression>();
             QueryBuilder = queryBuilder;
             PatternBuilder = QueryBuilder.RootGraphPatternBuilder;
         }
@@ -87,6 +91,7 @@ namespace Semiodesk.Trinity.Query
         public SparqlQueryGenerator(ISelectBuilder selectBuilder)
         {
             SelectedVariables = new List<SparqlVariable>();
+            CoalescedVariables = new Dictionary<SparqlVariable, SparqlExpression>();
             SelectBuilder = selectBuilder;
             QueryBuilder = selectBuilder.GetQueryBuilder();
             PatternBuilder = QueryBuilder.RootGraphPatternBuilder;
@@ -114,13 +119,22 @@ namespace Semiodesk.Trinity.Query
             {
                 bool hasAggregate = SelectedVariables.Any(v => v.IsAggregate);
 
-                foreach (SparqlVariable variable in SelectedVariables)
+                foreach (SparqlVariable v in SelectedVariables)
                 {
-                    SelectBuilder.And(variable);
-
-                    if (hasAggregate && !variable.IsAggregate)
+                    if(CoalescedVariables.ContainsKey(v))
                     {
-                        QueryBuilder.GroupBy(variable.Name);
+                        SparqlExpression defaultValue = CoalescedVariables[v];
+
+                        SelectBuilder.And(e => e.Coalesce(e.Variable(v.Name), defaultValue)).As(v.Name + '_');
+                    }
+                    else
+                    {
+                        SelectBuilder.And(v);
+                    }
+
+                    if (hasAggregate && !v.IsAggregate)
+                    {
+                        QueryBuilder.GroupBy(v.Name);
                     }
                 }
 
@@ -131,127 +145,97 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        /// <todo>
-        /// Refactor to make the behaviour of the method more predictable: It returns any newly created member access
-        /// variable and allows for passing a delegate to create triples for this or other variables. Right now
-        /// the SparqlVariable 'o' is not necessarily the object variable being accessed.
-        /// </todo>
-        protected SparqlVariable BuildMemberAccessOptional(MemberExpression member, SparqlVariable o)
+        /// <summary>
+        /// Builds the triples required to access a given member and accociates its value with a variable.
+        /// </summary>
+        /// <param name="memberExpression">The member to be accessed.</param>
+        /// <returns>The object variable associated with the member value.</returns>
+        protected SparqlVariable BuildMemberAccess(MemberExpression memberExpression)
+        {
+            var requiredBuilder = PatternBuilder;
+
+            var so = BuildMemberAccess(memberExpression, requiredBuilder);
+
+            return so;
+        }
+
+        /// <summary>
+        /// Builds the triples required to access a given member and accociates its value with a variable.
+        /// </summary>
+        /// <param name="memberExpression">The member to be accessed.</param>
+        /// <returns>The object variable associated with the member value.</returns>
+        protected SparqlVariable BuildMemberAccessOptional(MemberExpression memberExpression)
         {
             var optionalBuilder = new GraphPatternBuilder(GraphPatternType.Optional);
-            var currentBuilder = PatternBuilder;
+
+            var so = BuildMemberAccess(memberExpression, optionalBuilder);
 
             Child(optionalBuilder);
 
-            PatternBuilder = optionalBuilder;
-
-            var v = BuildMemberAccess(member, o);
-
-            PatternBuilder = currentBuilder;
-
-            return v;
+            return so;
         }
 
-        protected SparqlVariable BuildMemberAccess(MemberExpression member)
+        private SparqlVariable BuildMemberAccess(MemberExpression memberExpression, IGraphPatternBuilder patternBuilder)
         {
-            return BuildMemberAccess(member, (s, p, o) =>
+            MemberInfo member = memberExpression.Member;
+
+            // If we do access a member of a system type, like string.Length we actually select the
+            // the declaring member and invoke a SPARQL built in call to get the value.
+            if (member.IsBuiltInCall())
             {
-                PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(p).Object(o));
-            });
-        }
+                MemberExpression parentExpression = memberExpression.Expression as MemberExpression;
 
-        protected SparqlVariable BuildMemberAccess(MemberExpression member, INode o)
-        {
-            return BuildMemberAccess(member, (s, p, x) =>
+                return BuildMemberAccess(parentExpression, patternBuilder);
+            }
+            else if (memberExpression.Expression is MemberExpression)
             {
-                PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(p).Object(o));
-            });
-        }
+                MemberExpression parentExpression = memberExpression.Expression as MemberExpression;
 
-        /// <todo>
-        /// Refactor to make the behaviour of the method more predictable: It returns any newly created member access
-        /// variable and allows for passing a delegate to create triples for this or other variables. Right now
-        /// the SparqlVariable 'o' is not necessarily the object variable being accessed.
-        /// </todo>
-        protected SparqlVariable BuildMemberAccess(MemberExpression member, SparqlVariable o)
-        {
-            return BuildMemberAccess(member, (s, p, x) =>
+                // Note: When we build an optional property path, we consider the relation to the 
+                // parent properties of the accessed property to be non-optional.
+                IGraphPatternBuilder builder = member.IsUriType() ? patternBuilder : PatternBuilder;
+
+                // We might encounter property paths (i.e. contact.Organization.Name). Therefore,
+                // implement the parent expression of the current member recursively..
+                SparqlVariable po = BuildMemberAccess(parentExpression, builder);
+
+                // If we are building a node on a property path (parentExpression != null), we associate 
+                // the object variable with the parent expression so that it becomes the subject of the parent.
+                VariableGenerator.SetSubjectVariable(memberExpression, po);
+            }
+
+            if(member.IsUriType())
             {
-                PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(p).Object(o.Name));
-            });
-        }
+                // We access the .Uri member of a resource. We do not need a property mapping and return the subject.
+                SparqlVariable s = VariableGenerator.TryGetSubjectVariable(memberExpression) ?? SubjectVariable;
 
-        /// <todo>
-        /// Refactor: The method does not call buildMemberAccessTriple in any case. Therefore when calling
-        /// BuildMemberAccess with a node or sparql variable the passed parameter is not always used as expected.
-        /// </todo>
-        private SparqlVariable BuildMemberAccess(Expression expression, Action<SparqlVariable, Uri, SparqlVariable> buildMemberAccessTriple)
-        {
-            if (expression is MemberExpression)
-            {
-                MemberExpression memberExpression = expression as MemberExpression;
-                MemberInfo member = memberExpression.Member;
+                VariableGenerator.SetSubjectVariable(memberExpression, s);
 
-                if(member.IsSystemType())
-                {
-                    return VariableGenerator.TryGetObjectVariable(memberExpression.Expression);
-                }
-                else
-                {
-                    // Recursively generate the property path which leads to the query source (buildMemberAccessTriple = null).
-                    var s = BuildMemberAccess(memberExpression.Expression, null);
-                    var p = memberExpression.TryGetRdfPropertyAttribute();
-                    var o = new SparqlVariable(member.Name.ToLowerInvariant());
-
-                    if (buildMemberAccessTriple == null)
-                    {
-                        // We are recursively building the property path. We need a property mapping for _each_ node.
-                        ThrowOnUndefinedPropertyAttribute(p, member);
-
-                        PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(p.MappedUri).Object(o.Name));
-
-                        return o;
-                    }
-                    else if (member.IsUriType())
-                    {
-                        // We access the .Uri member of a resource. We do not need a property mapping and return the subject.
-
-                        // Make the variable known for building filters on it later.
-                        VariableGenerator.SetSubjectVariable(memberExpression.Expression, s);
-
-                        return s;
-                    }
-
-                    if(buildMemberAccessTriple != null)
-                    {
-                        // In all other cases we require a property mapping.
-                        ThrowOnUndefinedPropertyAttribute(p, member);
-
-                        // Invoke the final user-handled member access triple builder callback.
-                        buildMemberAccessTriple(s, p.MappedUri, o);
-                    }   
-
-                    return o;
-                }
+                return s;
             }
             else
             {
-                return VariableGenerator.TryGetSubjectVariable(expression);
+                SparqlVariable s = VariableGenerator.TryGetSubjectVariable(memberExpression) ?? SubjectVariable;
+                SparqlVariable o = VariableGenerator.TryGetObjectVariable(memberExpression) ?? VariableGenerator.CreateObjectVariable(memberExpression);
+
+                // Now we have handled parent properties, built-in calls (.Length) and accesses to .Uri
+                RdfPropertyAttribute p = memberExpression.TryGetRdfPropertyAttribute();
+
+                if (p == null)
+                {
+                    throw new Exception(string.Format("No RdfPropertyAttribute found for member: {0}", member.Name));
+                }
+
+                // Invoke the final user-handled member access triple builder callback.
+                patternBuilder.Where(t => t.Subject(s.Name).PredicateUri(p.MappedUri).Object(o));
+
+                return o;
             }
         }
 
-        private void ThrowOnUndefinedPropertyAttribute(RdfPropertyAttribute p, MemberInfo member)
+        protected void BuildBuiltInCall(MemberExpression memberExpression, Func<NumericExpression, BooleanExpression> buildFilter)
         {
-            if(p == null)
-            {
-                string msg = string.Format("Property mapping not found for member: {0}", member.Name);
-                throw new Exception(msg);
-            }
-        }
-
-        protected void BuildFilterOnSystemType(MemberExpression memberExpression, Func<NumericExpression, BooleanExpression> buildFilter)
-        {
-            SparqlVariable o = VariableGenerator.TryGetObjectVariable(memberExpression.Expression);
+            SparqlVariable o = VariableGenerator.TryGetObjectVariable(memberExpression.Expression) ?? ObjectVariable;
 
             MemberInfo member = memberExpression.Member;
 
@@ -268,53 +252,50 @@ namespace Semiodesk.Trinity.Query
             }
             else if (member.DeclaringType == typeof(DateTime))
             {
+                // TODO: YEAR, MONTH, DAY, HOURS, MINUTES, SECONDS, TIMEZONE, TZ
                 throw new NotImplementedException(member.DeclaringType.ToString());
             }
         }
 
-        public virtual void SetObjectOperator(ResultOperatorBase resultOperator)
-        {
-        }
+        public virtual void SetObjectOperator(ResultOperatorBase resultOperator) {}
 
-        public void SetObjectVariable(SparqlVariable variable, bool select = false)
+        public void SetObjectVariable(SparqlVariable v, bool select = false)
         {
-            if (variable != null)
+            if (v == null) return;
+
+            // If the new variable is to be selected, deselect the previous variable first.
+            if (select)
             {
-                if(select)
-                {
-                    DeselectVariable(ObjectVariable);
-                    SelectVariable(variable);
-                }
-
-                ObjectVariable = variable;
+                DeselectVariable(ObjectVariable);
+                SelectVariable(v);
             }
+
+            ObjectVariable = v;
         }
 
-        public void SetSubjectVariable(SparqlVariable variable, bool select = false)
+        public virtual void SetSubjectOperator(ResultOperatorBase resultOperator) {}
+
+        public void SetSubjectVariable(SparqlVariable v, bool select = false)
         {
-            if (variable != null)
+            if (v == null) return;
+
+            // If the new variable is to be selected, deselect the previous variable first.
+            if (select)
             {
-                if (select)
-                {
-                    DeselectVariable(SubjectVariable);
-                    SelectVariable(variable);
-                }
-
-                SubjectVariable = variable;
+                DeselectVariable(SubjectVariable);
+                SelectVariable(v);
             }
+
+            SubjectVariable = v;
         }
 
-        public virtual void SetSubjectOperator(ResultOperatorBase resultOperator)
-        {
-        }
-
-        public void DeselectVariable(SparqlVariable variable)
+        public void DeselectVariable(SparqlVariable v)
         {
             if (SelectBuilder != null)
             {
-                if (variable != null && SelectedVariables.Contains(variable))
+                if (v != null && SelectedVariables.Contains(v))
                 {
-                    SelectedVariables.Remove(variable);
+                    SelectedVariables.Remove(v);
                 }
             }
             else
@@ -324,29 +305,13 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public void SelectVariable(string variable)
-        {
-            if (SelectBuilder != null)
-            {
-                if (!string.IsNullOrEmpty(variable) && !SelectedVariables.Any(v => v.Name == variable))
-                {
-                    SelectedVariables.Add(new SparqlVariable(variable, true));
-                }
-            }
-            else
-            {
-                string msg = "Cannot select variables with non-SELECT query type.";
-                throw new Exception(msg);
-            }
-        }
-
-        public void SelectVariable(SparqlVariable variable)
+        public void SelectVariable(SparqlVariable v)
         {
             if(SelectBuilder != null)
             {
-                if (variable != null && !SelectedVariables.Any(v => v.Name == variable.Name))
+                if (v != null && !SelectedVariables.Any(x => x.Name == v.Name))
                 {
-                    SelectedVariables.Add(variable);
+                    SelectedVariables.Add(v);
                 }
             }
             else
@@ -356,255 +321,326 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public bool IsSelectedVariable(SparqlVariable variable)
+        public bool IsSelectedVariable(SparqlVariable v)
         {
-            return variable != null && SelectBuilder != null && SelectedVariables.Contains(variable);
+            return v != null && SelectBuilder != null && SelectedVariables.Contains(v);
         }
 
-        public void Where(MemberExpression member, SparqlVariable variable)
+        public void Where(MemberExpression member, SparqlVariable v)
         {
+            SparqlVariable s = VariableGenerator.TryGetSubjectVariable(member);
+
+            if(s == null)
+            {
+                QuerySourceReferenceExpression sourceExpression = member.Expression.TryGetQuerySourceReference();
+
+                s = VariableGenerator.TryGetObjectVariable(sourceExpression) ?? SubjectVariable;
+            }
+
             RdfPropertyAttribute attribute = member.Member.TryGetCustomAttribute<RdfPropertyAttribute>();
 
-            PatternBuilder.Where(t => t.Subject(SubjectVariable.Name).PredicateUri(attribute.MappedUri).Object(variable.Name));
-
-            VariableGenerator.SetObjectVariable(member, variable);
-        }
-
-        public void WhereEqual(SparqlVariable variable, ConstantExpression constant)
-        {
-            if (constant.Value != null)
+            if (CoalescedVariables.ContainsKey(v))
             {
-                PatternBuilder.Filter(e => e.Variable(variable.Name) == constant.AsLiteralExpression());
+                // In cases where the member is not constrained in a WHERE clause we need to select the variable optionally.
+                PatternBuilder.Optional(o => o.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(v.Name)));
             }
             else
             {
-                PatternBuilder.Filter(e => !e.Bound(variable.Name));
+                // By default, we create a mandatory binding.
+                PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(v.Name));
             }
         }
 
-        public void WhereEqual(MemberExpression expression, ConstantExpression constant)
+        public void WhereEqual(SparqlVariable v, ConstantExpression c)
         {
-            if(constant.Value != null)
+            if (c.Value == null)
             {
-                SparqlVariable so = BuildMemberAccess(expression, constant.AsNode());
-
-                if (expression.Member.IsSystemType())
-                {
-                    BuildFilterOnSystemType(expression, e => e == constant.AsNumericExpression());
-                }
-                else if (expression.Member.IsUriType())
-                {
-                    PatternBuilder.Filter(e => e.Variable(so.Name) == constant.AsIriExpression());
-                }
+                PatternBuilder.Filter(e => !e.Bound(v.Name));
+            }
+            else if(c.Type.IsValueType || c.Type == typeof(string))
+            {
+                PatternBuilder.Filter(e => e.Variable(v.Name) == c.AsLiteralExpression());
             }
             else
             {
-                SparqlVariable o = VariableGenerator.CreateLocalObjectVariable();
+                PatternBuilder.Filter(e => e.Variable(v.Name) == c.AsIriExpression());
+            }
+        }
 
+        public void WhereEqual(MemberExpression expression, ConstantExpression c)
+        {
+            if (c.Value == null)
+            {
                 // If we want to filter for non-bound values we need to mark the properties as optional.
-                BuildMemberAccessOptional(expression, o);
+                SparqlVariable o = BuildMemberAccessOptional(expression);
 
                 // Comparing with null means the variable is not bound.
                 PatternBuilder.Filter(e => !e.Bound(o.Name));
             }
-        }
-
-        public void WhereNotEqual(SparqlVariable variable, ConstantExpression constant)
-        {
-            if(constant.Value != null)
+            else if(c.Type.IsValueType || c.Type == typeof(string))
             {
-                PatternBuilder.Filter(e => e.Variable(variable.Name) != new LiteralExpression(constant.AsSparqlExpression()));
-            }
-            else
-            {
-                PatternBuilder.Filter(e => e.Bound(variable.Name));
-            }
-        }
-
-        public void WhereNotEqual(MemberExpression expression, ConstantExpression constant)
-        {
-            // TODO: We do not need this object variable in any cases. Let BuildMemberAccess return the variable it generated or referenced.
-            SparqlVariable o = VariableGenerator.CreateLocalObjectVariable();
-
-            if (expression.Member.IsSystemType())
-            {
-                // Literal value types do not have an undefined state 'null' value.
-                // Therefore, the member access must not be optional.
-                BuildMemberAccess(expression, o);
-
-                BuildFilterOnSystemType(expression, e => e != constant.AsNumericExpression());
-            }
-            else if (expression.Member.IsUriType())
-            {
-                if(expression.Expression is QuerySourceReferenceExpression)
+                if(expression.Member.DeclaringType == typeof(string))
                 {
-                    // Here we compare the URI property of the subject.
-                    SparqlVariable s = BuildMemberAccess(expression, o);
+                    BuildMemberAccess(expression);
 
-                    PatternBuilder.Filter(e => e.Variable(s.Name) != constant.AsIriExpression());
+                    // If we are comparing a property of string we need to implement SPARQL built-in call on the variable such as STRLEN..
+                    BuildBuiltInCall(expression, e => e == c.AsNumericExpression());
                 }
                 else
                 {
-                    // If we compare URIs of query source members, then we compare reference values. 
-                    // In this case we also need to include resources in the result where the member
-                    // value is 'null'. Therefore, we make the member access optional.
-                    SparqlVariable so = BuildMemberAccessOptional(expression, o);
+                    // TODO: The default value for a property may be overridden with the DefaultValue attribute.
+                    object defaultValue = TypeHelper.GetDefaultValue(c.Type);
 
-                    PatternBuilder.Filter(e => e.Bound(so.Name) && e.Variable(so.Name) != constant.AsIriExpression() || !e.Bound(so.Name));
+                    // If the value IS the default value, WhereEquals includes the default value and therefore includes non-bound values..
+                    if (c.Value.Equals(defaultValue))
+                    {
+                        // If we want to filter for non-bound values we need to mark the properties as optional.
+                        SparqlVariable o = BuildMemberAccessOptional(expression);
+
+                        LiteralExpression literalExpression = c.AsLiteralExpression();
+
+                        // Mark the variable to be coalesced with the default value when selected.
+                        CoalescedVariables[o] = literalExpression;
+
+                        // Comparing with null means the variable is not bound.
+                        PatternBuilder.Filter(e => e.Variable(o.Name) == literalExpression || !e.Bound(o.Name));
+                    }
+                    else
+                    {
+                        // If we want to filter bound literal values, we still write them into a variable so they can be selected.
+                        SparqlVariable o = BuildMemberAccess(expression);
+
+                        PatternBuilder.Filter(e => e.Variable(o.Name) == c.AsLiteralExpression());
+                    }
                 }
             }
-            else if (constant.Value == null)
+            else
             {
-                // The member access must not be optional.
-                BuildMemberAccess(expression, o);
+                // We are comparing reference types / resources against a bound value here.
+                SparqlVariable o = BuildMemberAccess(expression);
 
-                // The value must be bound.
+                PatternBuilder.Filter(e => e.Variable(o.Name) == c.AsIriExpression());
+            }
+        }
+
+        public void WhereNotEqual(SparqlVariable v, ConstantExpression c)
+        {
+            if(c.Value == null)
+            {
+                PatternBuilder.Filter(e => e.Bound(v.Name));
+            }
+            else if(c.Type.IsValueType || c.Type == typeof(string))
+            {
+                PatternBuilder.Filter(e => e.Variable(v.Name) != c.AsLiteralExpression());
+            }
+            else
+            {
+                PatternBuilder.Filter(e => e.Variable(v.Name) != c.AsIriExpression());
+            }
+        }
+
+        public void WhereNotEqual(MemberExpression expression, ConstantExpression c)
+        {
+            if (c.Value == null)
+            {
+                // If we want to filter for non-bound values we need to mark the properties as optional.
+                SparqlVariable o = BuildMemberAccessOptional(expression);
+
+                // Comparing with null means the variable is not bound.
                 PatternBuilder.Filter(e => e.Bound(o.Name));
             }
-            else
+            else if (c.Type.IsValueType || c.Type == typeof(string))
             {
-                BuildMemberAccess(expression, o);
+                if (expression.Member.DeclaringType == typeof(string))
+                {
+                    BuildMemberAccess(expression);
 
-                PatternBuilder.Filter(e => e.Variable(o.Name) != constant.AsNumericExpression());
-            }
-        }
+                    // If we are comparing a property of string we need to implement SPARQL built-in call on the variable such as STRLEN..
+                    BuildBuiltInCall(expression, e => e != c.AsNumericExpression());
+                }
+                else
+                {
+                    // TODO: The default value for a property may be overridden with the DefaultValue attribute.
+                    object defaultValue = TypeHelper.GetDefaultValue(c.Type);
 
-        public void WhereGreaterThan(SparqlVariable variable, ConstantExpression constant)
-        {
-            PatternBuilder.Filter(e => e.Variable(variable.Name) > constant.AsNumericExpression());
-        }
+                    // If the value is NOT the default value, WhereNotEquals includes the default value and therefore includes non-bound values..
+                    if (!c.Value.Equals(defaultValue))
+                    {
+                        // If we want to filter for non-bound values we need to mark the properties as optional.
+                        SparqlVariable o = BuildMemberAccessOptional(expression);
 
-        public void WhereGreaterThan(MemberExpression expression, ConstantExpression constant)
-        {
-            SparqlVariable o = VariableGenerator.CreateLocalObjectVariable();
+                        LiteralExpression literalExpression = c.AsLiteralExpression();
 
-            BuildMemberAccess(expression, o);
+                        // Mark the variable to be coalesced with the default value when selected.
+                        CoalescedVariables[o] = literalExpression;
 
-            if (expression.Member.IsSystemType())
-            {
-                BuildFilterOnSystemType(expression, e => e > constant.AsNumericExpression());
-            }
-            else
-            {
-                PatternBuilder.Filter(e => e.Variable(o.Name) > constant.AsNumericExpression());
-            }
-        }
+                        // Comparing with null means the variable is not bound.
+                        PatternBuilder.Filter(e => e.Variable(o.Name) != literalExpression || !e.Bound(o.Name));
+                    }
+                    else
+                    {
+                        // If we want to filter bound literal values, we still write them into a variable so they can be selected.
+                        SparqlVariable o = BuildMemberAccess(expression);
 
-        public void WhereGreaterThanOrEqual(SparqlVariable variable, ConstantExpression constant)
-        {
-            PatternBuilder.Filter(e => e.Variable(variable.Name) >= new LiteralExpression(constant.AsSparqlExpression()));
-        }
-
-        public void WhereGreaterThanOrEqual(MemberExpression expression, ConstantExpression constant)
-        {
-            SparqlVariable o = VariableGenerator.CreateLocalObjectVariable();
-
-            BuildMemberAccess(expression, o);
-
-            if (expression.Member.IsSystemType())
-            {
-                BuildFilterOnSystemType(expression, e => e >= constant.AsNumericExpression());
+                        PatternBuilder.Filter(e => e.Variable(o.Name) != c.AsLiteralExpression());
+                    }
+                }
             }
             else
             {
-                PatternBuilder.Filter(e => e.Variable(o.Name) >= constant.AsNumericExpression());
+                // We are comparing reference types /resource against a bound value here.
+                // Note: If the compared values must not be equal, then the comapred value might also be not bound (optional).
+                SparqlVariable o = BuildMemberAccessOptional(expression);
+
+                PatternBuilder.Filter(e => e.Variable(o.Name) != c.AsIriExpression());
             }
         }
 
-        public void WhereLessThan(SparqlVariable variable, ConstantExpression constant)
+        public void WhereGreaterThan(SparqlVariable v, ConstantExpression c)
         {
-            PatternBuilder.Filter(e => e.Variable(variable.Name) < new LiteralExpression(constant.AsSparqlExpression()));
+            PatternBuilder.Filter(e => e.Variable(v.Name) > c.AsNumericExpression());
         }
 
-        public void WhereLessThan(MemberExpression expression, ConstantExpression constant)
+        public void WhereGreaterThan(MemberExpression expression, ConstantExpression c)
         {
-            SparqlVariable o = VariableGenerator.CreateLocalObjectVariable();
+            SparqlVariable o = VariableGenerator.CreateObjectVariable(expression);
 
-            BuildMemberAccess(expression, o);
+            BuildMemberAccess(expression);
 
-            if (expression.Member.IsSystemType())
+            if (expression.Member.IsBuiltInCall())
             {
-                BuildFilterOnSystemType(expression, e => e < constant.AsNumericExpression());
+                BuildBuiltInCall(expression, e => e > c.AsNumericExpression());
             }
             else
             {
-                PatternBuilder.Filter(e => e.Variable(o.Name) < constant.AsNumericExpression());
+                PatternBuilder.Filter(e => e.Variable(o.Name) > c.AsNumericExpression());
             }
         }
 
-        public void WhereLessThanOrEqual(SparqlVariable variable, ConstantExpression constant)
+        public void WhereGreaterThanOrEqual(SparqlVariable v, ConstantExpression c)
         {
-            PatternBuilder.Filter(e => e.Variable(variable.Name) <= new LiteralExpression(constant.AsSparqlExpression()));
+            PatternBuilder.Filter(e => e.Variable(v.Name) >= new LiteralExpression(c.AsSparqlExpression()));
         }
 
-        public void WhereLessThanOrEqual(MemberExpression expression, ConstantExpression constant)
+        public void WhereGreaterThanOrEqual(MemberExpression expression, ConstantExpression c)
         {
-            SparqlVariable o = VariableGenerator.CreateLocalObjectVariable();
+            SparqlVariable o = VariableGenerator.CreateObjectVariable(expression);
 
-            BuildMemberAccess(expression, o);
+            BuildMemberAccess(expression);
 
-            if (expression.Member.IsSystemType())
+            if (expression.Member.IsBuiltInCall())
             {
-                BuildFilterOnSystemType(expression, e => e <= constant.AsNumericExpression());
+                BuildBuiltInCall(expression, e => e >= c.AsNumericExpression());
             }
             else
             {
-                PatternBuilder.Filter(e => e.Variable(o.Name) <= constant.AsNumericExpression());
+                PatternBuilder.Filter(e => e.Variable(o.Name) >= c.AsNumericExpression());
             }
         }
 
-        public void FilterRegex(SparqlVariable variable, string pattern, bool ignoreCase)
+        public void WhereLessThan(SparqlVariable v, ConstantExpression c)
+        {
+            PatternBuilder.Filter(e => e.Variable(v.Name) < new LiteralExpression(c.AsSparqlExpression()));
+        }
+
+        public void WhereLessThan(MemberExpression expression, ConstantExpression c)
+        {
+            SparqlVariable o = VariableGenerator.CreateObjectVariable(expression);
+
+            BuildMemberAccess(expression);
+
+            if (expression.Member.IsBuiltInCall())
+            {
+                BuildBuiltInCall(expression, e => e < c.AsNumericExpression());
+            }
+            else
+            {
+                PatternBuilder.Filter(e => e.Variable(o.Name) < c.AsNumericExpression());
+            }
+        }
+
+        public void WhereLessThanOrEqual(SparqlVariable v, ConstantExpression c)
+        {
+            PatternBuilder.Filter(e => e.Variable(v.Name) <= new LiteralExpression(c.AsSparqlExpression()));
+        }
+
+        public void WhereLessThanOrEqual(MemberExpression expression, ConstantExpression c)
+        {
+            SparqlVariable o = VariableGenerator.CreateObjectVariable(expression);
+
+            BuildMemberAccess(expression);
+
+            if (expression.Member.IsBuiltInCall())
+            {
+                BuildBuiltInCall(expression, e => e <= c.AsNumericExpression());
+            }
+            else
+            {
+                PatternBuilder.Filter(e => e.Variable(o.Name) <= c.AsNumericExpression());
+            }
+        }
+
+        public void FilterRegex(SparqlVariable v, string pattern, bool ignoreCase)
         {
             if (ignoreCase)
             {
-                PatternBuilder.Filter(e => e.Regex(e.Variable(variable.Name), pattern, "i"));
+                PatternBuilder.Filter(e => e.Regex(e.Variable(v.Name), pattern, "i"));
             }
             else
             {
-                PatternBuilder.Filter(e => e.Regex(e.Variable(variable.Name), pattern));
+                PatternBuilder.Filter(e => e.Regex(e.Variable(v.Name), pattern));
             }
         }
 
         public void FilterRegex(MemberExpression expression, string pattern, bool ignoreCase)
         {
-            SparqlVariable s = VariableGenerator.TryGetSubjectVariable(expression);
-            SparqlVariable o = BuildMemberAccess(expression);
+            SparqlVariable s = VariableGenerator.TryGetSubjectVariable(expression) ?? SubjectVariable;
+            SparqlVariable o = VariableGenerator.TryGetObjectVariable(expression) ?? VariableGenerator.CreateObjectVariable(expression);
+
+            BuildMemberAccess(expression);
 
             FilterRegex(o, pattern, ignoreCase);
         }
 
-        public void WhereResource(SparqlVariable subject)
+        public void WhereResource(SparqlVariable s, SparqlVariable p, SparqlVariable o)
         {
-            SparqlVariable p = VariableGenerator.CreateLocalPredicateVariable();
-            SparqlVariable o = VariableGenerator.CreateLocalObjectVariable();
-
-            PatternBuilder.Where(t => t.Subject(subject.Name).Predicate(p.Name).Object(o.Name));
+            PatternBuilder.Where(t => t.Subject(s.Name).Predicate(p.Name).Object(o.Name));
         }
 
-        public void WhereResourceOfType(SparqlVariable subject, Type type)
+        public void WhereResource(Expression expression, SparqlVariable p, SparqlVariable o)
         {
-            if (typeof(Resource).IsAssignableFrom(type))
+            SparqlVariable s = VariableGenerator.TryGetSubjectVariable(expression) ?? SubjectVariable;
+
+            PatternBuilder.Where(t => t.Subject(s.Name).Predicate(p.Name).Object(o.Name));
+        }
+
+        public void WhereResourceOfType(Expression expression, Type type)
+        {
+            SparqlVariable s = VariableGenerator.TryGetSubjectVariable(expression) ?? SubjectVariable;
+
+            WhereResourceOfType(s, type);
+        }
+
+        public void WhereResourceOfType(SparqlVariable s, Type type)
+        {
+            RdfClassAttribute t = type.TryGetCustomAttribute<RdfClassAttribute>();
+
+            if (t != null)
             {
-                // Assert the resource type, if any.
-                RdfClassAttribute t = type.TryGetCustomAttribute<RdfClassAttribute>();
+                Uri a = new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
 
-                if (t != null)
-                {
-                    Uri a = new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-
-                    PatternBuilder.Where(e => e.Subject(subject.Name).PredicateUri(a).Object(t.MappedUri));
-                }
+                PatternBuilder.Where(e => e.Subject(s.Name).PredicateUri(a).Object(t.MappedUri));
             }
         }
 
-        public void OrderBy(SparqlVariable variable)
+        public void OrderBy(SparqlVariable v)
         {
-            QueryBuilder.OrderBy(variable.Name);
+            QueryBuilder.OrderBy(v.Name);
         }
 
-        public void OrderByDescending(SparqlVariable variable)
+        public void OrderByDescending(SparqlVariable v)
         {
-            QueryBuilder.OrderByDescending(variable.Name);
+            QueryBuilder.OrderByDescending(v.Name);
         }
 
         public void Offset(int offset)
@@ -694,7 +730,8 @@ namespace Semiodesk.Trinity.Query
         }
 
         public virtual void OnFromClauseVisited(Expression expression)
-        { }
+        {
+        }
 
         public virtual void OnBeforeSelectClauseVisited(Expression selector)
         {

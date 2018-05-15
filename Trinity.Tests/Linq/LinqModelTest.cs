@@ -27,6 +27,7 @@
 
 using NUnit.Framework;
 using System;
+using System.IO;
 
 namespace Semiodesk.Trinity.Test.Linq
 {
@@ -42,7 +43,9 @@ namespace Semiodesk.Trinity.Test.Linq
             //string connectionString = "provider=dotnetrdf";
 
             // OpenLink Virtoso store.
-            string connectionString = string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString);
+            //string connectionString = string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString);
+
+            string connectionString = "provider=stardog;host=http://localhost:5820;uid=admin;pw=admin;sid=test";
 
             Store = StoreFactory.CreateStore(connectionString);
 
@@ -79,6 +82,7 @@ namespace Semiodesk.Trinity.Test.Linq
             p2.FirstName = "Bob";
             p2.LastName = "Dylan";
             p2.Age = 76;
+            //p2.Status = false;
             p2.Birthday = new DateTime(1941, 5, 24);
             p2.AccountBalance = 1000000.1f;
             p2.Commit();

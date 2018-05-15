@@ -27,12 +27,12 @@
 
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.ResultOperators;
-using System;
 using VDS.RDF.Query.Aggregates.Sparql;
 using VDS.RDF.Query.Expressions.Primary;
-using System.Linq.Expressions;
 using VDS.RDF.Query;
+using System;
 using System.Linq;
+using System.Linq.Expressions;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -48,23 +48,6 @@ namespace Semiodesk.Trinity.Query
         #endregion
 
         #region Methods
-
-        public override void OnSelectClauseVisited(Expression selector)
-        {
-            base.OnSelectClauseVisited(selector);
-
-            // If we are in the root query generator and have not yet selected the
-            // subject variable, set it from the given selector.
-            if (IsRoot && SubjectVariable == null)
-            {
-                SparqlVariable o = VariableGenerator.TryGetObjectVariable(selector);
-
-                if (o != null && !IsSelectedVariable(o))
-                {
-                    SelectVariable(o.Name);
-                }
-            }
-        }
 
         public override void SetObjectOperator(ResultOperatorBase resultOperator)
         {
@@ -89,56 +72,42 @@ namespace Semiodesk.Trinity.Query
                 }
                 else if (resultOperator is FirstResultOperator)
                 {
-                    if (QueryModel.MainFromClause.FromExpression is MemberExpression)
+                    // "Using LIMIT and OFFSET to select different subsets of the query solutions 
+                    // will not be useful unless the order is made predictable by using ORDER BY."
+                    // Source: https://www.w3.org/TR/2013/REC-sparql11-query-20130321/#modOffset
+
+                    // Therefore, if no ordering exists we add an ordering on the current subject 
+                    // to make the query result predictable.
+                    if (!QueryModel.BodyClauses.OfType<OrderByClause>().Any())
                     {
-                        //throw new NotSupportedException("The First and FirstOrDefault operators are not supported in subqueries.");
+                        OrderBy(SubjectVariable);
                     }
                     else
                     {
-                        // "Using LIMIT and OFFSET to select different subsets of the query solutions 
-                        // will not be useful unless the order is made predictable by using ORDER BY."
-                        // Source: https://www.w3.org/TR/2013/REC-sparql11-query-20130321/#modOffset
-
-                        // Therefore, if no ordering exists we add an ordering on the current subject 
-                        // to make the query result predictable.
-                        if (!QueryModel.BodyClauses.OfType<OrderByClause>().Any())
-                        {
-                            OrderBy(SubjectVariable);
-                        }
-                        else
-                        {
-                            // In case the order was make explicit, we have to do nothing.
-                        }
-
-                        Limit(1);
+                        // In case the order was make explicit, we have to do nothing.
                     }
+
+                    Limit(1);
                 }
                 else if (resultOperator is LastResultOperator)
                 {
-                    if (QueryModel.MainFromClause.FromExpression is MemberExpression)
+                    // "Using LIMIT and OFFSET to select different subsets of the query solutions 
+                    // will not be useful unless the order is made predictable by using ORDER BY."
+                    // Source: https://www.w3.org/TR/2013/REC-sparql11-query-20130321/#modOffset
+
+                    // Therefore, if no ordering exists we add an ordering on the current subject 
+                    // to make the query result predictable.
+                    if (!QueryModel.BodyClauses.OfType<OrderByClause>().Any())
                     {
-                        //throw new NotSupportedException("The Last and LastOrDefault operators are not supported in subqueries.");
+                        OrderByDescending(SubjectVariable);
                     }
                     else
                     {
-                        // "Using LIMIT and OFFSET to select different subsets of the query solutions 
-                        // will not be useful unless the order is made predictable by using ORDER BY."
-                        // Source: https://www.w3.org/TR/2013/REC-sparql11-query-20130321/#modOffset
-
-                        // Therefore, if no ordering exists we add an ordering on the current subject 
-                        // to make the query result predictable.
-                        if (!QueryModel.BodyClauses.OfType<OrderByClause>().Any())
-                        {
-                            OrderByDescending(SubjectVariable);
-                        }
-                        else
-                        {
-                            // Inverting the direction of the first ordering is handled in SparqlQueryModelVisitor.VisitOrdering().
-                            // This is because the orderings are not necessarily processed *before* the result operators..
-                        }
-
-                        Limit(1);
+                        // Inverting the direction of the first ordering is handled in SparqlQueryModelVisitor.VisitOrdering().
+                        // This is because the orderings are not necessarily processed *before* the result operators..
                     }
+
+                    Limit(1);
                 }
                 else if (resultOperator is MaxResultOperator)
                 {
@@ -165,8 +134,12 @@ namespace Semiodesk.Trinity.Query
                         throw new ArgumentException("No RdfClass attrribute declared on type: " + op.SearchedItemType);
                     }
 
-                    WhereResource(ObjectVariable);
-                    WhereResourceOfType(ObjectVariable, op.SearchedItemType);
+                    SparqlVariable s = ObjectVariable;
+                    SparqlVariable p = VariableGenerator.CreatePredicateVariable();
+                    SparqlVariable o = VariableGenerator.CreateObjectVariable();
+
+                    WhereResource(s, p, o);
+                    WhereResourceOfType(o, op.SearchedItemType);
                 }
                 else if (resultOperator is SkipResultOperator)
                 {
@@ -180,7 +153,7 @@ namespace Semiodesk.Trinity.Query
                 }
                 else
                 {
-                    throw new NotImplementedException();
+                    throw new NotImplementedException(resultOperator.ToString());
                 }
             }
         }
@@ -206,7 +179,7 @@ namespace Semiodesk.Trinity.Query
                 }
                 else
                 {
-                    throw new NotImplementedException();
+                    throw new NotImplementedException(resultOperator.ToString());
                 }
             }
         }

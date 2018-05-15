@@ -5,7 +5,6 @@ using Remotion.Linq.Clauses.ResultOperators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Semiodesk.Trinity.Query
@@ -66,12 +65,12 @@ namespace Semiodesk.Trinity.Query
                 visitor.VisitQueryModel(queryModel);
 
                 ISparqlQuery query = visitor.GetQuery();
-                ISparqlQueryResult result = Model.ExecuteQuery(query);
+                ISparqlQueryResult result = Model.ExecuteQuery(query, _inferenceEnabled);
 
                 // TODO: This works correctly for single bindings, check with multiple bindings.
                 foreach(BindingSet bindings in result.GetBindings())
                 {
-                    foreach(T value in bindings.Values.OfType<T>())
+                    foreach(var value in bindings.Values.OfType<T>())
                     {
                         yield return value;
                     }
@@ -97,7 +96,7 @@ namespace Semiodesk.Trinity.Query
                 visitor.VisitQueryModel(queryModel);
 
                 ISparqlQuery query = visitor.GetQuery();
-                ISparqlQueryResult result = Model.ExecuteQuery(query);
+                ISparqlQueryResult result = Model.ExecuteQuery(query, _inferenceEnabled);
 
                 return new object[] { result.GetAnwser() }.OfType<T>().First();
             }
@@ -107,7 +106,7 @@ namespace Semiodesk.Trinity.Query
                 visitor.VisitQueryModel(queryModel);
 
                 ISparqlQuery query = visitor.GetQuery();
-                ISparqlQueryResult result = Model.ExecuteQuery(query);
+                ISparqlQueryResult result = Model.ExecuteQuery(query, _inferenceEnabled);
 
                 BindingSet b = result.GetBindings().FirstOrDefault();
 

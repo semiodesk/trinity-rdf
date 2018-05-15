@@ -81,6 +81,7 @@ namespace Semiodesk.Trinity.Test.Linq
             p2.FirstName = "Bob";
             p2.LastName = "Dylan";
             p2.Age = 76;
+            //p2.Status = false;
             p2.Birthday = new DateTime(1941, 5, 24);
             p2.AccountBalance = 1000000.1f;
             p2.Commit();

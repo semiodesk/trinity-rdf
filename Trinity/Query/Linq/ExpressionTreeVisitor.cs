@@ -37,15 +37,15 @@ using VDS.RDF.Query.Builder;
 
 namespace Semiodesk.Trinity.Query
 {
-    sealed class ExpressionTreeVisitor : ThrowingExpressionTreeVisitor
+    class ExpressionTreeVisitor : ThrowingExpressionVisitor
     {
         #region Members
 
-        private ISparqlQueryModelVisitor _queryModelVisitor;
+        protected ISparqlQueryModelVisitor QueryModelVisitor;
 
-        private ISparqlQueryGeneratorTree _queryGeneratorTree;
+        protected ISparqlQueryGeneratorTree QueryGeneratorTree;
 
-        private SparqlVariableGenerator _variableGenerator;
+        protected SparqlVariableGenerator VariableGenerator;
 
         #endregion
 
@@ -53,56 +53,40 @@ namespace Semiodesk.Trinity.Query
 
         public ExpressionTreeVisitor(ISparqlQueryModelVisitor queryModelVisitor, ISparqlQueryGeneratorTree queryGeneratorTree, SparqlVariableGenerator variableGenerator)
         {
-            _queryModelVisitor = queryModelVisitor;
-            _queryGeneratorTree = queryGeneratorTree;
-            _variableGenerator = variableGenerator;
+            QueryModelVisitor = queryModelVisitor;
+            QueryGeneratorTree = queryGeneratorTree;
+            VariableGenerator = variableGenerator;
         }
 
         #endregion
 
         #region Methods
 
-        protected override Expression VisitBinaryExpression(BinaryExpression expression)
+        private void HandleRegexMethodCallExpression(Expression expression, string regex, bool ignoreCase = false)
         {
-            switch (expression.NodeType)
-            {
-                case ExpressionType.Equal:
-                case ExpressionType.NotEqual:
-                case ExpressionType.GreaterThan:
-                case ExpressionType.GreaterThanOrEqual:
-                case ExpressionType.LessThan:
-                case ExpressionType.LessThanOrEqual:
-                    {
-                        if (expression.HasExpressionOfType<ConstantExpression>())
-                        {
-                            VisitBinaryConstantExpression(expression);
-                        }
-                        break;
-                    }
-                case ExpressionType.AndAlso:
-                    {
-                        VisitBinaryAndAlsoExpression(expression);
-                        break;
-                    }
-                case ExpressionType.OrElse:
-                    {
-                        VisitBinaryOrElseExpression(expression);
-                        break;
-                    }
-            }
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
 
-            return expression;
+            if (expression is MemberExpression)
+            {
+                MemberExpression member = expression as MemberExpression;
+
+                currentGenerator.FilterRegex(member, regex, ignoreCase);
+            }
+            else if (expression is SubQueryExpression)
+            {
+                currentGenerator.FilterRegex(currentGenerator.ObjectVariable, regex, ignoreCase);
+            }
         }
 
         private void VisitBinaryAndAlsoExpression(BinaryExpression expression)
         {
-            VisitExpression(expression.Left);
-            VisitExpression(expression.Right);
+            Visit(expression.Left);
+            Visit(expression.Right);
         }
 
         private void VisitBinaryOrElseExpression(BinaryExpression expression)
         {
-            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
 
             // Get the currently active pattern builder so that we can reset it after we're done.
             // This will build nested UNIONS ({{x} UNION {y}} UNION {z}) for multiple alternative 
@@ -114,12 +98,12 @@ namespace Semiodesk.Trinity.Query
                 (left) =>
                 {
                     currentGenerator.SetPatternBuilder(left);
-                    VisitExpression(expression.Left);
+                    Visit(expression.Left);
                 },
                 (right) =>
                 {
                     currentGenerator.SetPatternBuilder(right);
-                    VisitExpression(expression.Right);
+                    Visit(expression.Right);
                 }
             );
 
@@ -153,9 +137,9 @@ namespace Semiodesk.Trinity.Query
 
         private void VisitBinaryQuerySourceReferenceExpression(ExpressionType type, QuerySourceReferenceExpression sourceExpression, ConstantExpression constant)
         {
-            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
 
-            SparqlVariable s = _variableGenerator.TryGetSubjectVariable(sourceExpression);
+            SparqlVariable s = VariableGenerator.TryGetSubjectVariable(sourceExpression) ?? VariableGenerator.GlobalSubject;
 
             switch (type)
             {
@@ -172,7 +156,7 @@ namespace Semiodesk.Trinity.Query
 
         private void VisitBinaryMemberExpression(ExpressionType type, MemberExpression member, ConstantExpression constant)
         {
-            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
 
             switch (type)
             {
@@ -201,13 +185,12 @@ namespace Semiodesk.Trinity.Query
 
         private void VisitBinarySubQueryExpression(ExpressionType type, SubQueryExpression subQuery, ConstantExpression constant)
         {
-            if (!_queryGeneratorTree.HasQueryGenerator(subQuery))
+            if (!QueryGeneratorTree.HasQueryGenerator(subQuery))
             {
-                VisitSubQueryExpression(subQuery);
+                VisitSubQuery(subQuery);
             }
 
-            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
-            ISparqlQueryGenerator subGenerator = _queryGeneratorTree.GetQueryGenerator(subQuery);
+            ISparqlQueryGenerator subGenerator = QueryGeneratorTree.GetQueryGenerator(subQuery);
 
             // Note: We write the filter into the sub query generator which is writing into it's
             // enclosing graph group pattern rather than the query itself. This is required for
@@ -237,146 +220,105 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        protected override Expression VisitConditionalExpression(ConditionalExpression expression)
+        protected override Expression VisitBinary(BinaryExpression expression)
+        {
+            switch (expression.NodeType)
+            {
+                case ExpressionType.Equal:
+                case ExpressionType.NotEqual:
+                case ExpressionType.GreaterThan:
+                case ExpressionType.GreaterThanOrEqual:
+                case ExpressionType.LessThan:
+                case ExpressionType.LessThanOrEqual:
+                    {
+                        if (expression.HasExpressionOfType<ConstantExpression>())
+                        {
+                            VisitBinaryConstantExpression(expression);
+                        }
+                        break;
+                    }
+                case ExpressionType.AndAlso:
+                    {
+                        VisitBinaryAndAlsoExpression(expression);
+                        break;
+                    }
+                case ExpressionType.OrElse:
+                    {
+                        VisitBinaryOrElseExpression(expression);
+                        break;
+                    }
+            }
+
+            return expression;
+        }
+
+        protected override Expression VisitConditional(ConditionalExpression expression)
         {
             throw new NotImplementedException();
         }
 
-        protected override Expression VisitConstantExpression(ConstantExpression expression)
+        protected override Expression VisitConstant(ConstantExpression expression)
         {
             return expression;
         }
 
-        public Expression VisitFromExpression(Expression expression, string itemName, Type itemType)
+        protected override Expression VisitInvocation(InvocationExpression expression)
         {
-            ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
+            throw new NotSupportedException();
+        }
 
-            SparqlVariable s = _variableGenerator.TryGetSubjectVariable(expression);
-            SparqlVariable o = null;
+        protected override MemberAssignment VisitMemberAssignment(MemberAssignment memberAssigment)
+        {
+            return base.VisitMemberAssignment(memberAssigment);
+        }
 
-            if(s != null)
+        protected override MemberBinding VisitMemberBinding(MemberBinding expression)
+        {
+            return base.VisitMemberBinding(expression);
+        }
+
+        protected override Expression VisitListInit(ListInitExpression expression)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override Expression VisitMember(MemberExpression expression)
+        {
+            ISparqlQueryGenerator generator = QueryGeneratorTree.GetCurrentQueryGenerator();
+
+            SparqlVariable o = VariableGenerator.TryGetObjectVariable(expression);
+
+            if(o == null)
             {
-                o = _variableGenerator.CreateLocalObjectVariable();
+                // We have not visited the member before. It might be accessed in an order by clause..
+                if(generator.QueryModel.HasOrdering(expression))
+                {
+                    o = VariableGenerator.CreateObjectVariable(expression);
+
+                    generator.Where(expression, o);
+                }
+                else if(expression.Type == typeof(bool))
+                {
+                    ConstantExpression constantExpression = Expression.Constant(true);
+
+                    generator.WhereEqual(expression, constantExpression);
+                }
             }
             else
             {
-                s = _variableGenerator.TryGetObjectVariable(expression);
-
-                if(s != null)
-                {
-                    o = _variableGenerator.CreateLocalObjectVariable();
-
-                    _variableGenerator.SetObjectVariable(expression, o);
-                }
-                else
-                {
-                    QuerySourceReferenceExpression sourceExpression = expression.TryGetQuerySourceReference();
-
-                    if (sourceExpression != null)
-                    {
-                        s = _variableGenerator.TryGetSubjectVariable(sourceExpression);
-                        o = _variableGenerator.CreateLocalObjectVariable();
-
-                        if (expression != sourceExpression)
-                        {
-                            //_variableGenerator.SetSubjectVariable(expression, o);
-                            _variableGenerator.SetObjectVariable(expression, o);
-                        }
-                    }
-                }
-            }
-
-            if (s != null && o != null)
-            {
-                // Set the variable name of the query source reference as subject of the current query.
-                generator.SetSubjectVariable(s);
-                generator.SetObjectVariable(o);
-
-                // Make the subject variable of sub queries available for outer queries.
-                generator.SelectVariable(s);
-                generator.SelectVariable(o);
-
-                if (expression is MemberExpression)
-                {
-                    // The from clause is parsed first when handling a query. This allows us to detect if the
-                    // query source is a subquery and proceed with implementing it _before_ hanlding its results.
-                    MemberExpression memberExpression = expression as MemberExpression;
-
-                    // Handle numeric result operators.
-                    if (generator.QueryModel.HasNumericResultOperator())
-                    {
-                        if (s.IsGlobal())
-                        {
-                            generator.WhereResource(s);
-                            generator.WhereResourceOfType(s, memberExpression.Member.DeclaringType);
-                        }
-
-                        // If the query model has a numeric result operator, we make all the following
-                        // expressions optional in order to also allow to count zero occurences.
-                        var optionalBuilder = new GraphPatternBuilder(GraphPatternType.Optional);
-
-                        generator.Child(optionalBuilder);
-                        generator.SetPatternBuilder(optionalBuilder);
-                    }
-
-                    if (memberExpression.Expression is SubQueryExpression)
-                    {
-                        // First, implement the subquery..
-                        SubQueryExpression subQueryExpression = memberExpression.Expression as SubQueryExpression;
-
-                        VisitExpression(subQueryExpression);
-                    }
-
-                    // Handle the results of the subquery.
-                    VisitExpression(expression);
-                }
-            }
-
-            return expression;
-        }
-
-        protected override Expression VisitInvocationExpression(InvocationExpression expression)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override Expression VisitLambdaExpression(LambdaExpression expression)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override Expression VisitListInitExpression(ListInitExpression expression)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override Expression VisitMemberExpression(MemberExpression expression)
-        {
-            Expression e = expression.Expression;
-
-            if (e is SubQueryExpression || e is QuerySourceReferenceExpression)
-            {
-                ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
-
-                SparqlVariable o = _variableGenerator.TryGetObjectVariable(expression);
-
-                if (o == null)
-                {
-                    o = _variableGenerator.CreateLocalObjectVariable();
-                }
-
+                // We have visited the member before, either in the FromExpression or a SubQueryExpression.
                 generator.Where(expression, o);
             }
 
             return expression;
         }
 
-        protected override Expression VisitMemberInitExpression(MemberInitExpression expression)
+        protected override Expression VisitMemberInit(MemberInitExpression expression)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
-        protected override Expression VisitMethodCallExpression(MethodCallExpression expression)
+        protected override Expression VisitMethodCall(MethodCallExpression expression)
         {
             string method = expression.Method.Name;
 
@@ -384,7 +326,7 @@ namespace Semiodesk.Trinity.Query
             {
                 case "Equals":
                     {
-                        ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
+                        ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
 
                         ConstantExpression arg0 = expression.Arguments[0] as ConstantExpression;
 
@@ -394,12 +336,12 @@ namespace Semiodesk.Trinity.Query
 
                             currentGenerator.WhereEqual(member, arg0);
                         }
-                        else if (expression.Object is SubQueryExpression)
+                        else
                         {
                             currentGenerator.WhereEqual(currentGenerator.ObjectVariable, arg0);
                         }
 
-                        break;
+                        return expression;
                     }
                 case "Contains":
                     {
@@ -408,7 +350,7 @@ namespace Semiodesk.Trinity.Query
 
                         HandleRegexMethodCallExpression(o, pattern);
 
-                        break;
+                        return expression;
                     }
                 case "StartsWith":
                     {
@@ -425,7 +367,7 @@ namespace Semiodesk.Trinity.Query
 
                         HandleRegexMethodCallExpression(o, pattern, ignoreCase);
 
-                        break;
+                        return expression;
                     }
                 case "EndsWith":
                     {
@@ -442,89 +384,70 @@ namespace Semiodesk.Trinity.Query
 
                         HandleRegexMethodCallExpression(o, pattern, ignoreCase);
 
-                        break;
+                        return expression;
                     }
                 case "IsMatch":
                     {
-                        if(expression.Method.DeclaringType == typeof(Regex))
+                        if (expression.Method.DeclaringType == typeof(Regex))
                         {
                             Expression o = expression.Arguments[0];
                             string pattern = expression.GetArgumentValue<string>(1) + "$";
                             RegexOptions options = expression.GetArgumentValue(2, RegexOptions.None);
 
                             HandleRegexMethodCallExpression(o, pattern, options.HasFlag(RegexOptions.IgnoreCase));
-                        }
-                        else
-                        {
-                            throw new NotSupportedException();
+
+                            return expression;
                         }
 
                         break;
                     }
-                default:
-                    {
-                        throw new NotSupportedException();
-                    }
             }
 
-            return expression;
+            throw new NotSupportedException();
         }
 
-        private void HandleRegexMethodCallExpression(Expression expression, string regex, bool ignoreCase = false)
-        {
-            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
-
-            if (expression is MemberExpression)
-            {
-                MemberExpression member = expression as MemberExpression;
-
-                currentGenerator.FilterRegex(member, regex, ignoreCase);
-            }
-            else if (expression is SubQueryExpression)
-            {
-                currentGenerator.FilterRegex(currentGenerator.ObjectVariable, regex, ignoreCase);
-            }
-        }
-
-        protected override Expression VisitNewExpression(NewExpression expression)
+        protected override Expression VisitNew(NewExpression expression)
         {
             throw new NotSupportedException();
         }
 
-        protected override Expression VisitNewArrayExpression(NewArrayExpression expression)
+        protected override Expression VisitNewArray(NewArrayExpression expression)
         {
             throw new NotSupportedException();
         }
 
-        protected override Expression VisitParameterExpression(ParameterExpression expression)
+        protected override Expression VisitParameter(ParameterExpression expression)
         {
             throw new NotImplementedException();
         }
 
-        protected override Expression VisitQuerySourceReferenceExpression(QuerySourceReferenceExpression expression)
+        protected override Expression VisitQuerySourceReference(QuerySourceReferenceExpression expression)
         {
             throw new NotImplementedException();
         }
 
-        protected override Expression VisitSubQueryExpression(SubQueryExpression expression)
+        protected override Expression VisitSubQuery(SubQueryExpression expression)
         {
-            ISparqlQueryGenerator currentGenerator = _queryGeneratorTree.GetCurrentQueryGenerator();
-            ISparqlQueryGenerator subGenerator = _queryGeneratorTree.CreateSubQueryGenerator<SelectQueryGenerator>(expression);
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator subGenerator = QueryGeneratorTree.CreateSubQueryGenerator<SubSelectQueryGenerator>(expression);
 
             // Set the sub query generator as the current query generator to implement the sub query.
-            _queryGeneratorTree.SetCurrentQueryGenerator(subGenerator);
+            QueryGeneratorTree.SetCurrentQueryGenerator(subGenerator);
 
             // Descend the query tree and implement the sub query.
-            expression.QueryModel.Accept(_queryModelVisitor);
+            expression.QueryModel.Accept(QueryModelVisitor);
 
             // Register the sub query expression with the variable generator (used for ORDER BYs in the outer query).
             if(subGenerator.ObjectVariable != null && subGenerator.ObjectVariable.IsResultVariable)
             {
-                _variableGenerator.SetObjectVariable(expression, subGenerator.ObjectVariable);
+                // Note: We make a copy of the variable here so that aggregate variables are selected by their names only.
+                SparqlVariable o = new SparqlVariable(subGenerator.ObjectVariable.Name);
+
+                VariableGenerator.SetObjectVariable(expression, o);
             }
 
             // Reset the query generator and continue with implementing the outer query.
-            _queryGeneratorTree.SetCurrentQueryGenerator(currentGenerator);
+            QueryGeneratorTree.SetCurrentQueryGenerator(currentGenerator);
 
             // Note: This will set pattern builder of the sub generator to the enclosing graph group builder.
             currentGenerator.Child(subGenerator);
@@ -532,28 +455,106 @@ namespace Semiodesk.Trinity.Query
             return expression;
         }
 
-        protected override Expression VisitTypeBinaryExpression(TypeBinaryExpression expression)
+        protected override Expression VisitTypeBinary(TypeBinaryExpression expression)
         {
-            ISparqlQueryGenerator generator = _queryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator generator = QueryGeneratorTree.GetCurrentQueryGenerator();
 
             generator.WhereResourceOfType(generator.SubjectVariable, expression.TypeOperand);
 
             return expression;
         }
 
-        protected override Expression VisitUnaryExpression(UnaryExpression expression)
+        protected override Expression VisitUnary(UnaryExpression expression)
         {
             if(expression.NodeType == ExpressionType.Not)
             {
-                // TODO: Implement.
+                if (expression.Operand is MemberExpression)
+                {
+                    MemberExpression memberExpression = expression.Operand as MemberExpression;
+
+                    if(memberExpression.Type == typeof(bool))
+                    {
+                        ISparqlQueryGenerator generator = QueryGeneratorTree.GetCurrentQueryGenerator();
+
+                        ConstantExpression constantExpression = Expression.Constant(false);
+
+                        generator.WhereEqual(memberExpression, constantExpression);
+
+                        return expression;
+                    }
+                }
+                else if(expression.Operand is MethodCallExpression)
+                {
+                    // Equals, Contains, StartsWith, EndsWith, IsMatch (see <c>VisitMethodCall</c>).
+                    throw new NotImplementedException();
+                }
+                else if(expression.Operand is SubQueryExpression)
+                {
+                    // Any.
+                    throw new NotImplementedException();
+                }
             }
 
-            throw new NotImplementedException();
+            throw new NotSupportedException(expression.Operand.ToString());
         }
 
         protected override Exception CreateUnhandledItemException<T>(T unhandledItem, string visitMethod)
         {
             return null;
+        }
+
+        public Expression VisitOrdering(Ordering ordering, int index)
+        {
+            Visit(ordering.Expression);
+
+            // Either the member or aggregate variable has already been created previously by a SubQuery or a SelectClause..
+            SparqlVariable o = VariableGenerator.TryGetObjectVariable(ordering.Expression);
+
+            if(o != null)
+            {
+                ISparqlQueryGenerator generator = QueryGeneratorTree.GetCurrentQueryGenerator();
+
+                // In case the query has a LastResultOperator, we invert the direction of the first
+                // ordering to retrieve the last element of the result set.
+                // See: SelectQueryGenerator.SetObjectOperator()
+                if (generator.QueryModel.HasResultOperator<LastResultOperator>() && index == 0)
+                {
+                    if (ordering.OrderingDirection == OrderingDirection.Asc) generator.OrderByDescending(o); else generator.OrderBy(o);
+                }
+                else
+                {
+                    if (ordering.OrderingDirection == OrderingDirection.Asc) generator.OrderBy(o); else generator.OrderByDescending(o);
+                }
+
+                return ordering.Expression;
+            }
+            else
+            {
+                throw new ArgumentException(ordering.Expression.ToString());
+            }
+        }
+
+        public Expression VisitFromExpression(Expression expression, string itemName, Type itemType)
+        {
+            VariableGenerator.AddMapping(expression, itemName);
+
+            if (expression is MemberExpression)
+            {
+                MemberExpression memberExpression = expression as MemberExpression;
+
+                if (memberExpression.Expression is SubQueryExpression)
+                {
+                    // First, implement the subquery..
+                    SubQueryExpression subQueryExpression = memberExpression.Expression as SubQueryExpression;
+
+                    Visit(subQueryExpression);
+                }
+
+                // ..then implement the member expression.
+                Visit(memberExpression);
+            }
+
+            return expression;
         }
 
         #endregion

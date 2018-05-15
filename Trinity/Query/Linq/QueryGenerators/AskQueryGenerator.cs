@@ -49,25 +49,35 @@ namespace Semiodesk.Trinity.Query
         {
             base.OnBeforeSelectClauseVisited(selector);
 
+            // TODO: Add support for selecting literal types as a query result.
+
             if (selector is QuerySourceReferenceExpression)
             {
-                QuerySourceReferenceExpression sourceExpression = selector as QuerySourceReferenceExpression;
-
-                SparqlVariable s = VariableGenerator.GetGlobalSubjectVariable(sourceExpression);
-                SparqlVariable p = VariableGenerator.GetGlobalPredicateVariable();
-                SparqlVariable o = VariableGenerator.GetGlobalObjectVariable();
+                SparqlVariable s_ = VariableGenerator.GlobalSubject;
+                SparqlVariable p_ = VariableGenerator.GlobalPredicate;
+                SparqlVariable o_ = VariableGenerator.GlobalObject;
 
                 // Select all triples having the resource as subject.
-                SetSubjectVariable(s);
-                SetObjectVariable(o);
+                SetSubjectVariable(s_);
+                SetObjectVariable(o_);
 
                 // Add the type constraint on the referenced query source.
+                WhereResource(s_, p_, o_);
+
+                // Constrain the type of resource, if it is a subclass of Resource.
+                QuerySourceReferenceExpression sourceExpression = selector as QuerySourceReferenceExpression;
+
                 Type type = sourceExpression.ReferencedQuerySource.ItemType;
 
-                if(typeof(Resource).IsAssignableFrom(type))
+                if (type.IsSubclassOf(typeof(Resource)))
                 {
-                    WhereResourceOfType(s, type);
+                    WhereResourceOfType(s_, type);
                 }
+            }
+            else
+            {
+                // TODO: Create unit tests an implement for ConstantExpression, MemberExpression and SubQueryExpression.
+                throw new NotImplementedException(selector.GetType().ToString());
             }
         }
 

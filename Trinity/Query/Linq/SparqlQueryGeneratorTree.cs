@@ -28,6 +28,7 @@
 using Remotion.Linq;
 using Remotion.Linq.Clauses.Expressions;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -41,7 +42,7 @@ namespace Semiodesk.Trinity.Query
 
         private readonly Dictionary<ISparqlQueryGenerator, IList<ISparqlQueryGenerator>> _generatorTree = new Dictionary<ISparqlQueryGenerator, IList<ISparqlQueryGenerator>>();
 
-        private readonly Dictionary<SubQueryExpression, ISparqlQueryGenerator> _expressionGenerators = new Dictionary<SubQueryExpression, ISparqlQueryGenerator>();
+        private readonly Dictionary<string, ISparqlQueryGenerator> _expressionGenerators = new Dictionary<string, ISparqlQueryGenerator>();
 
         private readonly Dictionary<QueryModel, ISparqlQueryGenerator> _queryModelGenerators = new Dictionary<QueryModel, ISparqlQueryGenerator>();
 
@@ -85,7 +86,7 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public ISparqlQueryGenerator CreateSubQueryGenerator<T>(SubQueryExpression expression = null) where T : SelectQueryGenerator, new()
+        public ISparqlQueryGenerator CreateSubQueryGenerator<T>(Expression expression = null) where T : SubSelectQueryGenerator, new()
         {
             ISparqlQueryGenerator generator = new T();
 
@@ -129,11 +130,13 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public void RegisterQueryExpression(ISparqlQueryGenerator generator, SubQueryExpression expression)
+        public void RegisterQueryExpression(ISparqlQueryGenerator generator, Expression expression)
         {
-            if (!_expressionGenerators.ContainsKey(expression))
+            string key = expression.ToString();
+
+            if (!_expressionGenerators.ContainsKey(key))
             {
-                _expressionGenerators[expression] = generator;
+                _expressionGenerators[key] = generator;
             }
         }
 
@@ -167,14 +170,18 @@ namespace Semiodesk.Trinity.Query
             return _queryModelGenerators[queryModel];
         }
 
-        public bool HasQueryGenerator(SubQueryExpression subQuery)
+        public bool HasQueryGenerator(Expression expression)
         {
-            return _expressionGenerators.ContainsKey(subQuery);
+            string key = expression.ToString();
+
+            return _expressionGenerators.ContainsKey(key);
         }
 
-        public ISparqlQueryGenerator GetQueryGenerator(SubQueryExpression subQuery)
+        public ISparqlQueryGenerator GetQueryGenerator(Expression expression)
         {
-            return _expressionGenerators[subQuery];
+            string key = expression.ToString();
+
+            return _expressionGenerators[key];
         }
 
         public IEnumerable<ISparqlQueryGenerator> TryGetSubQueries(ISparqlQueryGenerator query)
