@@ -51,7 +51,7 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
                                     | MethodAttributes.ReuseSlot
                                     | MethodAttributes.HideBySig;
 
-            return new MethodDefinition(method.Name, attributes, module.Import(method.ReturnType));
+            return new MethodDefinition(method.Name, attributes, module.ImportReference(method.ReturnType));
         }
 
         #endregion

@@ -67,7 +67,6 @@ namespace Semiodesk.Trinity.Configuration
         /// <summary>
         /// Index operator with key name
         /// </summary>
-        /// <param name="employeeID"></param>
         /// <returns></returns>
         new public RuleSet this[string key]
         {

@@ -5,22 +5,24 @@
 #addin "Cake.DocFx"
 #tool "docfx.msbuild"
 
-var target = Argument("target", "Default");
 var configuration = Argument("configuration", "Release");
 
 struct PathStruct{
     public DirectoryPath ProjectPath;
     public DirectoryPath OutputPath; 
+
     public FilePathCollection Solutions;
+
     public DirectoryPath IntegrationTestPath;
     public FilePathCollection TestSolutions;
+
 }
 
 PathStruct Paths = new PathStruct{
     ProjectPath = MakeAbsolute(Directory("./")),
     OutputPath = MakeAbsolute(Directory("./Build")),
     IntegrationTestPath = MakeAbsolute(Directory("./tests")),
-    Solutions = GetFiles("./**/*.sln", (fsInfo) => { 
+    Solutions = GetFiles("./netstandard/*.sln", (fsInfo) => { 
         // Filter out the integration tests here
         var exclude =  MakeAbsolute(Directory("./tests"));
         return !fsInfo.Path.FullPath.StartsWith(exclude.FullPath);
@@ -68,6 +70,7 @@ void Section(string info)
 }
 
 
+
 Setup(context =>
 {
     foreach( var x in Paths.Solutions)
@@ -91,7 +94,7 @@ Task("StyleCop")
 	});
 */
 
-Task("Build-Solutions")
+Task("Build")
     .IsDependentOn("Clean-Outputs")
 	//.IsDependentOn("StyleCop")	TODO: enable
     .DoesForEach(Paths.Solutions, (solution, ctx) => {
@@ -99,9 +102,19 @@ Task("Build-Solutions")
        Build(solution);
     });
 
+Task("Pack")
+    .IsDependentOn("Build")
+    .Does(() => {
+        
+        DotNetBuild("./Trinity/Trinity.csproj", settings => settings
+                .SetConfiguration(configuration)
+                .WithTarget("pack")
+                .SetVerbosity(Verbosity.Quiet));
+    });
+
 
 Task("Test")
-	.IsDependentOn("Build-Solutions")
+	.IsDependentOn("Build")
     .Does(() =>
 	{
         var testAssemblies = GetFiles(Paths.OutputPath+"/**/Trinity.Test.dll");
@@ -124,7 +137,7 @@ Task("Documentation")
     });
 
 Task("Integration-Test-Build")
-    .IsDependentOn("Build-Solutions")
+    .IsDependentOn("Build")
     .DoesForEach( Paths.TestSolutions, (solution) => {
 
         Build(solution);
@@ -143,7 +156,8 @@ Task("Integration-Test")
             }});
     });
 
-Task("Default")
-	.IsDependentOn("Integration-Test");
 
-RunTarget(target);
+Task("Default")
+	.IsDependentOn("Pack");
+RunTarget("Default");
+

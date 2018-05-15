@@ -61,10 +61,15 @@ namespace Semiodesk.Trinity.Store
 
         RdfsReasoner _reasoner;
 
+
         #endregion
 
         #region Constructors
 
+        /// <summary>
+        /// Creates a new dotNetRDFStore.
+        /// </summary>
+        /// <param name="schema">A list of ontology file paths relative to this assembly. The store will be populated with these ontologies.</param>
         public dotNetRDFStore(string[] schema)
         {
             _store = new TripleStore();
@@ -110,22 +115,66 @@ namespace Semiodesk.Trinity.Store
         }
 
         #region IStore implementation
-        
+
+        /// <summary>
+        /// Adds a new model with the given uri to the storage. 
+        /// </summary>
+        /// <param name="uri">Uri of the model</param>
+        /// <returns>Handle to the model</returns>
         public IModel CreateModel(Uri uri)
         {
             return new Model(this, new UriRef(uri));
         }
 
+
+        /// <summary>
+        /// Removes model from the store.
+        /// </summary>
+        /// <param name="uri">Uri of the model which is to be removed.</param>
+        public void RemoveModel(Uri uri)
+        {
+            if (_store.HasGraph(uri))
+                _store.Remove(uri);
+        }
+
+        /// <summary>
+        /// Removes model from the store.
+        /// </summary>
+        /// <param name="model">Handle to the model which is to be removed.</param>
+        public void RemoveModel(IModel model)
+        {
+            RemoveModel(model.Uri);
+        }
+
+        /// <summary>
+        /// Query if the model exists in the store.
+        /// OBSOLETE: This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()
+        /// </summary>
+        /// <param name="model">Handle to the model which is to be queried.</param>
+        /// <returns></returns>
+        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
         public bool ContainsModel(IModel model)
         {
             return ContainsModel(model.Uri);
         }
 
+        /// <summary>
+        /// Query if the model exists in the store.
+        /// OBSOLETE: This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()
+        /// </summary>
+        /// <param name="uri">Uri of the model which is to be queried.</param>
+        /// <returns></returns>
+        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
         public bool ContainsModel(Uri uri)
         {
             return _store.HasGraph(uri);
         }
 
+        /// <summary>
+        /// Executes a query on the store which does not expect a result.
+        /// </summary>
+        /// <param name="update"></param>
+        /// <param name="transaction"></param>
         public void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
         {
             SparqlUpdateCommandSet cmds = _parser.ParseFromString(query.ToString());
@@ -133,6 +182,12 @@ namespace Semiodesk.Trinity.Store
             _updateProcessor.ProcessCommandSet(cmds);
         }
 
+        /// <summary>
+        /// Executes a SparqlQuery on the store.
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="transaction"></param>
+        /// <returns></returns>
         public ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
             if (query.IsInferenceEnabled && _reasoner != null)
@@ -143,8 +198,7 @@ namespace Semiodesk.Trinity.Store
             {
                 _store.ClearInferenceEngines();
             }
-
-            object results = _store.ExecuteQuery(query.ToString());
+            object results = ExecuteQuery(query.ToString());
 
             if (results is IGraph)
             {
@@ -158,6 +212,11 @@ namespace Semiodesk.Trinity.Store
             return null;
         }
 
+        /// <summary>
+        /// This method queries the dotNetRdf store directly.
+        /// </summary>
+        /// <param name="query"></param>
+        /// <returns></returns>
         public object ExecuteQuery(string query)
         {
             SparqlQueryParser sparqlparser = new SparqlQueryParser();
@@ -165,16 +224,29 @@ namespace Semiodesk.Trinity.Store
             return _queryProcessor.ProcessQuery(q);
         }
 
+        /// <summary>
+        /// Gets a handle to a model in the store.
+        /// </summary>
+        /// <param name="uri">Uri of the model.</param>
+        /// <returns></returns>
         public IModel GetModel(Uri uri)
         {
             return new Model(this, new UriRef(uri));
         }
 
+        /// <summary>
+        /// Indicates if the store is ready to be queried.
+        /// </summary>
         public bool IsReady
         {
-            get { return true; }
-        }
+            get;
+            private set;
+        } = true;
 
+        /// <summary>
+        /// Lists all models in the store.
+        /// </summary>
+        /// <returns>All handles to existing models.</returns>
         public IEnumerable<IModel> ListModels()
         {
             foreach (var g in _store.Graphs)
@@ -184,7 +256,8 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-        public static IRdfReader GetReader(RdfSerializationFormat format)
+
+        private static IRdfReader GetReader(RdfSerializationFormat format)
         {
             switch (format)
             {
@@ -203,7 +276,7 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-        public static IRdfWriter GetWriter(RdfSerializationFormat format)
+        private static IRdfWriter GetWriter(RdfSerializationFormat format)
         {
             switch (format)
             {
@@ -222,7 +295,14 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-
+        /// <summary>
+        /// Loads a serialized graph from the given stream into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="stream">Stream containing a serialized graph</param>
+        /// <param name="graphUri">Uri of the graph in this store</param>
+        /// <param name="format">Allowed formats</param>
+        /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
+        /// <returns></returns>
         public Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
         {
             TextReader reader = new StreamReader(stream);
@@ -237,6 +317,14 @@ namespace Semiodesk.Trinity.Store
             return graphUri;
         }
 
+        /// <summary>
+        /// Loads a serialized graph from the given location into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="graphUri">Uri of the graph in this store</param>
+        /// <param name="url">Location</param>
+        /// <param name="format">Allowed formats</param>
+        /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
+        /// <returns></returns>
         public Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update)
         {
             IGraph graph = null;
@@ -295,17 +383,13 @@ namespace Semiodesk.Trinity.Store
             return null;
         }
 
-        public void RemoveModel(IModel model)
-        {
-            RemoveModel(model.Uri);
-        }
-
-        public void RemoveModel(Uri uri)
-        {
-            if (_store.HasGraph(uri))
-                _store.Remove(uri);
-        }
-
+        /// <summary>
+        /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="fs">Stream to which the content should be written.</param>
+        /// <param name="graphUri">Uri fo the graph in this store</param>
+        /// <param name="format">Allowed formats</param>
+        /// <returns></returns>
         public void Write(Stream stream, Uri graphUri, RdfSerializationFormat format)
         {
             if (_store.HasGraph(graphUri))
@@ -318,11 +402,21 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="isolationLevel"></param>
+        /// <returns></returns>
         public ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
             return null;
         }
 
+        /// <summary>
+        /// Creates a model group which allows for queries to be made on multiple models at once.
+        /// </summary>
+        /// <param name="models"></param>
+        /// <returns></returns>
         public IModelGroup CreateModelGroup(params Uri[] models)
         {
             List<IModel> modelList = new List<IModel>();
@@ -335,20 +429,29 @@ namespace Semiodesk.Trinity.Store
             return new ModelGroup(this, modelList);
         }
 
+        /// <summary>
+        /// Closes the store. It is not usable after this call.
+        /// </summary>
         public void Dispose()
         {
+            this.IsReady = false;
             _updateProcessor.Discard();
             _store.Dispose();
         }
 
+        /// <summary>
+        /// Loads Ontologies defined in the currently loaded config file into the store.
+        /// </summary>
+        /// <param name="sourceDir"></param>
         public void LoadOntologySettings(string configPath = null, string sourceDir = "")
         {
             Trinity.Configuration.TrinitySettings settings;
             if (!string.IsNullOrEmpty(configPath) && File.Exists(configPath))
             {
-                ExeConfigurationFileMap configMap = new ExeConfigurationFileMap();
-
-                configMap.ExeConfigFilename = configPath;
+                ExeConfigurationFileMap configMap = new ExeConfigurationFileMap
+                {
+                    ExeConfigFilename = configPath
+                };
 
                 var configuration = ConfigurationManager.OpenMappedExeConfiguration(configMap, ConfigurationUserLevel.None);
                 try

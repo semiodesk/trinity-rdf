@@ -54,6 +54,7 @@ namespace Semiodesk.Trinity
         /// Constructor
         /// </summary>
         /// <param name="uri"></param>
+        /// <param name="languageInvariant"></param>
         public RdfPropertyAttribute(Uri uri, bool languageInvariant = false)
         {
             MappedUri = uri;
@@ -75,6 +76,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="baseUri"></param>
         /// <param name="relativeUri"></param>
+        /// <param name="languageInvariant"></param>
         public RdfPropertyAttribute(Uri baseUri, string relativeUri, bool languageInvariant = false)
         {
             MappedUri = new Uri(baseUri, relativeUri);
@@ -86,6 +88,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="baseUri"></param>
         /// <param name="relativeUri"></param>
+        /// <param name="languageInvariant"></param>
         public RdfPropertyAttribute(Uri baseUri, Uri relativeUri, bool languageInvariant = false)
         {
             MappedUri = new Uri(baseUri, relativeUri);
@@ -96,6 +99,7 @@ namespace Semiodesk.Trinity
         /// Constructor
         /// </summary>
         /// <param name="resource"></param>
+        /// <param name="languageInvariant"></param>
         public RdfPropertyAttribute(IResource resource, bool languageInvariant = false)
         {
             MappedUri = resource.Uri;

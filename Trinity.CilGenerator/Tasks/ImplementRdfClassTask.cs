@@ -119,10 +119,10 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             {
                 generator.Method.Body.MaxStackSize = 3;
                 generator.Method.Body.InitLocals = true;
-                generator.Method.Body.Variables.Add(new VariableDefinition(MainModule.Import(getTypeBase.ReturnType)));
+                generator.Method.Body.Variables.Add(new VariableDefinition(MainModule.ImportReference(getTypeBase.ReturnType)));
                 generator.Method.Body.Variables.Add(new VariableDefinition(ClassArrayType));
                 generator.Execute();
-                MainModule.Import(ClassType);
+                MainModule.ImportReference(ClassType);
             }
 
             Type.Methods.Add(getTypes);
@@ -151,7 +151,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             if (ctorref == null) yield break;
 
             // A reference to the imported item type constructor.
-            MethodReference ctor = Generator.Assembly.MainModule.Import(ctorref);
+            MethodReference ctor = Generator.Assembly.MainModule.ImportReference(ctorref);
 
             if (ctor == null) yield break;
 

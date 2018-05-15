@@ -31,7 +31,7 @@ using System.Text;
 
 namespace Semiodesk.Trinity.Utility
 {
-    #if NET_3_5
+    #if NET35
     public class Tuple<T1, T2>
     {
         public T1 Item1 { get; private set; }
