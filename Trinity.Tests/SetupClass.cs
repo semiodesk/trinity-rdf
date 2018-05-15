@@ -39,7 +39,7 @@ namespace Semiodesk.Trinity.Test
         [OneTimeTearDown]
         public void TearDown()
         {
-            instance.Stop();
+           instance.Stop();
         }
     }
 }

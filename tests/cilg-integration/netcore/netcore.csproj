@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <RootNamespace>NetCore_Test</RootNamespace>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AssemblyName>test</AssemblyName>
+  </PropertyGroup>
+  
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>..\build\debug\netcore</OutputPath>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>..\build\release\netcore</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Semiodesk.Trinity">
+      <HintPath>..\..\..\Build\netstandard2.0\Release\Semiodesk.Trinity.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

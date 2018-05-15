@@ -311,7 +311,6 @@ namespace Semiodesk.Trinity.Store
             INode o;
 
             //_tripleProvider.Reset();
-
             // Collect all types for every resource in the types dictionary.
             // I was going to use _queryResults.Select(), but that doesn't work with Virtuoso.
             while (_tripleProvider.HasNext)

@@ -26,7 +26,11 @@
 // Copyright (c) Semiodesk GmbH 2015
 
 using System.Collections.Generic;
-#if ! NET_3_5
+using System.IO;
+
+#if NETSTANDARD2_0
+using System.Composition;
+#elif !NET_3_5
 using System.ComponentModel.Composition;
 #endif
 

@@ -109,7 +109,6 @@
     <Compile Include="MappingDiscovery.cs" />
     <Compile Include="Model\Model.cs" />
     <Compile Include="Model\ModelChangedEventArgs.cs" />
-    <Compile Include="Model\ModelManager.cs" />
     <Compile Include="NamespaceManager.cs" />
     <Compile Include="Ontology.cs" />
     <Compile Include="OntologyDiscovery.cs" />

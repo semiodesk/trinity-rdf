@@ -131,6 +131,17 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
         }
 
         /// <summary>
+        /// Enumerate all properties of the type which have a given attribute.
+        /// </summary>
+        /// <param name="type">A type definition.</param>
+        /// <param name="name">An attribute name.</param>
+        /// <returns>An enumeration of properties.</returns>
+        public static IEnumerable<PropertyDefinition> GetPropertiesWithAttribute(this TypeDefinition type, string attributeName)
+        {
+            return type.Properties.Where(p => p.CustomAttributes.Any(a => a.AttributeType.Name == attributeName));
+        }
+
+        /// <summary>
         /// Get the first method with a given name and signature in the line of inheritance, starting from the type itself.
         /// </summary>
         /// <param name="type">A type definition.</param>
@@ -206,7 +217,7 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
                     }
                     else
                     {
-                        Type signatureType = genericArguments[i] as Type;
+                        var signatureType = genericArguments[i] as TypeReference;
                         TypeReference parameterType = m.Parameters[i].ParameterType.GetElementType();
 
                         if (parameterType != null && signatureType != null && parameterType.FullName.Equals(signatureType.FullName))
@@ -232,24 +243,36 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
         }
 
         /// <summary>
+        /// Enumerate all custom attributes of a given type.
+        /// </summary>
+        /// <typeparam name="T">Attribute type.</typeparam>
+        /// <param name="type">A type definition.</param>
+        /// <returns>An enumeration of custom attributes.</returns>
+        public static IEnumerable<CustomAttribute> TryGetCustomAttribute(this TypeDefinition type, string AttributeName)
+        {
+            return type.CustomAttributes.Where(a => a.AttributeType.Name == AttributeName);
+        }
+
+        /// <summary>
         /// Get the SetValue(PropertyMapping<T>) definition for a given type.
         /// </summary>
         /// <param name="type">A type defintion.</param>
         /// <param name="assembly">The assembly from which to import the method.</param>
         /// <param name="genericArguments">Generic type arguments to the SetValue method.</param>
         /// <returns>A method reference on success, <c>null</c> otherwise.</returns>
-        public static MethodReference TryGetSetValueMethod(this TypeDefinition type, AssemblyDefinition assembly, params TypeReference[] genericArguments)
+        public static MethodReference TryGetSetValueMethod(this TypeDefinition type, AssemblyDefinition assembly, TypeReference mappingType, params TypeReference[] genericArguments)
         {
-            TypeReference mappingType = assembly.MainModule.Import(typeof(PropertyMapping<>));
+            assembly.MainModule.Import(mappingType);
             GenericParameter valueType = mappingType.GenericParameters[0];
 
             if (mappingType == null) return null;
 
-            MethodDefinition method = type.TryGetInheritedGenericMethod("SetValue", typeof(PropertyMapping<>), valueType);
+            MethodDefinition method = type.TryGetInheritedGenericMethod("SetValue", mappingType, valueType);
 
             if (method == null) return null;
 
             return method.GetGenericInstance(assembly, genericArguments);
+            
         }
 
         /// <summary>
@@ -261,12 +284,14 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
         /// <returns>A method reference on success, <c>null</c> otherwise.</returns>
         public static MethodReference TryGetGetValueMethod(this TypeDefinition type, AssemblyDefinition assembly, params TypeReference[] genericArguments)
         {
-            TypeReference mappingType = assembly.MainModule.Import(typeof(PropertyMapping<>));
+
+            TypeReference mappingType =ILGenerator.propertyMapping;
+            assembly.MainModule.Import(mappingType);
             GenericParameter valueType = mappingType.GenericParameters[0];
 
             if (mappingType == null) return null;
 
-            MethodDefinition method = type.TryGetInheritedGenericMethod("GetValue", typeof(PropertyMapping<>));
+            MethodDefinition method = type.TryGetInheritedGenericMethod("GetValue",ILGenerator.propertyMapping);
 
             if (method == null) return null;
 

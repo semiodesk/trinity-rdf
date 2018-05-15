@@ -31,7 +31,6 @@ using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Rocks;
 using Semiodesk.Trinity.CilGenerator.Extensions;
-using Semiodesk.Trinity;
 using NUnit.Framework;
 using System;
 
@@ -58,7 +57,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
         /// <returns><c>true</c> if the task can be executed, <c>false</c> otherwise.</returns>
         public override bool CanExecute(object parameter = null)
         {
-            return Type.TryGetCustomAttribute<RdfClassAttribute>().Any();
+            return Type.TryGetCustomAttribute("RdfClassAttribute").Any();
         }
 
         /// <summary>
@@ -71,7 +70,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             List<string> uris = new List<string>();
 
             // Accumulate the annotated RDF classes.
-            foreach (CustomAttribute attribute in Type.TryGetCustomAttribute<RdfClassAttribute>())
+            foreach (CustomAttribute attribute in Type.TryGetCustomAttribute("RdfClassAttribute"))
             {
                 uris.Insert(0, attribute.ConstructorArguments.First().Value.ToString());
             }
@@ -121,8 +120,9 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                 generator.Method.Body.MaxStackSize = 3;
                 generator.Method.Body.InitLocals = true;
                 generator.Method.Body.Variables.Add(new VariableDefinition(MainModule.Import(getTypeBase.ReturnType)));
-                generator.Method.Body.Variables.Add(new VariableDefinition(MainModule.Import(typeof(Class))));
+                generator.Method.Body.Variables.Add(new VariableDefinition(ClassArrayType));
                 generator.Execute();
+                MainModule.Import(ClassType);
             }
 
             Type.Methods.Add(getTypes);
@@ -145,13 +145,8 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
         {
             if (uris.Count == 0) yield break;
 
-            // A reference to the item type of the 'type'-array.
-            TypeReference classType = MainModule.Import(typeof(Class));
-
-            if (classType == null) yield break;
-
             // A reference to the item type constructor, however not yet imported from the assembly where it is defined.
-            MethodReference ctorref = classType.Resolve().TryGetConstructor(typeof(string).FullName);
+            MethodReference ctorref = ClassType.Resolve().TryGetConstructor(typeof(string).FullName);
 
             if (ctorref == null) yield break;
 
@@ -181,7 +176,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
             // Define the a new array on the stack.
             yield return processor.CreateLdc_I4(uris.Count);
-            yield return processor.Create(OpCodes.Newarr, classType);
+            yield return processor.Create(OpCodes.Newarr, ClassType);
             yield return processor.Create(OpCodes.Stloc_1);
 
             // Define the array items.

@@ -60,17 +60,18 @@ namespace Semiodesk.Trinity
             /// <summary>
             /// A list of inferenced RDF classes mapped to this class. Currently not used.
             /// </summary>
-            public readonly List<Class> InferencedRdfClasses = new List<Class>();
+            public readonly List<Class> RdfBaseClasses = new List<Class>();
 
             /// <summary>
             /// Constructor to create a new MappingClass
             /// </summary>
             /// <param name="mappingClassType">The c# type</param>
             /// <param name="rdfClasses">The</param>
-            public MappingClass(Type mappingClassType, IEnumerable<Class> rdfClasses)
+            public MappingClass(Type mappingClassType, IEnumerable<Class> rdfClasses, IEnumerable<Class> rdfBaseClasses )
             {
                 MappingClassType = mappingClassType;
                 RdfClasses.AddRange(rdfClasses);
+                RdfBaseClasses.AddRange(rdfBaseClasses);
             }
         }
 
@@ -124,7 +125,11 @@ namespace Semiodesk.Trinity
             {
                 Resource r = (Resource)Activator.CreateInstance(_class, new UriRef("semio:empty"));
 
-                MappingClass c = new MappingClass(_class, r.GetTypes());
+                List<Class> baseTypes = new List<Class>(r.GetTypes());
+
+                GetBaseTypes(_class, ref baseTypes);
+
+                MappingClass c = new MappingClass(_class, r.GetTypes(), baseTypes);
 
                 if (MappingClasses.Contains(c)) return;
 
@@ -139,7 +144,9 @@ namespace Semiodesk.Trinity
         internal static IEnumerable<IPropertyMapping> ListMappings(Type _class)
         {
             Type propertyMappingType = typeof(IPropertyMapping);
+            
             Resource resource;
+            
             try
             {
                 resource = (Resource)Activator.CreateInstance(_class, new UriRef("semio:empty"));
@@ -148,12 +155,14 @@ namespace Semiodesk.Trinity
             {
                 throw new Exception(string.Format("Initialisation of mapping class {0} failed. For the reason please consult the inner exception.", _class.ToString()), e);
             }
+            
             foreach (var x in _class.GetFields())
             {
                 if (propertyMappingType.IsAssignableFrom(x.FieldType))
+                {
                     yield return x.GetValue(resource) as IPropertyMapping;
+                }
             }
-
         }
 
         /// <summary>
@@ -213,16 +222,17 @@ namespace Semiodesk.Trinity
         /// <param name="classes">List of RDF classes</param>
         /// <param name="type">A c# type in a inheritence tree. Give Resource if you don't know what to do.</param>
         /// <param name="inferencingEnabled">Should inferencing be factored in.</param>
-        public static IList<Type> GetMatchingTypes(IList<Class> classes, Type type, bool inferencingEnabled = false)
+        public static Type[] GetMatchingTypes(IEnumerable<Class> classes, Type type, bool inferencingEnabled = false)
         {
             if( !inferencingEnabled )
-                return (IList<Type>)(from t in MappingClasses
+                return (from t in MappingClasses
                                      where t.RdfClasses.Count > 0 && t.RdfClasses.Intersect(classes).Count() == t.RdfClasses.Count && type.IsAssignableFrom(t.MappingClassType)
-                                     select t.MappingClassType).ToList();
+                                     select t.MappingClassType).ToArray();
             else
-                return (IList<Type>)(from t in MappingClasses
-                                     where t.InferencedRdfClasses.Intersect(classes).Count() == t.RdfClasses.Count && type.IsAssignableFrom(t.MappingClassType)
-                                     select t.MappingClassType).ToList();
+                return (from t in MappingClasses
+                        where t.RdfBaseClasses.Intersect(classes).Count() == t.RdfBaseClasses.Count && type.IsAssignableFrom(t.MappingClassType)
+                        orderby t.RdfBaseClasses.Intersect(classes).Count() descending
+                        select t.MappingClassType).ToArray();
         }
 
         /// <summary>
@@ -230,7 +240,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="type"></param>
         /// <returns></returns>
-        public static IList<Class> GetRdfClasses(Type type)
+        public static IEnumerable<Class> GetRdfClasses(Type type)
         {
             return (from t in MappingClasses where t.MappingClassType == type select t.RdfClasses).First();
         }
