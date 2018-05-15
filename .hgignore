@@ -32,3 +32,5 @@ tools/*
 api/.manifest
 api/*.yml
 doc/docfx_project/_site/**
+**/.vs/**
+tests/cilg-integration/build/*

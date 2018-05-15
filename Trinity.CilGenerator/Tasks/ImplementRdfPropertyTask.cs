@@ -122,8 +122,10 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
         internal FieldDefinition ImplementMappingField(PropertyDefinition property)
         {
+            
             // Load the property mapping type.
-            TypeReference mappingType = MainModule.Import(typeof(PropertyMapping<>));
+            TypeReference mappingType = MainModule.Import(ILGenerator.propertyMapping);
+            
 
             Assert.IsNotNull(mappingType, "{0}: Failed to import type {1}.", Assembly.FullName, mappingType.FullName);
 
@@ -163,12 +165,13 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                 MethodGeneratorTask g = new MethodGeneratorTask(ctor);
                 g.Instructions.AddRange(GetFieldInitializationInstructions(g.Processor, p, fieldType));
                 g.Instructions.AddRange(ctor.Body.Instructions);
-
+                
                 if (g.CanExecute())
                 {
                     g.Execute();
                 }
             }
+            
 
             return mappingField;
         }
@@ -190,7 +193,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
         internal MethodGeneratorTask GetSetValueGenerator(PropertyGeneratorTaskHelper p)
         {
             // Load a reference to the SetValue method for the property mapping.
-            MethodReference setValue = Type.TryGetSetValueMethod(Assembly, p.Property.PropertyType);
+            MethodReference setValue = Type.TryGetSetValueMethod(Assembly, PropertyMappingType, p.Property.PropertyType);
 
             Assert.IsNotNull(setValue, "{0}: Type has no SetValue() method.", p.Property.DeclaringType.FullName);
 

@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+	<Title>Semiodesk.Trinity</Title>
+	<Copyright>Copyright © Semiodesk GmbH 2018</Copyright>
+	<Description>This library is an enterprise ready platform for developing knowlege-based applications. Trinity offers superior modelling and querying flexibility combined with extreme scalability when compared with traditional ORM solutions. Supporting the powerful RDF metadata standard Trinity offers a sustainable foundation for your desktop, mobile or web applications.</Description>
+	<Company>Semiodesk GmbH</Company>
+	<Version>0.9.0.0</Version>
+	<AssemblyVersion>0.9.0.0</AssemblyVersion>
+	<FileVersion>0.9.0.0</FileVersion>
+	<AssemblyName>Semiodesk.Trinity</AssemblyName>
+	<RootNamespace>Semiodesk.Trinity</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>..\Build\netstandard2.0\Debug</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>..\Build\netstandard2.0\Release</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+  
+
+  <ItemGroup>
+	<Compile Remove="Properties\AssemblyVersion.cs" />
+    <Compile Remove="Net35\**" />
+    <Compile Remove="Stores\Virtuoso\**" />
+    <EmbeddedResource Remove="Net35\**" />
+    <EmbeddedResource Remove="Stores\Virtuoso\**" />
+    <None Remove="Net35\**" />
+    <None Remove="Stores\Virtuoso\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Stores\FusekiQueryResult.cs" />
+    <Compile Remove="Stores\FusekiStore.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="app.config" />
+    <None Remove="packages.config" />
+    <None Remove="Stores\IStorageSpecific.cs.orig" />
+    <None Remove="Stores\StoreUpdater.cs.orig" />
+    <None Remove="Trinity.csproj.orig" />
+    <None Remove="Trinity.v12.suo" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="dotNetRDF" Version="2.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.1" />
+    <PackageReference Include="System.Composition" Version="1.1.0" />
+  </ItemGroup>
+
+</Project>

@@ -57,6 +57,22 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
         }
 
         /// <summary>
+        /// Gets the first constructor argument for a given attribute type, if there are any.
+        /// </summary>
+        /// <param name="property">A property defition.</param>
+        /// <param name="attributeName">An attribute name</param>
+        /// <returns>On success, the first attribute constructor argument as a string. An empty string otherwise.</returns>
+        public static string TryGetAttributeParameter(this PropertyDefinition property, string attributeName)
+        {
+            foreach (CustomAttribute a in property.CustomAttributes.Where(a => a.AttributeType.Name == attributeName))
+            {
+                return a.ConstructorArguments.First().Value.ToString();
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
         /// Gets the second constructor argument for a given attribute type, if there are any.
         /// </summary>
         /// <param name="property">A property defition.</param>
@@ -70,6 +86,23 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
             {
                 if( a.ConstructorArguments.Count >= 2)
                 return (bool)a.ConstructorArguments[1].Value;
+            }
+
+            return fallback;
+        }
+
+        /// <summary>
+        /// Gets the second constructor argument for a given attribute type, if there are any.
+        /// </summary>
+        /// <param name="property">A property defition.</param>
+        /// <param name="attributeName">An attribute name.</param>
+        /// <returns>On success, the first attribute constructor argument as a string. An empty string otherwise.</returns>
+        public static bool TryGetSecondAttributeParameter(this PropertyDefinition property, string attributeName, bool fallback)
+        {
+            foreach (CustomAttribute a in property.CustomAttributes.Where(a => a.AttributeType.Name == attributeName))
+            {
+                if (a.ConstructorArguments.Count >= 2)
+                    return (bool)a.ConstructorArguments[1].Value;
             }
 
             return fallback;

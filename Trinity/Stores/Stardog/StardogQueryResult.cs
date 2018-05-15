@@ -330,12 +330,12 @@ namespace Semiodesk.Trinity.Store.Stardog
             // Iterate over all types and find the right class and instatiate it.
             foreach (string subject in types.Keys)
             {
-                IList<Type> classType = MappingDiscovery.GetMatchingTypes(types[subject], typeof(T), inferencingEnabled);
+                Type[] classType = MappingDiscovery.GetMatchingTypes(types[subject], typeof(T), inferencingEnabled);
 
-                if (classType.Count > 0)
+                if (classType.Length > 0)
                 {
 #if DEBUG
-                    if (classType.Count > 1)
+                    if (classType.Length > 1)
                     {
                         string msg = "Info: There is more that one assignable type for <{0}>. It was initialized using the first.";
                         Debug.WriteLine(string.Format(msg, subject));

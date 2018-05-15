@@ -25,6 +25,7 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
+#if !NETSTANDARD2_0
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -37,7 +38,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Semiodesk")]
 [assembly: AssemblyProduct("Semiodesk.Trinity")]
-[assembly: AssemblyCopyright("Copyright © Semiodesk 2015")]
+[assembly: AssemblyCopyright("Copyright © Semiodesk 2018")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -66,3 +67,5 @@ using System.Runtime.InteropServices;
 
 [assembly: InternalsVisibleTo(assemblyName: "Trinity.Test")]
 [assembly: InternalsVisibleTo(assemblyName: "OntologyDeployment")]
+
+#endif

@@ -20,7 +20,7 @@
     <DebugSymbols>True</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>False</Optimize>
-    <OutputPath>..\..\Build\NET35\Debug\</OutputPath>
+    <OutputPath>..\..\Build\Net35\Debug\</OutputPath>
     <DefineConstants>TRACE;DEBUG;NET_3_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -114,8 +114,8 @@
     <Compile Include="..\Configuration\Ontology.cs">
       <Link>Configuration\Ontology.cs</Link>
     </Compile>
-    <Compile Include="..\Configuration\OntologySetting.cs">
-      <Link>Configuration\OntologySetting.cs</Link>
+    <Compile Include="..\Configuration\OntologyCollection.cs">
+      <Link>Configuration\OntologyCollection.cs</Link>
     </Compile>
     <Compile Include="..\Configuration\RuleSet.cs">
       <Link>Configuration\RuleSet.cs</Link>
@@ -129,6 +129,9 @@
     <Compile Include="..\Configuration\VirtuosoStoreSettings.cs">
       <Link>Configuration\VirtuosoStoreSettings.cs</Link>
     </Compile>
+    <Compile Include="..\Query\IResourceQueryResult.cs">
+      <Link>Query\IResourceQueryResult.cs</Link>
+    </Compile>
     <Compile Include="..\Serialization\JsonResourceConverter.cs">
       <Link>Serialization\JsonResourceConverter.cs</Link>
     </Compile>
@@ -140,9 +143,6 @@
     </Compile>
     <Compile Include="..\IPropertyMapping.cs">
       <Link>IPropertyMapping</Link>
-    </Compile>
-    <Compile Include="..\IResourceQueryResult.cs">
-      <Link>IResourceQueryResult.cs</Link>
     </Compile>
     <Compile Include="..\ITransactional.cs">
       <Link>ITransactional.cs</Link>
@@ -179,9 +179,6 @@
     </Compile>
     <Compile Include="..\Model\ModelChangedEventArgs.cs">
       <Link>Model\ModelChangedEventArgs.cs</Link>
-    </Compile>
-    <Compile Include="..\Model\ModelManager.cs">
-      <Link>Model\ModelManager.cs</Link>
     </Compile>
     <Compile Include="..\NamespaceManager.cs">
       <Link>NamespaceManager.cs</Link>

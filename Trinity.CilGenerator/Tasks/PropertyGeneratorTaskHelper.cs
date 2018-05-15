@@ -102,8 +102,8 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             }
 
             HasUri = !string.IsNullOrEmpty(Uri);
-            Uri = property.TryGetAttributeParameter(typeof(RdfPropertyAttribute));
-            LanguageInvariant = property.TryGetSecondAttributeParameter(typeof(RdfPropertyAttribute), false);
+            Uri = property.TryGetAttributeParameter("RdfPropertyAttribute");
+            LanguageInvariant = property.TryGetSecondAttributeParameter("RdfPropertyAttribute", false);
         }
 
         #endregion

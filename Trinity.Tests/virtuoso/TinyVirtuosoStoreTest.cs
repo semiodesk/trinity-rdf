@@ -92,6 +92,7 @@ namespace Semiodesk.Trinity.Test
         public void GetModelTest()
         {
             Uri testModel = new Uri("ex:Test");
+            Store.RemoveModel(testModel);
 
             IModel m = Store.GetModel(testModel);
             Assert.IsTrue(m.IsEmpty);
