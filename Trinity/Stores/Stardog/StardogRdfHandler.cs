@@ -13,10 +13,6 @@ namespace Semiodesk.Trinity.Store.Stardog
             get { return true;  }
         }
 
-        public void EndRdf(bool ok)
-        {
-        }
-
         public bool HandleBaseUri(Uri baseUri)
         {
             return true;
@@ -33,6 +29,10 @@ namespace Semiodesk.Trinity.Store.Stardog
         }
 
         public void StartRdf()
+        {
+        }
+
+        public void EndRdf(bool ok)
         {
         }
 
