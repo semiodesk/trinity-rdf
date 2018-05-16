@@ -46,9 +46,10 @@
   <Target Name="CustomContentTarget">
     <ItemGroup>
       <!-- Here is the build folder with the .target files -->
-      <TfmSpecificPackageFile Include="$(OutputPath)\..\tools\build\**">
+      <TfmSpecificPackageFile Include="$(OutputPath)\Targets\net35\*">
         <PackagePath>build</PackagePath>
       </TfmSpecificPackageFile>
+
       <!-- Here is the tools folder -->
       <TfmSpecificPackageFile Include="$(OutputPath)\..\tools\*">
         <PackagePath>tools</PackagePath>
@@ -114,6 +115,17 @@
     <Reference Include="dotNetRDF">
       <HintPath>..\Dependencies\Net35\VDS.Common.dll</HintPath>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Targets\netstandard\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Targets\net35\Semiodesk.Trinity.targets">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Targets\net40\Semiodesk.Trinity.OntologyGenerator.targets">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   
   
