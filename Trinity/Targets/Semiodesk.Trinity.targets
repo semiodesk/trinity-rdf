@@ -1,0 +1,31 @@
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- Required since .NET Core apps seem to crash the Mono Cecil PdbSymbolReader. -->
+  <!-- See: https://github.com/nunit/nunit3-vs-adapter/issues/296 -->
+  <PropertyGroup>
+    <DebugType Condition="'$(TargetFramework)' != '' AND '$(TargetFramework)' != 'netcoreapp1.0'">Full</DebugType>
+  </PropertyGroup>
+
+  <UsingTask TaskName="CilGeneratorTask" AssemblyFile="$(MSBuildThisFileDirectory)../tools/cilg.exe" />
+
+  <Target Name="CilGeneratorTarget" AfterTargets="Build">
+    <CilGeneratorTask TargetFile="$(TargetDir)/$(TargetName)$(TargetExt)" WriteSymbols="$(DebugSymbols)" />
+  </Target>
+
+
+  <!-- Todo: We should make the path to the ontologies configurable. -->
+  <PropertyGroup>
+    <CoreCompileDependsOn>$(CoreCompileDependsOn);GenerateOntologyTarget</CoreCompileDependsOn>
+  </PropertyGroup>
+  
+  <UsingTask TaskName="GenerateOntologyTask" AssemblyFile="$(MSBuildThisFileDirectory)../tools/OntologyGenerator.exe" />
+
+  <Target Name="GenerateOntologyTarget">
+    <GenerateOntologyTask Namespace="$(RootNamespace)" ProjectPath="$(ProjectDir)/$(ProjectName)$(ProjectExt)" IntermediatePath="$(ProjectDir)/Ontologies/" />
+    <ItemGroup Condition="Exists('Ontologies/Ontologies.g.cs')">
+	    <Compile Include="Ontologies/Ontologies.g.cs" Exclude="@(Compile)" />
+	  </ItemGroup>
+  </Target>
+
+
+</Project>
