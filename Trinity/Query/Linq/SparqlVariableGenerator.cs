@@ -82,17 +82,28 @@ namespace Semiodesk.Trinity.Query
             return key;
         }
 
-        public void AddMapping(Expression expression, string itemName)
+        public void AddMapping(Expression expression, string alias)
         {
-            if(!string.IsNullOrEmpty(itemName))
+            if(!string.IsNullOrEmpty(alias))
             {
-                string key = string.Format("[{0}]", itemName);
+                string sourceKey = string.Format("[{0}]", alias);
+                string targetKey = GetKey(expression);
 
-                _expressionMappings[key] = expression.ToString();
+                _expressionMappings[sourceKey] = targetKey;
+
+                if (_subjectVariables.ContainsKey(targetKey))
+                {
+                    _objectVariables[sourceKey] = _subjectVariables[targetKey];
+                }
+
+                if (_objectVariables.ContainsKey(targetKey))
+                {
+                    _subjectVariables[sourceKey] = _objectVariables[targetKey];
+                }
             }
             else
             {
-                throw new ArgumentNullException("itemName");
+                throw new ArgumentNullException("alias");
             }
         }
 

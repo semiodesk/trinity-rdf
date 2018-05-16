@@ -1162,10 +1162,9 @@ namespace Semiodesk.Trinity.Test.Linq
 
             agents = Model.AsQueryable<Agent>(true).ToList();
 
-            Assert.AreEqual(4, agents.Count);
+            Assert.AreEqual(6, agents.Count);
 
             // See if inferencing works with queries that return bindings.
-
             var names = Model.AsQueryable<Agent>().Select(a => a.FirstName).ToList();
 
             Assert.AreEqual(1, names.Count);

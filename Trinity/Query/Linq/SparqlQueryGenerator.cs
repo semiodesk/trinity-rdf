@@ -328,26 +328,15 @@ namespace Semiodesk.Trinity.Query
 
         public void Where(MemberExpression member, SparqlVariable v)
         {
-            SparqlVariable s = VariableGenerator.TryGetSubjectVariable(member);
-
-            if(s == null)
+            if(CoalescedVariables.ContainsKey(v))
             {
-                QuerySourceReferenceExpression sourceExpression = member.Expression.TryGetQuerySourceReference();
-
-                s = VariableGenerator.TryGetObjectVariable(sourceExpression) ?? SubjectVariable;
-            }
-
-            RdfPropertyAttribute attribute = member.Member.TryGetCustomAttribute<RdfPropertyAttribute>();
-
-            if (CoalescedVariables.ContainsKey(v))
-            {
-                // In cases where the member is not constrained in a WHERE clause we need to select the variable optionally.
-                PatternBuilder.Optional(o => o.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(v.Name)));
+                // If the member may be unbound, we create an optional binding.
+                BuildMemberAccessOptional(member);
             }
             else
             {
-                // By default, we create a mandatory binding.
-                PatternBuilder.Where(t => t.Subject(s.Name).PredicateUri(attribute.MappedUri).Object(v.Name));
+                // Otherwise we create a normal binding.
+                BuildMemberAccess(member);
             }
         }
 
@@ -503,9 +492,7 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereGreaterThan(MemberExpression expression, ConstantExpression c)
         {
-            SparqlVariable o = VariableGenerator.CreateObjectVariable(expression);
-
-            BuildMemberAccess(expression);
+            SparqlVariable o = BuildMemberAccess(expression);
 
             if (expression.Member.IsBuiltInCall())
             {
@@ -524,9 +511,7 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereGreaterThanOrEqual(MemberExpression expression, ConstantExpression c)
         {
-            SparqlVariable o = VariableGenerator.CreateObjectVariable(expression);
-
-            BuildMemberAccess(expression);
+            SparqlVariable o = BuildMemberAccess(expression);
 
             if (expression.Member.IsBuiltInCall())
             {
@@ -545,9 +530,7 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereLessThan(MemberExpression expression, ConstantExpression c)
         {
-            SparqlVariable o = VariableGenerator.CreateObjectVariable(expression);
-
-            BuildMemberAccess(expression);
+            SparqlVariable o = BuildMemberAccess(expression);
 
             if (expression.Member.IsBuiltInCall())
             {
@@ -566,9 +549,7 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereLessThanOrEqual(MemberExpression expression, ConstantExpression c)
         {
-            SparqlVariable o = VariableGenerator.CreateObjectVariable(expression);
-
-            BuildMemberAccess(expression);
+            SparqlVariable o = BuildMemberAccess(expression);
 
             if (expression.Member.IsBuiltInCall())
             {
