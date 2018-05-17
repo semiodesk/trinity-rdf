@@ -104,7 +104,7 @@ namespace Semiodesk.Trinity
         /// Indicates if the resources has been disposed.
         /// </summary>
         [JsonIgnore]
-        public bool IsDisposed;
+        public bool IsDisposed { get; set; }
 
         /// <summary>
         /// True if the properties of the resources has been committed to the model.
@@ -119,6 +119,10 @@ namespace Semiodesk.Trinity
         public bool IsReadOnly { get; internal set; }
 
         private string _language;
+
+        /// <summary>
+        /// Set the language of this resource. This will change te mapped strings to this language.
+        /// </summary>
         [JsonIgnore]
         public string Language
         {
