@@ -104,7 +104,7 @@ namespace Semiodesk.Trinity
         /// Indicates if the resources has been disposed.
         /// </summary>
         [JsonIgnore]
-        protected bool IsDisposed;
+        public bool IsDisposed;
 
         /// <summary>
         /// True if the properties of the resources has been committed to the model.
@@ -196,6 +196,9 @@ namespace Semiodesk.Trinity
 
         #region Destructors
 
+        /// <summary>
+        /// Destructor
+        /// </summary>
         ~Resource()
         {
             if (!IsDisposed)

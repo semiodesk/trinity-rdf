@@ -62,6 +62,10 @@ namespace Semiodesk.Trinity
         /// </summary>
         string Language { get; set; }
 
+        /// <summary>
+        /// Indicates if the resources has been disposed.
+        /// </summary>
+        bool IsDisposed { get; set; }
         #endregion
 
         #region Methods
