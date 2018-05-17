@@ -95,7 +95,7 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitMainFromClause(MainFromClause fromClause, QueryModel queryModel)
         {
-            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.CurrentGenerator;
 
             currentGenerator.OnBeforeFromClauseVisited(fromClause.FromExpression);
 
@@ -106,15 +106,9 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitQueryModel(QueryModel queryModel)
         {
-            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.CurrentGenerator;
 
-            currentGenerator.SetQueryContext(queryModel, QueryGeneratorTree, VariableGenerator);
-
-            // The root query generator cannot be registered until this method is invoked.
-            if (!QueryGeneratorTree.HasQueryGenerator(queryModel))
-            {
-                QueryGeneratorTree.RegisterQueryModel(currentGenerator, queryModel);
-            }
+            currentGenerator.SetQueryContext(QueryGeneratorTree, VariableGenerator, queryModel);
 
             // Handle the main from clause before the select.
             queryModel.MainFromClause.Accept(this, queryModel);
@@ -125,7 +119,7 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitResultOperator(ResultOperatorBase resultOperator, QueryModel queryModel, int index)
         {
-            ISparqlQueryGenerator generator = QueryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator generator = QueryGeneratorTree.CurrentGenerator;
 
             // If we are in a sub query, apply the operator on the query object.
             if(generator.ObjectVariable != null)
@@ -140,7 +134,7 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitSelectClause(SelectClause selectClause, QueryModel queryModel)
         {
-            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.CurrentGenerator;
 
             currentGenerator.OnBeforeSelectClauseVisited(selectClause.Selector);
 
@@ -175,7 +169,7 @@ namespace Semiodesk.Trinity.Query
 
         public ISparqlQuery GetQuery()
         {
-            string queryString = QueryGeneratorTree.GetRootQueryGenerator().BuildQuery();
+            string queryString = QueryGeneratorTree.RootGenerator.BuildQuery();
 
             ISparqlQuery query = new SparqlQuery(queryString);
 

@@ -113,16 +113,14 @@ namespace Semiodesk.Trinity.Query
                 // ..which are described in an inner query on which the LIMIT and OFFSET operators are set.
                 // This results in a SELECT query that acts like a DESCRIBE but ist faster on most triple 
                 // stores as the triples can be returend via bindings and must not be parsed.
-                ISparqlQueryGenerator subGenerator = QueryGeneratorTree.CreateSubQueryGenerator<SubSelectQueryGenerator>(selector);
-
-                subGenerator.SetQueryContext(QueryModel, QueryGeneratorTree, VariableGenerator);
+                ISparqlQueryGenerator subGenerator = QueryGeneratorTree.CreateSubQueryGenerator(this, selector);
 
                 subGenerator.SetSubjectVariable(s_, true);
                 subGenerator.SetObjectVariable(o_);
 
                 GenerateTypeConstraintOnSubject(subGenerator, selector);
 
-                QueryGeneratorTree.SetCurrentQueryGenerator(subGenerator);
+                QueryGeneratorTree.CurrentGenerator = subGenerator;
 
                 // NOTE: We set the subGenerator as a child *AFTER* the select clause and body clauses
                 // have been processed (see <c>OnSelectClauseVisited</c>). This is because the dotNetRDF 
