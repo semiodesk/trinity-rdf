@@ -28,6 +28,7 @@
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace Semiodesk.Trinity.Query
@@ -49,7 +50,7 @@ namespace Semiodesk.Trinity.Query
         /// <summary>
         /// A common variable name generator for all query generators.
         /// </summary>
-        protected readonly SparqlVariableGenerator VariableGenerator = new SparqlVariableGenerator();
+        //protected readonly SparqlVariableGenerator VariableGenerator = new SparqlVariableGenerator(null);
 
         /// <summary>
         /// Visits all expressions in a query model and handles the query generation.
@@ -63,10 +64,10 @@ namespace Semiodesk.Trinity.Query
         public SparqlQueryModelVisitor(ISparqlQueryGenerator queryGenerator)
         {
             // Add the root query builder to the query tree.
-            QueryGeneratorTree = new SparqlQueryGeneratorTree(queryGenerator, VariableGenerator);
+            QueryGeneratorTree = new SparqlQueryGeneratorTree(queryGenerator);
 
             // The expression tree visitor needs to be initialized *after* the query builders.
-            ExpressionVisitor = new ExpressionTreeVisitor(this, QueryGeneratorTree, VariableGenerator);
+            ExpressionVisitor = new ExpressionTreeVisitor(this, QueryGeneratorTree);
         }
 
         #endregion
@@ -106,9 +107,9 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitQueryModel(QueryModel queryModel)
         {
-            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.CurrentGenerator;
+            ISparqlQueryGenerator g = QueryGeneratorTree.CurrentGenerator;
 
-            currentGenerator.SetQueryContext(QueryGeneratorTree, VariableGenerator, queryModel);
+            g.SetQueryContext(QueryGeneratorTree, queryModel);
 
             // Handle the main from clause before the select.
             queryModel.MainFromClause.Accept(this, queryModel);

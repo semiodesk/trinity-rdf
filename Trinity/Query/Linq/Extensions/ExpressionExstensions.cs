@@ -85,5 +85,17 @@ namespace Semiodesk.Trinity.Query
 
             return false;
         }
+
+        public static string GetKey(this Expression expression)
+        {
+            string key = expression.ToString().Trim();
+
+            if (key.EndsWith(".Uri"))
+            {
+                key = key.Substring(0, key.LastIndexOf(".Uri"));
+            }
+
+            return key;
+        }
     }
 }

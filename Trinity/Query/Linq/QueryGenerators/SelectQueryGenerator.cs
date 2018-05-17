@@ -57,8 +57,13 @@ namespace Semiodesk.Trinity.Query
             {
                 if (resultOperator is AnyResultOperator)
                 {
-                    var aggregate = new SampleAggregate(new VariableTerm(ObjectVariable.Name));
-                    SetObjectVariable(aggregate.AsSparqlVariable(), true);
+                    // When using x.Any(), we add a LIMIT 1 the query results in the SparqlQueryGenerator.
+
+                    // When using .Any(x => ..), the variable x is locally scoped and cannot be
+                    // used in outer queries. Therefore do not need to actually select it.
+
+                    // This avoids issues with Stardog:
+                    // https://community.stardog.com/t/sparql-union-only-working-with-inferencing-enabled/1040/9
                 }
                 else if (resultOperator is AverageResultOperator)
                 {
@@ -126,12 +131,12 @@ namespace Semiodesk.Trinity.Query
                 }
                 else if (resultOperator is OfTypeResultOperator)
                 {
-                    OfTypeResultOperator op = resultOperator as OfTypeResultOperator;
-                    RdfClassAttribute type = op.SearchedItemType.TryGetCustomAttribute<RdfClassAttribute>();
+                    OfTypeResultOperator ofType = resultOperator as OfTypeResultOperator;
+                    RdfClassAttribute type = ofType.SearchedItemType.TryGetCustomAttribute<RdfClassAttribute>();
 
                     if (type == null)
                     {
-                        throw new ArgumentException("No RdfClass attrribute declared on type: " + op.SearchedItemType);
+                        throw new ArgumentException("No RdfClass attrribute declared on type: " + ofType.SearchedItemType);
                     }
 
                     SparqlVariable s = ObjectVariable;
@@ -139,7 +144,7 @@ namespace Semiodesk.Trinity.Query
                     SparqlVariable o = VariableGenerator.CreateObjectVariable();
 
                     WhereResource(s, p, o);
-                    WhereResourceOfType(o, op.SearchedItemType);
+                    WhereResourceOfType(o, ofType.SearchedItemType);
                 }
                 else if (resultOperator is SkipResultOperator)
                 {

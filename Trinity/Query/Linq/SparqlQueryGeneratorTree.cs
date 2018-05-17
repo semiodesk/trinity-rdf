@@ -45,22 +45,17 @@ namespace Semiodesk.Trinity.Query
 
         private readonly Dictionary<string, ISparqlQueryGenerator> _expressionGenerators = new Dictionary<string, ISparqlQueryGenerator>();
 
-        private readonly SparqlVariableGenerator _variableGenerator;
-
         #endregion
 
         #region Constructors
 
-        public SparqlQueryGeneratorTree(ISparqlQueryGenerator rootGenerator, SparqlVariableGenerator variableGenerator)
+        public SparqlQueryGeneratorTree(ISparqlQueryGenerator root)
         {
             // The query generator of the outermost query.
-            RootGenerator = rootGenerator;
+            RootGenerator = root;
 
             // The current (sub-)query generator.
-            CurrentGenerator = rootGenerator;
-
-            // Generates unique variable names for the query generators.
-            _variableGenerator = variableGenerator;
+            CurrentGenerator = root;
         }
 
         #endregion
@@ -90,41 +85,41 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public ISparqlQueryGenerator CreateSubQueryGenerator(ISparqlQueryGenerator parentGenerator, Expression expression)
+        public ISparqlQueryGenerator CreateSubQueryGenerator(ISparqlQueryGenerator parent, Expression expression)
         {
-            if (parentGenerator == null) throw new ArgumentNullException("parentGenerator");
+            if (parent == null) throw new ArgumentNullException("parent");
             if (expression == null) throw new ArgumentNullException("expression");
 
-            ISparqlQueryGenerator generator = new SubSelectQueryGenerator();
-            generator.SetQueryContext(this, _variableGenerator, parentGenerator.QueryModel);
+            ISparqlQueryGenerator g = new SubSelectQueryGenerator(parent);
+            g.SetQueryContext(this, parent.QueryModel);
 
-            RegisterQueryExpression(generator, expression);
+            RegisterQueryExpression(g, expression);
 
             if (CurrentGenerator != null)
             {
-                AddSubQueryGenerator(CurrentGenerator, generator);
+                AddSubQueryGenerator(CurrentGenerator, g);
             }
             else if (RootGenerator != null)
             {
-                AddSubQueryGenerator(RootGenerator, generator);
+                AddSubQueryGenerator(RootGenerator, g);
             }
 
-            return generator;
+            return g;
         }
 
-        private void AddSubQueryGenerator(ISparqlQueryGenerator parentGenerator, ISparqlQueryGenerator subQueryGenerator)
+        private void AddSubQueryGenerator(ISparqlQueryGenerator parent, ISparqlQueryGenerator child)
         {
             // Add the sub query to the query tree.
-            if (_generatorTree.ContainsKey(parentGenerator))
+            if (_generatorTree.ContainsKey(parent))
             {
-                _generatorTree[parentGenerator].Add(subQueryGenerator);
+                _generatorTree[parent].Add(child);
             }
             else
             {
-                _generatorTree[parentGenerator] = new List<ISparqlQueryGenerator>() { subQueryGenerator };
+                _generatorTree[parent] = new List<ISparqlQueryGenerator>() { child };
             }
 
-            subQueryGenerator.ParentGenerator = parentGenerator;
+            child.ParentGenerator = parent;
         }
 
         public void RegisterQueryExpression(ISparqlQueryGenerator generator, Expression expression)
@@ -149,11 +144,6 @@ namespace Semiodesk.Trinity.Query
             string key = GetKey(expression);
 
             return _expressionGenerators[key];
-        }
-
-        public IEnumerable<ISparqlQueryGenerator> GetChildren(ISparqlQueryGenerator query)
-        {
-            return _generatorTree.ContainsKey(query) ? _generatorTree[query] : null;
         }
 
         #endregion

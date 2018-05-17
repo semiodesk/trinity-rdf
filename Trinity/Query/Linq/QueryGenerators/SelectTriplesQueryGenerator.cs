@@ -41,6 +41,8 @@ namespace Semiodesk.Trinity.Query
 
         public SelectTriplesQueryGenerator()
         {
+            IsRoot = true;
+            VariableGenerator = new SparqlVariableGenerator(null);
         }
 
         #endregion

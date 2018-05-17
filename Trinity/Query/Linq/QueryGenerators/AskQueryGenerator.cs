@@ -39,6 +39,8 @@ namespace Semiodesk.Trinity.Query
         public AskQueryGenerator()
             : base(VDS.RDF.Query.Builder.QueryBuilder.Ask())
         {
+            IsRoot = true;
+            VariableGenerator = new SparqlVariableGenerator(null);
         }
 
         #endregion

@@ -47,6 +47,8 @@ namespace Semiodesk.Trinity.Query
 
         public SelectBindingsQueryGenerator()
         {
+            IsRoot = true;
+            VariableGenerator = new SparqlVariableGenerator(null);
         }
 
         #endregion
