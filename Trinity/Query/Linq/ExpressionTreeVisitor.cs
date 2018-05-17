@@ -64,7 +64,7 @@ namespace Semiodesk.Trinity.Query
 
         private void HandleRegexMethodCallExpression(Expression expression, string regex, bool ignoreCase = false)
         {
-            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.CurrentGenerator;
 
             if (expression is MemberExpression)
             {
@@ -86,7 +86,7 @@ namespace Semiodesk.Trinity.Query
 
         private void VisitBinaryOrElseExpression(BinaryExpression expression)
         {
-            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.CurrentGenerator;
 
             // Get the currently active pattern builder so that we can reset it after we're done.
             // This will build nested UNIONS ({{x} UNION {y}} UNION {z}) for multiple alternative 
@@ -137,7 +137,7 @@ namespace Semiodesk.Trinity.Query
 
         private void VisitBinaryQuerySourceReferenceExpression(ExpressionType type, QuerySourceReferenceExpression sourceExpression, ConstantExpression constant)
         {
-            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.CurrentGenerator;
 
             SparqlVariable s = VariableGenerator.TryGetSubjectVariable(sourceExpression) ?? VariableGenerator.GlobalSubject;
 
@@ -156,7 +156,7 @@ namespace Semiodesk.Trinity.Query
 
         private void VisitBinaryMemberExpression(ExpressionType type, MemberExpression member, ConstantExpression constant)
         {
-            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.CurrentGenerator;
 
             switch (type)
             {
@@ -284,7 +284,7 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitMember(MemberExpression expression)
         {
-            ISparqlQueryGenerator generator = QueryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator generator = QueryGeneratorTree.CurrentGenerator;
 
             SparqlVariable o = VariableGenerator.TryGetObjectVariable(expression);
 
@@ -326,7 +326,7 @@ namespace Semiodesk.Trinity.Query
             {
                 case "Equals":
                     {
-                        ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
+                        ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.CurrentGenerator;
 
                         ConstantExpression arg0 = expression.Arguments[0] as ConstantExpression;
 
@@ -428,11 +428,11 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitSubQuery(SubQueryExpression expression)
         {
-            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.GetCurrentQueryGenerator();
-            ISparqlQueryGenerator subGenerator = QueryGeneratorTree.CreateSubQueryGenerator<SubSelectQueryGenerator>(expression);
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.CurrentGenerator;
+            ISparqlQueryGenerator subGenerator = QueryGeneratorTree.CreateSubQueryGenerator(currentGenerator, expression);
 
             // Set the sub query generator as the current query generator to implement the sub query.
-            QueryGeneratorTree.SetCurrentQueryGenerator(subGenerator);
+            QueryGeneratorTree.CurrentGenerator = subGenerator;
 
             // Descend the query tree and implement the sub query.
             expression.QueryModel.Accept(QueryModelVisitor);
@@ -447,7 +447,7 @@ namespace Semiodesk.Trinity.Query
             }
 
             // Reset the query generator and continue with implementing the outer query.
-            QueryGeneratorTree.SetCurrentQueryGenerator(currentGenerator);
+            QueryGeneratorTree.CurrentGenerator = currentGenerator;
 
             // Note: This will set pattern builder of the sub generator to the enclosing graph group builder.
             currentGenerator.Child(subGenerator);
@@ -457,7 +457,7 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitTypeBinary(TypeBinaryExpression expression)
         {
-            ISparqlQueryGenerator generator = QueryGeneratorTree.GetCurrentQueryGenerator();
+            ISparqlQueryGenerator generator = QueryGeneratorTree.CurrentGenerator;
 
             generator.WhereResourceOfType(generator.SubjectVariable, expression.TypeOperand);
 
@@ -474,7 +474,7 @@ namespace Semiodesk.Trinity.Query
 
                     if(memberExpression.Type == typeof(bool))
                     {
-                        ISparqlQueryGenerator generator = QueryGeneratorTree.GetCurrentQueryGenerator();
+                        ISparqlQueryGenerator generator = QueryGeneratorTree.CurrentGenerator;
 
                         ConstantExpression constantExpression = Expression.Constant(false);
 
@@ -512,7 +512,7 @@ namespace Semiodesk.Trinity.Query
 
             if(o != null)
             {
-                ISparqlQueryGenerator generator = QueryGeneratorTree.GetCurrentQueryGenerator();
+                ISparqlQueryGenerator generator = QueryGeneratorTree.CurrentGenerator;
 
                 // In case the query has a LastResultOperator, we invert the direction of the first
                 // ordering to retrieve the last element of the result set.

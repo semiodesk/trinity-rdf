@@ -137,7 +137,7 @@ namespace Semiodesk.Trinity.Query
 
         void SetPatternBuilder(IGraphPatternBuilder patternBuilder);
 
-        void SetQueryContext(QueryModel queryModel, ISparqlQueryGeneratorTree generatorTree, SparqlVariableGenerator variableGenerator);
+        void SetQueryContext(ISparqlQueryGeneratorTree generatorTree, SparqlVariableGenerator variableGenerator, QueryModel queryModel);
 
         void OnBeforeFromClauseVisited(Expression expression);
 

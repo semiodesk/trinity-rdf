@@ -25,15 +25,10 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
-using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
-using System.Text;
 using VDS.RDF.Query;
 
 namespace Semiodesk.Trinity.Query

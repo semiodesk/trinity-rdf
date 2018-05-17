@@ -49,7 +49,7 @@ namespace Semiodesk.Trinity.Query
 
         public bool IsRoot
         {
-            get { return this == QueryGeneratorTree.GetRootQueryGenerator(); }
+            get { return this == QueryGeneratorTree.RootGenerator; }
         }
 
         public bool IsBound { get; private set; }
@@ -688,7 +688,7 @@ namespace Semiodesk.Trinity.Query
             PatternBuilder = patternBuilder;
         }
 
-        public void SetQueryContext(QueryModel queryModel, ISparqlQueryGeneratorTree generatorTree, SparqlVariableGenerator variableGenerator)
+        public void SetQueryContext(ISparqlQueryGeneratorTree generatorTree, SparqlVariableGenerator variableGenerator, QueryModel queryModel)
         {
             QueryModel = queryModel;
             QueryGeneratorTree = generatorTree;

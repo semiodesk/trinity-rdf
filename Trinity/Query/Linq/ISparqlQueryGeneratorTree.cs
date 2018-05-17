@@ -34,33 +34,27 @@ namespace Semiodesk.Trinity.Query
     // TODO: This can be decomposed into a tree and a factory class.
     internal interface ISparqlQueryGeneratorTree
     {
+        #region Members
+
+        ISparqlQueryGenerator CurrentGenerator { get; set; }
+
+        ISparqlQueryGenerator RootGenerator { get; }
+
+        #endregion
+
         #region Methods
 
         void Bind();
 
-        ISparqlQueryGenerator CreateSubQueryGenerator<T>(Expression expression = null) where T : SubSelectQueryGenerator, new();
+        ISparqlQueryGenerator CreateSubQueryGenerator(ISparqlQueryGenerator parentGenerator, Expression expression);
 
-        void RegisterQueryModel(ISparqlQueryGenerator queryGenerator, QueryModel queryModel);
-
-        void RegisterQueryExpression(ISparqlQueryGenerator queryGenerator, Expression expression);
-
-        bool IsRootQueryGenerator();
-
-        ISparqlQueryGenerator GetRootQueryGenerator();
-
-        ISparqlQueryGenerator GetCurrentQueryGenerator();
-
-        void SetCurrentQueryGenerator(ISparqlQueryGenerator queryGenerator);
-
-        bool HasQueryGenerator(QueryModel queryModel);
-
-        ISparqlQueryGenerator GetQueryGenerator(QueryModel queryModel);
+        void RegisterQueryExpression(ISparqlQueryGenerator generator, Expression expression);
 
         bool HasQueryGenerator(Expression expression);
 
         ISparqlQueryGenerator GetQueryGenerator(Expression expression);
 
-        IEnumerable<ISparqlQueryGenerator> TryGetSubQueries(ISparqlQueryGenerator query);
+        IEnumerable<ISparqlQueryGenerator> GetChildren(ISparqlQueryGenerator query);
 
         #endregion
     }
