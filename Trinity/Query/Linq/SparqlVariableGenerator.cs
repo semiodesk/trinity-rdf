@@ -130,6 +130,21 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
+        public bool HasSubjectVariable(Expression expression)
+        {
+            return TryGetSubjectVariable(expression) != null;
+        }
+
+        public bool HasPredicateVariable(Expression expression)
+        {
+            return TryGetPredicateVariable(expression) != null;
+        }
+
+        public bool HasObjectVariable(Expression expression)
+        {
+            return TryGetObjectVariable(expression) != null;
+        }
+
         private SparqlVariable TryGetVariable(Dictionary<string, SparqlVariable> source, params Expression[] expressions)
         {
             foreach(Expression expression in expressions)

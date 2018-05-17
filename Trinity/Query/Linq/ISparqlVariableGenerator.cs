@@ -49,6 +49,12 @@ namespace Semiodesk.Trinity.Query
 
         void AddVariableMapping(Expression expression, string alias);
 
+        bool HasSubjectVariable(Expression expression);
+
+        bool HasPredicateVariable(Expression expression);
+
+        bool HasObjectVariable(Expression expression);
+
         SparqlVariable TryGetSubjectVariable(Expression expression);
 
         SparqlVariable TryGetPredicateVariable(Expression expression);
