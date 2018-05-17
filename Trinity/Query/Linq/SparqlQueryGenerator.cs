@@ -47,18 +47,9 @@ namespace Semiodesk.Trinity.Query
     {
         #region Members
 
-        public bool IsRoot
-        {
-            get { return this == QueryGeneratorTree.RootGenerator; }
-        }
+        public bool IsRoot { get; protected set; }
 
         public bool IsBound { get; private set; }
-
-        protected ISelectBuilder SelectBuilder;
-
-        protected IQueryBuilder QueryBuilder;
-
-        protected IGraphPatternBuilder PatternBuilder { get; private set; }
 
         public QueryModel QueryModel { get; private set; }
 
@@ -70,9 +61,15 @@ namespace Semiodesk.Trinity.Query
 
         protected Dictionary<SparqlVariable, SparqlExpression> CoalescedVariables { get; private set; }
 
-        protected SparqlVariableGenerator VariableGenerator;
+        public ISparqlVariableGenerator VariableGenerator { get; protected set; }
 
         protected ISparqlQueryGeneratorTree QueryGeneratorTree;
+
+        public IQueryBuilder QueryBuilder { get; set; }
+
+        protected ISelectBuilder SelectBuilder;
+
+        public IGraphPatternBuilder PatternBuilder { get; set; }
 
         public ISparqlQueryGenerator ParentGenerator { get; set; }
 
@@ -644,21 +641,21 @@ namespace Semiodesk.Trinity.Query
             PatternBuilder.Union(buildFirstPattern, buildOtherPatterns);
         }
 
-        public IGraphPatternBuilder Child(ISparqlQueryGenerator queryGenerator)
+        public IGraphPatternBuilder Child(ISparqlQueryGenerator generator)
         {
-            queryGenerator.BindSelectVariables();
+            generator.BindSelectVariables();
 
-            var subquery = queryGenerator.GetQueryBuilder().BuildQuery();
+            var subQuery = generator.QueryBuilder.BuildQuery();
 
             var childBuilder = new GraphPatternBuilder();
-            childBuilder.Where(new SubQueryPattern(subquery));
+            childBuilder.Where(new SubQueryPattern(subQuery));
 
             // Note: This sets the enclosing pattern builder as the current pattern
             // builder in order to build subsequent FILTERs on the selected variables
             // into the enclosing block, rather than the parent query. This is because
             // for OpenLink Virtuoso the FILTERs need to be inside the enclosing group
             // of the subquery..
-            queryGenerator.SetPatternBuilder(childBuilder);
+            generator.PatternBuilder = childBuilder;
 
             return PatternBuilder.Child(childBuilder);
         }
@@ -668,31 +665,10 @@ namespace Semiodesk.Trinity.Query
             return PatternBuilder.Child(patternBuilder);
         }
 
-        public IQueryBuilder GetQueryBuilder()
-        {
-            return QueryBuilder;
-        }
-
-        public IGraphPatternBuilder GetPatternBuilder()
-        {
-            return PatternBuilder;
-        }
-
-        public IGraphPatternBuilder GetRootPatternBuilder()
-        {
-            return QueryBuilder.RootGraphPatternBuilder;
-        }
-
-        public void SetPatternBuilder(IGraphPatternBuilder patternBuilder)
-        {
-            PatternBuilder = patternBuilder;
-        }
-
-        public void SetQueryContext(ISparqlQueryGeneratorTree generatorTree, SparqlVariableGenerator variableGenerator, QueryModel queryModel)
+        public void SetQueryContext(ISparqlQueryGeneratorTree generatorTree, QueryModel queryModel)
         {
             QueryModel = queryModel;
             QueryGeneratorTree = generatorTree;
-            VariableGenerator = variableGenerator;
         }
 
         public virtual void OnBeforeFromClauseVisited(Expression expression)

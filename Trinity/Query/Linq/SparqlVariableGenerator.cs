@@ -33,11 +33,17 @@ using VDS.RDF.Query;
 
 namespace Semiodesk.Trinity.Query
 {
-    internal class SparqlVariableGenerator
+    internal class SparqlVariableGenerator : ISparqlVariableGenerator
     {
         #region Members
 
-        private readonly Dictionary<string, int> _variableCounters = new Dictionary<string, int>();
+        public Dictionary<string, int> VariableCounters { get; private set; }
+
+        public SparqlVariable GlobalSubject { get; } = new SparqlVariable("s_");
+
+        public SparqlVariable GlobalPredicate { get; } = new SparqlVariable("p_");
+
+        public SparqlVariable GlobalObject { get; } = new SparqlVariable("o_");
 
         private readonly Dictionary<string, SparqlVariable> _subjectVariables = new Dictionary<string, SparqlVariable>();
 
@@ -47,21 +53,43 @@ namespace Semiodesk.Trinity.Query
 
         private readonly Dictionary<string, string> _expressionMappings = new Dictionary<string, string>();
 
-        public readonly SparqlVariable GlobalSubject = new SparqlVariable("s_");
-
-        public readonly SparqlVariable GlobalPredicate = new SparqlVariable("p_");
-
-        public readonly SparqlVariable GlobalObject = new SparqlVariable("o_");
+        private readonly ISparqlVariableGenerator _parentGenerator;
 
         #endregion
 
         #region Constructors
 
-        public SparqlVariableGenerator() {}
+        public SparqlVariableGenerator(ISparqlVariableGenerator parent)
+        {
+            _parentGenerator = parent;
+
+            if(_parentGenerator != null)
+            {
+                VariableCounters = _parentGenerator.VariableCounters;
+            }
+            else
+            {
+                VariableCounters = new Dictionary<string, int>();
+            }
+        }
 
         #endregion
 
         #region Methods
+
+        private string GetNextAvailableVariableName(string name)
+        {
+            int n = 0;
+
+            if (VariableCounters.ContainsKey(name))
+            {
+                n = VariableCounters[name] + 1;
+            }
+
+            VariableCounters[name] = n;
+
+            return name + n;
+        }
 
         private string GetKey(Expression expression)
         {
@@ -77,7 +105,7 @@ namespace Semiodesk.Trinity.Query
             return key;
         }
 
-        public void AddMapping(Expression expression, string alias)
+        public void AddVariableMapping(Expression expression, string alias)
         {
             if(!string.IsNullOrEmpty(alias))
             {
@@ -100,20 +128,6 @@ namespace Semiodesk.Trinity.Query
             {
                 throw new ArgumentNullException("alias");
             }
-        }
-
-        private string GetNextAvailableVariableName(string name)
-        {
-            int n = 0;
-
-            if (_variableCounters.ContainsKey(name))
-            {
-                n = _variableCounters[name] + 1;
-            }
-
-            _variableCounters[name] = n;
-
-            return name + n;
         }
 
         private SparqlVariable TryGetVariable(Dictionary<string, SparqlVariable> source, params Expression[] expressions)
@@ -151,23 +165,23 @@ namespace Semiodesk.Trinity.Query
             {
                 QuerySourceReferenceExpression sourceExpression = expression.TryGetQuerySourceReference();
 
-                return TryGetVariable(_subjectVariables, expression, sourceExpression);
+                return TryGetVariable(_subjectVariables, expression, sourceExpression) ?? _parentGenerator?.TryGetSubjectVariable(expression);
             }
             else
             {
                 // For instances of ConstantExpression, QuerySourceReferenceExpression and SubQueryExpression there must be a direct mapping.
-                return TryGetVariable(_subjectVariables, expression);
+                return TryGetVariable(_subjectVariables, expression) ?? _parentGenerator?.TryGetSubjectVariable(expression);
             }
         }
 
         public SparqlVariable TryGetPredicateVariable(Expression expression)
         {
-            return TryGetVariable(_predicateVariables, expression);
+            return TryGetVariable(_predicateVariables, expression) ?? _parentGenerator?.TryGetPredicateVariable(expression);
         }
 
         public SparqlVariable TryGetObjectVariable(Expression expression)
         {
-            return TryGetVariable(_objectVariables, expression);
+            return TryGetVariable(_objectVariables, expression) ?? _parentGenerator?.TryGetObjectVariable(expression);
         }
 
         public void SetSubjectVariable(Expression expression, SparqlVariable s)

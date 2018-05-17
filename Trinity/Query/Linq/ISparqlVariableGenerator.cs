@@ -25,34 +25,49 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
-using Remotion.Linq;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using VDS.RDF.Query;
 
 namespace Semiodesk.Trinity.Query
 {
-    // TODO: This can be decomposed into a tree and a factory class.
-    internal interface ISparqlQueryGeneratorTree
+    internal interface ISparqlVariableGenerator
     {
         #region Members
 
-        ISparqlQueryGenerator CurrentGenerator { get; set; }
+        Dictionary<string, int> VariableCounters { get; }
 
-        ISparqlQueryGenerator RootGenerator { get; }
+        SparqlVariable GlobalSubject { get; }
+
+        SparqlVariable GlobalPredicate { get; }
+
+        SparqlVariable GlobalObject { get; }
 
         #endregion
 
         #region Methods
 
-        void Bind();
+        void AddVariableMapping(Expression expression, string alias);
 
-        ISparqlQueryGenerator CreateSubQueryGenerator(ISparqlQueryGenerator parentGenerator, Expression expression);
+        SparqlVariable TryGetSubjectVariable(Expression expression);
 
-        void RegisterQueryExpression(ISparqlQueryGenerator generator, Expression expression);
+        SparqlVariable TryGetPredicateVariable(Expression expression);
 
-        bool HasQueryGenerator(Expression expression);
+        SparqlVariable TryGetObjectVariable(Expression expression);
 
-        ISparqlQueryGenerator GetQueryGenerator(Expression expression);
+        void SetSubjectVariable(Expression expression, SparqlVariable s);
+
+        void SetPredicateVariable(Expression expression, SparqlVariable p);
+
+        void SetObjectVariable(Expression expression, SparqlVariable o);
+
+        SparqlVariable CreateSubjectVariable(Expression expression);
+
+        SparqlVariable CreatePredicateVariable();
+
+        SparqlVariable CreateObjectVariable();
+
+        SparqlVariable CreateObjectVariable(Expression expression);
 
         #endregion
     }

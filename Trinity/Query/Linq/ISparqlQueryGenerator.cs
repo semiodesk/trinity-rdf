@@ -51,7 +51,13 @@ namespace Semiodesk.Trinity.Query
 
         QueryModel QueryModel { get; }
 
+        IQueryBuilder QueryBuilder { get; }
+
+        IGraphPatternBuilder PatternBuilder { get; set; }
+
         ISparqlQueryGenerator ParentGenerator { get; set; }
+
+        ISparqlVariableGenerator VariableGenerator { get; }
 
         #endregion
 
@@ -129,15 +135,7 @@ namespace Semiodesk.Trinity.Query
 
         void Union(Action<IGraphPatternBuilder> buildFirstPattern, params Action<IGraphPatternBuilder>[] buildOtherPatterns);
 
-        IQueryBuilder GetQueryBuilder();
-
-        IGraphPatternBuilder GetPatternBuilder();
-
-        IGraphPatternBuilder GetRootPatternBuilder();
-
-        void SetPatternBuilder(IGraphPatternBuilder patternBuilder);
-
-        void SetQueryContext(ISparqlQueryGeneratorTree generatorTree, SparqlVariableGenerator variableGenerator, QueryModel queryModel);
+        void SetQueryContext(ISparqlQueryGeneratorTree generatorTree, QueryModel queryModel);
 
         void OnBeforeFromClauseVisited(Expression expression);
 

@@ -37,8 +37,10 @@ namespace Semiodesk.Trinity.Query
     {
         #region Constructors
 
-        public SubSelectQueryGenerator()
+        public SubSelectQueryGenerator(ISparqlQueryGenerator parent)
         {
+            IsRoot = false;
+            VariableGenerator = new SparqlVariableGenerator(parent.VariableGenerator);
         }
 
         #endregion
@@ -79,7 +81,7 @@ namespace Semiodesk.Trinity.Query
 
                     Child(optionalBuilder);
                     
-                    SetPatternBuilder(optionalBuilder);
+                    PatternBuilder = optionalBuilder;
                 }
             }
             else
