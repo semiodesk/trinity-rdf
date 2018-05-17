@@ -27,15 +27,12 @@
 
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
-using Remotion.Linq.Clauses.Expressions;
 using Remotion.Linq.Clauses.ResultOperators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Xml;
-using VDS.RDF;
 using VDS.RDF.Query;
 using VDS.RDF.Query.Builder;
 using VDS.RDF.Query.Builder.Expressions;
@@ -203,8 +200,15 @@ namespace Semiodesk.Trinity.Query
 
             if(member.IsUriType())
             {
-                // We access the .Uri member of a resource. We do not need a property mapping and return the subject.
+                // When we access the .Uri member of a resource we do not need a property mapping and return the subject as the bound variable.
+
+                // We create a triple pattern describing the resource in the local scope just in case it has not been described yet.
+                // Todo: Improve. Check if triples actually need to be asserted.
                 SparqlVariable s = VariableGenerator.TryGetSubjectVariable(memberExpression) ?? SubjectVariable;
+                SparqlVariable p = VariableGenerator.CreatePredicateVariable();
+                SparqlVariable o = VariableGenerator.CreateObjectVariable(memberExpression);
+
+                patternBuilder.Where(t => t.Subject(s).Predicate(p).Object(o));
 
                 VariableGenerator.SetSubjectVariable(memberExpression, s);
 
@@ -224,7 +228,7 @@ namespace Semiodesk.Trinity.Query
                 }
 
                 // Invoke the final user-handled member access triple builder callback.
-                patternBuilder.Where(t => t.Subject(s.Name).PredicateUri(p.MappedUri).Object(o));
+                patternBuilder.Where(t => t.Subject(s).PredicateUri(p.MappedUri).Object(o));
 
                 return o;
             }
@@ -358,10 +362,12 @@ namespace Semiodesk.Trinity.Query
             if (c.Value == null)
             {
                 // If we want to filter for non-bound values we need to mark the properties as optional.
-                SparqlVariable o = BuildMemberAccessOptional(expression);
+                SparqlVariable so = BuildMemberAccessOptional(expression);
+
+                // TODO: If we filter a resource, make sure it has been described with variables in the local scope.
 
                 // Comparing with null means the variable is not bound.
-                PatternBuilder.Filter(e => !e.Bound(o.Name));
+                PatternBuilder.Filter(e => !e.Bound(so.Name));
             }
             else if(c.Type.IsValueType || c.Type == typeof(string))
             {
@@ -403,9 +409,11 @@ namespace Semiodesk.Trinity.Query
             else
             {
                 // We are comparing reference types / resources against a bound value here.
-                SparqlVariable o = BuildMemberAccess(expression);
+                SparqlVariable so = BuildMemberAccess(expression);
 
-                PatternBuilder.Filter(e => e.Variable(o.Name) == c.AsIriExpression());
+                // TODO: If we filter a resource, make sure it has been described with variables in the local scope.
+
+                PatternBuilder.Filter(e => e.Variable(so.Name) == c.AsIriExpression());
             }
         }
 
@@ -582,14 +590,14 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereResource(SparqlVariable s, SparqlVariable p, SparqlVariable o)
         {
-            PatternBuilder.Where(t => t.Subject(s.Name).Predicate(p.Name).Object(o.Name));
+            PatternBuilder.Where(t => t.Subject(s).Predicate(p).Object(o));
         }
 
         public void WhereResource(Expression expression, SparqlVariable p, SparqlVariable o)
         {
             SparqlVariable s = VariableGenerator.TryGetSubjectVariable(expression) ?? SubjectVariable;
 
-            PatternBuilder.Where(t => t.Subject(s.Name).Predicate(p.Name).Object(o.Name));
+            PatternBuilder.Where(t => t.Subject(s).Predicate(p).Object(o));
         }
 
         public void WhereResourceOfType(Expression expression, Type type)
@@ -607,7 +615,7 @@ namespace Semiodesk.Trinity.Query
             {
                 Uri a = new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
 
-                PatternBuilder.Where(e => e.Subject(s.Name).PredicateUri(a).Object(t.MappedUri));
+                PatternBuilder.Where(e => e.Subject(s).PredicateUri(a).Object(t.MappedUri));
             }
         }
 
