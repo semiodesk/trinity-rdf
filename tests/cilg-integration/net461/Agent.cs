@@ -10,6 +10,7 @@ namespace NetCore_Test
         public Agent(Uri uri)
             : base(uri)
         {
+            Name = "Hello";
         }
 
         [RdfProperty(FOAF.name)]
@@ -17,6 +18,13 @@ namespace NetCore_Test
 
         [RdfProperty(FOAF.mbox)]
         public List<Resource> EMailAccounts { get; set; }
+
+
+        [RdfProperty(FOAF.interest)]
+        public List<string> Interests { get; set; } = new List<string>();
+
+        [RdfProperty(FOAF.birthday)]
+        public DateTime Birthday { get; set; } = DateTime.Today;
 
     }
 

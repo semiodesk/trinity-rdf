@@ -112,4 +112,93 @@ namespace Semiodesk.Trinity.Test.Cilg
 
         #endregion
     }
+
+    [RdfClass(TestOntology.TestClassString)]
+    public class CilgListInitializerTestClass3 : Resource
+    {
+        #region Members
+
+        [RdfProperty(TestOntology.uniqueStringTestString)]
+        public string stringTest2 { get; set; }
+
+        [RdfProperty(TestOntology.stringTestString)]
+        public List<string> stringTest { get; set; } = new List<string>();
+
+    
+        #endregion
+
+        #region Constructors
+
+        public CilgListInitializerTestClass3(Uri uri) : base(uri)
+        {
+        }
+
+        #endregion
+    }
+
+    /*
+        [RdfClass(TestOntology.TestClassString)]
+        public class CilgListInitializerTestClass : Resource
+        {
+            #region Members
+
+            [RdfProperty(TestOntology.stringTestString)]
+            public List<string> stringTest { get; set; } = new List<string>();
+
+
+            [RdfProperty(TestOntology.intTestString)]
+            public int intTest { get; set; } = 17;
+
+            [RdfProperty(TestOntology.stringTestString)]
+            public List<string> stringTest2 { get; set; } = new List<string>() { "bla", "blub" };
+
+            #endregion
+
+            #region Constructors
+
+            public CilgListInitializerTestClass(Uri uri) : base(uri)
+            {
+            }
+
+            #endregion
+        }
+
+        [RdfClass(TestOntology.TestClassString)]
+        public class CilgListInitializerTestClass2 : Resource
+        {
+            #region Members
+
+            protected PropertyMapping<List<string>> stringTestProperty = new PropertyMapping<List<string>>("stringTest", TestOntology.intTestString, new List<string>());
+            public List<string> stringTest
+            {
+                get { return GetValue(stringTestProperty); }
+                set { SetValue(stringTestProperty, value); }
+            }
+
+
+            protected PropertyMapping<int> intTestProperty = new PropertyMapping<int>("intTest", TestOntology.intTestString, 17);
+            public int intTest
+            {
+                get { return GetValue(intTestProperty); }
+                set { SetValue(intTestProperty, value); }
+            } 
+
+
+            protected PropertyMapping<List<string>> stringTest2Property = new PropertyMapping<List<string>>("stringTest2", TestOntology.intTestString, new List<string>() { "bla", "blub" });
+            public List<string> stringTest2
+            {
+                get { return GetValue(stringTest2Property); }
+                set { SetValue(stringTest2Property, value); }
+            }
+            #endregion
+
+            #region Constructors
+
+            public CilgListInitializerTestClass2(Uri uri) : base(uri)
+            {
+            }
+
+            #endregion
+        }
+        */
 }

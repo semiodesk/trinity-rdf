@@ -14,7 +14,7 @@ struct PathStruct{
     public FilePathCollection Solutions;
 
     public DirectoryPath IntegrationTestPath;
-    public FilePathCollection TestSolutions;
+    public IEnumerable<FilePath> TestSolutions;
 
 }
 
@@ -27,7 +27,7 @@ PathStruct Paths = new PathStruct{
         var exclude =  MakeAbsolute(Directory("./tests"));
         return !fsInfo.Path.FullPath.StartsWith(exclude.FullPath);
     }),
-    TestSolutions = GetFiles("./tests/**/*.sln")
+    TestSolutions =  new []{new FilePath("./tests/cilg-integration/cilg-integration.sln")}
 
 };
 
@@ -158,6 +158,6 @@ Task("Integration-Test")
 
 
 Task("Default")
-	.IsDependentOn("Pack");
+	.IsDependentOn("Integration-Test");
 RunTarget("Default");
 
