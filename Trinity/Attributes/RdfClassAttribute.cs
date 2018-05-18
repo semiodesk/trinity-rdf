@@ -83,15 +83,7 @@ namespace Semiodesk.Trinity
             MappedUri = new Uri(baseUri, relativeUri);
         }
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="resource"></param>
-        public RdfClassAttribute(IResource resource)
-        {
-            MappedUri = resource.Uri;
-        }
-
+  
         #endregion
     }
 }

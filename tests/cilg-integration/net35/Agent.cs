@@ -18,6 +18,8 @@ namespace NetCore_Test
         [RdfProperty(FOAF.mbox)]
         public List<Resource> EMailAccounts { get; set; }
 
+
+
     }
 
 }

@@ -120,6 +120,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             return true;
         }
 
+
         internal FieldDefinition ImplementMappingField(PropertyDefinition property)
         {
             
@@ -134,12 +135,16 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             fieldType.GenericArguments.Add(property.PropertyType);
 
             // Generate the name of the private backing field.
-            string fieldName = "_" + Char.ToLowerInvariant(property.Name[0]) + property.Name.Substring(1) + "Mapping";
+            string fieldName = "<" + Char.ToLowerInvariant(property.Name[0]) + property.Name.Substring(1) + ">"+"k__"+"MappingField";
 
-            // Implement the field.
-            FieldDefinition mappingField = new FieldDefinition(fieldName, FieldAttributes.Family, fieldType);
+            var mappingField = Type.TryGetField(fieldName);
 
-            Type.Fields.Add(mappingField);
+            if( mappingField == null )
+            { 
+                // Implement the field.
+                mappingField = new FieldDefinition(fieldName, FieldAttributes.Family, fieldType);
+                Type.Fields.Add(mappingField);
+            }
 
             FieldReference backingField = property.TryGetBackingField();
 
@@ -163,13 +168,41 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                 if (ctor.IsStatic) continue;
 
                 MethodGeneratorTask g = new MethodGeneratorTask(ctor);
+
+                List<Instruction> Omit = new List<Instruction>();
+                bool alreadyInitialized = false;
+                foreach (var x in ctor.Body.Instructions)
+                {
+                    if(backingField != null && x.Operand == backingField)
+                    {
+                        p.Initializer = new List<Instruction>();
+                        Omit.Add(x);
+                        var inst = x;
+                        while(inst.Previous.OpCode.Code != Code.Ldarg_0)
+                        {
+                            inst = inst.Previous;
+                            p.Initializer.Insert(0, inst);
+                            // Remove this initializiation from constructor
+                            Omit.Add(inst);
+                        }
+                        Omit.Add(inst.Previous);
+                    }
+                    if (mappingField != null && x.Operand != null && x.Operand is FieldDefinition && (x.Operand as FieldDefinition).FullName == mappingField.FullName)
+                    { 
+                        alreadyInitialized = true;
+                        continue;
+                    }
+                }
+                if (alreadyInitialized)
+                    continue;
+
                 g.Instructions.AddRange(GetFieldInitializationInstructions(g.Processor, p, fieldType));
-                g.Instructions.AddRange(ctor.Body.Instructions);
-                
+                g.Instructions.AddRange(ctor.Body.Instructions.Where((x) => !Omit.Contains(x)));
+
                 if (g.CanExecute())
                 {
                     g.Execute();
-                }
+                }   
             }
             
 
@@ -266,11 +299,18 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             yield return processor.Create(OpCodes.Ldstr, p.Property.Name);
             yield return processor.Create(OpCodes.Ldstr, p.Uri);
 
-            if (p.HasDefaultValue)
-            {
-                foreach (Instruction i in GetLdX(processor, p.DefaultValue))
+            if(p.HasDefaultValue)
+            { 
+                if (p.Initializer == null)
                 {
-                    yield return i;
+                    foreach (Instruction i in GetLdX(processor, p.DefaultValue))
+                    {
+                        yield return i;
+                    }
+                }else
+                {
+                    foreach (var inst in p.Initializer)
+                        yield return inst;
                 }
             }
 
