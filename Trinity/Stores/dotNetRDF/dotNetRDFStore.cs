@@ -173,8 +173,8 @@ namespace Semiodesk.Trinity.Store
         /// <summary>
         /// Executes a query on the store which does not expect a result.
         /// </summary>
-        /// <param name="update"></param>
-        /// <param name="transaction"></param>
+        /// <param name="query">The update query</param>
+        /// <param name="transaction">An associated transaction</param>
         public void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
         {
             SparqlUpdateCommandSet cmds = _parser.ParseFromString(query.ToString());
@@ -386,7 +386,7 @@ namespace Semiodesk.Trinity.Store
         /// <summary>
         /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.
         /// </summary>
-        /// <param name="fs">Stream to which the content should be written.</param>
+        /// <param name="stream">Stream to which the content should be written.</param>
         /// <param name="graphUri">Uri fo the graph in this store</param>
         /// <param name="format">Allowed formats</param>
         /// <returns></returns>
@@ -442,7 +442,8 @@ namespace Semiodesk.Trinity.Store
         /// <summary>
         /// Loads Ontologies defined in the currently loaded config file into the store.
         /// </summary>
-        /// <param name="sourceDir"></param>
+        /// <param name="configPath">Path of the configuration.</param>
+        /// <param name="sourceDir">Searchpath for the ontologies.</param>
         public void LoadOntologySettings(string configPath = null, string sourceDir = "")
         {
             Trinity.Configuration.TrinitySettings settings;

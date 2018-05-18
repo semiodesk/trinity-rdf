@@ -29,8 +29,28 @@ using System;
 
 namespace Semiodesk.Trinity
 {
+    /// <summary>
+    /// This class encapsulates arguments for transaction event.
+    /// </summary>
     public class TransactionEventArgs : EventArgs
     {
+        #region Members
+        /// <summary>
+        /// Indicates that the transaction finished with a commit.
+        /// </summary>
+        public readonly bool FinishedWithCommit;
+
+        /// <summary>
+        /// Indicates that the transaction finished with a rollback.
+        /// </summary>
+        public readonly bool FinishedWithRollback;
+        #endregion
+
+        #region Constructor
+        /// <summary>
+        /// Cosntructor
+        /// </summary>
+        /// <param name="success">Pass true to indicate that a commit happened. Pass false to indicate that a rollback happend.</param>
         public TransactionEventArgs(bool success)
         {
             if (success)
@@ -45,9 +65,8 @@ namespace Semiodesk.Trinity
             }
 
         }
+        #endregion
 
-        public readonly bool FinishedWithCommit;
-        public readonly bool FinishedWithRollback;
 
     }
 }

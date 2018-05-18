@@ -442,13 +442,29 @@ namespace Semiodesk.Trinity
 
         #region Deserialization
 
+        /// <summary>
+        /// Deserialization delegate, format for deserialization functions. 
+        /// </summary>
+        /// <param name="str"></param>
+        /// <returns></returns>
         public delegate object ObjectDeserializationDelegate(string str);
 
+        /// <summary>
+        /// Deserialize string, nothing to do.
+        /// </summary>
+        /// <param name="str">The string</param>
+        /// <returns>The string</returns>
         public static object DeserializeString(string str)
         {
             return str;
         }
 
+        /// <summary>
+        /// Deserialize string with given type uri.
+        /// </summary>
+        /// <param name="str">The value as string.</param>
+        /// <param name="typeUri">The xsd type.</param>
+        /// <returns>The value in its correct type.</returns>
         public static object DeserializeString(string str, Uri typeUri)
         {
             if( Deserializers.ContainsKey(typeUri.AbsoluteUri) )
@@ -456,75 +472,151 @@ namespace Semiodesk.Trinity
             return str;
         }
 
+        /// <summary>
+        /// Deserialize an int16 from a string.
+        /// </summary>
+        /// <param name="str">The serialized int16</param>
+        /// <returns>An int16</returns>
         public static object DeserializeInt16(string str)
         {
             return (object)XmlConvert.ToInt16(str);
         }
 
+        /// <summary>
+        /// Deserialize an int32 from a string.
+        /// </summary>
+        /// <param name="str">The serialized int32</param>
+        /// <returns>a int32 value</returns>
         public static object DeserializeInt32(string str)
         {
             return (object)XmlConvert.ToInt32(str);
         }
 
+        /// <summary>
+        /// Deserialize an int64 from a string.
+        /// </summary>
+        /// <param name="str">The serialized int64</param>
+        /// <returns>A int64 value</returns>
         public static object DeserializeInt64(string str)
         {
             return (object)XmlConvert.ToInt64(str);
         }
 
+        /// <summary>
+        /// Deserialize an uint6 from a string.
+        /// </summary>
+        /// <param name="str">The serialized int64</param>
+        /// <returns>A uint16 value</returns>
         public static object DeserializeUInt16(string str)
         {
             return (object)XmlConvert.ToUInt16(str);
         }
 
+        /// <summary>
+        /// Deserialize an int32 from a string.
+        /// </summary>
+        /// <param name="str">The serialized int32</param>
+        /// <returns>A int32 value</returns>
         public static object DeserializeUInt32(string str)
         {
             return (object)XmlConvert.ToUInt32(str);
         }
 
+        /// <summary>
+        /// Deserialize an uint64 from a string.
+        /// </summary>
+        /// <param name="str">The serialized uint64</param>
+        /// <returns>A uint64 value</returns>
         public static object DeserializeUInt64(string str)
         {
             return (object)XmlConvert.ToUInt64(str);
         }
 
+        /// <summary>
+        /// Deserialize a bool from a string.
+        /// </summary>
+        /// <param name="str">The serialized bool</param>
+        /// <returns>A bool value</returns>
         public static object DeserializeBool(string str)
         {
             return XmlConvert.ToBoolean(str);
         }
 
+        /// <summary>
+        /// Deserialize a decimal from a string.
+        /// </summary>
+        /// <param name="str">The serialized decimal</param>
+        /// <returns>A decimal value</returns>
         public static object DeserializeDecimal(string str)
         {
             return XmlConvert.ToDecimal(str);
         }
 
+        /// <summary>
+        /// Deserialize a double from a string.
+        /// </summary>
+        /// <param name="str">The serialized double</param>
+        /// <returns>A double value</returns>
         public static object DeserializeDouble(string str)
         {
             return XmlConvert.ToDouble(str);
         }
 
+        /// <summary>
+        /// Deserialize a single from a string.
+        /// </summary>
+        /// <param name="str">The serialized single</param>
+        /// <returns>A single value</returns>
         public static object DeserializeSingle(string str)
         {
             return XmlConvert.ToSingle(str);
         }
 
+        /// <summary>
+        /// Deserialize a DateTime from a string.
+        /// </summary>
+        /// <param name="str">The serialized DateTime</param>
+        /// <returns>A DateTime value</returns>
         public static object DeserializeDateTime(string str)
         {
             return XmlConvert.ToDateTime(str, XmlDateTimeSerializationMode.Utc);
         }
 
+        /// <summary>
+        /// Deserialize a Resource from a string.
+        /// </summary>
+        /// <param name="str">The serialized Resource</param>
+        /// <returns>A Resource value</returns>
         public static object DeserializeResource(string str)
         {
             return new Resource(new Uri(str));
         }
 
+        /// <summary>
+        /// Deserialize a uri from a string.
+        /// </summary>
+        /// <param name="str">The serialized uri</param>
+        /// <returns>A uri value</returns>
         public static object DeserializeUri(string str)
         {
             return new Uri(str);
         }
+
+        /// <summary>
+        /// Deserialize a ByteArray from a string.
+        /// </summary>
+        /// <param name="str">The serialized ByteArray</param>
+        /// <returns>A ByteArray value</returns>
         public static object DeserializeByteArray(string str)
         {
             return Convert.FromBase64String(str);
         }
 
+        /// <summary>
+        /// Deserialize a XmlNode from a string.
+        /// </summary>
+        /// <param name="node">The serialized XmlNode</param>
+        /// <returns>A XmlNode value</returns>
         public static object DeserializeXmlNode(XmlNode node)
         {
             object result = node.InnerText;
@@ -566,6 +658,11 @@ namespace Semiodesk.Trinity
             return result;
         }
 
+        /// <summary>
+        /// Deserialize a LiteralNode from a string.
+        /// </summary>
+        /// <param name="node">The serialized LiteralNode</param>
+        /// <returns>A LiteralNode value</returns>
         public static object DeserializeLiteralNode(BaseLiteralNode node)
         {
             if (node.DataType != null)
