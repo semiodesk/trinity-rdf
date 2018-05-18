@@ -80,6 +80,7 @@ namespace Semiodesk.Trinity.Test
             Assert.IsNotNull(m);
         }
 
+        #pragma warning disable CS0618 // Type or member is obsolete
         [Test]
         public void ContainsModelTest()
         {
@@ -95,16 +96,21 @@ namespace Semiodesk.Trinity.Test
             res.Commit();
 
             Assert.IsTrue(Store.ContainsModel(testModel));
+
             Assert.IsFalse(Store.ContainsModel(new Uri("ex:NoTest")));
+
         }
+        #pragma warning restore CS0618 // Type or member is obsolete
 
         [Test]
         public void GetModelTest()
         {
             Uri testModel = new Uri("ex:Test");
+            IModel model;
             Store.RemoveModel(testModel);
 
-            Assert.IsFalse(Store.ContainsModel(testModel));
+            model = Store.GetModel(testModel);
+            Assert.IsTrue(model.IsEmpty);
 
             IModel m = Store.CreateModel(testModel);
 
@@ -113,7 +119,8 @@ namespace Semiodesk.Trinity.Test
             res.AddProperty(new Property(new Uri("ex:test:property")), "var");
             res.Commit();
 
-            Assert.IsTrue(Store.ContainsModel(testModel));
+            model = Store.GetModel(testModel);
+            Assert.IsFalse(model.IsEmpty);
 
             IModel model2 = Store.GetModel(testModel);
             Assert.AreEqual(testModel, model2.Uri);
@@ -125,9 +132,11 @@ namespace Semiodesk.Trinity.Test
         public void RemoveModelTest()
         {
             Uri testModel = new Uri("ex:Test");
+            IModel model;
             Store.RemoveModel(testModel);
 
-            Assert.IsFalse(Store.ContainsModel(testModel));
+            model = Store.GetModel(testModel);
+            Assert.IsTrue(model.IsEmpty);
 
             IModel m = Store.CreateModel(testModel);
 
@@ -136,16 +145,14 @@ namespace Semiodesk.Trinity.Test
             res.AddProperty(new Property(new Uri("ex:test:property")), "var");
             res.Commit();
 
-            Assert.IsTrue(Store.ContainsModel(testModel));
-
-            IModel model2 = Store.GetModel(testModel);
-            Assert.AreEqual(testModel, model2.Uri);
+            model = Store.GetModel(testModel);
+            Assert.IsFalse(model.IsEmpty);
+            Assert.AreEqual(testModel, model.Uri);
 
             Store.RemoveModel(testModel);
-            Assert.IsFalse(Store.ContainsModel(testModel));
+            model = Store.GetModel(testModel);
+            Assert.IsTrue(model.IsEmpty);
 
-            model2 = Store.GetModel(testModel);
-            Assert.IsTrue(model2.IsEmpty);
         }
 
     }

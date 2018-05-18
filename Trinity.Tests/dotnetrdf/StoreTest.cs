@@ -88,12 +88,15 @@ namespace dotNetRDFStore.Test
             Assert.IsNotNull(m);
         }
 
+#pragma warning disable CS0618 // Type or member is obsolete
         [Test]
         public void ContainsModelTest()
         {
             Uri testModel = new Uri("ex:Test");
 
+
             Assert.IsFalse(Store.ContainsModel(testModel));
+
 
             IModel m = Store.CreateModel(testModel);
 
@@ -105,6 +108,7 @@ namespace dotNetRDFStore.Test
             Assert.IsTrue(Store.ContainsModel(testModel));
             Assert.IsFalse(Store.ContainsModel(new Uri("ex:NoTest")));
         }
+#pragma warning restore CS0618 // Type or member is obsolete
 
         [Test]
         public void GetModelTest()

@@ -51,10 +51,10 @@ namespace Semiodesk.Trinity.Test
 
         IModel GetModel()
         {
-            string connectionString = SetupClass.ConnectionString;
+            //string connectionString = SetupClass.ConnectionString;
 
-            _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
-
+            //_store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+            _store = StoreFactory.CreateStore("provider=dotnetrdf");
             Uri testModelUri = new Uri("http://example.org/TestModel");
 
             return _store.GetModel(testModelUri);

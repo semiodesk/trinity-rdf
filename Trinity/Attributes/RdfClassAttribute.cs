@@ -48,41 +48,13 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="uri"></param>
-        public RdfClassAttribute(Uri uri)
-        {
-            MappedUri = uri;
-        }
-
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="uriString"></param>
+        /// <param name="uriString">The uri of the RDF class for this mapping.</param>
         public RdfClassAttribute(string uriString)
         {
             MappedUri = new Uri(uriString);
         }
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="baseUri"></param>
-        /// <param name="relativeUri"></param>
-        public RdfClassAttribute(Uri baseUri, string relativeUri)
-        {
-            MappedUri = new Uri(baseUri, relativeUri);
-        }
-
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="baseUri"></param>
-        /// <param name="relativeUri"></param>
-        public RdfClassAttribute(Uri baseUri, Uri relativeUri)
-        {
-            MappedUri = new Uri(baseUri, relativeUri);
-        }
-
+       
   
         #endregion
     }
