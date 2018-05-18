@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trinity", "..\Trinity\Trinity.csproj", "{02896AA0-2FC6-4BF3-8F26-48F887DBFC6B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trinity", "Trinity\Trinity.csproj", "{02896AA0-2FC6-4BF3-8F26-48F887DBFC6B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.CilGenerator", "..\Trinity.CilGenerator\Trinity.CilGenerator.csproj", "{146FE869-CCA9-4B39-8FBE-58FD6515AFF9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.CilGenerator", "Trinity.CilGenerator\Trinity.CilGenerator.csproj", "{146FE869-CCA9-4B39-8FBE-58FD6515AFF9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.Tests", "..\Trinity.Tests\Trinity.Tests.csproj", "{5E1FCE3C-9436-44F8-8DB6-18F6282DE70C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.Tests", "Trinity.Tests\Trinity.Tests.csproj", "{5E1FCE3C-9436-44F8-8DB6-18F6282DE70C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.OntologyGenerator", "..\Trinity.OntologyGenerator\Trinity.OntologyGenerator.csproj", "{55D0E154-DE17-40E3-B434-A3A0D9BA17DF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.OntologyGenerator", "Trinity.OntologyGenerator\Trinity.OntologyGenerator.csproj", "{55D0E154-DE17-40E3-B434-A3A0D9BA17DF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
