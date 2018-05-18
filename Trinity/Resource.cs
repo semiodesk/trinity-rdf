@@ -1130,6 +1130,7 @@ namespace Semiodesk.Trinity
         protected virtual void SetValue<T>(PropertyMapping<T> propertyMapping, T value)
         {
             propertyMapping.SetValue(value);
+            IsSynchronized = false;
         }
 
         /// <summary>
