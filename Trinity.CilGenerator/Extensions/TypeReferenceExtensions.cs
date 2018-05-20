@@ -54,7 +54,7 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
                 bool match = !m.Parameters.Where((t1, i) => !t1.ParameterType.FullName.Equals(arguments[i].FullName)).Any();
 
                 // Return a reference to the method in the correct module.
-                if (match) return assembly.MainModule.Import(m);
+                if (match) return assembly.MainModule.ImportReference(m);
             }
 
             return null;

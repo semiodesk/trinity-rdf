@@ -83,16 +83,23 @@ namespace Semiodesk.Trinity.Test
             Assert.IsNotNull(m);
         }
 
+        #pragma warning disable CS0618 // Type or member is obsolete
         [Test]
         public void ContainsModelTest()
         {
             Assert.Inconclusive("This method was marked obsolete and does not behave the same way as it used to.");
+
+
         }
+        #pragma warning restore CS0618 // Type or member is obsolete
 
         [Test]
         public void GetModelTest()
         {
+            IModel model;
             Store.RemoveModel(testModel);
+            model = Store.GetModel(testModel);
+            Assert.IsTrue(model.IsEmpty);
             IModel m = Store.CreateModel(testModel);
 
             var res = m.CreateResource(new Uri("ex:test:resource"));
@@ -100,6 +107,8 @@ namespace Semiodesk.Trinity.Test
             res.AddProperty(new Property(new Uri("ex:test:property")), "var");
             res.Commit();
 
+            model = Store.GetModel(testModel);
+            Assert.IsFalse(model.IsEmpty);
             IModel model2 = Store.GetModel(testModel);
             Assert.AreEqual(testModel, model2.Uri);
 
@@ -109,8 +118,11 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void RemoveModelTest()
         {
+            IModel model;
             Store.RemoveModel(testModel);
 
+            model = Store.GetModel(testModel);
+            Assert.IsTrue(model.IsEmpty);
             IModel m = Store.CreateModel(testModel);
 
             var res = m.CreateResource(new Uri("ex:test:resource"));
@@ -118,13 +130,14 @@ namespace Semiodesk.Trinity.Test
             res.AddProperty(new Property(new Uri("ex:test:property")), "var");
             res.Commit();
 
-            IModel model2 = Store.GetModel(testModel);
-            Assert.AreEqual(testModel, model2.Uri);
+            model = Store.GetModel(testModel);
+            Assert.IsFalse(model.IsEmpty);
+            Assert.AreEqual(testModel, model.Uri);
 
             Store.RemoveModel(testModel);
+            model = Store.GetModel(testModel);
+            Assert.IsTrue(model.IsEmpty);
 
-            model2 = Store.GetModel(testModel);
-            Assert.IsTrue(model2.IsEmpty);
         }
 
     }

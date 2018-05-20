@@ -29,15 +29,15 @@ using System.Collections.Generic;
 using System.IO;
 using System;
 
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 
 using System.Composition;
-#elif !NET_3_5
+#elif !NET35
 using System.ComponentModel.Composition;
 #endif
 
 namespace Semiodesk.Trinity.Store
 {
-#if ! NET_3_5
+#if ! NET35
     [Export(typeof(StoreProvider))]
 #endif
     public class SparqlEndpointStoreProvider : StoreProvider

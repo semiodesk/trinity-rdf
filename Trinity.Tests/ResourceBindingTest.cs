@@ -220,16 +220,7 @@ namespace Semiodesk.Trinity.Test
 
             Uri testModelUri = new Uri("http://localhost:8899/model/TestModel");
 
-            IModel model;
-            if (_store.ContainsModel(testModelUri))
-            {
-                model = _store.GetModel(testModelUri);
-            }
-            else
-            {
-                model = _store.CreateModel(testModelUri);
-            }
-
+            IModel model = _store.GetModel(testModelUri);
             return model;
         }
 

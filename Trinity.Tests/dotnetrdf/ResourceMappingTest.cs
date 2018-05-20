@@ -38,7 +38,7 @@ using dotNetRDFStore.Test;
 using System.IO;
 using Semiodesk.Trinity.Ontologies;
 using Semiodesk.Trinity.Test;
-#if NET_3_5
+#if NET35
 using Semiodesk.Trinity.Utility;
 #endif
 

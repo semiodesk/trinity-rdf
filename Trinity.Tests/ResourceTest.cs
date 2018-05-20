@@ -36,7 +36,7 @@ using Semiodesk.Trinity;
 using System.Collections.ObjectModel;
 using Semiodesk.Trinity.Ontologies;
 using System.Reflection;
-#if NET_3_5
+#if NET35
 using Semiodesk.Trinity.Utility;
 #endif
 

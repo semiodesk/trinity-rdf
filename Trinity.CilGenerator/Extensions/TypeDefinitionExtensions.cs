@@ -82,6 +82,17 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
         }
 
         /// <summary>
+        /// Indicates if the type has a field with the given name.
+        /// </summary>
+        /// <param name="type">A type definition.</param>
+        /// <param name="name">Name of the field.</param>
+        /// <returns><c>true</c> if the type has a matching field, <c>false</c> otherwise.</returns>
+        public static bool HasField(this TypeDefinition type, string name)
+        {
+            return type.TryGetField(name) != null;
+        }
+
+        /// <summary>
         /// Get a (inherited) constructor with a given list of arguments.
         /// </summary>
         /// <param name="type">A type definition.</param>
@@ -117,6 +128,21 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
             IEnumerable<PropertyDefinition> properties = GetBaseTypes(type).SelectMany(t => t.Properties);
 
             return properties.FirstOrDefault(p => p.Name.Equals(name));
+        }
+
+
+        /// <summary>
+        /// Get a field with a given name.
+        /// </summary>
+        /// <param name="type">A type definition.</param>
+        /// <param name="name">Name of the property.</param>
+        /// <returns>A field definition on success, <c>null</c> otherwise.</returns>
+        public static FieldDefinition TryGetField(this TypeDefinition type, string name)
+        {
+            IEnumerable<FieldDefinition> fields = GetBaseTypes(type).SelectMany(t => t.Fields).Union(type.Fields);
+            fields = fields.Where(p=>p.Name == name);
+
+            return fields.FirstOrDefault();
         }
 
         /// <summary>
@@ -262,7 +288,7 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
         /// <returns>A method reference on success, <c>null</c> otherwise.</returns>
         public static MethodReference TryGetSetValueMethod(this TypeDefinition type, AssemblyDefinition assembly, TypeReference mappingType, params TypeReference[] genericArguments)
         {
-            assembly.MainModule.Import(mappingType);
+            assembly.MainModule.ImportReference(mappingType);
             GenericParameter valueType = mappingType.GenericParameters[0];
 
             if (mappingType == null) return null;
@@ -286,7 +312,7 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
         {
 
             TypeReference mappingType =ILGenerator.propertyMapping;
-            assembly.MainModule.Import(mappingType);
+            assembly.MainModule.ImportReference(mappingType);
             GenericParameter valueType = mappingType.GenericParameters[0];
 
             if (mappingType == null) return null;

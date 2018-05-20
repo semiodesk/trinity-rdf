@@ -23,7 +23,7 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2018
 
 using System;
 using System.Collections;
@@ -36,11 +36,11 @@ using OpenLink.Data.Virtuoso;
 using System.Globalization;
 using System.Diagnostics;
 using System.Xml;
-#if NET_3_5
+#if NET35
 using Semiodesk.Trinity.Utility;
 #endif
 
-namespace Semiodesk.Trinity.Store
+namespace Semiodesk.Trinity.Virtuoso
 {
     /// <summary>
     /// The results returned from a SPARQL query.

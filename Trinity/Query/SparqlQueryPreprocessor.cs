@@ -274,7 +274,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Adds a LIMIT clause to the query in order to restrict it to put an upper bound on the number of solutions returned. 
         /// </summary>
-        /// <param name="model">The number of return values.</param>
+        /// <param name="limit">The number of return values.</param>
         public void SetLimit(int limit)
         {
             string value = limit.ToString();
@@ -297,7 +297,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Adds an OFFSET clause to the query which causes the solutions generated to start after the specified number of solutions. 
         /// </summary>
-        /// <param name="model">The number of return values.</param>
+        /// <param name="offset">The number of return values.</param>
         public void SetOffset(int offset)
         {
             string value = offset.ToString();

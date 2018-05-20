@@ -43,7 +43,7 @@ namespace Semiodesk.Trinity
         string Language { get; set; }
 
         /// <summary>
-        /// The mapping ignores the language setting and is always non-localized. Only valid if type or generic type is string.
+        /// The mapping ignores the language setting and is always non-localized. Only valid if type or generic type is string or string collection.
         /// </summary>
         bool LanguageInvariant { get; }
 

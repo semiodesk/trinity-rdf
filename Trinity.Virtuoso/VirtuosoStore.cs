@@ -23,7 +23,7 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2018
 
 using System;
 using System.Collections.Generic;
@@ -45,8 +45,9 @@ using VDS.RDF;
 using Semiodesk.Trinity.Configuration;
 using System.Configuration;
 using System.Reflection;
+using Semiodesk.Trinity.Store;
 
-namespace Semiodesk.Trinity.Store
+namespace Semiodesk.Trinity.Virtuoso
 {
     /// <summary>
     /// This class is the implementation of the IStorage inteface for the Virtuoso Database.

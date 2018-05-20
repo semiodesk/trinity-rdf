@@ -73,6 +73,11 @@ namespace Semiodesk.Trinity
         #endregion
 
         #region Constructor
+        /// <summary>
+        /// Create a new model group from a store and a collection of models
+        /// </summary>
+        /// <param name="store">A store</param>
+        /// <param name="models">A collection of models belonging to that store.</param>
         public ModelGroup(IStore store, IEnumerable<IModel> models)
         {
             _store = store; 
@@ -99,7 +104,9 @@ namespace Semiodesk.Trinity
         }
 
         #region IModelGroup Members
-
+        /// <summary>
+        /// The default model of this group
+        /// </summary>
         public IModel DefaultModel
         {
             get;
@@ -297,6 +304,12 @@ namespace Semiodesk.Trinity
 
         #endregion
 
+        /// <summary>
+        /// Indicates wheter a given resource is part of the model.
+        /// </summary>
+        /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <returns>True if the resource is part of the model, False if not.</returns>
         public bool ContainsResource(Uri uri, ITransaction transaction = null)
         {
             return ExecuteQuery(new SparqlQuery(string.Format(@"ASK {0} {{ {1} ?p ?o . }}",
@@ -304,11 +317,24 @@ namespace Semiodesk.Trinity
                 SparqlSerializer.SerializeUri(uri))), transaction: transaction).GetAnwser();
         }
 
+        /// <summary>
+        /// Indicates wheter a given resource is part of the model.
+        /// </summary>
+        /// <param name="resource">Resource that should be looked up in the model.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <returns>True if the resource is part of the model, False if not.</returns>
         public bool ContainsResource(IResource resource, ITransaction transaction = null)
         {
             return ContainsResource(resource.Uri, transaction);
         }
 
+        /// <summary>
+        /// Execute a SPARQL query against the model.
+        /// </summary>
+        /// <param name="query">A SparqlQuery object.</param>
+        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <returns>A SPARQL query result object.</returns>
         public ISparqlQueryResult ExecuteQuery(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
         {
             query.Model = this;
@@ -317,11 +343,24 @@ namespace Semiodesk.Trinity
             return _store.ExecuteQuery(query, transaction);
         }
 
+        /// <summary>
+        /// Execute a ResourceQuery against the model.
+        /// </summary>
+        /// <param name="query">A ResourceQuery object.</param>
+        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
+        /// <param name="transaction">Transaction associated with the action.</param>
+        /// <returns>A SPARQL query result object.</returns>
         public IResourceQueryResult ExecuteQuery(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
         {
             return new ResourceQueryResult(this, query, inferenceEnabled, transaction);
         }
 
+        /// <summary>
+        /// Retrieves a resource from the model.
+        /// </summary>
+        /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(Uri uri, ITransaction transaction = null)
         {
             SparqlQuery query = new SparqlQuery(String.Format("DESCRIBE {0} {1}", SparqlSerializer.SerializeUri(uri), DatasetClause));
@@ -345,11 +384,23 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Retrieves a resource from the model. Provides a resource object of the given type.
+        /// </summary>
+        /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(IResource resource, ITransaction transaction = null)
         {
             return GetResource(resource.Uri, transaction);
         }
 
+        /// <summary>
+        /// Retrieves a resource from the model.
+        /// </summary>
+        /// <param name="resource">The instance of IResource to be retrieved.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
             SparqlQuery query = new SparqlQuery(String.Format("DESCRIBE {0} {1}", SparqlSerializer.SerializeUri(uri), DatasetClause));
@@ -373,11 +424,24 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Retrieves a resource from the model. Provides a resource object of the given type.
+        /// </summary>
+        /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <param name="type">The type the resource should have.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(IResource resource, ITransaction transaction = null) where T : Resource
         {
             return GetResource<T>(resource.Uri, transaction);
         }
 
+        /// <summary>
+        /// Retrieves a resource from the model.
+        /// </summary>
+        /// <param name="resource">The instance of IResource to be retrieved.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <returns>A resource with all asserted properties.</returns>
         public object GetResource(Uri uri, Type type, ITransaction transaction = null)
         {
             if (_getResourceMethod != null)
@@ -405,6 +469,13 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Executes a SPARQL query and provides an enumeration of matching resources.
+        /// </summary>
+        /// <param name="query">A SparqlQuery object.</param>
+        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
+        /// <param name="transaction">Transaction associated with the action.</param>
+        /// <returns>An enumeration of resources that match the given query.</returns>
         public IEnumerable<Resource> GetResources(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
         {
             IEnumerable<Resource> result = ExecuteQuery(query, inferenceEnabled, transaction).GetResources<Resource>();
@@ -423,6 +494,13 @@ namespace Semiodesk.Trinity
             return result;
         }
 
+        /// <summary>
+        /// Executes a resource query and provides an enumeration of matching resources.
+        /// </summary>
+        /// <param name="query">A ResourceQuery object.</param>
+        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
+        /// <param name="transaction">Transaction associated with the action.</param>
+        /// <returns>An enumeration of resources that match the given query.</returns>
         public IEnumerable<Resource> GetResources(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
         {
             IEnumerable<Resource> result = ExecuteQuery(query, inferenceEnabled, transaction).GetResources<Resource>();
@@ -442,6 +520,13 @@ namespace Semiodesk.Trinity
             return result;
         }
 
+        /// <summary>
+        /// Executes a SPARQL query and provides an enumeration of matching resources.
+        /// </summary>
+        /// <param name="query">A SparqlQuery object.</param>
+        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
+        /// <param name="transaction">Transaction associated with the action.</param>
+        /// <returns>An enumeration of resources that match the given query.</returns>
         public IEnumerable<T> GetResources<T>(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
         {
             IEnumerable<T> result = ExecuteQuery(query, inferenceEnabled, transaction).GetResources<T>();
@@ -467,6 +552,13 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Executes a resource query and provides an enumeration of matching resources.
+        /// </summary>
+        /// <param name="query">A ResourceQuery object.</param>
+        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
+        /// <param name="transaction">Transaction associated with the action.</param>
+        /// <returns>An enumeration of resources that match the given query.</returns>
         public IEnumerable<T> GetResources<T>(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
         {
             IEnumerable<T> result = ExecuteQuery(query, inferenceEnabled, transaction).GetResources<T>();
@@ -495,6 +587,8 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Returns a enumeration of all resources that match the given type.
         /// </summary>
+        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
+        /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
         public IEnumerable<T> GetResources<T>(bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
         {
@@ -504,16 +598,36 @@ namespace Semiodesk.Trinity
             return null;
         }
 
+        /// <summary>
+        /// Executes a SPARQL query and provides an enumeration of matching resources.
+        /// </summary>
+        /// <param name="query">A SparqlQuery object.</param>
+        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
+        /// <param name="transaction">Transaction associated with the action.</param>
+        /// <returns>An enumeration of resources that match the given query.</returns>
         public IEnumerable<BindingSet> GetBindings(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
         {
             return ExecuteQuery(query, inferenceEnabled, transaction).GetBindings();
         }
 
+        /// <summary>
+        /// Serializes the contents of the model and provides a memory stream.
+        /// </summary>
+        /// <param name="fs">The file stream to write to.</param>
+        /// <param name="format">The serialization format.</param>
+        /// <returns>A serialization of the models contents.</returns>
         public void Write(Stream fs, RdfSerializationFormat format)
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Imports the contents of a graph serialized in the stream to this model.
+        /// </summary>
+        /// <param name="stream">The stream containing the serialization</param>
+        /// <param name="format">Format of the serialization</param>
+        /// <param name="update">True to update the model, false to replace the data.</param>
+        /// <returns>True if the contents of the model were imported, False if not.</returns>
         public bool Read(Stream stream, RdfSerializationFormat format, bool update)
         {
             throw new NotSupportedException();
@@ -523,6 +637,11 @@ namespace Semiodesk.Trinity
 
         #region ISet<IModel> Members
 
+        /// <summary>
+        /// Add another model to the model group.
+        /// </summary>
+        /// <param name="item">The model to add</param>
+        /// <returns>true if the element is added to the model group false if the element is already present</returns>
         public bool Add(IModel item)
         {
             var x = _set.Add(item);
@@ -530,54 +649,100 @@ namespace Semiodesk.Trinity
             return x;
         }
 
+        /// <summary>
+        /// Removes all elements in the specified collection from the model group.
+        /// </summary>
+        /// <param name="other">The collection of models to remove.</param>
         public void ExceptWith(IEnumerable<IModel> other)
         {
             _set.ExceptWith(other);
             UpdateDatasetClause();
         }
 
+        /// <summary>
+        /// Modifies the model group to contain only elements that are present in the current group and the specified collection.
+        /// </summary>
+        /// <param name="other">The collection to compare.</param>
         public void IntersectWith(IEnumerable<IModel> other)
         {
             _set.IntersectWith(other);
             UpdateDatasetClause();
         }
 
+        /// <summary>
+        /// Determines whether the model group is a subset of the given collection.
+        /// </summary>
+        /// <param name="other">The collection to compare.</param>
+        /// <returns>true if the model group is a subset; otherwise, false.</returns>
         public bool IsProperSubsetOf(IEnumerable<IModel> other)
         {
             return _set.IsProperSubsetOf(other);
         }
 
+        /// <summary>
+        /// Determines whether the model group is a superset of the given collection.
+        /// </summary>
+        /// <param name="other">The collection to compare</param>
+        /// <returns>true if the model group is a superset; otherwise, false.</returns>
         public bool IsProperSupersetOf(IEnumerable<IModel> other)
         {
             return _set.IsProperSupersetOf(other);
         }
 
+        /// <summary>
+        /// Determines whether the model group is a subset of the given collection.
+        /// </summary>
+        /// <param name="other">The collection to compare.</param>
+        /// <returns>true if the model group is a subset; otherwise, false.</returns>
         public bool IsSubsetOf(IEnumerable<IModel> other)
         {
             return _set.IsSubsetOf(other);
         }
 
+        /// <summary>
+        ///  Determines whether the model group is a superset of the given collection.
+        /// </summary>
+        /// <param name="other">The collection to compare.</param>
+        /// <returns>>true if the model group is a superset; otherwise, false.</returns>
         public bool IsSupersetOf(IEnumerable<IModel> other)
         {
             return _set.IsSupersetOf(other);
         }
 
+        /// <summary>
+        /// Determines wether the model group and the given collection share common models.
+        /// </summary>
+        /// <param name="other">The collection to compare.</param>
+        /// <returns>true if the model group shares common models; otherwise, false.</returns>
         public bool Overlaps(IEnumerable<IModel> other)
         {
             return _set.Overlaps(other);
         }
 
+        /// <summary>
+        ///  Determines wether the model group and the given collection contain the same elements.
+        /// </summary>
+        /// <param name="other">The collection to compare.</param>
+        /// <returns>true if the collections is equal; otherwise, false.</returns>
         public bool SetEquals(IEnumerable<IModel> other)
         {
             return _set.SetEquals(other);
         }
 
+        /// <summary>
+        /// Modifies the mode group to contain only elements either present in that object or the given collection, but not both.
+        /// </summary>
+        /// <param name="other">The collection to compare.</param>
         public void SymmetricExceptWith(IEnumerable<IModel> other)
         {
             _set.SymmetricExceptWith(other);
             UpdateDatasetClause();
         }
 
+        /// <summary>
+        ///  Modifies the mode group to contain both elements present in that object and the given collection.
+        /// </summary>
+        /// <param name="other">The collection to compare.</param>
         public void UnionWith(IEnumerable<IModel> other)
         {
             _set.UnionWith(other);
@@ -594,26 +759,47 @@ namespace Semiodesk.Trinity
             UpdateDatasetClause();
         }
 
+        /// <summary>
+        /// Determines if the model group contains the given model.
+        /// </summary>
+        /// <param name="item">The model to locate.</param>
+        /// <returns>true if the model exists in the group; otherwise, false.</returns>
         public bool Contains(IModel item)
         {
             return _set.Contains(item);
         }
 
+        /// <summary>
+        /// Copies the given models in the group starting at the specified index.
+        /// </summary>
+        /// <param name="array">The models to copy.</param>
+        /// <param name="arrayIndex">The array index</param>
         public void CopyTo(IModel[] array, int arrayIndex)
         {
             _set.CopyTo(array, arrayIndex);
         }
 
+        /// <summary>
+        /// Returns the number of models in the group.
+        /// </summary>
         public int Count
         {
             get { return _set.Count; }
         }
 
+        /// <summary>
+        /// Returns if the group is read only.
+        /// </summary>
         public bool IsReadOnly
         {
             get { return false; }
         }
 
+        /// <summary>
+        /// Removes a model from the group.
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
         public bool Remove(IModel item)
         {
             var res = _set.Remove(item);

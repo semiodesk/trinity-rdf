@@ -32,7 +32,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Globalization;
 using System.Xml;
-#if NET_3_5
+#if NET35
 using Semiodesk.Trinity.Utility;
 #endif
 

@@ -23,19 +23,23 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2018
 
 using System;
 using System.Collections.Generic;
+#if !NET35
 using System.ComponentModel.Composition;
+#endif
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Semiodesk.Trinity.Store
+namespace Semiodesk.Trinity.Virtuoso
 {
+#if !NET35
     [Export(typeof(StoreProvider))]
+#endif
     public class VirtuosoStoreProvider : StoreProvider
     {
 

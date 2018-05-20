@@ -29,7 +29,7 @@ using System;
 using System.Globalization;
 using System.Collections.Generic;
 using System.ComponentModel;
-#if NET_3_5
+#if NET35
 using Semiodesk.Trinity.Utility;
 #endif
 
@@ -62,6 +62,10 @@ namespace Semiodesk.Trinity
         /// </summary>
         string Language { get; set; }
 
+        /// <summary>
+        /// Indicates if the resources has been disposed.
+        /// </summary>
+        bool IsDisposed { get; set; }
         #endregion
 
         #region Methods
@@ -353,7 +357,6 @@ namespace Semiodesk.Trinity
         /// Enumerates all properties associated with this resource in form 
         /// of a tuple mapping properties to their corresponding values.
         /// </summary>
-        /// <param name="property"></param>
         /// <returns></returns>
         IEnumerable<Tuple<Property, object>> ListValues();
 
@@ -367,14 +370,15 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Gets the value of a uniquely asserted property.
         /// </summary>
-        /// <param name="property"></param>
+        /// <param name="property">A RDF property.</param>
         /// <returns></returns>
         object GetValue(Property property);
 
         /// <summary>
         /// Gets the value of a uniquely asserted property.
         /// </summary>
-        /// <param name="property"></param>
+        /// <param name="property">A RDF property.</param>
+        /// <param name="defaultValue">Specifies a default value that should be returned if no value exists.</param>
         /// <returns></returns>
         object GetValue(Property property, object defaultValue);
 
