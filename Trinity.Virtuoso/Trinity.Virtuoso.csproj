@@ -21,8 +21,9 @@
 
   <!-- ONLY NET4.0 -->
   <ItemGroup Condition="'$(TargetFramework)'=='net40'">
-    <Reference Include="dotnetRDF.Data.Virtuoso">
+    <Reference Include="dotNetRDF.Data.Virtuoso">
       <HintPath>Dependencies\Net40\dotNetRDF.Data.Virtuoso.dll</HintPath>
+      <SpecificVersion>false</SpecificVersion>
     </Reference>
     <Reference Include="System.ComponentModel.Composition" />
   </ItemGroup>
@@ -44,6 +45,7 @@
   <ItemGroup>
     <Reference Include="OpenLink.Data.Virtuoso">
       <HintPath>Dependencies\OpenLink.Data.Virtuoso.dll</HintPath>
+      <SpecificVersion>false</SpecificVersion>
     </Reference>
   </ItemGroup>
 
