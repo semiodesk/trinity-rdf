@@ -76,8 +76,6 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void AddModelTest()
         {
-            
-
             IModel m = Store.CreateModel(testModel);
 
             Assert.IsNotNull(m);

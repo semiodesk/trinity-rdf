@@ -23,23 +23,10 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2018
 
-#if !NETSTANDARD2_0
+
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 
-// Setting ComVisible to false makes the types in this assembly not visible 
-// to COM components.  If you need to access a type in this assembly from 
-// COM, set the ComVisible attribute to true on that type.
-[assembly: ComVisible(false)]
-
-// The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("24a57a83-e415-4fcd-901a-1c498e1b3836")]
-
-
-[assembly: InternalsVisibleTo(assemblyName: "Trinity.Test")]
-[assembly: InternalsVisibleTo(assemblyName: "OntologyDeployment")]
-
-#endif
+[assembly: InternalsVisibleTo(assemblyName: "Semiodesk.Trinity.Tests")]
