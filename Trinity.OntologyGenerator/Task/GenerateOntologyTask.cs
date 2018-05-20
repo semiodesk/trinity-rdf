@@ -38,7 +38,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 FileInfo projectFile = new FileInfo(ProjectPath);
                 FileInfo configFile = null;
 
-#if NET_3_5
+#if NET35
                 IEnumerable<string> allFiles = Directory.GetFiles(projectFile.DirectoryName);
 #else
                 IEnumerable<string> allFiles = Directory.EnumerateFiles(projectFile.DirectoryName);

@@ -23,7 +23,7 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2018
 
 using System;
 using System.Collections.Generic;
@@ -34,7 +34,7 @@ using Semiodesk.Trinity;
 using Semiodesk.Trinity.Configuration;
 using Semiodesk.Trinity.Store;
 
-namespace Semiodesk.Trinity
+namespace Semiodesk.Trinity.Virtuoso
 {
     [XmlRoot(ElementName = "graph")]
     public class Graph

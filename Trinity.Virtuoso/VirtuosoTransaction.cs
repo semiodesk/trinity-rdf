@@ -23,14 +23,14 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2018
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Semiodesk.Trinity.Store
+namespace Semiodesk.Trinity.Virtuoso
 {
 
     /// <summary>
@@ -104,14 +104,14 @@ namespace Semiodesk.Trinity.Store
             {
                 foreach (Delegate e in OnFinishedTransaction.GetInvocationList())
                 {
-                    OnFinishedTransaction -= (FinishedTransaction)e;
+                    OnFinishedTransaction -= (FinishedTransactionEvent)e;
                 }
             }
 
             Disposed = true;
         }
 
-        public event FinishedTransaction OnFinishedTransaction;
+        public event FinishedTransactionEvent OnFinishedTransaction;
     }
 
 }

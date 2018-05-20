@@ -33,7 +33,7 @@ using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
 
-namespace Semiodesk.Trinity.Configuration
+namespace Semiodesk.Trinity.Virtuoso.Legacy
 {
 
     [XmlRoot(ElementName = "graph")]

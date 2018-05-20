@@ -31,7 +31,7 @@ using System.Linq;
 using System.Text;
 using System.Collections;
 using System.Collections.Specialized;
-#if NET_3_5
+#if NET35
 using Semiodesk.Trinity.Utility;
 #endif
 
@@ -70,7 +70,7 @@ namespace Semiodesk.Trinity
 
         /// <summary>
         /// If the datatype is a collection, this contains the generic type.
-        /// </summary
+        /// </summary>
         Type IPropertyMapping.GenericType
         {
             get { return _genericType; }
@@ -274,9 +274,8 @@ namespace Semiodesk.Trinity
         {
             if (_isList)
             {
-                IList list = _value as IList;
 
-                if (list != null)
+                if (_value is IList list)
                 {
                     Type t = value.GetType();
 

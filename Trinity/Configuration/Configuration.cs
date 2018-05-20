@@ -112,13 +112,23 @@ namespace Semiodesk.Trinity.Configuration
 
         public IEnumerable<IOntologyConfiguration> ListOntologies()
         {
+#if NET35
+            foreach( var x in Ontologies.OntologyList )
+                yield return x;
+#else
             return Ontologies.OntologyList;
+#endif
         }
 
         
         public IEnumerable<IStoreConfiguration> ListStoreConfigurations()
         {
+#if NET35
+            foreach( var x in Stores.StoreList )
+                yield return x;
+#else
             return Stores.StoreList;
+#endif
         }
     }
 

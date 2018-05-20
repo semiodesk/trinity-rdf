@@ -109,6 +109,7 @@ namespace Semiodesk.Trinity.Test.Stardog
             Assert.IsNotNull(m);
         }
 
+        #pragma warning disable CS0618 // Type or member is obsolete
         [Test]
         public void ContainsModelTest()
         {
@@ -124,9 +125,12 @@ namespace Semiodesk.Trinity.Test.Stardog
             r.AddProperty(new Property(new Uri("ex:test:property")), "var");
             r.Commit();
 
+
             Assert.IsTrue(Store.ContainsModel(testModel));
+
             Assert.IsFalse(Store.ContainsModel(new Uri("ex:NoTest")));
         }
+        #pragma warning restore CS0618 // Type or member is obsolete
 
         [Test]
         public void GetModelTest()

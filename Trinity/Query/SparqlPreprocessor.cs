@@ -482,9 +482,6 @@ namespace Semiodesk.Trinity
     internal class ParameterToken : BaseToken
     {
         #region Members
-
-        public readonly string Name;
-
         #endregion
 
         #region Constructors

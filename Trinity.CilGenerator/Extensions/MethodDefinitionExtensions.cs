@@ -72,7 +72,7 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
                 instance.GenericArguments.Add(argument);
             }
 
-            return assembly.MainModule.Import(instance);
+            return assembly.MainModule.ImportReference(instance);
         }
 
         #endregion

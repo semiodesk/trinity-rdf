@@ -32,7 +32,7 @@ using Semiodesk.Trinity.Store.Stardog;
 
 #if NETSTANDARD2_0
 using System.Composition;
-#elif !NET_3_5
+#elif !NET35
 using System.ComponentModel.Composition;
 #endif
 
@@ -43,7 +43,7 @@ namespace Semiodesk.Trinity.Store
     /// An IStore handle can be created by calling
     /// StoreFactory.CreateStore("provider=stardog;host=http://localhost:5820;uid=admin;pw=admin;sid=MyStore");
     /// </summary>
-    #if ! NET_3_5
+    #if ! NET35
     [Export(typeof(StoreProvider))]
     #endif
     public class StardogStoreProvider : StoreProvider

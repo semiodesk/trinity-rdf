@@ -12,10 +12,18 @@ namespace Semiodesk.Trinity
     {
         #region Methods
 
-        public virtual bool IsReady { get { return true; } }
+        public virtual bool IsReady { get; protected set; } = true;
 
+        /// <summary>
+        /// Removes model from the store.
+        /// </summary>
+        /// <param name="uri">Uri of the model which is to be removed.</param>
         public abstract void RemoveModel(Uri uri);
 
+        /// <summary>
+        /// Removes model from the store.
+        /// </summary>
+        /// <param name="model">Handle of the model which is to be removed.</param>
         public virtual void RemoveModel(IModel model)
         {
             RemoveModel(model.Uri);
@@ -65,6 +73,11 @@ namespace Semiodesk.Trinity
             return settings;
         }
 
+        /// <summary>
+        /// Loads Ontologies defined in the currently loaded config file into the store.
+        /// </summary>
+        /// <param name="configuration">Handle of the configuration.</param>
+        /// <param name="sourceDir">Searchpath for the ontologies.</param>
         protected void LoadOntologies(IConfiguration configuration, string sourceDir = null) 
         {
             DirectoryInfo srcDir;
@@ -85,6 +98,11 @@ namespace Semiodesk.Trinity
 
         public abstract void Dispose();
 
+        /// <summary>
+        /// Adds a new model with the given uri to the storage. 
+        /// </summary>
+        /// <param name="uri">Uri of the model</param>
+        /// <returns>Handle to the model</returns>
         public virtual IModel CreateModel(Uri uri)
         {
             return new Model(this, new UriRef(uri));

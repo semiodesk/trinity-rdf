@@ -7,13 +7,14 @@ using Semiodesk.TinyVirtuoso;
 using System.Reflection;
 using System.IO;
 using Semiodesk.Trinity.Store;
+using Semiodesk.Trinity.Virtuoso;
 
 namespace Semiodesk.Trinity.Test
 {
     [SetUpFixture]
     public class SetupClass
     {
-        Virtuoso instance;
+        TinyVirtuoso.Virtuoso instance;
 
         public static string ConnectionString;
 

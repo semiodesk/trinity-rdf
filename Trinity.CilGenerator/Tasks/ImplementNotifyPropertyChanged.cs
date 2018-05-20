@@ -215,7 +215,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             TypeReference type = backingField.FieldType;
 
             // We need to initialize the local variables.
-            processor.Body.Variables.Add(new VariableDefinition(MainModule.Import(typeof(bool))));
+            processor.Body.Variables.Add(new VariableDefinition(MainModule.ImportReference(typeof(bool))));
             processor.Body.InitLocals = true;
 
             yield return processor.Create(OpCodes.Nop);
@@ -235,7 +235,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                 {
                     MethodDefinition equalsDefinition = Assembly.GetSystemObjectEqualsMethodReference();
 
-                    equals = MainModule.Import(equalsDefinition);
+                    equals = MainModule.ImportReference(equalsDefinition);
                 }
 
                 yield return processor.Create(OpCodes.Call, equals);
@@ -258,7 +258,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             TypeReference type = mappingType.GenericArguments.First();
 
             // We need to initialize the local variables.
-            processor.Body.Variables.Add(new VariableDefinition(MainModule.Import(typeof(bool))));
+            processor.Body.Variables.Add(new VariableDefinition(MainModule.ImportReference(typeof(bool))));
             processor.Body.InitLocals = true;
 
             yield return processor.Create(OpCodes.Nop);
@@ -280,7 +280,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                 {
                     MethodDefinition equalsDefinition = Assembly.GetSystemObjectEqualsMethodReference();
 
-                    equals = MainModule.Import(equalsDefinition);
+                    equals = MainModule.ImportReference(equalsDefinition);
                 }
 
                 yield return processor.Create(OpCodes.Call, equals);
@@ -307,7 +307,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             yield return processor.Create(OpCodes.Ldarg_0);
             yield return processor.Create(OpCodes.Ldfld, backingField);
             yield return processor.Create(OpCodes.Ldarg_1);
-            yield return processor.Create(OpCodes.Callvirt, MainModule.Import(setValue));
+            yield return processor.Create(OpCodes.Callvirt, MainModule.ImportReference(setValue));
             yield return processor.Create(OpCodes.Nop);
         }
 
@@ -315,7 +315,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
         {
             yield return processor.Create(OpCodes.Ldarg_0);
             yield return processor.Create(OpCodes.Ldstr, property.Name);
-            yield return processor.Create(OpCodes.Callvirt, MainModule.Import(raisePropertyChanged));
+            yield return processor.Create(OpCodes.Callvirt, MainModule.ImportReference(raisePropertyChanged));
             yield return processor.Create(OpCodes.Nop);
         }
 

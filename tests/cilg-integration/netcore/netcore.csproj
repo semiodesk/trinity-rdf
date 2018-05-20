@@ -22,7 +22,7 @@
 
   <ItemGroup>
     <Reference Include="Semiodesk.Trinity">
-      <HintPath>..\..\..\Build\netstandard2.0\Release\Semiodesk.Trinity.dll</HintPath>
+      <HintPath>..\..\..\Build\Release\netstandard2.0\Semiodesk.Trinity.dll</HintPath>
     </Reference>
   </ItemGroup>
 

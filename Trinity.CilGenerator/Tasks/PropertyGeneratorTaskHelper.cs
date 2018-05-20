@@ -57,7 +57,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
         /// <summary>
         /// Indicates if the property has a DefaultValue attribute.
         /// </summary>
-        public readonly bool HasDefaultValue;
+        public bool HasDefaultValue;
 
         /// <summary>
         /// Default value attribute.
@@ -78,6 +78,10 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
         /// Flag if the the property is language invariant.
         /// </summary>
         public readonly bool LanguageInvariant;
+
+        private List<Instruction> _initializer;
+ 
+        public List<Instruction> Initializer { get => _initializer; set { _initializer = value; HasDefaultValue = true; } }
         #endregion
 
         #region Constructors
