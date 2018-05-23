@@ -108,7 +108,7 @@ namespace Semiodesk.Trinity
         /// This method can be used to load storage specific configuration.
         /// </summary>
         /// <param name="storageSpecific"></param>
-        public void UpdateStorageSpecifics(IStorageSpecific storageSpecific)
+        public void UpdateStorageSpecifics(IStoreSpecific storageSpecific)
         {
             storageSpecific.Update(_store);
         }

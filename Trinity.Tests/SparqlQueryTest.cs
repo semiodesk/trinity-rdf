@@ -57,6 +57,7 @@ namespace Semiodesk.Trinity.Test
             string connectionString = SetupClass.ConnectionString;
 
             Store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+            Store.LoadOntologySettings();
             Model = Store.GetModel(new Uri("http://example.org/TestModel"));
 
             if (!Model.IsEmpty)
@@ -85,30 +86,33 @@ namespace Semiodesk.Trinity.Test
             resource0.AddProperty(nco.blogUrl, "http://blog.com/Hans");
             resource0.Commit();
 
-            IResource resource1 = Model.CreateResource(new Uri("http://example.org/Task"));
-            resource1.AddProperty(rdf.type, tmo.Task);
-            resource1.AddProperty(tmo.taskName, "Eine Aufgabe.");
+            IResource resource1 = Model.CreateResource(new Uri("http://example.org/Organization"));
+            resource1.AddProperty(rdf.type, nco.OrganizationContact);
+            resource1.AddProperty(nco.fullname, "ACME");
             resource1.AddProperty(nco.creator, resource0);
             resource1.Commit();
 
-            IResource resource2 = Model.CreateResource(new Uri("http://example.org/Doc#1"));
-            resource2.AddProperty(rdf.type, nfo.Document);
+            IResource resource2 = Model.CreateResource(new Uri("http://example.org/PhoneNumber"));
+            resource2.AddProperty(rdf.type, nco.PhoneNumber);
             resource2.AddProperty(dc.date, DateTime.Today);
             resource2.AddProperty(nco.creator, resource0);
             resource2.Commit();
 
             // NOTE: The different name influences the ordering of the resource in query results.
             IResource resource3 = Model.CreateResource(new Uri("http://example.org/Boc#2"));
-            resource3.AddProperty(rdf.type, nfo.Document);
+            resource3.AddProperty(rdf.type, nco.PagerNumber);
             resource3.AddProperty(dc.date, DateTime.Today.AddHours(1));
             resource3.AddProperty(nco.creator, resource0);
             resource3.Commit();
 
             IResource resource4 = Model.CreateResource(new Uri("http://example.org/Doc#3"));
-            resource4.AddProperty(rdf.type, nfo.Document);
+            resource4.AddProperty(rdf.type, nco.PhoneNumber);
             resource4.AddProperty(dc.date, DateTime.Today.AddHours(2));
             resource4.AddProperty(nco.creator, resource0);
             resource4.Commit();
+
+            resource0.AddProperty(nco.hasPhoneNumber, resource2);
+            resource0.Commit();
         }
 
         [TearDown]
@@ -285,7 +289,7 @@ namespace Semiodesk.Trinity.Test
 
             // Retrieving resources using the model API.
             Assert.AreEqual(true, Model.ContainsResource(new Uri("http://example.org/Hans")));
-            Assert.AreEqual(true, Model.ContainsResource(new Uri("http://example.org/Task")));
+            Assert.AreEqual(true, Model.ContainsResource(new Uri("http://example.org/PhoneNumber")));
 
             SparqlQuery query;
             ISparqlQueryResult result;
@@ -308,7 +312,7 @@ namespace Semiodesk.Trinity.Test
             result = Model.ExecuteQuery(query, true);
             Assert.AreEqual(1, result.GetBindings().Count());
 
-            query = new SparqlQuery("ASK WHERE { <http://example.org/Task> sfo:isRelated <http://example.org/Hans> . }");
+            query = new SparqlQuery("ASK WHERE { <http://example.org/Hans> nco:hasContactMedium <http://example.org/PhoneNumber> . }");
 
             result = Model.ExecuteQuery(query);
             Assert.IsFalse(result.GetAnwser());
@@ -316,16 +320,16 @@ namespace Semiodesk.Trinity.Test
             result = Model.ExecuteQuery(query, true);
             Assert.IsTrue(result.GetAnwser());
 
-            query = new SparqlQuery("DESCRIBE ?element WHERE { ?element sfo:isRelated <http://example.org/Hans> . }");
+            query = new SparqlQuery("DESCRIBE ?element WHERE { ?element nco:hasContactMedium <http://example.org/PhoneNumber> . }");
 
             result = Model.ExecuteQuery(query);
             Assert.AreEqual(0, result.GetResources().Count());
 
             result = Model.ExecuteQuery(query, true);
-            Assert.AreEqual(4, result.GetResources().Count());
+            Assert.AreEqual(1, result.GetResources().Count());
 
-            query = new SparqlQuery("DESCRIBE ?doc WHERE { ?doc rdf:type nfo:Document . ?doc nco:creator <http://example.org/Hans> . ?doc dc:date ?date . } ORDER BY ASC(?date)");
-            result = Model.ExecuteQuery(query);
+            query = new SparqlQuery("DESCRIBE ?doc WHERE { ?doc rdf:type nco:ContactMedium . ?doc nco:creator <http://example.org/Hans> . ?doc dc:date ?date . } ORDER BY ASC(?date)");
+            result = Model.ExecuteQuery(query, true);
             Assert.AreEqual(3, result.GetResources().Count());
 
             DateTime? c = null;
@@ -335,7 +339,7 @@ namespace Semiodesk.Trinity.Test
             {
                 d = (DateTime)r.GetValue(dc.date);
 
-                if (c != null) { Assert.Greater(c, d); }
+                if (c != null) { Assert.Greater(d, c); }
 
                 c = d;
             }
@@ -416,26 +420,26 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestSelectCount()
         {
-            SparqlQuery query = new SparqlQuery("SELECT COUNT(?s) AS ?count WHERE { ?s rdf:type nfo:Document. }");
+            SparqlQuery query = new SparqlQuery("SELECT COUNT(?s) AS ?count WHERE { ?s rdf:type nco:PhoneNumber. }");
             ISparqlQueryResult result = Model.ExecuteQuery(query);
 
             var bindings = result.GetBindings();
             Assert.AreEqual(1, bindings.Count());
-            Assert.AreEqual(3, bindings.First()["count"]);
+            Assert.AreEqual(2, bindings.First()["count"]);
         }
 
         [Test]
         public void TestCount()
         {
-            SparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o. ?s rdf:type nfo:Document. }");
+            SparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o. ?s rdf:type nco:PhoneNumber. }");
             ISparqlQueryResult result = Model.ExecuteQuery(query);
 
-            Assert.AreEqual(3, result.Count());
+            Assert.AreEqual(2, result.Count());
 
-            query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o. ?s rdf:type nfo:Document. }");
+            query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o. ?s rdf:type nco:PhoneNumber. }");
             result = Model.ExecuteQuery(query);
 
-            Assert.AreEqual(3, result.Count());
+            Assert.AreEqual(2, result.Count());
         }
 
         [Test]
@@ -519,89 +523,6 @@ namespace Semiodesk.Trinity.Test
             ISparqlQueryResult result = Model.ExecuteQuery(query);
 
             List<Resource> resources = result.GetResources().ToList();
-        }
-
-        [Test]
-        public void TestIsOrdered()
-        {
-            Assert.Inconclusive("Reevaluate with more recent version of virtuoso client library.");
-
-            MethodInfo isOrdered;
-
-            SparqlQuery query = new SparqlQuery(@"
-                SELECT ?s0 ?p0 ?o0 WHERE
-                {
-                    ?s0 ?p0 ?o0 .
-                    {
-                        SELECT DISTINCT ?s0 WHERE
-                        {
-                            ?s ?p ?o.
-                            ?s @type @class .
-
-                            {
-                                ?s ?p1 ?o1 .
-                                FILTER ISLITERAL(?o1) . FILTER REGEX(STR(?o1), '', 'i') .
-                            }
-                            UNION
-                            {
-                                ?s ?p1 ?s1 .
-                                ?s1 ?p2 ?o2 .
-                                FILTER ISLITERAL(?o2) . FILTER REGEX(STR(?o2), '', 'i') .
-                            }
-                       }
-                       ORDER BY ?o
-                    }
-                }");
-
-            query.Bind("@type", rdf.type);
-            query.Bind("@class", tmo.Task);
-
-            isOrdered = query.GetType().GetMethod("IsOrdered", BindingFlags.NonPublic | BindingFlags.Instance);
-            Assert.AreEqual(true, isOrdered.Invoke(query, null));
-
-            query = new SparqlQuery(@"
-                SELECT ?s0 ?p0 ?o0 WHERE
-                {
-                    ?s0 ?p0 ?o0 .
-                    {
-                        SELECT DISTINCT ?s0 WHERE
-                        {
-                            ?s ?p ?o.
-                            ?s @type @class .
-
-                            {
-                                ?s ?p1 ?o1 .
-                                FILTER ISLITERAL(?o1) . FILTER REGEX(STR(?o1), '', 'i') .
-                            }
-                            UNION
-                            {
-                                ?s ?p1 ?s1 .
-                                ?s1 ?p2 ?o2 .
-                                FILTER ISLITERAL(?o2) . FILTER REGEX(STR(?o2), '', 'i') .
-                            }
-                       }
-                    }
-                }");
-
-            query.Bind("@type", rdf.type);
-            query.Bind("@class", tmo.Task);
-
-            isOrdered = query.GetType().GetMethod("IsOrdered", BindingFlags.NonPublic | BindingFlags.Instance);
-            Assert.AreEqual(false, isOrdered.Invoke(query, null));
-
-            query = new SparqlQuery(@"
-                SELECT DISTINCT ?s0
-                FROM <http://semiodesk.com/id/8083cf10-5f90-40d4-b30a-c18fea31177b/>
-                WHERE
-                {
-                  ?s0 ?p0 ?o0 . 
-                  ?s0 a nfo:Visual . 
-                  ?s0 nexif:dateTime ?o1 . 
-                }
-                ORDER BY ASC(?o1) LIMIT 50");
-
-            isOrdered = query.GetType().GetMethod("IsOrdered", BindingFlags.NonPublic | BindingFlags.Instance);
-            Assert.AreEqual(true, isOrdered.Invoke(query, null));
         }
 
         [Test]

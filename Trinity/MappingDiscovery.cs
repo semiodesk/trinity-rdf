@@ -152,6 +152,30 @@ namespace Semiodesk.Trinity
             }
         }
 
+        internal static IEnumerable<IPropertyMapping> ListMappings(Type _class)
+        {
+            Type propertyMappingType = typeof(IPropertyMapping);
+            
+            Resource resource;
+            
+            try
+            {
+                resource = (Resource)Activator.CreateInstance(_class, new UriRef("semio:empty"));
+            }
+            catch (Exception e)
+            {
+                throw new Exception(string.Format("Initialisation of mapping class {0} failed. For the reason please consult the inner exception.", _class.ToString()), e);
+            }
+            
+            foreach (var x in _class.GetFields())
+            {
+                if (propertyMappingType.IsAssignableFrom(x.FieldType))
+                {
+                    yield return x.GetValue(resource) as IPropertyMapping;
+                }
+            }
+        }
+
         public static void GetBaseTypes(Type _class, ref List<Class> baseTypes)
         {
             if (_class.BaseType == typeof(Resource) || _class.BaseType == typeof(Object))
@@ -162,7 +186,6 @@ namespace Semiodesk.Trinity
             baseTypes.AddRange(r.GetTypes());
 
             GetBaseTypes(_class.BaseType, ref baseTypes);
-
         }
 
         /// <summary>
@@ -170,11 +193,11 @@ namespace Semiodesk.Trinity
         /// </summary>
         public static void RegisterCallingAssembly()
         {
-            Assembly asm = Assembly.GetCallingAssembly();
+            Assembly a = Assembly.GetCallingAssembly();
 
-            if (!RegisteredAssemblies.Contains(asm.GetName().FullName))
+            if (!RegisteredAssemblies.Contains(a.GetName().FullName))
             {
-                MappingDiscovery.RegisterAssembly(asm);
+                RegisterAssembly(a);
             }
         }
 
@@ -187,7 +210,9 @@ namespace Semiodesk.Trinity
             foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies())
             {
                 if (!RegisteredAssemblies.Contains(a.GetName().FullName))
+                {
                     RegisterAssembly(a);
+                }
             }
         }
 
@@ -198,7 +223,9 @@ namespace Semiodesk.Trinity
         public static void RegisterAssembly(Assembly asm)
         {
             RegisteredAssemblies.Add(asm.GetName().FullName);
+
             IList<Type> l = GetMappingClasses(asm);
+
             AddMappingClasses(l);
         }
 
@@ -206,9 +233,7 @@ namespace Semiodesk.Trinity
         {
             try
             {
-                return (IList<Type>)(from t in asm.GetTypes()
-                                     where typeof(Resource).IsAssignableFrom(t)
-                                     select t).ToList();
+                return (from t in asm.GetTypes() where typeof(Resource).IsAssignableFrom(t) select t).ToList();
             }
             catch
             {
@@ -224,12 +249,12 @@ namespace Semiodesk.Trinity
         /// <param name="inferencingEnabled">Should inferencing be factored in.</param>
         public static Type[] GetMatchingTypes(IEnumerable<Class> classes, Type type, bool inferencingEnabled = false)
         {
-            if( !inferencingEnabled )
+            if (!inferencingEnabled)
             { 
                 return (from t in MappingClasses
                                      where t.RdfClasses.Intersect(classes).Count() == t.RdfClasses.Length && type.IsAssignableFrom(t.MappingClassType)
                                      orderby t.BaseClassCount descending
-                                     select t.MappingClassType).ToArray();
+                        select t.MappingClassType).ToArray();
             }
             else
             { 

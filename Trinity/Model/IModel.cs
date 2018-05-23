@@ -30,6 +30,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Linq;
 
 namespace Semiodesk.Trinity
 {
@@ -272,6 +273,13 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
         IEnumerable<T> GetResources<T>(bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource;
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        IQueryable<T> AsQueryable<T>(bool inferenceEnabled = false) where T : Resource;
 
         /// <summary>
         /// Executes a SPARQL query and provides an enumeration of matching resources.

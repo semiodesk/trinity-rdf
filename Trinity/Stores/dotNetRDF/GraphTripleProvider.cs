@@ -25,23 +25,33 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
-
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using VDS.RDF;
 
 namespace Semiodesk.Trinity.Store
 {
-    class GraphTripleProvider : ITripleProvider
+    internal class GraphTripleProvider : ITripleProvider
     {
-        IGraph _graph;
-        int counter;
-        public GraphTripleProvider(IGraph graph)
+        #region Members
+
+        private int _n;
+
+        private IGraph _graph;
+
+        public INode S
         {
-            _graph = graph;
-            counter = 0;
+            get { return _graph.Triples.ElementAt(_n).Subject; }
+        }
+
+        public Uri P
+        {
+            get { return (_graph.Triples.ElementAt(_n).Predicate as UriNode).Uri; }
+        }
+
+        public INode O
+        {
+            get { return _graph.Triples.ElementAt(_n).Object; }
         }
 
         public int Count
@@ -49,37 +59,35 @@ namespace Semiodesk.Trinity.Store
             get { return _graph.Triples.Count; }
         }
 
-        public void Reset()
-        {
-            counter = 0;
-        }
-
-
         public bool HasNext
         {
-            get { return counter < _graph.Triples.Count; }
+            get { return _n < _graph.Triples.Count; }
+        }
+
+        #endregion
+
+        #region Constructors
+
+        public GraphTripleProvider(IGraph graph)
+        {
+            _n = 0;
+            _graph = graph;
+        }
+
+        #endregion
+
+        #region Methods
+
+        public void Reset()
+        {
+            _n = 0;
         }
 
         public void SetNext()
         {
-            counter += 1;
+            _n += 1;
         }
 
-        public INode S
-        {
-            get { return _graph.Triples.ElementAt(counter).Subject; }
-        }
-
-        public Uri P
-        {
-            get { return (_graph.Triples.ElementAt(counter).Predicate as UriNode).Uri; }
-        }
-
-        public INode O
-        {
-            get { return _graph.Triples.ElementAt(counter).Object; }
-        }
+        #endregion
     }
-
-
 }

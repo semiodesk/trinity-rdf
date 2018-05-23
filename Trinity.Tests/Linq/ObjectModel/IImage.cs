@@ -23,19 +23,12 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2017
 
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-
-namespace Semiodesk.Trinity
+namespace Semiodesk.Trinity.Test.Linq
 {
-    
-    public interface IStorageSpecific
+    public interface IImage : IResource
     {
-        void Update(IStore store);
+        Agent DepictedAgent { get; set; }
     }
 }

@@ -392,7 +392,6 @@ namespace Semiodesk.Trinity
             AddPropertyToMapping(property, aggregation, false);
         }
 
-
         /// <summary>
         /// Add a property with a string and language as value.
         /// If this property is mapped with a compatible type, it will be filled with the given value.
@@ -1095,7 +1094,7 @@ namespace Semiodesk.Trinity
         /// <param name="property">Rdf property to be tested.</param>
         /// <param name="type">Type of the mapping.</param>
         /// <returns></returns>
-        private IPropertyMapping GetPropertyMapping(Property property, Type type)
+        internal IPropertyMapping GetPropertyMapping(Property property, Type type)
         {
             foreach (IPropertyMapping mappingObject in _mappings.Values)
             {
@@ -1106,6 +1105,14 @@ namespace Semiodesk.Trinity
             }
 
             return null;
+        }
+
+        internal IPropertyMapping GetPropertyMapping(string propertyName)
+        {
+            if (_mappings.ContainsKey(propertyName))
+                return _mappings[propertyName];
+            else
+                return null;
         }
 
         /// <summary>

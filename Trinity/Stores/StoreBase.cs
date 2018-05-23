@@ -50,12 +50,11 @@ namespace Semiodesk.Trinity
 
         public abstract void Write(System.IO.Stream fs, Uri graphUri, RdfSerializationFormat format);
 
-        public virtual void LoadOntologies(string configPath = null, string sourceDir = null)
+        public virtual void LoadOntologySettings(string configPath = null, string sourceDir = null)
         {
             var config = LoadConfiguration(configPath);
             LoadOntologies(config, sourceDir);
         }
-
 
         public virtual void InitializeFromConfiguration(string configPath = null, string sourceDir = null)
         {
@@ -125,8 +124,20 @@ namespace Semiodesk.Trinity
             return ModelGroupFactory.CreateModelGroup(this, result);
         }
 
+        public virtual IModelGroup CreateModelGroup(params IModel[] models)
+        {
+            List<IModel> result = new List<IModel>();
+
+            foreach (var model in models)
+            {
+                result.Add(GetModel(model.Uri));
+            }
+
+            return new ModelGroup(this, result);
+        }
+
         #endregion
 
-    
+
     }
 }

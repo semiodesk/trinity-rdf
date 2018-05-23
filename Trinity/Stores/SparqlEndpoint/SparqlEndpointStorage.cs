@@ -85,13 +85,25 @@ namespace Semiodesk.Trinity.Store
             return new ModelGroup(this, modelList);
         }
 
+        public IModelGroup CreateModelGroup(params IModel[] models)
+        {
+            List<IModel> modelList = new List<IModel>();
+
+            // This approach might seem a bit redundant, but we want to make sure to get the model from the right store.
+            foreach (var x in models)
+            {
+                this.GetModel(x.Uri);
+            }
+
+            return new ModelGroup(this, modelList);
+        }
 
         public void InitializeFromConfiguration(string configPath = null, string sourceDir = null)
         {
             throw new NotSupportedException();
         }
 
-        public void LoadOntologies(string configPath = null, string sourceDir = null)
+        public void LoadOntologySettings(string configPath = null, string sourceDir = null)
         {
             throw new NotSupportedException();
         }
