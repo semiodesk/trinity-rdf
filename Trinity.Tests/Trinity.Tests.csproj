@@ -20,7 +20,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="dotNetRDF" Version="2.0.1" />
+    <PackageReference Include="dotNetRDF" Version="2.1.0-pre0001" />
     <PackageReference Include="ini-parser" Version="2.4.0" />
     <PackageReference Include="NUnit" Version="3.10.1" />
     <PackageReference Include="TinyVirtuoso" Version="0.3.29" />

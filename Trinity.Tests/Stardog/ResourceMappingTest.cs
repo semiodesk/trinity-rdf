@@ -897,27 +897,6 @@ namespace Semiodesk.Trinity.Test.Stardog
             Assert.AreEqual(t3, r3);
         }
 
-        [Test]
-        public void MappingTypeWithInferencingTest()
-        {
-            Assert.Inconclusive();
-            //IModel m = GetModel();
-            //m.Clear();
-
-            //Uri t3Uri = new Uri("semio:test:testInstance3");
-            //PersonContact t3 = m.CreateResource<PersonContact>(t3Uri);
-            //t3.NameGiven = "Hans";
-            //t3.Commit();
-
-            //ResourceQuery q = new ResourceQuery(nco.Contact);
-
-            //var queryResult = m.ExecuteQuery(q, true);
-
-            //var resources = queryResult.GetResources().ToList();
-
-        }
-
-
 
         [Test]
         public void RollbackTest()

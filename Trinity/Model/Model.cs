@@ -31,6 +31,8 @@ using System.Linq;
 using System.IO;
 using System.Reflection;
 using Newtonsoft.Json;
+using Semiodesk.Trinity.Query;
+using Remotion.Linq.Parsing.Structure;
 
 namespace Semiodesk.Trinity
 {
@@ -640,6 +642,20 @@ namespace Semiodesk.Trinity
             };
 
             return GetResources<T>(query, inferenceEnabled, transaction);
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public IQueryable<T> AsQueryable<T>(bool inferenceEnabled = false) where T : Resource
+        {
+            SparqlQueryExecutor executor = new SparqlQueryExecutor(this, inferenceEnabled);
+
+            QueryParser queryParser = QueryParser.CreateDefault();
+
+            return new SparqlQueryable<T>(queryParser, executor);
         }
 
         /// <summary>

@@ -52,6 +52,7 @@ namespace Semiodesk.Trinity.Store.Stardog
         #endregion
 
         #region Constructor
+
         public StardogQueryResult(StardogStore store, ISparqlQuery query, StardogResultHandler resultHandler)
         {
             _resultHandler = resultHandler;
@@ -72,8 +73,12 @@ namespace Semiodesk.Trinity.Store.Stardog
             }
 
             _query = query;
-            if( _resultHandler.SparqlResultSet != null)
+
+            if (_resultHandler.SparqlResultSet != null)
+            {
                 _tripleProvider = new SparqlResultSetTripleProvider(_resultHandler.SparqlResultSet, s, p, o);
+            }
+
             _model = query.Model;
             _resultHandler = resultHandler;
             _store = store;
@@ -100,20 +105,23 @@ namespace Semiodesk.Trinity.Store.Stardog
         public IEnumerable<BindingSet> GetBindings()
         {
             List<BindingSet> result = new List<BindingSet>();
+
             if (_query.QueryType == SparqlQueryType.Select)
             {
                 foreach (var x in _resultHandler.SparqlResultSet)
                 {
                     BindingSet r = new BindingSet();
+
                     foreach (var y in x)
                     {
                         if (y.Value != null)
+                        {
                             r.Add(y.Key, ParseCellValue(y.Value));
+                        }
                     }
+
                     result.Add(r);
                 }
-
-
             }
 
             return result;
@@ -156,14 +164,13 @@ namespace Semiodesk.Trinity.Store.Stardog
                     INode s, o;
                     Property p;
 
-
                     s = _tripleProvider.S;
                     predUri = _tripleProvider.P;
                     o = _tripleProvider.O;
+
                     _tripleProvider.SetNext();
 
                     p = OntologyDiscovery.GetProperty(predUri);
-
 
                     if (s is IUriNode)
                     {
@@ -199,8 +206,7 @@ namespace Semiodesk.Trinity.Store.Stardog
                             catch
                             {
 #if DEBUG
-                                Debug.WriteLine("[SparqlQueryResult] Info: Could not create resource " +
-                                                sUri.OriginalString);
+                                Debug.WriteLine("[SparqlQueryResult] Info: Could not create resource " + sUri.OriginalString);
 #endif
 
                                 continue;
@@ -210,9 +216,11 @@ namespace Semiodesk.Trinity.Store.Stardog
                     else if(s is BlankNode)
                     {
                         //TODO
+                        Debugger.Break();
                     }
                     else
                     {
+                        Debugger.Break();
                     }
 
                     if (o is IUriNode)
@@ -242,9 +250,10 @@ namespace Semiodesk.Trinity.Store.Stardog
                             currentResource.Model = _model;
                         }
                     }
-                    else if( o is BlankNode )
+                    else if(o is BlankNode)
                     {
-                    }else
+                    }
+                    else
                     {
                         currentResource.AddPropertyToMapping(p, ParseCellValue(o), true);
                     }
@@ -260,20 +269,28 @@ namespace Semiodesk.Trinity.Store.Stardog
         private object ParseCellValue(INode p)
         {
             if (p.NodeType == NodeType.Uri)
+            {
                 return (p as IUriNode).Uri;
+            }
             else if (p.NodeType == NodeType.Literal)
             {
                 ILiteralNode literalNode = p as ILiteralNode;
+
                 if (literalNode.DataType == null)
                 {
-                    if(string.IsNullOrEmpty(literalNode.Language))
+                    if (string.IsNullOrEmpty(literalNode.Language))
+                    {
                         return literalNode.Value;
+                    }
                     else
+                    {
                         return new Tuple<string, string>(literalNode.Value, literalNode.Language);
+                    }
                 }
 
                 return XsdTypeMapper.DeserializeString(literalNode.Value, literalNode.DataType);
             }
+
             return null;
         }
 
@@ -285,7 +302,7 @@ namespace Semiodesk.Trinity.Store.Stardog
             string  p;
             INode s,o;
 
-           // _tripleProvider.Reset();
+            // _tripleProvider.Reset();
 
             // Collect all types for every resource in the types dictionary.
             // I was going to use _queryResults.Select(), but that doesn't work with Virtuoso.
@@ -371,10 +388,10 @@ namespace Semiodesk.Trinity.Store.Stardog
             string countQuery = SparqlSerializer.SerializeCount(_model, _query);
 
             SparqlQuery query = new SparqlQuery(countQuery);
+
             // TODO: Apply inferencing if enabled
 
             var result =  _store.ExecuteQuery(query.ToString()).SparqlResultSet;
-            
 
             if (result.Count > 0 && result[0].Count > 0)
             {

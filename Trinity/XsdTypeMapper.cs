@@ -86,7 +86,7 @@ namespace Semiodesk.Trinity
             {typeof(UInt64), xsd._ulong},
             {typeof(DateTime), xsd.datetime},
             {typeof(byte[]), xsd.base64Binary},
-            {typeof(bool), xsd.boolean_},
+            {typeof(bool), xsd.boolean},
             {typeof(decimal), xsd._decimal},
             {typeof(double), xsd._double},
             {typeof(float), xsd._float},
@@ -178,6 +178,16 @@ namespace Semiodesk.Trinity
         public static Uri GetXsdTypeUri(Type type)
         {
             return NativeToXsd[type];
+        }
+
+        /// <summary>
+        /// Indicates if there is a registered XML Schema type URI for the given .NET type.
+        /// </summary>
+        /// <param name="type">A .NET type object.</param>
+        /// <returns><c>true</c> if there is a XML schema type, <c>false</c> otherwise.</returns>
+        public static bool HasXsdTypeUri(Type type)
+        {
+            return NativeToXsd.ContainsKey(type);
         }
 
         /// <summary>

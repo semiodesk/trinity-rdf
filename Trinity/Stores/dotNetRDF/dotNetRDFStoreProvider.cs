@@ -36,9 +36,9 @@ using System.ComponentModel.Composition;
 
 namespace Semiodesk.Trinity.Store
 {
-    #if ! NET35
+#if !NET35
     [Export(typeof(StoreProvider))]
-    #endif
+#endif
     public class dotNetRDFStoreProvider : StoreProvider
     {
         #region Constructor
@@ -50,24 +50,21 @@ namespace Semiodesk.Trinity.Store
 
         #endregion
 
-        
+        #region Methods
 
         public override IStore GetStore(Dictionary<string, string> configurationDictionary)
         {
-          string schemaKey = "schema";
-          string[] schema = null;
-          if (configurationDictionary.ContainsKey(schemaKey))
-            schema = GetSchema(configurationDictionary[schemaKey]);
-          
-          return new dotNetRDFStore(schema);
+            string schemaKey = "schema";
+            string[] schema = null;
+
+            if (configurationDictionary.ContainsKey(schemaKey))
+            {
+                schema = configurationDictionary[schemaKey].Split(',');
+            }
+
+            return new dotNetRDFStore(schema);
         }
 
-        private string[] GetSchema(string schemaString)
-        {
-          string[] schema = schemaString.Split(',');
-
-          return schema;
-          
-        }
+        #endregion
     }
 }

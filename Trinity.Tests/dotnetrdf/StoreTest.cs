@@ -59,7 +59,9 @@ namespace dotNetRDFStore.Test
 
             Store.InitializeFromConfiguration();
 
+            // Note: the NCO ontology contains a metadata graph
             Assert.AreEqual(7, Store.ListModels().Count());
+
         }
 
         [Test]

@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using VDS.RDF;
 using VDS.RDF.Parsing.Handlers;
 using VDS.RDF.Query;
@@ -15,6 +13,9 @@ namespace Semiodesk.Trinity.Store.Stardog
             get { return true;  }
         }
 
+        public void EndRdf(bool ok)
+        {
+        }
 
         protected override bool HandleTripleInternal(Triple t)
         {
@@ -24,13 +25,15 @@ namespace Semiodesk.Trinity.Store.Stardog
 
     class StardogResultHandler : BaseResultsHandler
     {
+        public bool BoolResult { get; set; }
+
+        public SparqlResultSet SparqlResultSet { get { return new SparqlResultSet(_results); } }
+
+        private List<SparqlResult> _results = new List<SparqlResult>();
+
         public StardogResultHandler()
         {
         }
-        public bool BoolResult { get; set; }
-        public SparqlResultSet SparqlResultSet { get { return new SparqlResultSet(_results); } }
-        private List<SparqlResult> _results = new List<SparqlResult>();
-
 
         protected override void HandleBooleanResultInternal(bool result)
         {
@@ -40,6 +43,7 @@ namespace Semiodesk.Trinity.Store.Stardog
         protected override bool HandleResultInternal(VDS.RDF.Query.SparqlResult result)
         {
             _results.Add(result);
+
             return true;
         }
 
@@ -52,6 +56,5 @@ namespace Semiodesk.Trinity.Store.Stardog
         {
             return BoolResult;
         }
-
     }
 }

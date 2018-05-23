@@ -27,8 +27,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Data;
 using System.IO;
 
@@ -128,7 +126,14 @@ namespace Semiodesk.Trinity
         /// <param name="models"></param>
         /// <returns></returns>
         IModelGroup CreateModelGroup(params Uri[] models);
-        
+
+        /// <summary>
+        /// Creates a model group which allows for queries to be made on multiple models at once.
+        /// </summary>
+        /// <param name="models"></param>
+        /// <returns></returns>
+        IModelGroup CreateModelGroup(params IModel[] models);
+
         /// <summary>
         /// Loads a serialized graph from the given location into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
         /// </summary>
@@ -175,7 +180,7 @@ namespace Semiodesk.Trinity
         /// <param name="configPath">Load a specific configuration file.</param>
         /// <param name="sourceDir">If given, this function tries to load the ontologies from this folder.</param>
         [Obsolete("This method will be removed in the future. Use InitializeFromConfiguration() instead.")]
-        void LoadOntologies(string configPath = null, string sourceDir = null);
+        void LoadOntologySettings(string configPath = null, string sourceDir = null);
 
         #endregion
     }
