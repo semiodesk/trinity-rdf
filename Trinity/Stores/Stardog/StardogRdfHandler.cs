@@ -13,25 +13,6 @@ namespace Semiodesk.Trinity.Store.Stardog
             get { return true;  }
         }
 
-        public bool HandleBaseUri(Uri baseUri)
-        {
-            return true;
-        }
-
-        public bool HandleNamespace(string prefix, Uri namespaceUri)
-        {
-            return true;
-        }
-
-        public bool HandleTriple(Triple t)
-        {
-            return true;
-        }
-
-        public void StartRdf()
-        {
-        }
-
         public void EndRdf(bool ok)
         {
         }

@@ -52,7 +52,7 @@ namespace Semiodesk.Trinity.Test.Linq
             string connectionString = string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString);
 
             Store = StoreFactory.CreateStore(connectionString);
-            Store.LoadOntologySettings();
+            Store.InitializeFromConfiguration();
 
             Model = Store.CreateModel(new Uri("http://test.com/test"));
             Model.Clear();

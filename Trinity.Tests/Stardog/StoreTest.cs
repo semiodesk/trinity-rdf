@@ -47,12 +47,12 @@ namespace Semiodesk.Trinity.Test.Stardog
     /// \> stardog-admin user passwd
     /// 8. Set password to admin when promted
     /// 9. Run 
-    /// \>stardog-admin db create -n MyStore
+    /// \>stardog-admin db create -n test
     /// 
     /// </summary>
 
     [TestFixture]
-    class StoreTest
+    class StardogStoreTest
     {
         IStore Store;
         Uri testModel = new Uri("ex:Test");
@@ -76,9 +76,9 @@ namespace Semiodesk.Trinity.Test.Stardog
         {
             
 
-            Store.LoadOntologySettings();
+            Store.InitializeFromConfiguration();
 
-            Assert.AreEqual(6, Store.ListModels().Count());
+            Assert.AreEqual(7, Store.ListModels().Count());
         }
 
         [Test]
@@ -86,9 +86,8 @@ namespace Semiodesk.Trinity.Test.Stardog
         {
             Assert.Inconclusive("How to make sure we have an empty store");
             /*
-            DirectoryInfo asm = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory;
-            string configFile = Path.Combine(asm.FullName, "custom.config");
-            Store.LoadOntologySettings(configFile);
+            string configFile = Path.Combine(Environment.CurrentDirectory, "custom.config");
+            Store.InitializeFromConfiguration(configFile);
 
             Assert.AreEqual(4, Store.ListModels().Count());
             */
@@ -112,6 +111,7 @@ namespace Semiodesk.Trinity.Test.Stardog
             Assert.IsNotNull(m);
         }
 
+        #pragma warning disable CS0618 // Type or member is obsolete
         [Test]
         public void ContainsModelTest()
         {
@@ -126,9 +126,12 @@ namespace Semiodesk.Trinity.Test.Stardog
             r.AddProperty(new Property(new Uri("ex:test:property")), "var");
             r.Commit();
 
+
             Assert.IsTrue(Store.ContainsModel(testModel));
+
             Assert.IsFalse(Store.ContainsModel(new Uri("ex:NoTest")));
         }
+        #pragma warning restore CS0618 // Type or member is obsolete
 
         [Test]
         public void GetModelTest()

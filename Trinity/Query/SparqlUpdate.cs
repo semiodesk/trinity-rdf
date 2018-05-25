@@ -73,7 +73,6 @@ namespace Semiodesk.Trinity
         /// used in the update string.
         /// </summary>
         /// <param name="updateString">The u update string.</param>
-        /// <param name="namespaceManager">The optional namespace manager used to declare Sparql PREFIXes.</param>
         public SparqlUpdate(string updateString)
         {
             _updateString = updateString;

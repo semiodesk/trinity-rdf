@@ -36,12 +36,15 @@ using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using VDS.RDF.Query;
 using VDS.RDF.Query.Builder;
+#if NET35
+using Semiodesk.Trinity.Utility;
+#endif
 
 namespace Semiodesk.Trinity.Query
 {
     class ExpressionTreeVisitor : ThrowingExpressionVisitor
     {
-        #region Members
+#region Members
 
         protected ISparqlQueryModelVisitor QueryModelVisitor;
 
@@ -49,9 +52,9 @@ namespace Semiodesk.Trinity.Query
 
         protected List<Expression> Trace = new List<Expression>();
 
-        #endregion
+#endregion
 
-        #region Constructors
+#region Constructors
 
         public ExpressionTreeVisitor(ISparqlQueryModelVisitor queryModelVisitor, ISparqlQueryGeneratorTree queryGeneratorTree)
         {
@@ -59,9 +62,9 @@ namespace Semiodesk.Trinity.Query
             QueryGeneratorTree = queryGeneratorTree;
         }
 
-        #endregion
+#endregion
 
-        #region Methods
+#region Methods
 
         private void HandleRegexMethodCallExpression(Expression expression, string regex, bool ignoreCase)
         {
@@ -566,6 +569,6 @@ namespace Semiodesk.Trinity.Query
             return expression;
         }
 
-        #endregion
+#endregion
     }
 }

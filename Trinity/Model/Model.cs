@@ -184,8 +184,10 @@ namespace Semiodesk.Trinity
                 throw new ArgumentException("A resource with the given URI already exists.");
             }
 
-            Resource resource = new Resource(uri);
-            resource.IsNew = true;
+            Resource resource = new Resource(uri)
+            {
+                IsNew = true
+            };
             resource.SetModel(this);
 
             return resource;
@@ -317,8 +319,10 @@ namespace Semiodesk.Trinity
                     SparqlSerializer.SerializeResource(resource));
             }
 
-            SparqlUpdate update = new SparqlUpdate(updateString);
-            update.Resource = resource;
+            SparqlUpdate update = new SparqlUpdate(updateString)
+            {
+                Resource = resource
+            };
 
             ExecuteUpdate(update, transaction);
 
@@ -466,7 +470,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Retrieves a resource from the model. Provides a resource object of the given type.
         /// </summary>
-        /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <param name="resource">The resource that should be retrieved.</param>
         /// <param name="transaction">ransaction associated with this action.</param>
         /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(IResource resource, ITransaction transaction = null) where T : Resource
@@ -632,8 +636,10 @@ namespace Semiodesk.Trinity
         {
             T temp = (T)Activator.CreateInstance(typeof(T), new Uri("semio:desk"));
 
-            ResourceQuery query = new ResourceQuery(temp.GetTypes());
-            query.InferencingEnabled = inferenceEnabled;
+            ResourceQuery query = new ResourceQuery(temp.GetTypes())
+            {
+                InferencingEnabled = inferenceEnabled
+            };
 
             return GetResources<T>(query, inferenceEnabled, transaction);
         }
@@ -684,6 +690,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="url">A uniform resource locator.</param>
         /// <param name="format">Serialization format <see cref="RdfSerializationFormat"/></param>
+        /// <param name="update">Pass false if you want to overwrite existing data. True if you want to keep the data and add the new entries.</param>
         /// <returns>True if the contents of the model were imported, False if not.</returns>
         public bool Read(Uri url, RdfSerializationFormat format, bool update)
         {

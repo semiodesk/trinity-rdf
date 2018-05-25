@@ -31,7 +31,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.IO;
 using System.Linq;
-#if NET_3_5
+#if NET35
 using Semiodesk.Trinity.Utility;
 #endif
 
@@ -139,16 +139,13 @@ namespace Semiodesk.Trinity.OntologyGenerator
         public bool AddOntology(Uri graphUri, Uri metadataUri, string prefix)
         {
             if (graphUri == null)
-            {
                 return false;
-            }
 
             IModel graphModel = _store.GetModel(graphUri);
 
-            if (graphModel == null)
-            {
+            if (graphModel.IsEmpty) 
                 return false;
-            }
+
 
             IModel metadataModel = null;
 

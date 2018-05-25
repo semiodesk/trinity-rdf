@@ -55,23 +55,34 @@ namespace Semiodesk.Trinity
             /// <summary>
             /// The RDF classes that are mapped to this class
             /// </summary>
-            public readonly List<Class> RdfClasses = new List<Class>();
+            public readonly Class[] RdfClasses;
 
             /// <summary>
             /// A list of inferenced RDF classes mapped to this class. Currently not used.
             /// </summary>
-            public readonly List<Class> RdfBaseClasses = new List<Class>();
+            public readonly Class[] RdfBaseClasses;
+
+            public readonly uint BaseClassCount;
 
             /// <summary>
             /// Constructor to create a new MappingClass
             /// </summary>
             /// <param name="mappingClassType">The c# type</param>
-            /// <param name="rdfClasses">The</param>
+            /// <param name="rdfClasses">The mapped rdf classes.</param>
+            /// <param name="rdfBaseClasses">The rdf base classes.</param>
             public MappingClass(Type mappingClassType, IEnumerable<Class> rdfClasses, IEnumerable<Class> rdfBaseClasses )
             {
                 MappingClassType = mappingClassType;
-                RdfClasses.AddRange(rdfClasses);
-                RdfBaseClasses.AddRange(rdfBaseClasses);
+                RdfClasses = rdfClasses.ToArray();
+                RdfBaseClasses = rdfBaseClasses.ToArray();
+
+                BaseClassCount = 0;
+                Type t = mappingClassType;
+                while( t.BaseType != typeof(object))
+                {
+                    BaseClassCount++;
+                    t = t.BaseType;
+                }
             }
         }
 
@@ -239,15 +250,16 @@ namespace Semiodesk.Trinity
         public static Type[] GetMatchingTypes(IEnumerable<Class> classes, Type type, bool inferencingEnabled = false)
         {
             if (!inferencingEnabled)
-            {
+            { 
                 return (from t in MappingClasses
-                        where t.RdfClasses.Count > 0 && t.RdfClasses.Intersect(classes).Count() == t.RdfClasses.Count && type.IsAssignableFrom(t.MappingClassType)
+                                     where t.RdfClasses.Intersect(classes).Count() == t.RdfClasses.Length && type.IsAssignableFrom(t.MappingClassType)
+                                     orderby t.BaseClassCount descending
                         select t.MappingClassType).ToArray();
             }
             else
-            {
+            { 
                 return (from t in MappingClasses
-                        where t.RdfBaseClasses.Intersect(classes).Count() == t.RdfBaseClasses.Count && type.IsAssignableFrom(t.MappingClassType)
+                        where t.RdfBaseClasses.Intersect(classes).Count() == t.RdfBaseClasses.Length && type.IsAssignableFrom(t.MappingClassType)
                         orderby t.RdfBaseClasses.Intersect(classes).Count() descending
                         select t.MappingClassType).ToArray();
             }

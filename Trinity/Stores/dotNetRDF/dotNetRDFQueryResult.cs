@@ -30,7 +30,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using VDS.RDF;
 using VDS.RDF.Query;
-#if NET_3_5
+#if NET35
 using Semiodesk.Trinity.Utility;
 #endif
 

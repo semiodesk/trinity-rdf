@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  
+  <PropertyGroup>
+    <TargetFrameworks>net40;net35</TargetFrameworks>
+    <Title>Semiodesk.Trinity.Virtuoso</Title>
+    <Copyright>Copyright © Semiodesk GmbH 2018</Copyright>
+    <Description></Description>
+    <Company>Semiodesk GmbH</Company>
+    <Version>1.0.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyName>Semiodesk.Trinity.Virtuoso</AssemblyName>
+    <RootNamespace>Semiodesk.Trinity.Virtuoso</RootNamespace>
+  </PropertyGroup>
+
+
+  <PropertyGroup>
+    <OutputPath>..\Build\$(Configuration)\stores\virtuoso</OutputPath>
+    <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <!-- ONLY NET4.0 -->
+  <ItemGroup Condition="'$(TargetFramework)'=='net40'">
+    <Reference Include="dotNetRDF.Data.Virtuoso">
+      <HintPath>Dependencies\Net40\dotNetRDF.Data.Virtuoso.dll</HintPath>
+      <SpecificVersion>false</SpecificVersion>
+    </Reference>
+    <Reference Include="System.ComponentModel.Composition" />
+  </ItemGroup>
+
+  <!-- ONLY NET3.5 -->
+  <ItemGroup Condition="'$(TargetFramework)'=='net35'">
+    <Reference Include="dotnetRDF.Data.Virtuoso">
+      <HintPath>Dependencies\Net35\dotNetRDF.Data.Virtuoso.dll</HintPath>
+    </Reference>
+    <Reference Include="dotNetRDF">
+      <HintPath>..\Dependencies\Net35\dotNetRDF.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\Trinity\Trinity.csproj" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Reference Include="OpenLink.Data.Virtuoso">
+      <HintPath>Dependencies\OpenLink.Data.Virtuoso.dll</HintPath>
+      <SpecificVersion>false</SpecificVersion>
+    </Reference>
+  </ItemGroup>
+
+</Project>

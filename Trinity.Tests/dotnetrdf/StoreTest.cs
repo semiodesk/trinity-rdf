@@ -57,7 +57,7 @@ namespace dotNetRDFStore.Test
         {
             Uri testModel = new Uri("ex:Test");
 
-            Store.LoadOntologySettings();
+            Store.InitializeFromConfiguration();
 
             // Note: the NCO ontology contains a metadata graph
             Assert.AreEqual(7, Store.ListModels().Count());
@@ -68,12 +68,9 @@ namespace dotNetRDFStore.Test
         public void LoadOntologiesFromFileTest()
         {
             Uri testModel = new Uri("ex:Test");
+            string configFile = Path.Combine(Environment.CurrentDirectory, "custom.config");
+            Store.InitializeFromConfiguration(configFile);
 
-            DirectoryInfo assembly = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory;
-
-            string configFile = Path.Combine(assembly.FullName, "custom.config");
-
-            Store.LoadOntologySettings(configFile);
 
             Assert.AreEqual(4, Store.ListModels().Count());
 
@@ -90,12 +87,15 @@ namespace dotNetRDFStore.Test
             Assert.IsNotNull(m);
         }
 
+#pragma warning disable CS0618 // Type or member is obsolete
         [Test]
         public void ContainsModelTest()
         {
             Uri testModel = new Uri("ex:Test");
 
+
             Assert.IsFalse(Store.ContainsModel(testModel));
+
 
             IModel m = Store.CreateModel(testModel);
 
@@ -107,6 +107,7 @@ namespace dotNetRDFStore.Test
             Assert.IsTrue(Store.ContainsModel(testModel));
             Assert.IsFalse(Store.ContainsModel(new Uri("ex:NoTest")));
         }
+#pragma warning restore CS0618 // Type or member is obsolete
 
         [Test]
         public void GetModelTest()

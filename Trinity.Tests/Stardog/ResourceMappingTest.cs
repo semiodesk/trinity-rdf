@@ -38,7 +38,7 @@ using dotNetRDFStore.Test;
 using System.IO;
 using Semiodesk.Trinity.Ontologies;
 using Semiodesk.Trinity.Test;
-#if NET_3_5
+#if NET35
 using Semiodesk.Trinity.Utility;
 #endif
 
@@ -47,7 +47,7 @@ namespace Semiodesk.Trinity.Test.Stardog
 {
 
     [TestFixture]
-    public class ResourceMappingTest
+    public class StardogResourceMappingTest
     {
         public static bool RegisteredOntology = false;
 
