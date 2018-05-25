@@ -6,6 +6,8 @@ List<string> executables = new List<string>{ "net35/test.exe", "net40/test.exe",
 List<string> injectables = new List<string>{ "net35/test.exe", "net40/test.exe", "net461/test.exe", "netcore/test.dll", "netstandard-net461/netstandard20.dll", "netstandard-netcore/netstandard20.dll"};
 //, "netstandard-net461", "netstandard-netcore"
 
+var cilg = "../../Build/"+configuration+"/tools/cilg.exe";
+
 FilePath ExpandPath(FilePath path)
 {
 	return new FilePath("./build/"+configuration.ToLower()+"/"+path);
@@ -40,13 +42,16 @@ int Execute(FilePath file)
 void Inject(FilePath path)
 {
 	string argument = "-i "+path.FullPath+" -o "+path.FullPath;
-	var exitCode = StartProcess("../../Build/Net40/"+configuration+"/cilg.exe", argument);
+	var exitCode = StartProcess(cilg, argument);
 }
 
 int counter = 0;
 
 Task("cilg-Test").DoesForEach(executables, (path) =>
 {
+	if(!FileExists(cilg))
+		throw new Exception("Cannot find Cilg tool "+cilg+".");
+
 	var filePath = ExpandPath(path);
 	if(!FileExists(filePath))
 		throw new Exception("File "+filePath+" does not exist.");
@@ -57,7 +62,10 @@ Task("cilg-Test").DoesForEach(executables, (path) =>
 	Execute(filePath);
 
 	Information("\nInjecting...");
-	Inject(ExpandPath(injectables[counter]));
+	var inject = ExpandPath(injectables[counter]);
+	if(!FileExists(inject))
+		throw new Exception("File "+filePath+" does not exist.");
+	Inject(inject);
 
 	Information("\nRunning with injection:");
 	if( Execute(filePath) != 0 )

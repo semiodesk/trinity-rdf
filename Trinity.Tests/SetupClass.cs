@@ -6,13 +6,15 @@ using System.Text;
 using Semiodesk.TinyVirtuoso;
 using System.Reflection;
 using System.IO;
+using Semiodesk.Trinity.Store;
+using Semiodesk.Trinity.Virtuoso;
 
 namespace Semiodesk.Trinity.Test
 {
     [SetUpFixture]
     public class SetupClass
     {
-        Virtuoso instance;
+        TinyVirtuoso.Virtuoso instance;
 
         public static string ConnectionString;
 
@@ -21,13 +23,19 @@ namespace Semiodesk.Trinity.Test
         [OneTimeSetUp]
         public void Setup()
         {
+
             Directory.SetCurrentDirectory(TestContext.CurrentContext.TestDirectory);
 
+
+            StoreFactory.LoadProvider(Assembly.GetAssembly(typeof(VirtuosoStoreProvider)));
             OntologyDiscovery.AddAssembly(Assembly.GetExecutingAssembly());
             MappingDiscovery.RegisterAssembly(Assembly.GetExecutingAssembly());
 
             FileInfo i = new FileInfo(Assembly.GetExecutingAssembly().Location);
             DirectoryInfo dir = new DirectoryInfo(Path.Combine(i.DirectoryName, "nunit"));
+            if( dir.Exists)
+                dir.Delete(true);
+            dir.Create();
 
             TinyVirtuoso.TinyVirtuoso v = new TinyVirtuoso.TinyVirtuoso(dir);
             instance = v.GetOrCreateInstance("NUnit");

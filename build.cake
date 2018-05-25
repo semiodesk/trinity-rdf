@@ -5,27 +5,26 @@
 #addin "Cake.DocFx"
 #tool "docfx.msbuild"
 
-var target = Argument("target", "Default");
 var configuration = Argument("configuration", "Release");
 
 struct PathStruct{
     public DirectoryPath ProjectPath;
     public DirectoryPath OutputPath; 
-    public FilePathCollection Solutions;
+
+    public IEnumerable<FilePath> Solutions;
+
     public DirectoryPath IntegrationTestPath;
-    public FilePathCollection TestSolutions;
+    public IEnumerable<FilePath> TestSolutions;
+    public IEnumerable<FilePath> IntegrationTests;
 }
 
 PathStruct Paths = new PathStruct{
     ProjectPath = MakeAbsolute(Directory("./")),
     OutputPath = MakeAbsolute(Directory("./Build")),
     IntegrationTestPath = MakeAbsolute(Directory("./tests")),
-    Solutions = GetFiles("./**/*.sln", (fsInfo) => { 
-        // Filter out the integration tests here
-        var exclude =  MakeAbsolute(Directory("./tests"));
-        return !fsInfo.Path.FullPath.StartsWith(exclude.FullPath);
-    }),
-    TestSolutions = GetFiles("./tests/**/*.sln")
+    Solutions = new []{new FilePath("Semiodesk.Trinity.sln")},
+    TestSolutions =  new []{new FilePath("./tests/cilg-integration/cilg-integration.sln")},
+    IntegrationTests = new []{new FilePath("./tests/cilg-integration/run.cake")}//, new FilePath("./tests/nuget-integration/run.cake")}
 
 };
 
@@ -68,6 +67,7 @@ void Section(string info)
 }
 
 
+
 Setup(context =>
 {
     foreach( var x in Paths.Solutions)
@@ -91,17 +91,26 @@ Task("StyleCop")
 	});
 */
 
-Task("Build-Solutions")
+Task("Build")
     .IsDependentOn("Clean-Outputs")
 	//.IsDependentOn("StyleCop")	TODO: enable
     .DoesForEach(Paths.Solutions, (solution, ctx) => {
-        
        Build(solution);
+    });
+
+Task("Pack")
+    .IsDependentOn("Build")
+    .Does(() => {
+        
+        DotNetBuild("./Trinity/Trinity.csproj", settings => settings
+                .SetConfiguration(configuration)
+                .WithTarget("pack")
+                .SetVerbosity(Verbosity.Quiet));
     });
 
 
 Task("Test")
-	.IsDependentOn("Build-Solutions")
+	.IsDependentOn("Build")
     .Does(() =>
 	{
         var testAssemblies = GetFiles(Paths.OutputPath+"/**/Trinity.Test.dll");
@@ -124,7 +133,7 @@ Task("Documentation")
     });
 
 Task("Integration-Test-Build")
-    .IsDependentOn("Build-Solutions")
+    .IsDependentOn("Build")
     .DoesForEach( Paths.TestSolutions, (solution) => {
 
         Build(solution);
@@ -132,18 +141,20 @@ Task("Integration-Test-Build")
     });
 
 Task("Integration-Test")
+    .IsDependentOn("Pack")
     .IsDependentOn("Integration-Test-Build")
-    .DoesForEach(Paths.TestSolutions, (solution) => {
+    .DoesForEach(Paths.IntegrationTests, (test) => {
         
-        var script = solution.GetDirectory()+"/run.cake";
-        CakeExecuteScript(script, new CakeSettings {
+        CakeExecuteScript(test, new CakeSettings {
             Arguments = new Dictionary<string, string>{
                 { "configuration", configuration }
               
             }});
     });
 
+
 Task("Default")
 	.IsDependentOn("Integration-Test");
 
-RunTarget(target);
+RunTarget("Default");
+

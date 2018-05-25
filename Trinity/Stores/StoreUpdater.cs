@@ -35,7 +35,10 @@ using System.ComponentModel;
 
 namespace Semiodesk.Trinity
 {
-    [EditorBrowsable(EditorBrowsableState.Never)]
+    /// <summary>
+    /// This class can be used to load or update ontologies in stores. It provides convinence methods to load directly from the ontologies.config file.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]   
     public class StoreUpdater
     {
         #region Fields
@@ -45,6 +48,11 @@ namespace Semiodesk.Trinity
 
         #region Constructors
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="store">The store you want to update.</param>
+        /// <param name="sourceDir">A directory used as base path.</param>
         public StoreUpdater(IStore store, DirectoryInfo sourceDir)
         {
             _sourceDirectory = sourceDir;
@@ -55,43 +63,56 @@ namespace Semiodesk.Trinity
         #endregion
 
         #region Methods
-
-        public void UpdateOntologies(IEnumerable<Semiodesk.Trinity.Configuration.Ontology> ontologies)
+        /// <summary>
+        /// This method loads the given ontologies into the provided store. 
+        /// A model will be created for each ontology. If it already exists, it wil be replaced.
+        /// </summary>
+        /// <param name="ontologies">A collection of ontologies to be loaded.</param>
+        public void UpdateOntologies(IEnumerable<Semiodesk.Trinity.Configuration.IOntologyConfiguration> ontologies)
         {
-            foreach (Semiodesk.Trinity.Configuration.Ontology onto in ontologies)
+            foreach (var onto in ontologies)
             {
-                Uri path = GetPathFromSource(onto.FileSource);
+                if (!string.IsNullOrEmpty(onto.Location))
+                {
+                    Uri path = GetPathFromLocation(onto.Location);
 
-                RdfSerializationFormat format = GetSerializationFormatFromUri(path);
+                    RdfSerializationFormat format = GetSerializationFormatFromUri(path);
 
-                _store.Read(onto.Uri, path, format, false);
+                    _store.Read(onto.Uri, path, format, false);
+                }
+                else
+                {
+                    throw new ArgumentException(string.Format("The file for the ontology {0} ({1}) could not be found. Please check the configuration file.", onto.Prefix, onto.Uri));
+                }
             }
         }
 
+        protected Uri GetPathFromLocation(string location)
+        {
+            Uri result = null;
+
+            if (Path.IsPathRooted(location))
+            {
+                result = new Uri(location);
+            }
+            else
+            {
+                string fullPath = Path.Combine(_sourceDirectory.FullName, location);
+                result = new Uri(fullPath);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// This method can be used to load storage specific configuration.
+        /// </summary>
+        /// <param name="storageSpecific"></param>
         public void UpdateStorageSpecifics(IStoreSpecific storageSpecific)
         {
             storageSpecific.Update(_store);
         }
 
-        protected Uri GetPathFromSource(FileSource source)
-        {
-            Uri result = null;
-            if (source != null && source is FileSource)
-            {
-                string sourcePath = (source as FileSource).Location;
-
-                if (Path.IsPathRooted(sourcePath))
-                {
-                    result = new Uri(sourcePath);
-                }
-                else
-                {
-                    string fullPath = Path.Combine(_sourceDirectory.FullName, sourcePath);
-                    result = new Uri(fullPath);
-                }
-            }
-            return result;
-        }
 
         private RdfSerializationFormat GetSerializationFormatFromUri(Uri uri)
         {

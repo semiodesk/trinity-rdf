@@ -124,7 +124,6 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="queryString">The SPARQL query string.</param>
         /// <param name="declarePrefixes">Set to <c>true</c> if the namespace prefixes used in the query should be declared.</param>
-        /// <param name="compactQuery">Set to <c>true</c> if formatting characters should be removed from the query to increase processing speed.</param>
         public SparqlQuery(string queryString, bool declarePrefixes = true)
         {
             using (TextReader reader = new StringReader(queryString))
@@ -208,7 +207,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Adds a LIMIT &lt;int&gt; clause to the query in order to restrict it to put an upper bound on the number of solutions returned. 
         /// </summary>
-        /// <param name="model">The number of return values.</param>
+        /// <param name="limit">The number of return values.</param>
         internal void SetLimit(int limit)
         {
             _preprocessor.SetLimit(limit);
@@ -217,7 +216,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Adds an Offset &lt;int&gt; clause to the query which causes the solutions generated to start after the specified number of solutions. 
         /// </summary>
-        /// <param name="model">The number of return values.</param>
+        /// <param name="offset">The number of entries to skip.</param>
         internal void SetOffset(int offset)
         {
             _preprocessor.SetOffset(offset);

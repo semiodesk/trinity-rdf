@@ -41,7 +41,7 @@ using TrinitySettings = Semiodesk.Trinity.Configuration.TrinitySettings;
 
 namespace Semiodesk.Trinity.Store
 {
-    public class dotNetRDFStore : IStore
+    public class dotNetRDFStore : StoreBase
     {
         #region Members
 
@@ -55,10 +55,15 @@ namespace Semiodesk.Trinity.Store
 
         RdfsReasoner _reasoner;
 
+
         #endregion
 
         #region Constructors
 
+        /// <summary>
+        /// Creates a new dotNetRDFStore.
+        /// </summary>
+        /// <param name="schema">A list of ontology file paths relative to this assembly. The store will be populated with these ontologies.</param>
         public dotNetRDFStore(string[] schemes)
         {
             _store = new TripleStore();
@@ -103,31 +108,49 @@ namespace Semiodesk.Trinity.Store
             return graph;
         }
 
-        #region IStore implementation
-
-        public IModel CreateModel(Uri uri)
+        /// <summary>
+        /// Removes model from the store.
+        /// </summary>
+        /// <param name="uri">Uri of the model which is to be removed.</param>
+        public override void RemoveModel(Uri uri)
         {
-            return new Model(this, new UriRef(uri));
+            if (_store.HasGraph(uri))
+                _store.Remove(uri);
         }
 
-        public bool ContainsModel(IModel model)
-        {
-            return ContainsModel(model.Uri);
-        }
-
-        public bool ContainsModel(Uri uri)
+        /// <summary>
+        /// Query if the model exists in the store.
+        /// OBSOLETE: This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()
+        /// </summary>
+        /// <param name="uri">Uri of the model which is to be queried.</param>
+        /// <returns></returns>
+        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
+#pragma warning disable CS0809 // Obsolete member overrides non-obsolete member
+        public override bool ContainsModel(Uri uri)
+#pragma warning restore CS0809 // Obsolete member overrides non-obsolete member
         {
             return _store.HasGraph(uri);
         }
 
-        public void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
+        /// <summary>
+        /// Executes a query on the store which does not expect a result.
+        /// </summary>
+        /// <param name="query">The update query</param>
+        /// <param name="transaction">An associated transaction</param>
+        public override void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
         {
             SparqlUpdateCommandSet cmds = _parser.ParseFromString(query.ToString());
 
             _updateProcessor.ProcessCommandSet(cmds);
         }
 
-        public ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
+        /// <summary>
+        /// Executes a SparqlQuery on the store.
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="transaction"></param>
+        /// <returns></returns>
+        public override ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
             if (query.IsInferenceEnabled && _reasoner != null)
             {
@@ -137,8 +160,7 @@ namespace Semiodesk.Trinity.Store
             {
                 _store.ClearInferenceEngines();
             }
-
-            object results = _store.ExecuteQuery(query.ToString());
+            object results = ExecuteQuery(query.ToString());
 
             if (results is IGraph)
             {
@@ -152,6 +174,11 @@ namespace Semiodesk.Trinity.Store
             return null;
         }
 
+        /// <summary>
+        /// This method queries the dotNetRdf store directly.
+        /// </summary>
+        /// <param name="query"></param>
+        /// <returns></returns>
         public object ExecuteQuery(string query)
         {
             SparqlQueryParser parser = new SparqlQueryParser();
@@ -161,17 +188,30 @@ namespace Semiodesk.Trinity.Store
             return _queryProcessor.ProcessQuery(q);
         }
 
-        public IModel GetModel(Uri uri)
+        /// <summary>
+        /// Gets a handle to a model in the store.
+        /// </summary>
+        /// <param name="uri">Uri of the model.</param>
+        /// <returns></returns>
+        public override IModel GetModel(Uri uri)
         {
             return new Model(this, uri.ToUriRef());
         }
 
-        public bool IsReady
+        /// <summary>
+        /// Indicates if the store is ready to be queried.
+        /// </summary>
+        public override bool IsReady
         {
-            get { return true; }
-        }
+            get;
+            protected set;
+        } = true;
 
-        public IEnumerable<IModel> ListModels()
+        /// <summary>
+        /// Lists all models in the store.
+        /// </summary>
+        /// <returns>All handles to existing models.</returns>
+        public override IEnumerable<IModel> ListModels()
         {
             foreach (var graph in _store.Graphs)
             {
@@ -181,6 +221,7 @@ namespace Semiodesk.Trinity.Store
                 }
             }
         }
+
 
         public static IRdfReader GetReader(RdfSerializationFormat format)
         {
@@ -220,8 +261,15 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-
-        public Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
+        /// <summary>
+        /// Loads a serialized graph from the given stream into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="stream">Stream containing a serialized graph</param>
+        /// <param name="graphUri">Uri of the graph in this store</param>
+        /// <param name="format">Allowed formats</param>
+        /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
+        /// <returns></returns>
+        public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
         {
             IRdfReader parser = GetReader(format);
             TextReader reader = new StreamReader(stream);
@@ -242,7 +290,15 @@ namespace Semiodesk.Trinity.Store
             return graphUri;
         }
 
-        public Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update)
+        /// <summary>
+        /// Loads a serialized graph from the given location into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="graphUri">Uri of the graph in this store</param>
+        /// <param name="url">Location</param>
+        /// <param name="format">Allowed formats</param>
+        /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
+        /// <returns></returns>
+        public override Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update)
         {
             IGraph graph = null;
 
@@ -308,20 +364,14 @@ namespace Semiodesk.Trinity.Store
             return null;
         }
 
-        public void RemoveModel(IModel model)
-        {
-            RemoveModel(model.Uri);
-        }
-
-        public void RemoveModel(Uri uri)
-        {
-            if (_store.HasGraph(uri))
-            {
-                _store.Remove(uri);
-            }
-        }
-
-        public void Write(Stream stream, Uri graphUri, RdfSerializationFormat format)
+        /// <summary>
+        /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="stream">Stream to which the content should be written.</param>
+        /// <param name="graphUri">Uri fo the graph in this store</param>
+        /// <param name="format">Allowed formats</param>
+        /// <returns></returns>
+        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format)
         {
             if (_store.HasGraph(graphUri))
             {
@@ -334,12 +384,22 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-        public ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="isolationLevel"></param>
+        /// <returns></returns>
+        public override ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
             return null;
         }
 
-        public IModelGroup CreateModelGroup(params Uri[] models)
+        /// <summary>
+        /// Creates a model group which allows for queries to be made on multiple models at once.
+        /// </summary>
+        /// <param name="models"></param>
+        /// <returns></returns>
+        public override IModelGroup CreateModelGroup(params Uri[] models)
         {
             List<IModel> modelList = new List<IModel>();
 
@@ -351,6 +411,11 @@ namespace Semiodesk.Trinity.Store
             return new ModelGroup(this, modelList);
         }
 
+        /// <summary>
+        /// Creates a model group which allows for queries to be made on multiple models at once.
+        /// </summary>
+        /// <param name="models"></param>
+        /// <returns></returns>
         public IModelGroup CreateModelGroup(params IModel[] models)
         {
             List<IModel> modelList = new List<IModel>();
@@ -364,54 +429,21 @@ namespace Semiodesk.Trinity.Store
             return new ModelGroup(this, modelList);
         }
 
-        public void Dispose()
+        /// <summary>
+        /// Closes the store. It is not usable after this call.
+        /// </summary>
+        public override void Dispose()
         {
+            this.IsReady = false;
             _updateProcessor.Discard();
             _store.Dispose();
         }
 
-        public void LoadOntologySettings(string configPath = null, string sourceDir = "")
-        {
-            TrinitySettings settings;
 
-            if (!string.IsNullOrEmpty(configPath) && File.Exists(configPath))
-            {
-                ExeConfigurationFileMap configMap = new ExeConfigurationFileMap();
 
-                configMap.ExeConfigFilename = configPath;
 
-                var configuration = ConfigurationManager.OpenMappedExeConfiguration(configMap, ConfigurationUserLevel.None);
 
-                try
-                {
-                    settings = configuration.GetSection("TrinitySettings") as TrinitySettings;
-                }
-                catch (Exception e)
-                {
-                    throw new Exception(string.Format("Could not read config file from {0}. Reason: {1}", configPath, e.Message));
-                }
-            }
-            else
-            {
-                settings = ConfigurationManager.GetSection("TrinitySettings") as TrinitySettings;
-            }
 
-            DirectoryInfo d;
-
-            if (string.IsNullOrEmpty(sourceDir))
-            {
-                d = new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
-            }
-            else
-            {
-                d = new DirectoryInfo(sourceDir);
-            }
-
-            StoreUpdater updater = new StoreUpdater(this, d);
-            updater.UpdateOntologies(settings.Ontologies);
-        }
-
-        #endregion
         #endregion
     }
 }

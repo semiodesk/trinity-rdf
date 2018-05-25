@@ -32,13 +32,15 @@ using System.Text;
 
 namespace Semiodesk.Trinity
 {
-    #if !NET_3_5
+
     /// <summary>
     /// The model group can be used to query over multiple models at once.
     /// </summary>
-    public interface IModelGroup : IModel, ISet<IModel>
+    public interface IModelGroup : IModel,
+    #if !NET35
+        ISet<IModel>
     #else
-    public interface IModelGroup : IModel, ICollection<IModel>
+        ICollection<IModel>
     #endif
     {
         /// <summary>

@@ -32,7 +32,7 @@ using System.Text;
 
 namespace Semiodesk.Trinity
 {
-    class ResourceLockedException : Exception
+    public class ResourceLockedException : Exception
     {
         #region Constructor
 

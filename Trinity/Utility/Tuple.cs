@@ -31,17 +31,49 @@ using System.Text;
 
 namespace Semiodesk.Trinity.Utility
 {
-    #if NET_3_5
+    #if NET35
+
+    /// <summary>
+    /// A tuple is a finite sequence of elements.
+    /// 
+    /// This implementation is necessary because Net35 doesn't supply one.
+    /// </summary>
+    /// <typeparam name="T1">Type of the first item.</typeparam>
+    /// <typeparam name="T2">Type of the second item.</typeparam>
     public class Tuple<T1, T2>
     {
+        #region Members
+        /// <summary>
+        /// The first item in the sequence.
+        /// </summary>
         public T1 Item1 { get; private set; }
+
+        /// <summary>
+        /// The second item in the sequence.
+        /// </summary>
         public T2 Item2 { get; private set; }
+        #endregion
+
+        #region Constructor
+        /// <summary>
+        /// The constructor, takes the items as parameters.
+        /// </summary>
+        /// <param name="item1">The first item</param>
+        /// <param name="item2">The second item</param>
         public Tuple(T1 item1, T2 item2)
         {
             Item1 = item1;
             Item2 = item2;
         }
+        #endregion
 
+        #region Methods
+
+        /// <summary>
+        /// Compares two tuples by comparing its items.
+        /// </summary>
+        /// <param name="obj">Another tuple</param>
+        /// <returns></returns>
         public override bool Equals(object obj)
         {
             if (obj is Tuple<T1, T2>)
@@ -52,24 +84,66 @@ namespace Semiodesk.Trinity.Utility
             return false;
         }
 
+        /// <summary>
+        /// The hashcode of the tuple is the combined hashcode of the items.
+        /// </summary>
+        /// <returns></returns>
         public override int GetHashCode()
         {
             return this.Item1.GetHashCode() & this.Item2.GetHashCode();
         }
+
+        #endregion
     }
 
+    /// <summary>
+    /// A tuple is a finite sequence of elements.
+    /// 
+    /// This implementation is necessary because Net35 doesn't supply one.
+    /// </summary>
+    /// <typeparam name="T1">Type of the first item.</typeparam>
+    /// <typeparam name="T2">Type of the second item.</typeparam>
+    /// <typeparam name="T3">Type of the third item.</typeparam>
     public class Tuple<T1, T2, T3>
     {
+        #region Members
+        /// <summary>
+        /// The first item in the sequence.
+        /// </summary>
         public T1 Item1 { get; private set; }
+
+        /// <summary>
+        /// The second item in the sequence.
+        /// </summary>
         public T2 Item2 { get; private set; }
+
+        /// <summary>
+        /// The third item in the sequence.
+        /// </summary>
         public T3 Item3 { get; private set; }
+        #endregion
+
+        #region Constructor
+        /// <summary>
+        /// The constructor, takes the items as parameters.
+        /// </summary>
+        /// <param name="item1">The first item</param>
+        /// <param name="item2">The second item</param>
+        /// <param name="item3">The third item</param>
         public Tuple(T1 item1, T2 item2, T3 item3)
         {
             Item1 = item1;
             Item2 = item2;
             Item3 = item3;
         }
+        #endregion
 
+        #region Methods
+        /// <summary>
+        /// Compares two tuples by comparing its items.
+        /// </summary>
+        /// <param name="obj">Another tuple</param>
+        /// <returns></returns>
         public override bool Equals(object obj)
         {
             if (obj is Tuple<T1, T2, T3>)
@@ -80,18 +154,58 @@ namespace Semiodesk.Trinity.Utility
             return false;
         }
 
+        /// <summary>
+        /// The hashcode of the tuple is the combined hashcode of the items.
+        /// </summary>
+        /// <returns></returns>
         public override int GetHashCode()
         {
             return this.Item1.GetHashCode() & this.Item2.GetHashCode() & this.Item3.GetHashCode();
         }
+        #endregion
     }
 
+    /// <summary>
+    /// A tuple is a finite sequence of elements.
+    /// 
+    /// This implementation is necessary because Net35 doesn't supply one.
+    /// </summary>
+    /// <typeparam name="T1">Type of the first item.</typeparam>
+    /// <typeparam name="T2">Type of the second item.</typeparam>
+    /// <typeparam name="T3">Type of the third item.</typeparam>
+    /// <typeparam name="T4">Type of the fourth item.</typeparam>
     public class Tuple<T1, T2, T3, T4>
     {
+        #region Members
+        /// <summary>
+        /// The first item in the sequence.
+        /// </summary>
         public T1 Item1 { get; private set; }
+
+        /// <summary>
+        /// The second item in the sequence.
+        /// </summary>
         public T2 Item2 { get; private set; }
+
+        /// <summary>
+        /// The third item in the sequence.
+        /// </summary>
         public T3 Item3 { get; private set; }
+
+        /// <summary>
+        /// The foruth item in the sequence.
+        /// </summary>
         public T4 Item4 { get; private set; }
+        #endregion
+
+        #region Constructor
+        /// <summary>
+        /// The constructor, takes the items as parameters.
+        /// </summary>
+        /// <param name="item1">The first item</param>
+        /// <param name="item2">The second item</param>
+        /// <param name="item3">The third item</param>
+        /// <param name="item4">The fourth item</param>
         public Tuple(T1 item1, T2 item2, T3 item3, T4 item4)
         {
             Item1 = item1;
@@ -99,7 +213,14 @@ namespace Semiodesk.Trinity.Utility
             Item3 = item3;
             Item4 = item4;
         }
+        #endregion
 
+        #region Methods
+        /// <summary>
+        /// Compares two tuples by comparing its items.
+        /// </summary>
+        /// <param name="obj">Another tuple</param>
+        /// <returns></returns>
         public override bool Equals(object obj)
         {
             if (obj is Tuple<T1, T2, T3, T4>)
@@ -110,10 +231,15 @@ namespace Semiodesk.Trinity.Utility
             return false;
         }
 
+        /// <summary>
+        /// The hashcode of the tuple is the combined hashcode of the items.
+        /// </summary>
+        /// <returns></returns>
         public override int GetHashCode()
         {
             return this.Item1.GetHashCode() & this.Item2.GetHashCode() & this.Item3.GetHashCode() & this.Item4.GetHashCode();
         }
+        #endregion
     }
     #endif
 }

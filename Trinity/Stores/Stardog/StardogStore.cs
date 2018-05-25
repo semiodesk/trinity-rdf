@@ -38,7 +38,7 @@ using TrinitySettings = Semiodesk.Trinity.Configuration.TrinitySettings;
 
 namespace Semiodesk.Trinity.Store.Stardog
 {
-    class StardogStore : IStore
+    class StardogStore : StoreBase
     {
         #region Members
 
@@ -60,17 +60,12 @@ namespace Semiodesk.Trinity.Store.Stardog
 
         #region Methods
 
-        public IModel CreateModel(Uri uri)
+        public override IModel CreateModel(Uri uri)
         {
             return new Model(this, new UriRef(uri));
         }
 
-        public bool ContainsModel(IModel model)
-        {
-            return ContainsModel(model.Uri);
-        }
-
-        public bool ContainsModel(Uri uri)
+        public override bool ContainsModel(Uri uri)
         {
             string query = string.Format("ASK {{ GRAPH <{0}> {{ ?s ?p ?o . }} }}", uri.AbsoluteUri);
 
@@ -80,7 +75,7 @@ namespace Semiodesk.Trinity.Store.Stardog
             }
         }
 
-        public void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
+        public override void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
         {
             if (!_connector.UpdateSupported)
             {
@@ -99,7 +94,7 @@ namespace Semiodesk.Trinity.Store.Stardog
             return resultHandler;
         }
 
-        public ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
+        public override ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
             bool reasoning = query.IsInferenceEnabled;
 
@@ -119,7 +114,7 @@ namespace Semiodesk.Trinity.Store.Stardog
             get { return true; }
         }
 
-        public IEnumerable<IModel> ListModels()
+        public override IEnumerable<IModel> ListModels()
         {
             ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } }");
 
@@ -185,22 +180,17 @@ namespace Semiodesk.Trinity.Store.Stardog
             }
         }
 
-        public Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
+        public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
         {
             throw new NotImplementedException();
         }
 
-        public Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update)
+        public override Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update)
         {
             throw new NotImplementedException();
         }
 
-        public void RemoveModel(IModel model)
-        {
-            RemoveModel(model.Uri);
-        }
-
-        public void RemoveModel(Uri uri)
+        public override void RemoveModel(Uri uri)
         {
             try
             {
@@ -212,12 +202,12 @@ namespace Semiodesk.Trinity.Store.Stardog
             }
         }
 
-        public void Write(Stream stream, Uri graphUri, RdfSerializationFormat format)
+        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format)
         {
             throw new NotImplementedException();
         }
 
-        public ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
+        public override ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
             throw new NotImplementedException();
         }
@@ -247,51 +237,16 @@ namespace Semiodesk.Trinity.Store.Stardog
             return new ModelGroup(this, modelList);
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             _connector.Dispose();
         }
 
-        public void LoadOntologySettings(string configPath = null, string sourceDir = "")
-        {
-            TrinitySettings settings;
 
-            if (!string.IsNullOrEmpty(configPath) && File.Exists(configPath))
-            {
-                ExeConfigurationFileMap configMap = new ExeConfigurationFileMap();
 
-                configMap.ExeConfigFilename = configPath;
+        
 
-                var configuration = ConfigurationManager.OpenMappedExeConfiguration(configMap, ConfigurationUserLevel.None);
 
-                try
-                {
-                    settings = (TrinitySettings)configuration.GetSection("TrinitySettings");
-                }
-                catch (Exception e)
-                {
-                    throw new Exception(string.Format("Could not read config file from {0}. Reason: {1}", configPath, e.Message));
-                }
-            }
-            else
-            {
-                settings = (TrinitySettings)ConfigurationManager.GetSection("TrinitySettings");
-            }
-
-            DirectoryInfo srcDir;
-
-            if (string.IsNullOrEmpty(sourceDir))
-            {
-                srcDir = new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
-            }
-            else
-            {
-                srcDir = new DirectoryInfo(sourceDir);
-            }
-
-            StoreUpdater updater = new StoreUpdater(this, srcDir);
-            updater.UpdateOntologies(settings.Ontologies);
-        }
 
         #endregion
     }

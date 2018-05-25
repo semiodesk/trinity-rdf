@@ -114,11 +114,12 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Creates a new resource in the model and its backing RDF store. Provides a resource object of the given type.
         /// </summary>
+        /// <param name="type">The concrete type of the resource. This must be a subclass of resource.</param>
         /// <param name="format">The format of the resulting uri.</param>
         /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
-        object CreateResource(Type t, string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null);
+        object CreateResource(Type type, string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null);
 
         /// <summary>
         /// Creates a new resource in the model and its backing RDF store. Provides a resource object of the given type.
@@ -136,6 +137,7 @@ namespace Semiodesk.Trinity
         /// that the given resource and its stored represenation have identical properties.
         /// </summary>
         /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <param name="transaction">The transaction associated with this action.</param>
         void DeleteResource(Uri uri, ITransaction transaction = null);
 
         /// <summary>
@@ -158,6 +160,7 @@ namespace Semiodesk.Trinity
         /// Indicates wheter a given resource is part of the model.
         /// </summary>
         /// <param name="resource">Resource that should be looked up in the model.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>True if the resource is part of the model, False if not.</returns>
         bool ContainsResource(IResource resource, ITransaction transaction = null);
 

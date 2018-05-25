@@ -32,7 +32,7 @@ using System.Text;
 
 namespace Semiodesk.Trinity.Collections
 {
-#if !NET_3_5
+#if !NET35
     /// <summary>
     /// An generic asynchrous virtualizing collection for resource queries.
     /// </summary>

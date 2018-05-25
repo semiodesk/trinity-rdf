@@ -39,6 +39,9 @@ namespace Semiodesk.Trinity
     {
         #region Properties
 
+        /// <summary>
+        /// Indicates if the store is ready to be queried.
+        /// </summary>
         bool IsReady { get; }
 
         #endregion
@@ -66,20 +69,20 @@ namespace Semiodesk.Trinity
 
         /// <summary>
         /// Query if the model exists in the store.
-        /// OBSOLETE: This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()
+        /// OBSOLETE: This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty
         /// </summary>
         /// <param name="uri">Uri of the model which is to be queried.</param>
         /// <returns></returns>
-        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
+        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty")]
         bool ContainsModel(Uri uri);
 
         /// <summary>
         /// Query if the model exists in the store.
-        /// OBSOLETE: This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()
+        /// OBSOLETE: This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty
         /// </summary>
-        /// <param name="uri">Handle to the model which is to be queried.</param>
+        /// <param name="model">Handle to the model which is to be queried.</param>
         /// <returns></returns>
-        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
+        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty")]
         bool ContainsModel(IModel model);
 
         /// <summary>
@@ -106,7 +109,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Executes a query on the store which does not expect a result.
         /// </summary>
-        /// <param name="queryString"></param>
+        /// <param name="update"></param>
         /// <param name="transaction"></param>
         void ExecuteNonQuery(SparqlUpdate update, ITransaction transaction = null);
 
@@ -137,6 +140,7 @@ namespace Semiodesk.Trinity
         /// <param name="graphUri">Uri of the graph in this store</param>
         /// <param name="url">Location</param>
         /// <param name="format">Allowed formats</param>
+        /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
         /// <returns></returns>
         Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update);
 
@@ -146,22 +150,36 @@ namespace Semiodesk.Trinity
         /// <param name="stream">Stream containing a serialized graph</param>
         /// <param name="graphUri">Uri of the graph in this store</param>
         /// <param name="format">Allowed formats</param>
+        /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
         /// <returns></returns>
         Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update);
 
         /// <summary>
         /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.
         /// </summary>
-        /// <param name="graphUri">Uri of the graph in this store</param>
-        /// <param name="url">Location</param>
+        /// <param name="fs">Stream to which the content should be written.</param>
+        /// <param name="graphUri">Uri fo the graph in this store</param>
         /// <param name="format">Allowed formats</param>
         /// <returns></returns>
         void Write(Stream fs, Uri graphUri, RdfSerializationFormat format);
 
         /// <summary>
-        /// Loads Ontologies defined in the currently loaded config file into the store.
+        /// Initializes the store from the configuration. It uses either the provided file or attempts to load from "ontologies.config" located next to the executing assembly.
+        /// For legacy reasons it also looks in the app.config file.
+        /// If the ontology files are in a different path, this can be supplied as a base path..
         /// </summary>
-        /// <param name="sourceDir"></param>
+        /// <param name="configPath">Path the configuration should be read from.</param>
+        /// <param name="sourceDir">Path where the ontologies should be searched for.</param>
+        void InitializeFromConfiguration(string configPath = null, string sourceDir = null);
+
+        /// <summary>
+        /// Initializes the store from the configuration. It uses either the provided file or attempts to load from "ontologies.config" located next to the executing assembly.
+        /// For legacy reasons it also looks in the app.config file.
+        /// If the ontology files are in a different path, this can be supplied as a base path..
+        /// </summary>
+        /// <param name="configPath">Load a specific configuration file.</param>
+        /// <param name="sourceDir">If given, this function tries to load the ontologies from this folder.</param>
+        [Obsolete("This method will be removed in the future. Use InitializeFromConfiguration() instead.")]
         void LoadOntologySettings(string configPath = null, string sourceDir = null);
 
         #endregion

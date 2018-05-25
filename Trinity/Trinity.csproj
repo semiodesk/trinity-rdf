@@ -1,208 +1,127 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{0D10D2AD-CA61-46E3-88C8-0AB8318647BA}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Semiodesk.Trinity</RootNamespace>
-    <AssemblyName>Semiodesk.Trinity</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile>
-    </TargetFrameworkProfile>
-    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
-    <RestorePackages>true</RestorePackages>
+    <TargetFrameworks>netstandard2.0;net40;net35</TargetFrameworks>
+	<Title>Semiodesk.Trinity</Title>
+	<Copyright>Copyright © Semiodesk GmbH 2018</Copyright>
+	<Description>This library is an enterprise ready platform for developing knowlege-based applications. Trinity offers superior modelling and querying flexibility combined with extreme scalability when compared with traditional ORM solutions. Supporting the powerful RDF metadata standard Trinity offers a sustainable foundation for your desktop, mobile or web applications.</Description>
+	<Company>Semiodesk GmbH</Company>
+	<Version>1.0.0.0</Version>
+	<AssemblyVersion>1.0.0.0</AssemblyVersion>
+	<FileVersion>1.0.0.0</FileVersion>
+	<AssemblyName>Semiodesk.Trinity</AssemblyName>
+	<RootNamespace>Semiodesk.Trinity</RootNamespace>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>..\Build\Net40\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <GenerateSerializationAssemblies>On</GenerateSerializationAssemblies>
+
+  <PropertyGroup>
+    <OutputPath>..\Build\$(Configuration)\</OutputPath>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>..\Build\Net40\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <DocumentationFile>..\Build\Net40\Release\Semiodesk.Trinity.XML</DocumentationFile>
+
+  <PropertyGroup>
+    <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
+
+
+  <PropertyGroup>
+    <DocumentationFile>..\Build\$(Configuration)\$(TargetFramework)\Semiodesk.Trinity.xml</DocumentationFile>
+    <NeutralLanguage>en-001</NeutralLanguage>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <PackageId>Semiodesk.Trinity</PackageId>
+    <Authors>Semiodesk GmbH</Authors>
+    <Product>Semiodesk.Trinity</Product>
+    <PackageTags>RDF SPARQL Database Semantic Object Mapping Linked Data</PackageTags>
+    <PackageLicenseUrl>https://bitbucket.org/semiodesk/trinity/wiki/License</PackageLicenseUrl>
+    <PackageProjectUrl>https://bitbucket.org/semiodesk/trinity</PackageProjectUrl>
+    <PackageIconUrl>http://static.semiodesk.com/images/trinity_logo.png</PackageIconUrl>
+    <RepositoryUrl>https://bitbucket.org/semiodesk/trinity</RepositoryUrl>
+    <RepositoryType></RepositoryType>
+  </PropertyGroup>
+
+ 
+  <!--  THIS SECTION CONTAINS THE PACKAGING INSTRUCTIONS FOR CILGENERATOR & ONTOLOGYGENERATOR -->
+  <PropertyGroup>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);CustomContentTarget</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <Target Name="CustomContentTarget">
+    <ItemGroup>
+      <!-- Here is the build folder with the .target files -->
+      <TfmSpecificPackageFile Include="$(OutputPath)\Targets\*" Condition="'$(TargetFramework)'=='net40'">
+        <PackagePath>build</PackagePath>
+      </TfmSpecificPackageFile>
+
+      <!-- Here is the tools folder -->
+      <TfmSpecificPackageFile Include="$(OutputPath)\../tools\*" Condition="'$(TargetFramework)'=='net40'">
+        <PackagePath>tools</PackagePath>
+      </TfmSpecificPackageFile>
+
+      <TfmSpecificPackageFile Include="$(OutputPath)\dotNetRDF.dll" Condition="'$(TargetFramework)'=='net35'">
+        <PackagePath>lib/net35</PackagePath>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target>
+  <!-- END SECTION PACKAGING -->
+
+
   <ItemGroup>
-    <Reference Include="dotNetRDF, Version=1.0.9.3683, Culture=neutral, PublicKeyToken=6055ffe4c97cc780, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\Net40\dotNetRDF.dll</HintPath>
-    </Reference>
-    <Reference Include="dotNetRDF.Data.Virtuoso, Version=1.0.10.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\Net40\dotNetRDF.Data.Virtuoso.dll</HintPath>
-    </Reference>
-    <Reference Include="HtmlAgilityPack, Version=1.4.9.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\Net40\HtmlAgilityPack.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\Net40\packages\Newtonsoft.Json.9.0.1\lib\net40\Newtonsoft.Json.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="OpenLink.Data.Virtuoso, Version=6.2.3128.1, Culture=neutral, PublicKeyToken=6654f6917d07cb95, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\OpenLink.Data.Virtuoso.dll</HintPath>
-    </Reference>
-    <Reference Include="Remotion.Linq, Version=2.2.0.0, Culture=neutral, PublicKeyToken=fee00910d6e5f53b, processorArchitecture=MSIL">
-      <HintPath>..\Net40\packages\Remotion.Linq.2.2.0\lib\net40\Remotion.Linq.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
+	<Compile Remove="Properties\AssemblyVersion.cs" />
+    <Compile Remove="Net35\**" />
+    <Compile Remove="Stores\Virtuoso\**" />
+    <EmbeddedResource Remove="Net35\**" />
+    <EmbeddedResource Remove="Stores\Virtuoso\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Stores\FusekiQueryResult.cs" />
+    <Compile Remove="Stores\FusekiStore.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="app.config" />
+    <None Remove="packages.config" />
+    <None Remove="Stores\IStorageSpecific.cs.orig" />
+    <None Remove="Stores\StoreUpdater.cs.orig" />
+    <None Remove="Trinity.csproj.orig" />
+    <None Remove="Trinity.v12.suo" />
+  </ItemGroup>
+
+  <!-- ALL TARGETS -->
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+	 <PackageReference Include="Remotion.Linq" Version="2.2.0" />
+  </ItemGroup>
+
+  <!-- ALL TARGETS NEWER THAN NET35  -->
+  <ItemGroup Condition="'$(TargetFramework)'!='net35'">
+    <PackageReference Include="dotNetRDF" Version="2.1.0-pre0001" />
+  </ItemGroup>
+
+  <!-- ONLY NETSTANDARD2.0 -->
+  <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
+	  <PackageReference Include="System.Composition" Version="1.1.0" />
+  </ItemGroup>
+
+  <!-- ONLY NET4.0 -->
+  <ItemGroup Condition="'$(TargetFramework)'=='net40'">
     <Reference Include="System.ComponentModel.Composition" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
+  </ItemGroup>
+
+  <!-- ONLY NET3.5 -->
+  <ItemGroup Condition="'$(TargetFramework)'=='net35'">
     <Reference Include="System.Configuration" />
-    <Reference Include="VDS.Common, Version=1.6.0.0, Culture=neutral, PublicKeyToken=ab5f4eb908061bf0, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\Net40\VDS.Common.dll</HintPath>
+    <Reference Include="dotNetRDF">
+      <HintPath>..\Dependencies\Net35\dotNetRDF.dll</HintPath>
     </Reference>
+    <PackageReference Include="HtmlAgilityPack" Version="1.6.5" />
+    <PackageReference Include="VDS.Common" Version="1.8.0" />
   </ItemGroup>
+  
   <ItemGroup>
-    <Compile Include="Attributes\NotifyPropertyChangedAttribute.cs" />
-    <Compile Include="Attributes\RdfClassAttribute.cs" />
-    <Compile Include="Attributes\RdfNamespaceAttribute.cs" />
-    <Compile Include="Attributes\RdfPropertyAttribute.cs" />
-    <Compile Include="Collections\AsyncVirtualizingCollection.cs" />
-    <Compile Include="Collections\AsyncVirtualizingResourceCollection.cs" />
-    <Compile Include="Collections\AsyncVirtualizingSparqlCollection.cs" />
-    <Compile Include="Collections\SparqlQueryItemsProvider.cs" />
-    <Compile Include="Collections\VirtualizingSparqlCollection.cs" />
-    <Compile Include="Collections\IItemsProvider.cs" />
-    <Compile Include="Collections\ResourceQueryItemsProvider.cs" />
-    <Compile Include="Collections\VirtualizingResourceCollection.cs" />
-    <Compile Include="Collections\VirtualizingCollection.cs" />
-    <Compile Include="Configuration\FileSource.cs" />
-    <Compile Include="Configuration\Graph.cs" />
-    <Compile Include="Configuration\GraphCollection.cs" />
-    <Compile Include="Configuration\Ontology.cs" />
-    <Compile Include="Configuration\OntologyCollection.cs" />
-    <Compile Include="Configuration\RuleSet.cs" />
-    <Compile Include="Configuration\RuleSetCollection.cs" />
-    <Compile Include="Configuration\TrinitySettings.cs" />
-    <Compile Include="Configuration\VirtuosoStoreSettings.cs" />
-    <Compile Include="Exceptions.cs" />
-    <Compile Include="IPropertyMapping.cs" />
-    <Compile Include="Query\IResourceQueryResult.cs" />
-    <Compile Include="ITransactional.cs" />
-    <Compile Include="Model\IModelGroup.cs" />
-    <Compile Include="Model\ModelGroup.cs" />
-    <Compile Include="Model\RdfSerializationFormat.cs" />
-    <Compile Include="Query\BindingSet.cs" />
-    <Compile Include="Class.cs" />
-    <Compile Include="Model\IModel.cs" />
-    <Compile Include="Query\FilterOperation.cs" />
-    <Compile Include="Query\InvalidQueryException.cs" />
-    <Compile Include="MappingDiscovery.cs" />
-    <Compile Include="Model\Model.cs" />
-    <Compile Include="Model\ModelChangedEventArgs.cs" />
-    <Compile Include="NamespaceManager.cs" />
-    <Compile Include="Ontology.cs" />
-    <Compile Include="OntologyDiscovery.cs" />
-    <Compile Include="Property.cs" />
-    <Compile Include="IResource.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="PropertyMapping.cs" />
-    <Compile Include="PropertyValue.cs" />
-    <Compile Include="Query\ISparqlQuery.cs" />
-    <Compile Include="Query\ISparqlQueryResult.cs" />
-    <Compile Include="Query\Linq\Extensions\AggregateExtensions.cs" />
-    <Compile Include="Query\Linq\Extensions\BinaryExpressionExtensions.cs" />
-    <Compile Include="Query\Linq\Extensions\ConstantExpressionExtensions.cs" />
-    <Compile Include="Query\Linq\Extensions\ExpressionExstensions.cs" />
-    <Compile Include="Query\Linq\ExpressionTreeVisitor.cs" />
-    <Compile Include="Query\Linq\Extensions\MethodCallExpressionExtensions.cs" />
-    <Compile Include="Query\Linq\Extensions\NodeFactoryExtensions.cs" />
-    <Compile Include="Query\Linq\Extensions\QueryModelExtensions.cs" />
-    <Compile Include="Query\Linq\Extensions\ResourceExtensions.cs" />
-    <Compile Include="Query\Linq\Extensions\StringExtensions.cs" />
-    <Compile Include="Query\Linq\ISparqlVariableGenerator.cs" />
-    <Compile Include="Query\Linq\ExpressionTransformer.cs" />
-    <Compile Include="Query\Linq\TypeHelper.cs" />
-    <Compile Include="Query\Linq\ISparqlQueryGenerator.cs" />
-    <Compile Include="Query\Linq\ISparqlQueryGeneratorTree.cs" />
-    <Compile Include="Query\Linq\ISparqlQueryModelVisitor.cs" />
-    <Compile Include="Query\Linq\Extensions\MemberExpressionExtensions.cs" />
-    <Compile Include="Query\Linq\Extensions\MemberInfoExtensions.cs" />
-    <Compile Include="Query\Linq\QueryGenerators\AskQueryGenerator.cs" />
-    <Compile Include="Query\Linq\QueryGenerators\SelectBindingsQueryGenerator.cs" />
-    <Compile Include="Query\Linq\QueryGenerators\SubSelectQueryGenerator.cs" />
-    <Compile Include="Query\Linq\QueryGenerators\SelectQueryGenerator.cs" />
-    <Compile Include="Query\Linq\QueryGenerators\SelectTriplesQueryGenerator.cs" />
-    <Compile Include="Query\Linq\SparqlQueryGeneratorTree.cs" />
-    <Compile Include="Query\Linq\SparqlQueryModelVisitor.cs" />
-    <Compile Include="Query\Linq\SparqlQueryExecutor.cs" />
-    <Compile Include="Query\Linq\SparqlQueryGenerator.cs" />
-    <Compile Include="Query\Linq\Extensions\SparqlVariableExtensions.cs" />
-    <Compile Include="Query\Linq\SparqlVariableGenerator.cs" />
-    <Compile Include="Query\ResourceProvider.cs" />
-    <Compile Include="Query\Linq\SparqlQueryable.cs" />
-    <Compile Include="Query\ResourceQuery.cs" />
-    <Compile Include="Query\ResourceQueryResult.cs" />
-    <Compile Include="Query\SortCriterion.cs" />
-    <Compile Include="Query\SortDirection.cs" />
-    <Compile Include="Query\SparqlPreprocessor.cs" />
-    <Compile Include="Query\SparqlQueryPreprocessor.cs" />
-    <Compile Include="Query\StatementPattern.cs" />
-    <Compile Include="Serialization\JsonResourceConverter.cs" />
-    <Compile Include="Serialization\JsonResourceSerializerSettings.cs" />
-    <Compile Include="Stores\dotNetRDF\ITripleProvider.cs" />
-    <Compile Include="Stores\dotNetRDF\GraphTripleProvider.cs" />
-    <Compile Include="Stores\dotNetRDF\SparqlResultSetTripleProvider.cs" />
-    <Compile Include="Stores\Stardog\StardogQueryResult.cs" />
-    <Compile Include="Stores\Stardog\StardogRdfHandler.cs" />
-    <Compile Include="Stores\Stardog\StardogStore.cs" />
-    <Compile Include="Stores\Stardog\StardogStoreProvider.cs" />
-    <Compile Include="Stores\StoreProvider.cs" />
-    <Compile Include="Stores\StoreFactory.cs" />
-    <Compile Include="Stores\dotNetRDF\dotNetRDFQueryResult.cs" />
-    <Compile Include="Stores\dotNetRDF\dotNetRDFStore.cs" />
-    <Compile Include="Stores\dotNetRDF\dotNetRDFStoreProvider.cs" />
-    <Compile Include="Stores\IStoreSpecific.cs" />
-    <Compile Include="Stores\IStore.cs" />
-    <Compile Include="Stores\ITransaction.cs" />
-    <Compile Include="Stores\StoreUpdater.cs" />
-    <Compile Include="Stores\SparqlEndpoint\SparqlEndpointStoreProvider.cs" />
-    <Compile Include="Stores\SparqlEndpoint\SparqlEndpointQueryResult.cs" />
-    <Compile Include="Stores\SparqlEndpoint\SparqlEndpointStorage.cs" />
-    <Compile Include="Stores\Virtuoso\VirtuosoSpecific.cs" />
-    <Compile Include="Stores\Virtuoso\VirtuosoStoreProvider.cs" />
-    <Compile Include="Stores\Virtuoso\VirtuosoTransaction.cs" />
-    <Compile Include="Resource.cs" />
-    <Compile Include="ResourceCache.cs" />
-    <Compile Include="Query\SparqlQuery.cs" />
-    <Compile Include="Stores\Virtuoso\VirtuosoSparqlQueryResult.cs" />
-    <Compile Include="Query\SparqlSerializer.cs" />
-    <Compile Include="Stores\Virtuoso\VirtuosoStore.cs" />
-    <Compile Include="Query\SparqlUpdate.cs" />
-    <Compile Include="UriRef.cs" />
-    <Compile Include="XsdTypeMapper.cs" />
+    <None Update="Targets\Semiodesk.Trinity.targets">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="app.config" />
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+  
+  
+
 </Project>

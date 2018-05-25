@@ -17,15 +17,17 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\Build\Net40\Debug\</OutputPath>
+    <OutputPath>..\Build\Debug\tools\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <DocumentationFile>
+    </DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>..\Build\Net40\Release\</OutputPath>
+    <OutputPath>..\Build\Release\tools\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -62,7 +64,9 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="Task\GenerateOntologyTask.cs" />
+    <Compile Include="Task\GenerateOntologyTask.cs">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -78,7 +82,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Trinity\Trinity.csproj">
-      <Project>{0D10D2AD-CA61-46E3-88C8-0AB8318647BA}</Project>
+      <Project>{02896aa0-2fc6-4bf3-8f26-48f887dbfc6b}</Project>
       <Name>Trinity</Name>
     </ProjectReference>
   </ItemGroup>
