@@ -130,6 +130,7 @@
     <Compile Include="Query\Linq\Extensions\ResourceExtensions.cs" />
     <Compile Include="Query\Linq\Extensions\StringExtensions.cs" />
     <Compile Include="Query\Linq\ISparqlVariableGenerator.cs" />
+    <Compile Include="Query\Linq\ExpressionTransformer.cs" />
     <Compile Include="Query\Linq\TypeHelper.cs" />
     <Compile Include="Query\Linq\ISparqlQueryGenerator.cs" />
     <Compile Include="Query\Linq\ISparqlQueryGeneratorTree.cs" />

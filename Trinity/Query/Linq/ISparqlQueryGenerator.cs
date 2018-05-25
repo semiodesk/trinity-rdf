@@ -123,6 +123,10 @@ namespace Semiodesk.Trinity.Query
 
         void FilterRegex(MemberExpression member, string text, bool ignoreCase);
 
+        void FilterNotRegex(SparqlVariable variable, string text, bool ignoreCase);
+
+        void FilterNotRegex(MemberExpression member, string text, bool ignoreCase);
+
         void OrderBy(SparqlVariable variable);
 
         void OrderByDescending(SparqlVariable variable);

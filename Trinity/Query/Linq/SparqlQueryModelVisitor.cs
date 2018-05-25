@@ -28,7 +28,6 @@
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace Semiodesk.Trinity.Query
@@ -46,11 +45,6 @@ namespace Semiodesk.Trinity.Query
         /// Allows to access query generators and sub query generators in a tree-like fashion.
         /// </summary>
         protected readonly ISparqlQueryGeneratorTree QueryGeneratorTree;
-
-        /// <summary>
-        /// A common variable name generator for all query generators.
-        /// </summary>
-        //protected readonly SparqlVariableGenerator VariableGenerator = new SparqlVariableGenerator(null);
 
         /// <summary>
         /// Visits all expressions in a query model and handles the query generation.

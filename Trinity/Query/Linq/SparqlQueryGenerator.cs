@@ -588,6 +588,28 @@ namespace Semiodesk.Trinity.Query
             FilterRegex(o, pattern, ignoreCase);
         }
 
+        public void FilterNotRegex(SparqlVariable v, string pattern, bool ignoreCase)
+        {
+            if (ignoreCase)
+            {
+                PatternBuilder.Filter(e => !e.Regex(e.Variable(v.Name), pattern, "i"));
+            }
+            else
+            {
+                PatternBuilder.Filter(e => !e.Regex(e.Variable(v.Name), pattern));
+            }
+        }
+
+        public void FilterNotRegex(MemberExpression expression, string pattern, bool ignoreCase)
+        {
+            SparqlVariable s = VariableGenerator.TryGetSubjectVariable(expression) ?? SubjectVariable;
+            SparqlVariable o = VariableGenerator.TryGetObjectVariable(expression) ?? VariableGenerator.CreateObjectVariable(expression);
+
+            BuildMemberAccess(expression);
+
+            FilterNotRegex(o, pattern, ignoreCase);
+        }
+
         public void WhereResource(SparqlVariable s, SparqlVariable p, SparqlVariable o)
         {
             PatternBuilder.Where(t => t.Subject(s).Predicate(p).Object(o));

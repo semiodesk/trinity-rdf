@@ -395,11 +395,27 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
+        public void CanSelectStringWithMethodEquals()
+        {
+            var names = from person in Model.AsQueryable<Person>() where person.FirstName.Equals("Alice") select person.FirstName;
+
+            Assert.AreEqual(1, names.ToList().Count);
+
+            names = from person in Model.AsQueryable<Person>() where !person.FirstName.Equals("Alice") select person.FirstName;
+
+            Assert.AreEqual(2, names.ToList().Count);
+        }
+
+        [Test]
         public void CanSelectStringWithMethodContains()
         {
             var names = from person in Model.AsQueryable<Person>() where person.FirstName.Contains("e") select person.FirstName;
 
             Assert.AreEqual(2, names.ToList().Count);
+
+            names = from person in Model.AsQueryable<Person>() where !person.FirstName.Contains("e") select person.FirstName;
+
+            Assert.AreEqual(1, names.ToList().Count);
         }
 
         [Test]
@@ -429,12 +445,9 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Assert.AreEqual(2, count);
 
-            Assert.Throws<NotImplementedException>(() =>
-            {
-                count = Model.AsQueryable<Person>().Count(p => !p.Interests.Any());
+            count = Model.AsQueryable<Person>().Count(p => !p.Interests.Any());
 
-                //Assert.AreEqual(2, count);
-            });
+            Assert.AreEqual(2, count);
         }
 
         [Test]
