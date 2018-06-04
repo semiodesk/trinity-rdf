@@ -827,6 +827,16 @@ namespace Semiodesk.Trinity.Test
 
             // Test if ListValues works
             Assert.AreEqual(0, t_actual.ListValues(TestOntology.uniqueStringTest).Count());
+            
+
+
+            // Test if escaping works
+            t1.uniqueStringTest = "ASK { < http://steadymojo.com/sleepState> <http://www.close-game.com/ontologies/2015/ia/hasBoolValue> ?o. Filter( ?o != 'false'^^<http://www.w3.org/2001/XMLSchema#boolean>) }";
+            t1.Commit();
+
+            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+            Assert.AreEqual(t_actual.uniqueStringTest, t_actual.uniqueStringTest);
+
             m.Clear();
         }
 

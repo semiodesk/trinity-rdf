@@ -423,7 +423,7 @@ namespace Semiodesk.Trinity
                         {
                             IToken next = i < Tokens.Count ? Tokens[i + 1] : null;
 
-                            outputBuilder.AppendFormat(SparqlSerializer.SerializeString(token.Value));
+                            outputBuilder.Append(SparqlSerializer.SerializeString(token.Value));
 
                             if(next.TokenType != Token.LANGSPEC)
                             {
