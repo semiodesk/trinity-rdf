@@ -116,7 +116,13 @@ namespace Semiodesk.Trinity
         /// Indicates this resource is read-only.
         /// </summary>
         [JsonIgnore]
-        public bool IsReadOnly { get; internal set; }
+        public virtual bool IsReadOnly { get; internal set; }
+
+        /// <summary>
+        /// This method provides a mechanism to change writability in subclasses.
+        /// </summary>
+        /// <param name="value"></param>
+        protected virtual void SetIsReadOnly(bool value) { IsReadOnly = value; }
 
         private string _language;
 

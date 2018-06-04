@@ -21,7 +21,7 @@
   <UsingTask TaskName="GenerateOntologyTask" AssemblyFile="$(MSBuildThisFileDirectory)../tools/OntologyGenerator.exe" />
 
   <Target Name="GenerateOntologyTarget">
-    <GenerateOntologyTask Namespace="$(RootNamespace)" ProjectPath="$(ProjectDir)/$(ProjectName)$(ProjectExt)" IntermediatePath="$(ProjectDir)/Ontologies/" />
+    <GenerateOntologyTask ProjectPath="$(ProjectDir)/$(ProjectName)$(ProjectExt)" IntermediatePath="$(ProjectDir)/Ontologies/" />
     <ItemGroup Condition="Exists('Ontologies/Ontologies.g.cs')">
 	    <Compile Include="Ontologies/Ontologies.g.cs" Exclude="@(Compile)" />
 	  </ItemGroup>

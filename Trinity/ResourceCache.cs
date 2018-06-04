@@ -110,36 +110,44 @@ namespace Semiodesk.Trinity
                 throw new Exception(string.Format("An error occured while loading the cached resources for property {0}. Found {1} elements but it is mapped to a non-list property. Try to map to a list of objects.", mapping.PropertyName, cachedUris.Count));
             }
 
-            foreach (Uri u in cachedUris)
+            foreach (Uri uri in cachedUris)
             {
-                object r = null;
+                object resource = null;
 
+                #if DEBUG
                 if (Model == null)
                 {
                     Debugger.Break();
                 }
+                #endif
 
-                if (Model.ContainsResource(u))
+                if (Model.ContainsResource(uri))
                 {
-                    r = Model.GetResource(u, baseType);
+                    resource = Model.GetResource(uri, baseType);
                 }
                 else
                 {
-                    r = Activator.CreateInstance(baseType, u);
+                    resource = Activator.CreateInstance(baseType, uri);
                 }
 
                 if (mapping.IsList)
                 {
-                    IList l = mapping.GetValueObject() as IList;
+                    // Getting the reference to the mapped list object
+                    IList list = mapping.GetValueObject() as IList;
 
-                    if (l != null)
+                    if (list != null)
                     {
-                        l.Add(r);
+                        // Make sure the resource exits only one time
+                        if (list.Contains(resource))
+                            list.Remove(resource);
+
+                        // Add ther resource to the mapped list
+                        list.Add(resource);
                     }
                 }
                 else
                 {
-                    mapping.SetOrAddMappedValue(r);
+                    mapping.SetOrAddMappedValue(resource);
                 }
             }
 

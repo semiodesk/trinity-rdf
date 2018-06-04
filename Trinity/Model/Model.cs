@@ -124,7 +124,7 @@ namespace Semiodesk.Trinity
         /// <param name="resource">The resource to be added to the model.</param>
         /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>The resource which is now connected to the current model.</returns>
-        public IResource AddResource(IResource resource, ITransaction transaction = null)
+        public virtual IResource AddResource(IResource resource, ITransaction transaction = null)
         {
             Resource result = CreateResource<Resource>(resource.Uri, transaction);
 
@@ -144,7 +144,7 @@ namespace Semiodesk.Trinity
         /// <param name="resource">The resource to be added to the model.</param>
         /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>The resource which is now connected to the current model.</returns>
-        public T AddResource<T>(T resource, ITransaction transaction = null) where T : Resource
+        public virtual T AddResource<T>(T resource, ITransaction transaction = null) where T : Resource
         {
             T result = CreateResource<T>(resource.Uri, transaction);
 
@@ -165,7 +165,7 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">ransaction associated with this action.</param>
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
-        public IResource CreateResource(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null)
+        public virtual IResource CreateResource(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null)
         {
             return CreateResource<Resource>(format, transaction);
         }
@@ -177,7 +177,7 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">ransaction associated with this action.</param>
         /// <returns>The newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
-        public IResource CreateResource(Uri uri, ITransaction transaction = null)
+        public virtual IResource CreateResource(Uri uri, ITransaction transaction = null)
         {
             if (ContainsResource(uri, transaction))
             {
@@ -201,7 +201,7 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">ransaction associated with this action.</param>
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
-        public T CreateResource<T>(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null) where T : Resource
+        public virtual T CreateResource<T>(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null) where T : Resource
         {
             return CreateResource(UriRef.GetGuid(format), typeof(T), transaction) as T;
         }
@@ -214,7 +214,7 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">ransaction associated with this action.</param>
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
-        public T CreateResource<T>(Uri uri, ITransaction transaction = null) where T : Resource 
+        public virtual T CreateResource<T>(Uri uri, ITransaction transaction = null) where T : Resource 
         {
             return CreateResource(uri, typeof(T), transaction) as T;
         }
@@ -227,7 +227,7 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">ransaction associated with this action.</param>
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
-        public object CreateResource(Type t, string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null)
+        public virtual object CreateResource(Type t, string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null)
         {
             return CreateResource(UriRef.GetGuid(format), t, transaction);
         }
@@ -241,7 +241,7 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">ransaction associated with this action.</param>
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <exception cref="Exception">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
-        public object CreateResource(Uri uri, Type t, ITransaction transaction = null)
+        public virtual object CreateResource(Uri uri, Type t, ITransaction transaction = null)
         {
             if (!typeof(Resource).IsAssignableFrom(t))
             {
@@ -266,7 +266,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="uri">A Uniform Resource Identifier.</param>
         /// <param name="transaction">ransaction associated with this action.</param>
-        public void DeleteResource(Uri uri, ITransaction transaction = null)
+        public virtual void DeleteResource(Uri uri, ITransaction transaction = null)
         {
             // NOTE: Regrettably, dotNetRDF does not support the full SPARQL 1.1 update syntax. To be precise,
             // it does not support FILTERs or OPTIONAL in Modify clauses. This requires us to formulate the
@@ -291,7 +291,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="resource">A resource object.</param>
         /// <param name="transaction">ransaction associated with this action.</param>
-        public void DeleteResource(IResource resource, ITransaction transaction = null)
+        public virtual void DeleteResource(IResource resource, ITransaction transaction = null)
         {
             DeleteResource(resource.Uri);
         }
@@ -301,7 +301,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="resource">Resource that is to be updated in the backing store.</param>
         /// <param name="transaction">ransaction associated with this action.</param>
-        public void UpdateResource(Resource resource, ITransaction transaction = null)
+        public virtual void UpdateResource(Resource resource, ITransaction transaction = null)
         {
             string updateString;
 
