@@ -78,6 +78,19 @@ namespace dotNetRDFStore.Test
         }
 
         [Test]
+        public void LoadOntologiesFromFileWithoutStoreTest()
+        {
+            Uri testModel = new Uri("ex:Test");
+            string configFile = Path.Combine(Environment.CurrentDirectory, "without_store.config");
+            Store.InitializeFromConfiguration(configFile);
+
+
+            Assert.AreEqual(4, Store.ListModels().Count());
+
+
+        }
+
+        [Test]
         public void AddModelTest()
         {
             Uri testModel = new Uri("ex:Test");

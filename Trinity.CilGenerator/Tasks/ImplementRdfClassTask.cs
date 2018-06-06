@@ -57,7 +57,8 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
         /// <returns><c>true</c> if the task can be executed, <c>false</c> otherwise.</returns>
         public override bool CanExecute(object parameter = null)
         {
-            return Type.TryGetCustomAttribute("RdfClassAttribute").Any();
+            bool canExecute = Type.TryGetCustomAttribute("RdfClassAttribute").Any() && !Type.Methods.Any( x=> x.Name == "GetTypes");
+            return canExecute;
         }
 
         /// <summary>

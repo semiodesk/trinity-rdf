@@ -55,8 +55,8 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
         public override bool CanExecute(object parameter = null)
         {
             PropertyDefinition property = parameter as PropertyDefinition;
-
-            return property != null;
+            bool canExecute = property != null && property.GetMethod.HasCustomAttribute<CompilerGeneratedAttribute>() && property.SetMethod.HasCustomAttribute<CompilerGeneratedAttribute>();
+            return canExecute;
         }
 
         public override bool Execute(object parameter = null)
@@ -85,11 +85,6 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                         throw new Exception(string.Format(msg, property.DeclaringType.FullName, property.Name));
                     }
                 }
-                else
-                {
-                    string msg = "{0}.{1}: Getter of mapped property must be compiler generated.";
-                    throw new Exception(string.Format(msg, property.DeclaringType.FullName, property.Name));
-                }
             }
 
             if (p.Property.SetMethod != null)
@@ -107,11 +102,6 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                         string msg = "{0}.{1}: Failed to implement property setter.";
                         throw new Exception(string.Format(msg, property.DeclaringType.FullName, property.Name));
                     }
-                }
-                else
-                {
-                    string msg = "{0}.{1}: Setter of mapped property must be compiler generated.";
-                    throw new Exception(string.Format(msg, property.DeclaringType.FullName, property.Name));
                 }
             }
 

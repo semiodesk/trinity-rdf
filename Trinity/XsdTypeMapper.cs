@@ -193,7 +193,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Provides the XML Schema type URI for a given .NET type.
         /// </summary>
-        /// <param name="type">A .NET type object.</param>
+        /// <param name="uri">A xsd type uri.</param>
         /// <returns>A XML Schema type URI.</returns>
         public static Type GetTypeFromXsd(Uri uri)
         {

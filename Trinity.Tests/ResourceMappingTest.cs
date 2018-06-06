@@ -44,6 +44,30 @@ using Semiodesk.Trinity.Utility;
 
 namespace Semiodesk.Trinity.Test
 {
+    public abstract class AbstractMappingClass : Resource
+    {
+        protected PropertyMapping<string> stringTestMapping =
+            new PropertyMapping<string>("stringTest", TestOntology.stringTest);
+
+        public string stringTest
+        {
+            get { return GetValue(stringTestMapping); }
+            set { SetValue(stringTestMapping, value); }
+        }
+
+        protected AbstractMappingClass(Uri uri) : base(uri) { }
+    }
+
+    public class ConcreteMappingClass : AbstractMappingClass
+    {
+        public override IEnumerable<Class> GetTypes()
+        {
+            yield return TestOntology.SingleMappingTestClass;
+        }
+
+        public ConcreteMappingClass(Uri uri) : base(uri) { }
+    }
+
     public class SingleMappingTestClass : Resource
     {
         #region Mapping
