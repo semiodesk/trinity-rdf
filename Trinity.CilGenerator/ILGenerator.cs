@@ -36,6 +36,8 @@ using Semiodesk.Trinity.CilGenerator.Extensions;
 using Semiodesk.Trinity.CilGenerator.Tasks;
 using System.Diagnostics;
 using System.IO;
+using ICSharpCode.Decompiler;
+using Semiodesk.Trinity.CilGenerator.Resolver;
 
 namespace Semiodesk.Trinity.CilGenerator
 {
@@ -50,6 +52,8 @@ namespace Semiodesk.Trinity.CilGenerator
         /// Assembly the generator is modifying.
         /// </summary>
         public AssemblyDefinition Assembly { get; private set; }
+
+        public ModuleDefinition ModuleDefinition { get; private set; }
 
         /// <summary>
         /// Logger for warnings, errors and info messages.
@@ -90,21 +94,17 @@ namespace Semiodesk.Trinity.CilGenerator
 
             try
             {
-                var resolver = new DefaultAssemblyResolver();
-                //resolver.AddSearchDirectory(GetAssemblyDirectoryFromType(typeof(Resource)));
+                var module = CustomResolver.LoadMainModule(sourceFile);
+                module.ReadSymbols();
                 FileInfo sourceDll = new FileInfo(sourceFile);
-                resolver.AddSearchDirectory(sourceDll.DirectoryName);
-                resolver.RemoveSearchDirectory(".");
 
-                var parameters = new ReaderParameters { AssemblyResolver = resolver, ReadWrite = true, ReadSymbols = true };
-
-                Assembly = AssemblyDefinition.ReadAssembly(sourceFile, parameters);
-
-                var trinityRef = Assembly.MainModule.AssemblyReferences.Where(x => x.Name == "Semiodesk.Trinity").First();
+                Assembly = module.Assembly;
+                var resolver = module.AssemblyResolver;
+                var trinityRef = module.AssemblyReferences.Where(x => x.Name == "Semiodesk.Trinity").First();
                 var trinity = resolver.Resolve(trinityRef);
                 var g = trinity.MainModule.Types.Where(b => b.FullName == "Semiodesk.Trinity.PropertyMapping`1").First();
                 propertyMapping = g;
-
+                
 
                 Log.LogMessage("------ Begin Task: ImplementRdfMapping [{0}]", Assembly.Name);
 
@@ -124,9 +124,11 @@ namespace Semiodesk.Trinity.CilGenerator
                     if (mapping.Any() || type.TryGetCustomAttribute("RdfClassAttribute").Any())
                     {
                         ImplementRdfClassTask implementClass = new ImplementRdfClassTask(this, type);
-
-                        // RDF types _must_ be implemented for classes with mapped properties.
-                        assemblyModified = implementClass.Execute();
+                        if (implementClass.CanExecute())
+                        {
+                            // RDF types _must_ be implemented for classes with mapped properties.
+                            assemblyModified = implementClass.Execute();
+                        }
                     }
 
                     // Properties which do not raise the PropertyChanged-event can be implemented using minimal IL code.
@@ -163,6 +165,7 @@ namespace Semiodesk.Trinity.CilGenerator
                         Assembly.Write(targetDll.FullName, param);
                     else
                         Assembly.Write(param);
+
                 }
 
                 result = true;

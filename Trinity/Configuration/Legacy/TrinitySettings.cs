@@ -67,12 +67,6 @@ namespace Semiodesk.Trinity.Configuration
             get { return (OntologyCollection)base["OntologySettings"]; }
         }
 
-
-        public object GetSettings(string name)
-        {
-            return this[name];
-        }
-
         /// <summary>
         /// Virtuoso specific settings
         /// </summary>
@@ -89,7 +83,10 @@ namespace Semiodesk.Trinity.Configuration
             }
         }
 
-
+        /// <summary>
+        /// Lists the ontology specific configuration.
+        /// </summary>
+        /// <returns></returns>
         public IEnumerable<IOntologyConfiguration> ListOntologies()
         {
 

@@ -67,7 +67,7 @@ namespace Semiodesk.Trinity.Configuration.Legacy
         /// <summary>
         /// Index operator with key name
         /// </summary>
-        /// <param name="employeeID"></param>
+        /// <param name="key">The key of the ruleset.</param>
         /// <returns></returns>
         new public RuleSet this[string key]
         {

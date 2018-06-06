@@ -39,7 +39,6 @@ using Semiodesk.Trinity.Exceptions;
 using System.Composition.Hosting;
 #elif !NET35
 using System.ComponentModel.Composition.Hosting;
-using Semiodesk.Trinity.Exceptions;
 #endif
 
 namespace Semiodesk.Trinity

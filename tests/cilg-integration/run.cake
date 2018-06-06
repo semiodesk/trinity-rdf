@@ -2,8 +2,8 @@
 var target = Argument("target", "Default");
 var configuration = Argument("configuration", "Release");
 
-List<string> executables = new List<string>{ "net35/test.exe", "net40/test.exe", "net461/test.exe", "netcore/test.dll", "netstandard-net461/test.exe", "netstandard-netcore/test.dll"};
-List<string> injectables = new List<string>{ "net35/test.exe", "net40/test.exe", "net461/test.exe", "netcore/test.dll", "netstandard-net461/netstandard20.dll", "netstandard-netcore/netstandard20.dll"};
+List<string> executables = new List<string>{ "net35/test.exe", "net40/test.exe", "net461/test.exe", "netcore/test.dll", "netstandard-net461/test.exe", "netstandard-netcore/test.dll", "netcore-custom-mapping/test.dll"};
+List<string> injectables = new List<string>{ "net35/test.exe", "net40/test.exe", "net461/test.exe", "netcore/test.dll", "netstandard-net461/netstandard20.dll", "netstandard-netcore/netstandard20.dll", "netcore-custom-mapping/test.dll"};
 //, "netstandard-net461", "netstandard-netcore"
 
 var cilg = "../../Build/"+configuration+"/tools/cilg.exe";

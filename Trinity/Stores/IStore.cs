@@ -116,21 +116,21 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Starts a transaction. The resulting transaction handle can be used to chain operations together.
         /// </summary>
-        /// <param name="isolationLevel"></param>
+        /// <param name="isolationLevel">The isolation level of the transaction.</param>
         /// <returns></returns>
         ITransaction BeginTransaction(IsolationLevel isolationLevel);
 
         /// <summary>
         /// Creates a model group which allows for queries to be made on multiple models at once.
         /// </summary>
-        /// <param name="models"></param>
+        /// <param name="models">The list of uris of the models that should be grouped together.</param>
         /// <returns></returns>
         IModelGroup CreateModelGroup(params Uri[] models);
 
         /// <summary>
         /// Creates a model group which allows for queries to be made on multiple models at once.
         /// </summary>
-        /// <param name="models"></param>
+        /// <param name="models">The list of uris of the models that should be grouped together.</param>
         /// <returns></returns>
         IModelGroup CreateModelGroup(params IModel[] models);
 

@@ -394,7 +394,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Retrieves a resource from the model. Provides a resource object of the given type.
         /// </summary>
-        /// <param name="uri">A Uniform Resource Identifier.</param>
+        /// <param name="resource">The instance of IResource to be retrieved.</param>
         /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(IResource resource, ITransaction transaction = null)
@@ -405,7 +405,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Retrieves a resource from the model.
         /// </summary>
-        /// <param name="resource">The instance of IResource to be retrieved.</param>
+        /// <param name="uri">A Uniform Resource Identifier.</param>
         /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
@@ -434,9 +434,9 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Retrieves a resource from the model. Provides a resource object of the given type.
         /// </summary>
-        /// <param name="uri">A Uniform Resource Identifier.</param>
-        /// <param name="type">The type the resource should have.</param>
+        /// <param name="resource">The instance of IResource that is to be retrieved.</param>
         /// <param name="transaction">Transaction associated with this action.</param>
+        /// <typeparam name="T">The type of the resource.</typeparam>
         /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(IResource resource, ITransaction transaction = null) where T : Resource
         {
@@ -446,7 +446,8 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Retrieves a resource from the model.
         /// </summary>
-        /// <param name="resource">The instance of IResource to be retrieved.</param>
+        /// <param name="uri">The uri of the resource that is to be retrieved.</param>
+        /// <param name="type">The type the resource should have.</param>
         /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>A resource with all asserted properties.</returns>
         public object GetResource(Uri uri, Type type, ITransaction transaction = null)

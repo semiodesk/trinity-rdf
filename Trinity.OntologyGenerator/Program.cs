@@ -181,6 +181,14 @@ namespace Semiodesk.Trinity.OntologyGenerator
             _sourceDir = _configFile.Directory;
         }
 
+        public void SetConfig(FileInfo configFile)
+        {
+            Logger.LogMessage("Reading config from {0}", configFile.FullName);
+            _configFile = configFile;
+            _sourceDir = _configFile.Directory;
+            _configPath = configFile.FullName;
+        }
+
         /// <summary>
         /// This method loads the new configuration format (ontologies.config)
         /// </summary>

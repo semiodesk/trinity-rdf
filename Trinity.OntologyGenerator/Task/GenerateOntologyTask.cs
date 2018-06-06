@@ -67,6 +67,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 if (configFile != null)
                 {
                     Program program = new Program(logger);
+                    program.SetConfig(configFile);
                     program.LoadConfigFile();
 
                     // TODO: Make ontologies folder configurable in Trinity settings.
@@ -97,7 +98,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
             }
             catch (Exception ex)
             {
-                logger.LogError(ex.Message);
+                logger.LogError(string.Format("An error occured during the generation of the ontologies.g.cs file.\n"+ex.Message+"\n"+ex.StackTrace));
 
                 return false;
             }

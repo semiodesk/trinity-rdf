@@ -134,6 +134,9 @@ namespace Semiodesk.Trinity
         {
             try
             {
+                if (_class.IsAbstract)
+                    return; 
+
                 Resource r = (Resource)Activator.CreateInstance(_class, new UriRef("semio:empty"));
 
                 List<Class> baseTypes = new List<Class>(r.GetTypes());
@@ -181,11 +184,16 @@ namespace Semiodesk.Trinity
             if (_class.BaseType == typeof(Resource) || _class.BaseType == typeof(Object))
                 return;
 
+            try { 
             Resource r = (Resource)Activator.CreateInstance(_class.BaseType, new UriRef("semio:empty"));
 
             baseTypes.AddRange(r.GetTypes());
 
             GetBaseTypes(_class.BaseType, ref baseTypes);
+            }catch(Exception)
+            {
+
+            }
         }
 
         /// <summary>
