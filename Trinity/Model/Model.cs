@@ -327,6 +327,7 @@ namespace Semiodesk.Trinity
             ExecuteUpdate(update, transaction);
 
             resource.IsNew = false;
+            resource.IsSynchronized = true;
         }
 
         /// <summary>
