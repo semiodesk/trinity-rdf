@@ -25,6 +25,9 @@
 //
 // Copyright (c) Semiodesk GmbH 2017
 
+using Remotion.Linq;
+using Remotion.Linq.Clauses.Expressions;
+using Remotion.Linq.Clauses.ResultOperators;
 using System;
 using System.Linq.Expressions;
 
@@ -112,6 +115,28 @@ namespace Semiodesk.Trinity.Query
                             throw new NotSupportedException(methodCall.Arguments[0].GetType().ToString());
                         }
                     }
+                }
+                else if (unary.Operand is SubQueryExpression)
+                {
+                    SubQueryExpression subQuery = unary.Operand as SubQueryExpression;
+
+                    QueryModel queryModel = subQuery.QueryModel.Clone();
+
+                    // Transform sub-query calls to .Any() into .Count(x) = 0
+                    if (queryModel.ResultOperators.Count == 1 && subQuery.QueryModel.HasResultOperator<AnyResultOperator>())
+                    {
+                        // Remove .Any() with boolean result type.
+                        queryModel.ResultOperators.RemoveAt(0);
+
+                        // Insert .Count() with an integer result type.
+                        queryModel.ResultOperators.Insert(0, new CountResultOperator());
+                        queryModel.ResultTypeOverride = typeof(Int32);
+
+                        return Expression.Equal(new SubQueryExpression(queryModel), Expression.Constant(0));
+                    }
+
+                    // Generic sub-queries are not supported with unary expressions.
+                    throw new NotSupportedException(unary.Operand.ToString());
                 }
             }
 

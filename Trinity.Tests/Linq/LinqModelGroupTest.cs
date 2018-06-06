@@ -43,6 +43,7 @@ namespace Semiodesk.Trinity.Test.Linq
             string connectionString = string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString);
 
             Store = StoreFactory.CreateStore(connectionString);
+            Store.InitializeFromConfiguration();
 
             IModel model1 = Store.CreateModel(new Uri("http://test.com/test1"));
             model1.Clear();
