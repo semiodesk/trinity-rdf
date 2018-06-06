@@ -9224,5 +9224,17 @@ public class wgs84 : Ontology
     public static readonly Class SpatialThing = new Class(new Uri("http://www.w3.org/2003/01/geo/wgs84_pos#SpatialThing"));
 }
 
+public class vcard : Ontology
+{
+    public static readonly Uri Namespace = new Uri("http://www.w3.org/2001/vcard-rdf/3.0#");
+    public static Uri GetNamespace() { return Namespace; }
+
+    public static readonly string Prefix = "vcard";
+    public static string GetPrefix() { return Prefix; }
+
+    public static readonly Property N = new Property(new Uri("http://www.w3.org/2001/vcard-rdf/3.0#N"));
+
+    public static readonly Property givenName = new Property(new Uri("http://www.w3.org/2001/vcard-rdf/3.0#givenName"));
+}
 
 }

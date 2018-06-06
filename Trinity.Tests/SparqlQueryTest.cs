@@ -25,18 +25,13 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
+using NUnit.Framework;
+using Semiodesk.Trinity.Ontologies;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Diagnostics;
 using System.Reflection;
-
-using Semiodesk.Trinity;
-using Semiodesk.Trinity.Ontologies;
-
-using NUnit.Framework;
 using System.Text.RegularExpressions;
 
 namespace Semiodesk.Trinity.Test
@@ -54,17 +49,6 @@ namespace Semiodesk.Trinity.Test
         [SetUp]
         public void SetUp()
         {
-            string connectionString = SetupClass.ConnectionString;
-
-            Store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
-            Store.LoadOntologySettings();
-            Model = Store.GetModel(new Uri("http://example.org/TestModel"));
-
-            if (!Model.IsEmpty)
-            {
-                Model.Clear();
-            }
-
             OntologyDiscovery.AddNamespace("ex", new Uri("http://example.org/"));
             OntologyDiscovery.AddNamespace("dc", new Uri("http://purl.org/dc/elements/1.1/"));
             OntologyDiscovery.AddNamespace("vcard", new Uri("http://www.w3.org/2001/vcard-rdf/3.0#"));
@@ -77,42 +61,46 @@ namespace Semiodesk.Trinity.Test
             OntologyDiscovery.AddNamespace("sfo", sfo.GetNamespace());
             OntologyDiscovery.AddNamespace(nfo.GetPrefix(), nfo.GetNamespace());
 
+            Store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString));
+            Store.InitializeFromConfiguration();
+
+            Model = Store.GetModel(new Uri("http://example.org/TestModel"));
             Model.Clear();
 
-            IResource resource0 = Model.CreateResource(new Uri("http://example.org/Hans"));
-            resource0.AddProperty(rdf.type, nco.PersonContact);
-            resource0.AddProperty(nco.fullname, "Hans Wurscht");
-            resource0.AddProperty(nco.birthDate, DateTime.Now);
-            resource0.AddProperty(nco.blogUrl, "http://blog.com/Hans");
-            resource0.Commit();
+            IResource hans = Model.CreateResource(new Uri("http://example.org/Hans"));
+            hans.AddProperty(rdf.type, nco.PersonContact);
+            hans.AddProperty(nco.fullname, "Hans Wurscht");
+            hans.AddProperty(nco.birthDate, DateTime.Now);
+            hans.AddProperty(nco.blogUrl, "http://blog.com/Hans");
 
-            IResource resource1 = Model.CreateResource(new Uri("http://example.org/Organization"));
-            resource1.AddProperty(rdf.type, nco.OrganizationContact);
-            resource1.AddProperty(nco.fullname, "ACME");
-            resource1.AddProperty(nco.creator, resource0);
-            resource1.Commit();
+            IResource pagerNumber0 = Model.CreateResource(new Uri("http://example.org/Hans/pagerNumber#0"));
+            pagerNumber0.AddProperty(rdf.type, nco.PagerNumber);
+            pagerNumber0.AddProperty(dc.date, DateTime.Today);
+            pagerNumber0.AddProperty(nco.creator, hans);
+            pagerNumber0.Commit();
 
-            IResource resource2 = Model.CreateResource(new Uri("http://example.org/PhoneNumber"));
-            resource2.AddProperty(rdf.type, nco.PhoneNumber);
-            resource2.AddProperty(dc.date, DateTime.Today);
-            resource2.AddProperty(nco.creator, resource0);
-            resource2.Commit();
+            IResource phoneNumber0 = Model.CreateResource(new Uri("http://example.org/Hans/phoneNumber#0"));
+            phoneNumber0.AddProperty(rdf.type, nco.PhoneNumber);
+            phoneNumber0.AddProperty(dc.date, DateTime.Today.AddDays(1));
+            phoneNumber0.AddProperty(nco.creator, hans);
+            phoneNumber0.Commit();
 
-            // NOTE: The different name influences the ordering of the resource in query results.
-            IResource resource3 = Model.CreateResource(new Uri("http://example.org/Boc#2"));
-            resource3.AddProperty(rdf.type, nco.PagerNumber);
-            resource3.AddProperty(dc.date, DateTime.Today.AddHours(1));
-            resource3.AddProperty(nco.creator, resource0);
-            resource3.Commit();
+            IResource phoneNumber1 = Model.CreateResource(new Uri("http://example.org/Hans/phoneNumber#1"));
+            phoneNumber1.AddProperty(rdf.type, nco.PhoneNumber);
+            phoneNumber1.AddProperty(dc.date, DateTime.Today.AddDays(2));
+            phoneNumber1.AddProperty(nco.creator, hans);
+            phoneNumber1.Commit();
 
-            IResource resource4 = Model.CreateResource(new Uri("http://example.org/Doc#3"));
-            resource4.AddProperty(rdf.type, nco.PhoneNumber);
-            resource4.AddProperty(dc.date, DateTime.Today.AddHours(2));
-            resource4.AddProperty(nco.creator, resource0);
-            resource4.Commit();
+            hans.AddProperty(nco.hasContactMedium, pagerNumber0);
+            hans.AddProperty(nco.hasPhoneNumber, phoneNumber0);
+            hans.AddProperty(nco.hasPhoneNumber, phoneNumber1);
+            hans.Commit();
 
-            resource0.AddProperty(nco.hasPhoneNumber, resource2);
-            resource0.Commit();
+            IResource acme = Model.CreateResource(new Uri("http://example.org/ACME"));
+            acme.AddProperty(rdf.type, nco.OrganizationContact);
+            acme.AddProperty(nco.fullname, "ACME");
+            acme.AddProperty(nco.creator, hans);
+            acme.Commit();
         }
 
         [TearDown]
@@ -269,7 +257,8 @@ namespace Semiodesk.Trinity.Test
             SparqlQuery query = new SparqlQuery(@"
                 CONSTRUCT
                 {
-                    ?x  vcard:N _:v .
+                    ?x nco:fullname ?name .
+                    ?x vcard:N _:v .
                     _:v vcard:givenName ?name .
                 }
                 WHERE
@@ -277,19 +266,21 @@ namespace Semiodesk.Trinity.Test
                     ?x nco:fullname ?name .
                 }");
 
-            ISparqlQueryResult result = Model.ExecuteQuery(query);
+            List<Resource> resources = Model.GetResources(query).ToList();
 
-            IList resources = result.GetResources().ToList();
-            Assert.AreEqual(2, resources.Count);
+            // We expect 4 resources: 2 VCARD blank nodes and the original 2 NCO contacts.
+            Assert.AreEqual(4, resources.Count);
+            Assert.AreEqual(2, resources.Count(r => r.HasProperty(nco.fullname)));
+            Assert.AreEqual(2, resources.Count(r => r.HasProperty(vcard.N)));
+            Assert.AreEqual(2, resources.Count(r => r.HasProperty(vcard.givenName)));
         }
 
         [Test]
         public void TestInferencing()
         {
-
             // Retrieving resources using the model API.
-            Assert.AreEqual(true, Model.ContainsResource(new Uri("http://example.org/Hans")));
-            Assert.AreEqual(true, Model.ContainsResource(new Uri("http://example.org/PhoneNumber")));
+            Assert.IsTrue(Model.ContainsResource(new Uri("http://example.org/Hans")));
+            Assert.IsTrue(Model.ContainsResource(new Uri("http://example.org/ACME")));
 
             SparqlQuery query;
             ISparqlQueryResult result;
@@ -304,7 +295,7 @@ namespace Semiodesk.Trinity.Test
             Assert.IsTrue(result.GetAnwser());
 
             // This fact is not explicitly stated.
-            query = new SparqlQuery("SELECT ?url WHERE { ?s nco:url ?url . }");
+            query = new SparqlQuery("SELECT ?url WHERE { ?x nco:url ?url . }");
 
             result = Model.ExecuteQuery(query);
             Assert.AreEqual(0, result.GetBindings().Count());
@@ -312,7 +303,7 @@ namespace Semiodesk.Trinity.Test
             result = Model.ExecuteQuery(query, true);
             Assert.AreEqual(1, result.GetBindings().Count());
 
-            query = new SparqlQuery("ASK WHERE { <http://example.org/Hans> nco:hasContactMedium <http://example.org/PhoneNumber> . }");
+            query = new SparqlQuery("ASK WHERE { <http://example.org/Hans> nco:hasContactMedium <http://example.org/Hans/phoneNumber#0> . }");
 
             result = Model.ExecuteQuery(query);
             Assert.IsFalse(result.GetAnwser());
@@ -320,7 +311,7 @@ namespace Semiodesk.Trinity.Test
             result = Model.ExecuteQuery(query, true);
             Assert.IsTrue(result.GetAnwser());
 
-            query = new SparqlQuery("DESCRIBE ?element WHERE { ?element nco:hasContactMedium <http://example.org/PhoneNumber> . }");
+            query = new SparqlQuery("DESCRIBE ?element WHERE { ?element nco:hasContactMedium <http://example.org/Hans/phoneNumber#0> . }");
 
             result = Model.ExecuteQuery(query);
             Assert.AreEqual(0, result.GetResources().Count());
@@ -328,20 +319,28 @@ namespace Semiodesk.Trinity.Test
             result = Model.ExecuteQuery(query, true);
             Assert.AreEqual(1, result.GetResources().Count());
 
-            query = new SparqlQuery("DESCRIBE ?doc WHERE { ?doc rdf:type nco:ContactMedium . ?doc nco:creator <http://example.org/Hans> . ?doc dc:date ?date . } ORDER BY ASC(?date)");
+            // The original test failed because Virtuoso ORDER BY on DATETIME values fails with DESCRIBE query forms.
+            // See: https://github.com/openlink/virtuoso-opensource/issues/23
+            query = new SparqlQuery("SELECT ?date WHERE { ?m rdf:type nco:ContactMedium ; nco:creator <http://example.org/Hans> ; dc:date ?date . } ORDER BY ASC(?date)");
             result = Model.ExecuteQuery(query, true);
-            Assert.AreEqual(3, result.GetResources().Count());
 
-            DateTime? c = null;
-            DateTime? d = null;
+            List<BindingSet> bindings = result.GetBindings().ToList();
 
-            foreach (Resource r in result.GetResources())
+            Assert.AreEqual(3, bindings.Count);
+
+            DateTime? d0 = null;
+            DateTime? d1 = null;
+
+            foreach (BindingSet b in bindings)
             {
-                d = (DateTime)r.GetValue(dc.date);
+                d1 = (DateTime)b["date"];
 
-                if (c != null) { Assert.Greater(d, c); }
+                if (d0 != null)
+                {
+                    Assert.Greater(d1, d0);
+                }
 
-                c = d;
+                d0 = d1;
             }
         }
 
@@ -516,7 +515,7 @@ namespace Semiodesk.Trinity.Test
 
             query.Bind("@type", rdf.type);
             query.Bind("@class", tmo.Task);
-            
+
             MethodInfo method = query.GetType().GetMethod("SetLimit", BindingFlags.NonPublic | BindingFlags.Instance);
             method.Invoke(query, new object[] { 10 });
 

@@ -110,7 +110,7 @@ namespace Semiodesk.Trinity.Query
 
                 BindingSet b = result.GetBindings().FirstOrDefault();
 
-                if(b != null)
+                if(b != null && b.Any())
                 {
                     return new object[] { b.First().Value }.OfType<T>().First();
                 }
