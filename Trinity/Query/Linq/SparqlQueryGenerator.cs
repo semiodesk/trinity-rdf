@@ -486,7 +486,8 @@ namespace Semiodesk.Trinity.Query
                 // Note: If the compared values must not be equal, then the comapred value might also be not bound (optional).
                 SparqlVariable o = BuildMemberAccessOptional(expression);
 
-                PatternBuilder.Filter(e => e.Variable(o.Name) != c.AsIriExpression());
+                // Unbound variables are explicitly included in the result.
+                PatternBuilder.Filter(e => e.Variable(o.Name) != c.AsIriExpression() || !e.Bound(o.Name));
             }
         }
 

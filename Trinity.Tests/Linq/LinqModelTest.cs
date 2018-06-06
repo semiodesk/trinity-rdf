@@ -27,7 +27,6 @@
 
 using NUnit.Framework;
 using System;
-using System.IO;
 
 namespace Semiodesk.Trinity.Test.Linq
 {
@@ -42,10 +41,11 @@ namespace Semiodesk.Trinity.Test.Linq
             // DotNetRdf memory store.
             //string connectionString = "provider=dotnetrdf";
 
-            // OpenLink Virtoso store.
-            //string connectionString = string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString);
+            // Stardog store.
+            //string connectionString = "provider=stardog;host=http://localhost:5820;uid=admin;pw=admin;sid=test";
 
-            string connectionString = "provider=stardog;host=http://localhost:5820;uid=admin;pw=admin;sid=test";
+            // OpenLink Virtoso store.
+            string connectionString = string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString);
 
             Store = StoreFactory.CreateStore(connectionString);
 
