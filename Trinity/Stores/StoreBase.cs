@@ -1,10 +1,34 @@
-﻿using Semiodesk.Trinity.Configuration;
+﻿// LICENSE:
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//
+// AUTHORS:
+//
+//  Moritz Eberl <moritz@semiodesk.com>
+//  Sebastian Faubel <sebastian@semiodesk.com>
+//
+// Copyright (c) Semiodesk GmbH 2015
+
+using Semiodesk.Trinity.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
 
 namespace Semiodesk.Trinity
 {
@@ -124,6 +148,7 @@ namespace Semiodesk.Trinity
         public virtual void LoadOntologySettings(string configPath = null, string sourceDir = null)
         {
             var config = LoadConfiguration(configPath);
+
             LoadOntologies(config, sourceDir);
         }
 
@@ -137,6 +162,7 @@ namespace Semiodesk.Trinity
         public virtual void InitializeFromConfiguration(string configPath = null, string sourceDir = null)
         {
             var config = LoadConfiguration(configPath);
+
             LoadOntologies(config, sourceDir);
         }
 
@@ -149,11 +175,13 @@ namespace Semiodesk.Trinity
         protected IConfiguration LoadConfiguration(string configPath = null)
         {
             FileInfo configFile = null;
-            if( !string.IsNullOrEmpty(configPath) )
-                configFile = new FileInfo(configPath);
-            IConfiguration settings = Configuration.ConfigurationLoader.LoadConfiguration(configFile);
 
-            return settings;
+            if (!string.IsNullOrEmpty(configPath))
+            {
+                configFile = new FileInfo(configPath);
+            }
+
+            return ConfigurationLoader.LoadConfiguration(configFile);
         }
 
         /// <summary>
@@ -161,9 +189,10 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="configuration">Handle of the configuration.</param>
         /// <param name="sourceDir">Searchpath for the ontologies.</param>
-        protected void LoadOntologies(IConfiguration configuration, string sourceDir = null) 
+        protected void LoadOntologies(IConfiguration configuration, string sourceDir = null)
         {
             DirectoryInfo srcDir;
+
             if (string.IsNullOrEmpty(sourceDir))
             {
                 srcDir = new DirectoryInfo(Environment.CurrentDirectory);
@@ -176,7 +205,6 @@ namespace Semiodesk.Trinity
             StoreUpdater updater = new StoreUpdater(this, srcDir);
 
             updater.UpdateOntologies(configuration.ListOntologies());
-
         }
 
         /// <summary>
@@ -240,7 +268,5 @@ namespace Semiodesk.Trinity
         }
 
         #endregion
-
-
     }
 }

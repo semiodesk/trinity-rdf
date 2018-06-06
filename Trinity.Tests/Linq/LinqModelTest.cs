@@ -39,13 +39,13 @@ namespace Semiodesk.Trinity.Test.Linq
         public override void SetUp()
         {
             // DotNetRdf memory store.
-            string connectionString = "provider=dotnetrdf";
+            //string connectionString = "provider=dotnetrdf";
 
             // Stardog store.
             //string connectionString = "provider=stardog;host=http://localhost:5820;uid=admin;pw=admin;sid=test";
 
             // OpenLink Virtoso store.
-            //string connectionString = string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString);
+            string connectionString = string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString);
 
             Store = StoreFactory.CreateStore(connectionString);
 

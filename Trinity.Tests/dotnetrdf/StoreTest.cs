@@ -25,12 +25,12 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-using System;
-using System.IO;
 using NUnit.Framework;
 using Semiodesk.Trinity;
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Reflection;
 
 namespace dotNetRDFStore.Test
 {
@@ -48,56 +48,57 @@ namespace dotNetRDFStore.Test
         [TearDown]
         public void TearDown()
         {
-            Store.Dispose();
-            Store = null;
+            if(Store != null)
+            {
+                Store.Dispose();
+                Store = null;
+            }
         }
 
         [Test]
         public void LoadOntologiesTest()
         {
-            Uri testModel = new Uri("ex:Test");
-
             Store.InitializeFromConfiguration();
 
-            // Note: the NCO ontology contains a metadata graph
-            Assert.AreEqual(7, Store.ListModels().Count());
+            List<IModel> models0 = Store.ListModels().ToList();
 
+            // Note: the NCO ontology contains a metadata graph.
+            Assert.AreEqual(8, models0.Count);
         }
 
         [Test]
         public void LoadOntologiesFromFileTest()
         {
-            Uri testModel = new Uri("ex:Test");
             string configFile = Path.Combine(Environment.CurrentDirectory, "custom.config");
-            Store.InitializeFromConfiguration(configFile);
 
+            Store.InitializeFromConfiguration(configFile);
 
             Assert.AreEqual(4, Store.ListModels().Count());
 
+            configFile = Path.Combine(Environment.CurrentDirectory, "nonexistent.config");
 
+            Assert.Throws<FileNotFoundException>(() =>
+            {
+                Store.InitializeFromConfiguration(configFile);
+            });
         }
 
         [Test]
         public void LoadOntologiesFromFileWithoutStoreTest()
         {
-            Uri testModel = new Uri("ex:Test");
             string configFile = Path.Combine(Environment.CurrentDirectory, "without_store.config");
+
             Store.InitializeFromConfiguration(configFile);
 
-
             Assert.AreEqual(4, Store.ListModels().Count());
-
-
         }
 
         [Test]
         public void AddModelTest()
         {
-            Uri testModel = new Uri("ex:Test");
+            IModel model = Store.CreateModel(new Uri("ex:Test"));
 
-            IModel m = Store.CreateModel(testModel);
-
-            Assert.IsNotNull(m);
+            Assert.IsNotNull(model);
         }
 
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -106,16 +107,13 @@ namespace dotNetRDFStore.Test
         {
             Uri testModel = new Uri("ex:Test");
 
-
             Assert.IsFalse(Store.ContainsModel(testModel));
 
+            IModel model = Store.CreateModel(testModel);
 
-            IModel m = Store.CreateModel(testModel);
-
-            var res = m.CreateResource(new Uri("ex:test:resource"));
-            
-            res.AddProperty(new Property(new Uri("ex:test:property")), "var");
-            res.Commit();
+            var r = model.CreateResource(new Uri("ex:test:resource"));
+            r.AddProperty(new Property(new Uri("ex:test:property")), "var");
+            r.Commit();
 
             Assert.IsTrue(Store.ContainsModel(testModel));
             Assert.IsFalse(Store.ContainsModel(new Uri("ex:NoTest")));
@@ -127,16 +125,16 @@ namespace dotNetRDFStore.Test
         {
             Uri testModel = new Uri("ex:Test");
 
-            IModel m1 = Store.CreateModel(testModel);
+            IModel model0 = Store.CreateModel(testModel);
 
-            IResource r = m1.CreateResource(new Uri("ex:test:resource"));
+            IResource r = model0.CreateResource(new Uri("ex:test:resource"));
             r.AddProperty(new Property(new Uri("ex:test:property")), "var");
             r.Commit();
 
-            IModel m2 = Store.GetModel(testModel);
+            IModel model1 = Store.GetModel(testModel);
 
-            Assert.AreEqual(testModel, m2.Uri);
-            Assert.IsTrue(m2.ContainsResource(r));
+            Assert.AreEqual(testModel, model1.Uri);
+            Assert.IsTrue(model1.ContainsResource(r));
         }
 
         [Test]
@@ -144,20 +142,20 @@ namespace dotNetRDFStore.Test
         {
             Uri testModel = new Uri("ex:Test");
 
-            IModel m1 = Store.CreateModel(testModel);
+            IModel model0 = Store.CreateModel(testModel);
 
-            var res = m1.CreateResource(new Uri("ex:test:resource"));
+            var res = model0.CreateResource(new Uri("ex:test:resource"));
             res.AddProperty(new Property(new Uri("ex:test:property")), "var");
             res.Commit();
 
-            IModel m2 = Store.GetModel(testModel);
-            Assert.AreEqual(testModel, m2.Uri);
+            IModel model1 = Store.GetModel(testModel);
+            Assert.AreEqual(testModel, model1.Uri);
 
             Store.RemoveModel(testModel);
 
-            m2 = Store.GetModel(testModel);
+            model1 = Store.GetModel(testModel);
 
-            Assert.IsTrue(m2.IsEmpty);
+            Assert.IsTrue(model1.IsEmpty);
         }
     }
 }

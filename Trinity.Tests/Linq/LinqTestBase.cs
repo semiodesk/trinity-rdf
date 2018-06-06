@@ -1180,6 +1180,15 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
+        public void CanSelectResourcesFromQuerySourceProperty()
+        {
+            var agents = (from image in Model.AsQueryable<Image>() where image.DepictedAgent.FirstName == "Alice" select image.DepictedAgent).ToList();
+
+            Assert.AreEqual(1, agents.Count);
+            Assert.AreEqual("Alice", agents.First().FirstName);
+        }
+
+        [Test]
         public void CanExecuteCollectionWithInferencingEnabled()
         {
             // See if inferencing works on resource queries.
