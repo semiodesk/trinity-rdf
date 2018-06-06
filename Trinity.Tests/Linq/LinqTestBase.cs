@@ -902,24 +902,30 @@ namespace Semiodesk.Trinity.Test.Linq
             Assert.AreEqual(person, persons.FirstOrDefault());
             Assert.IsTrue(person.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
 
-            // Using FirstOrDefault in subqueries is not yet supported.
-            persons = Model.AsQueryable<Person>().Where(p => p.KnownPeople.OrderBy(q => q.FirstName).FirstOrDefault(q => q.KnownPeople.Count == 1) != null).ToList();
-
-            Assert.IsNotEmpty(persons);
-
-            foreach (Person p in persons)
+            // Note: Using FirstOrDefault in subqueries is not yet supported.
+            Assert.Throws<NotSupportedException>(() =>
             {
-                Assert.AreEqual(1, p.KnownPeople.OrderBy(q => q.FirstName).FirstOrDefault().KnownPeople.Count);
-            }
+                persons = Model.AsQueryable<Person>().Where(p => p.KnownPeople.OrderBy(q => q.FirstName).FirstOrDefault(q => q.KnownPeople.Count == 1) != null).ToList();
 
-            persons = Model.AsQueryable<Person>().Where(p => p.KnownPeople.OrderBy(q => q.FirstName).FirstOrDefault().KnownPeople.Count == 1).ToList();
+                //Assert.IsNotEmpty(persons);
 
-            Assert.IsNotEmpty(persons);
+                //foreach (Person p in persons)
+                //{
+                //    Assert.AreEqual(1, p.KnownPeople.OrderBy(q => q.FirstName).FirstOrDefault().KnownPeople.Count);
+                //}
+            });
 
-            foreach (Person p in persons)
+            Assert.Throws<NotSupportedException>(() =>
             {
-                Assert.AreEqual(1, p.KnownPeople.OrderBy(q => q.FirstName).FirstOrDefault().KnownPeople.Count);
-            }
+                persons = Model.AsQueryable<Person>().Where(p => p.KnownPeople.OrderBy(q => q.FirstName).FirstOrDefault().KnownPeople.Count == 1).ToList();
+
+                //Assert.IsNotEmpty(persons);
+
+                //foreach (Person p in persons)
+                //{
+                //    Assert.AreEqual(1, p.KnownPeople.OrderBy(q => q.FirstName).FirstOrDefault().KnownPeople.Count);
+                //}
+            });
         }
 
         [Test]
@@ -996,22 +1002,30 @@ namespace Semiodesk.Trinity.Test.Linq
             Assert.AreEqual(person, persons.LastOrDefault());
             Assert.IsTrue(person.KnownPeople.Any(p0 => p0.FirstName == "Alice"));
 
-            // Using LastOrDefault in subqueries is not yet supported.
-            persons = Model.AsQueryable<Person>().Where(p => p.KnownPeople.OrderBy(q => q.FirstName).LastOrDefault(q => q.KnownPeople.Count == 1) != null).ToList();
-
-            Assert.IsNotEmpty(persons);
-
-            foreach (Person p in persons)
+            // Note: Using LastOrDefault in subqueries is not yet supported.
+            Assert.Throws<NotSupportedException>(() =>
             {
-                Assert.AreEqual(1, p.KnownPeople.OrderBy(q => q.FirstName).LastOrDefault().KnownPeople.Count);
-            }
+                persons = Model.AsQueryable<Person>().Where(p => p.KnownPeople.OrderBy(q => q.FirstName).LastOrDefault(q => q.KnownPeople.Count == 1) != null).ToList();
 
-            /*
+                //Assert.IsNotEmpty(persons);
+
+                //foreach (Person p in persons)
+                //{
+                //    Assert.AreEqual(1, p.KnownPeople.OrderBy(q => q.FirstName).LastOrDefault().KnownPeople.Count);
+                //}
+            });
+
             Assert.Throws<NotSupportedException>(() =>
             {
                 Model.AsQueryable<Person>().Where(p => p.KnownPeople.LastOrDefault(q => q.KnownPeople.Count == 1) != null).ToList();
+
+                //Assert.IsNotEmpty(persons);
+
+                //foreach (Person p in persons)
+                //{
+                //    Assert.AreEqual(1, p.KnownPeople.OrderBy(q => q.FirstName).LastOrDefault().KnownPeople.Count);
+                //}
             });
-            */
         }
 
         [Test]

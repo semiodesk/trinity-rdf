@@ -445,6 +445,15 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitSubQuery(SubQueryExpression subQuery)
         {
+            if(subQuery.QueryModel.ResultOperators.OfType<FirstResultOperator>().Any()
+                || subQuery.QueryModel.ResultOperators.OfType<LastResultOperator>().Any())
+            {
+                // We currently do not support First, FirstOrDefault, Last and LastOrDefault on sub queries.
+                // There are no fundamental issues, but needs extensive testing.
+                string msg = "First, FirstOrDefault, Last and LastOrDfault are not supported in sub-queries.";
+                throw new NotSupportedException(msg);
+            }
+
             ISparqlQueryGenerator g = QueryGeneratorTree.CurrentGenerator;
             ISparqlQueryGenerator sg = QueryGeneratorTree.CreateSubQueryGenerator(g, subQuery);
 
