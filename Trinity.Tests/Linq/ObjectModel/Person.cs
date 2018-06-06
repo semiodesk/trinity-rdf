@@ -57,7 +57,7 @@ namespace Semiodesk.Trinity.Test.Linq
         public List<Resource> Interests { get; set; }
 
         [RdfProperty(FOAF.made)]
-        public List<Document> Made { get; set; }
+        public List<Document> CreatedDocuments { get; set; }
 
         #endregion
 

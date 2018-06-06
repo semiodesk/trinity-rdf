@@ -106,8 +106,6 @@ namespace Semiodesk.Trinity.Test
         [TearDown]
         public void TearDown()
         {
-            Model.Clear();
-
             if (Store != null)
             {
                 Store.Dispose();
