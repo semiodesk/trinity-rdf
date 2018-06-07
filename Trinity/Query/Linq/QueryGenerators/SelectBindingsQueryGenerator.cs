@@ -82,7 +82,7 @@ namespace Semiodesk.Trinity.Query
             else
             {
                 // TODO: Create unit test for QuerySourceReferenceExpression, SubQueryExpression
-                throw new NotImplementedException();
+                throw new NotImplementedException(expression.GetType().ToString());
             }
         }
 

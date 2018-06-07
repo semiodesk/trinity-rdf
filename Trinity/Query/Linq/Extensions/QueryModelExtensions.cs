@@ -35,6 +35,11 @@ namespace Semiodesk.Trinity.Query
 {
     internal static class QueryModelExtensions
     {
+        public static bool HasOrdering(this QueryModel queryModel)
+        {
+            return queryModel.BodyClauses.OfType<OrderByClause>().Any();
+        }
+
         public static bool HasOrdering(this QueryModel queryModel, Expression expression)
         {
             return queryModel.BodyClauses.OfType<OrderByClause>().Any(c => c.Orderings.Any(o => o.Expression == expression));

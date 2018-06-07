@@ -44,7 +44,7 @@ namespace Semiodesk.Trinity.Query
 {
     class ExpressionTreeVisitor : ThrowingExpressionVisitor
     {
-#region Members
+        #region Members
 
         protected ISparqlQueryModelVisitor QueryModelVisitor;
 
@@ -52,9 +52,9 @@ namespace Semiodesk.Trinity.Query
 
         protected List<Expression> Trace = new List<Expression>();
 
-#endregion
+        #endregion
 
-#region Constructors
+        #region Constructors
 
         public ExpressionTreeVisitor(ISparqlQueryModelVisitor queryModelVisitor, ISparqlQueryGeneratorTree queryGeneratorTree)
         {
@@ -62,9 +62,9 @@ namespace Semiodesk.Trinity.Query
             QueryGeneratorTree = queryGeneratorTree;
         }
 
-#endregion
+        #endregion
 
-#region Methods
+        #region Methods
 
         private void HandleRegexMethodCallExpression(Expression expression, string regex, bool ignoreCase)
         {
@@ -77,7 +77,7 @@ namespace Semiodesk.Trinity.Query
             {
                 MemberExpression member = expression as MemberExpression;
 
-                if(unaryNot)
+                if (unaryNot)
                 {
                     currentGenerator.FilterNotRegex(member, regex, ignoreCase);
                 }
@@ -88,7 +88,7 @@ namespace Semiodesk.Trinity.Query
             }
             else if (expression is SubQueryExpression)
             {
-                if(unaryNot)
+                if (unaryNot)
                 {
                     currentGenerator.FilterNotRegex(currentGenerator.ObjectVariable, regex, ignoreCase);
                 }
@@ -163,7 +163,7 @@ namespace Semiodesk.Trinity.Query
 
                 VisitBinarySubQueryExpression(expression.NodeType, subQuery, constant);
             }
-            else if(expression.HasExpressionOfType<QuerySourceReferenceExpression>())
+            else if (expression.HasExpressionOfType<QuerySourceReferenceExpression>())
             {
                 QuerySourceReferenceExpression querySource = expression.TryGetExpressionOfType<QuerySourceReferenceExpression>();
 
@@ -324,16 +324,16 @@ namespace Semiodesk.Trinity.Query
 
             SparqlVariable o = g.VariableGenerator.TryGetObjectVariable(member);
 
-            if(o == null)
+            if (o == null)
             {
                 // We have not visited the member before. It might be accessed in an order by clause..
-                if(g.QueryModel.HasOrdering(member))
+                if (g.QueryModel.HasOrdering(member))
                 {
                     o = g.VariableGenerator.CreateObjectVariable(member);
 
                     g.Where(member, o);
                 }
-                else if(member.Type == typeof(bool))
+                else if (member.Type == typeof(bool))
                 {
                     ConstantExpression constantExpression = Expression.Constant(true);
 
@@ -445,7 +445,7 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitSubQuery(SubQueryExpression subQuery)
         {
-            if(subQuery.QueryModel.ResultOperators.OfType<FirstResultOperator>().Any()
+            if (subQuery.QueryModel.ResultOperators.OfType<FirstResultOperator>().Any()
                 || subQuery.QueryModel.ResultOperators.OfType<LastResultOperator>().Any())
             {
                 // We currently do not support First, FirstOrDefault, Last and LastOrDefault on sub queries.
@@ -464,7 +464,7 @@ namespace Semiodesk.Trinity.Query
             subQuery.QueryModel.Accept(QueryModelVisitor);
 
             // Register the sub query expression with the variable generator (used for ORDER BYs in the outer query).
-            if(sg.ObjectVariable != null && sg.ObjectVariable.IsResultVariable)
+            if (sg.ObjectVariable != null && sg.ObjectVariable.IsResultVariable)
             {
                 // Note: We make a copy of the variable here so that aggregate variables are selected by their names only.
                 SparqlVariable o = new SparqlVariable(sg.ObjectVariable.Name);
@@ -492,14 +492,14 @@ namespace Semiodesk.Trinity.Query
 
         protected override Expression VisitUnary(UnaryExpression unary)
         {
-            if(unary.NodeType == ExpressionType.Not)
+            if (unary.NodeType == ExpressionType.Not)
             {
-                if(unary.Operand is MemberExpression)
+                if (unary.Operand is MemberExpression)
                 {
                     // This has already been handled with ExpressionTransformer.Transform().
                     return unary;
                 }
-                else if(unary.Operand is MethodCallExpression)
+                else if (unary.Operand is MethodCallExpression)
                 {
                     // Let VisitMethodCall decide if the operand is supported.
                     MethodCallExpression methodCall = unary.Operand as MethodCallExpression;
@@ -531,7 +531,7 @@ namespace Semiodesk.Trinity.Query
             // Either the member or aggregate variable has already been created previously by a SubQuery or a SelectClause..
             SparqlVariable o = g.VariableGenerator.TryGetObjectVariable(ordering.Expression);
 
-            if(o != null)
+            if (o != null)
             {
                 // In case the query has a LastResultOperator, we invert the direction of the first
                 // ordering to retrieve the last element of the result set.
@@ -578,6 +578,6 @@ namespace Semiodesk.Trinity.Query
             return expression;
         }
 
-#endregion
+        #endregion
     }
 }
