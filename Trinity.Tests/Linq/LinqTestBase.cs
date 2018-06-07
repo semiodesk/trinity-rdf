@@ -1222,7 +1222,7 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectResourcesFromQuerySourceProperty()
         {
-            var actual = (from image in Model.AsQueryable<Image>(true) where image.DepictedAgent.FirstName == "Alice" select image.DepictedAgent).ToList();
+            var actual = (from image in Model.AsQueryable<Image>() where image.DepictedAgent.FirstName == "Alice" select image.DepictedAgent).ToList();
 
             Assert.AreEqual(1, actual.Count);
             Assert.AreEqual("Alice", actual.First().FirstName);
