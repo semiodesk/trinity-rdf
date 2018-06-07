@@ -224,10 +224,15 @@ namespace Semiodesk.Trinity.Query
                 if (VariableGenerator.TryGetSubjectVariable(memberExpression) == VariableGenerator.GlobalSubject)
                 {
                     // In case the accessed member is the global query subject (i.e. from x select x.Y)..
-                    SparqlVariable s = VariableGenerator.TryGetSubjectVariable(querySource) ?? VariableGenerator.CreateSubjectVariable(querySource);
+                    SparqlVariable s = VariableGenerator.TryGetSubjectVariable(querySource);
                     SparqlVariable o = VariableGenerator.GlobalSubject;
 
-                    BuildMemberAccess(memberExpression, patternBuilder, member, s, o);
+                    if(s == null)
+                    {
+                        s = VariableGenerator.CreateSubjectVariable(querySource);
+
+                        BuildMemberAccess(memberExpression, patternBuilder, member, s, o);
+                    }
 
                     return o;
                 }
@@ -421,13 +426,11 @@ namespace Semiodesk.Trinity.Query
                         // If we want to filter for non-bound values we need to mark the properties as optional.
                         SparqlVariable o = BuildMemberAccessOptional(expression);
 
-                        LiteralExpression literalExpression = c.AsLiteralExpression();
-
                         // Mark the variable to be coalesced with the default value when selected.
-                        CoalescedVariables[o] = literalExpression;
+                        CoalescedVariables[o] = Expression.Constant(defaultValue).AsLiteralExpression();
 
                         // Comparing with null means the variable is not bound.
-                        PatternBuilder.Filter(e => e.Variable(o.Name) == literalExpression || !e.Bound(o.Name));
+                        PatternBuilder.Filter(e => e.Variable(o.Name) == c.AsLiteralExpression() || !e.Bound(o.Name));
                     }
                     else
                     {
