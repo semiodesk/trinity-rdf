@@ -132,6 +132,13 @@ namespace Semiodesk.Trinity.Query
             {
                 GenerateTypeConstraintOnSubject(this, selector);
             }
+
+            if(selector is MemberExpression)
+            {
+                MemberExpression memberExpression = selector as MemberExpression;
+
+                BuildMemberAccess(memberExpression);
+            }
         }
 
         private void GenerateTypeConstraintOnSubject(ISparqlQueryGenerator generator, Expression selector)
@@ -144,7 +151,7 @@ namespace Semiodesk.Trinity.Query
             }
             else if(selector is MemberExpression)
             {
-                type = (selector as MemberExpression).Member.DeclaringType;
+                type = (selector as MemberExpression).Member.GetMemberType();
             }
             else if(selector is QuerySourceReferenceExpression)
             {

@@ -32,7 +32,6 @@ using VDS.RDF.Query.Expressions.Primary;
 using VDS.RDF.Query;
 using System;
 using System.Linq;
-using System.Linq.Expressions;
 
 namespace Semiodesk.Trinity.Query
 {

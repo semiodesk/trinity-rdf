@@ -49,777 +49,829 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanAskResourceWithBinaryExpressionOnBoolean()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person;
+            var actual = (from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person).Any();
+            Assert.IsTrue(actual);
 
-            Assert.IsTrue(persons.Any());
+            actual = (from person in Model.AsQueryable<Person>() where !person.Status.Equals(true) select person).Any();
+            Assert.IsTrue(actual);
 
-            persons = from person in Model.AsQueryable<Person>() where person.Status select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Status select person).Any();
+            Assert.IsTrue(actual);
 
-            Assert.IsTrue(persons.Any());
+            actual = (from person in Model.AsQueryable<Person>() where person.Status == true select person).Any();
+            Assert.IsTrue(actual);
 
-            persons = from person in Model.AsQueryable<Person>() where person.Status == true select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person).Any();
+            Assert.IsTrue(actual);
 
-            Assert.IsTrue(persons.Any());
+            actual = (from person in Model.AsQueryable<Person>() where !person.Status select person).Any();
+            Assert.IsTrue(actual);
 
-            persons = from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person;
-
-            Assert.IsTrue(persons.Any());
-
-            persons = from person in Model.AsQueryable<Person>() where !person.Status select person;
-
-            Assert.IsTrue(persons.Any());
-
-            persons = from person in Model.AsQueryable<Person>() where person.Status == false select person;
-
-            Assert.IsTrue(persons.Any());
+            actual = (from person in Model.AsQueryable<Person>() where person.Status == false select person).Any();
+            Assert.IsTrue(actual);
         }
 
         [Test]
         public void CanAskResourceWithBinaryExpressionOnDateTime()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.Birthday.Equals(new DateTime(1948, 2, 4)) select person;
+            DateTime value = new DateTime(1948, 2, 4);
 
-            Assert.IsTrue(persons.Any());
+            var actual = (from person in Model.AsQueryable<Person>() where person.Birthday.Equals(value) select person).Any();
+            Assert.IsTrue(actual);
 
-            persons = from person in Model.AsQueryable<Person>() where person.Birthday == new DateTime(1948, 2, 4) select person;
+            actual = (from person in Model.AsQueryable<Person>() where !person.Birthday.Equals(value) select person).Any();
+            Assert.IsTrue(actual);
 
-            Assert.IsTrue(persons.Any());
+            actual = (from person in Model.AsQueryable<Person>() where person.Birthday == value select person).Any();
+            Assert.IsTrue(actual);
 
-            persons = from person in Model.AsQueryable<Person>() where person.Birthday == new DateTime(1950, 1, 1) select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Birthday != value select person).Any();
+            Assert.IsTrue(actual);
 
-            Assert.IsFalse(persons.Any());
+            actual = (from person in Model.AsQueryable<Person>() where person.Birthday < value select person).Any();
+            Assert.IsTrue(actual);
 
-            persons = from person in Model.AsQueryable<Person>() where person.Birthday != new DateTime(1948, 2, 4) select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Birthday <= value select person).Any();
+            Assert.IsTrue(actual);
 
-            Assert.IsTrue(persons.Any());
+            actual = (from person in Model.AsQueryable<Person>() where person.Birthday >= value select person).Any();
+            Assert.IsTrue(actual);
 
-            persons = from person in Model.AsQueryable<Person>() where person.Birthday < new DateTime(1948, 2, 4) select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Birthday > value select person).Any();
+            Assert.IsTrue(actual);
 
-            Assert.IsTrue(persons.Any());
-
-            persons = from person in Model.AsQueryable<Person>() where person.Birthday <= new DateTime(1948, 2, 4) select person;
-
-            Assert.IsTrue(persons.Any());
-
-            persons = from person in Model.AsQueryable<Person>() where person.Birthday >= new DateTime(1948, 2, 4) select person;
-
-            Assert.IsTrue(persons.Any());
-
-            persons = from person in Model.AsQueryable<Person>() where person.Birthday > new DateTime(1948, 2, 4) select person;
-
-            Assert.IsTrue(persons.Any());
+            actual = (from person in Model.AsQueryable<Person>() where person.Birthday > DateTime.MaxValue select person).Any();
+            Assert.IsFalse(actual);
         }
 
         [Test]
         public void CanAskResourceWithBinaryExpressionOnFloat()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.AccountBalance.Equals(100000) select person;
+            float value = 100000;
 
-            Assert.IsTrue(persons.Any());
+            var actual = (from person in Model.AsQueryable<Person>() where person.AccountBalance.Equals(value) select person).Any();
+            Assert.IsTrue(actual);
 
-            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance == 100000 select person;
+            actual = (from person in Model.AsQueryable<Person>() where !person.AccountBalance.Equals(value) select person).Any();
+            Assert.IsTrue(actual);
 
-            Assert.IsTrue(persons.Any());
+            actual = (from person in Model.AsQueryable<Person>() where person.AccountBalance == value select person).Any();
+            Assert.IsTrue(actual);
 
-            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance != 100000 select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.AccountBalance != value select person).Any();
+            Assert.IsTrue(actual);
 
-            Assert.IsTrue(persons.Any());
+            actual = (from person in Model.AsQueryable<Person>() where person.AccountBalance < value select person).Any();
+            Assert.IsTrue(actual);
 
-            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance < 100000 select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.AccountBalance <= value select person).Any();
+            Assert.IsTrue(actual);
 
-            Assert.IsFalse(persons.Any());
+            actual = (from person in Model.AsQueryable<Person>() where person.AccountBalance >= value select person).Any();
+            Assert.IsTrue(actual);
 
-            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance <= 100000 select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.AccountBalance > value select person).Any();
+            Assert.IsTrue(actual);
 
-            Assert.IsTrue(persons.Any());
-
-            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance >= 100000 select person;
-
-            Assert.IsTrue(persons.Any());
-
-            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance > 100000 select person;
-
-            Assert.IsTrue(persons.Any());
+            actual = (from person in Model.AsQueryable<Person>() where person.AccountBalance > float.MaxValue select person).Any();
+            Assert.IsFalse(actual);
         }
 
         [Test]
         public void CanAskResourceWithBinaryExpressionOnString()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" select person;
+            var actual = (from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" select person).Any();
+            Assert.IsTrue(actual);
 
-            Assert.IsTrue(persons.Any());
+            actual = (from person in Model.AsQueryable<Person>() where person.LastName == "Alice" select person).Any();
+            Assert.IsFalse(actual);
 
-            persons = from person in Model.AsQueryable<Person>() where person.LastName == "Alice" select person;
-
-            Assert.IsFalse(persons.Any());
-
-            persons = from person in Model.AsQueryable<Person>() where person.FirstName != "Alice" select person;
-
-            Assert.IsTrue(persons.Any());
+            actual = (from person in Model.AsQueryable<Person>() where person.FirstName != "Alice" select person).Any();
+            Assert.IsTrue(actual);
         }
 
         [Test]
         public void CanAskResourceWithBinaryExpressionOnResource()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.Group.Name.Equals("The Spiders") select person;
+            var actual = (from person in Model.AsQueryable<Person>() where person.Group.Name.Equals("The Spiders") select person).Any();
+            Assert.IsTrue(actual);
 
-            Assert.IsTrue(persons.Any());
+            actual = (from person in Model.AsQueryable<Person>() where person.Group.Name == "The Spiders" select person).Any();
+            Assert.IsTrue(actual);
 
-            persons = from person in Model.AsQueryable<Person>() where person.Group.Name == "The Spiders" select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Group.Name == "The Bugs" select person).Any();
+            Assert.IsFalse(actual);
 
-            Assert.IsTrue(persons.Any());
-
-            persons = from person in Model.AsQueryable<Person>() where person.Group.Name == "The Bugs" select person;
-
-            Assert.IsFalse(persons.Any());
-
-            persons = from person in Model.AsQueryable<Person>() where person.Group.Name != "The Spiders" select person;
-
-            Assert.IsTrue(persons.Any());
+            actual = (from person in Model.AsQueryable<Person>() where person.Group.Name != "The Spiders" select person).Any();
+            Assert.IsTrue(actual);
         }
 
         [Test]
         public void CanSelectBooleanWithBinaryExpression()
         {
-            var states = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Status;
+            // True
+            var expectedTrue = new[] { true };
 
-            Assert.AreEqual(1, states.ToList().Count);
+            var actual = (from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Status).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual);
 
-            states = from person in Model.AsQueryable<Person>() where person.Status select person.Status;
+            actual = (from person in Model.AsQueryable<Person>() where !person.Status.Equals(false) select person.Status).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual);
 
-            Assert.AreEqual(1, states.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Status select person.Status).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual);
 
-            states = from person in Model.AsQueryable<Person>() where person.Status == true select person.Status;
+            actual = (from person in Model.AsQueryable<Person>() where person.Status == true select person.Status).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual);
 
-            Assert.AreEqual(1, states.ToList().Count);
+            // True
+            var expectedFalse = new[] { false, false };
 
-            states = from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person.Status;
+            actual = (from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person.Status).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual);
 
-            Assert.AreEqual(2, states.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where !person.Status.Equals(true) select person.Status).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual);
 
-            states = from person in Model.AsQueryable<Person>() where !person.Status select person.Status;
+            actual = (from person in Model.AsQueryable<Person>() where !person.Status select person.Status).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual);
 
-            Assert.AreEqual(2, states.ToList().Count);
-
-            states = from person in Model.AsQueryable<Person>() where person.Status == false select person.Status;
-
-            Assert.AreEqual(2, states.ToList().Count);
-
-            states = from person in Model.AsQueryable<Person>() select person.Status;
-
-            Assert.AreEqual(3, states.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Status == false select person.Status).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual);
         }
 
         [Test]
         public void CanSelectIntegerWithBinaryExpression()
         {
-            var ages = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Age;
+            // True
+            var expectedTrue = new[] { 69 };
 
-            Assert.AreEqual(1, ages.ToList().Count);
+            var actual = (from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Age).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual);
 
-            ages = from person in Model.AsQueryable<Person>() where person.Status select person.Age;
+            actual = (from person in Model.AsQueryable<Person>() where !person.Status.Equals(false) select person.Age).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual);
 
-            Assert.AreEqual(1, ages.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Status select person.Age).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual);
 
-            ages = from person in Model.AsQueryable<Person>() where person.Status == true select person.Age;
+            actual = (from person in Model.AsQueryable<Person>() where person.Status == true select person.Age).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual);
 
-            Assert.AreEqual(1, ages.ToList().Count);
+            // False
+            var expectedFalse = new[] { 38, 76 };
 
-            ages = from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person.Age;
+            actual = (from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person.Age).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual);
 
-            Assert.AreEqual(2, ages.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where !person.Status.Equals(true) select person.Age).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual);
 
-            ages = from person in Model.AsQueryable<Person>() where !person.Status select person.Age;
+            actual = (from person in Model.AsQueryable<Person>() where !person.Status select person.Age).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual);
 
-            Assert.AreEqual(2, ages.ToList().Count);
-
-            ages = from person in Model.AsQueryable<Person>() where person.Status == false select person.Age;
-
-            Assert.AreEqual(2, ages.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Status == false select person.Age).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual);
         }
 
         [Test]
         public void CanSelectIntegerWithOrderBy()
         {
-            var n = from person in Model.AsQueryable<Person>() orderby person.KnownPeople.Count select person.KnownPeople.Count;
+            var actual = (from person in Model.AsQueryable<Person>() orderby person.KnownPeople.Count select person.KnownPeople.Count).ToList();
+            CollectionAssert.AreEqual(new[] { 0, 1, 2 }, actual);
 
-            Assert.AreEqual(new[] { 0, 1, 2 }, n.ToArray());
+            actual = (from person in Model.AsQueryable<Person>() orderby person.KnownPeople.Count descending select person.KnownPeople.Count).ToList();
+            CollectionAssert.AreEqual(new[] { 2, 1, 0 }, actual);
 
-            n = from person in Model.AsQueryable<Person>() orderby person.KnownPeople.Count descending select person.KnownPeople.Count;
+            actual = (from person in Model.AsQueryable<Person>() select person.KnownPeople.Count).OrderBy(i => i).ToList();
+            CollectionAssert.AreEqual(new[] { 0, 1, 2 }, actual);
 
-            Assert.AreEqual(new[] { 2, 1, 0 }, n.ToArray());
-
-            n = (from person in Model.AsQueryable<Person>() select person.KnownPeople.Count).OrderBy(i => i);
-
-            Assert.AreEqual(new[] { 0, 1, 2 }, n.ToArray());
-
-            n = (from person in Model.AsQueryable<Person>() select person.KnownPeople.Count).OrderByDescending(i => i);
-
-            Assert.AreEqual(new[] { 2, 1, 0 }, n.ToArray());
+            actual = (from person in Model.AsQueryable<Person>() select person.KnownPeople.Count).OrderByDescending(i => i).ToList();
+            CollectionAssert.AreEqual(new[] { 2, 1, 0 }, actual);
         }
 
         [Test]
         public void CanSelectIntegerWithResultOperatorSkip()
         {
-            var ages = (from person in Model.AsQueryable<Person>() select person.Age).Skip(0);
+            var actual = (from person in Model.AsQueryable<Person>() orderby person.Age select person.Age).Skip(0).ToList();
+            CollectionAssert.AreEqual(new[] { 38, 69, 76 }, actual);
 
-            Assert.AreEqual(3, ages.ToArray().Length);
+            actual = (from person in Model.AsQueryable<Person>() orderby person.Age select person.Age).Skip(1).ToList();
+            CollectionAssert.AreEqual(new[] { 69, 76 }, actual);
 
-            ages = (from person in Model.AsQueryable<Person>() select person.Age).Skip(1);
+            actual = (from person in Model.AsQueryable<Person>() orderby person.Age select person.Age).Skip(2).ToList();
+            CollectionAssert.AreEqual(new[] { 76 }, actual);
 
-            Assert.AreEqual(2, ages.ToArray().Length);
-
-            ages = (from person in Model.AsQueryable<Person>() select person.Age).Skip(2);
-
-            Assert.AreEqual(1, ages.ToArray().Length);
-
-            ages = (from person in Model.AsQueryable<Person>() select person.Age).Skip(3);
-
-            Assert.AreEqual(0, ages.ToArray().Length);
+            actual = (from person in Model.AsQueryable<Person>() orderby person.Age select person.Age).Skip(3).ToList();
+            CollectionAssert.IsEmpty(actual);
         }
 
         [Test]
         public void CanSelectIntegerWithResultOperatorTake()
         {
-            var ages = (from person in Model.AsQueryable<Person>() select person.Age).Take(0);
+            var actual = (from person in Model.AsQueryable<Person>() orderby person.Age select person.Age).Take(0).ToList();
+            CollectionAssert.IsEmpty(actual);
 
-            Assert.AreEqual(0, ages.ToArray().Length);
+            actual = (from person in Model.AsQueryable<Person>() orderby person.Age select person.Age).Take(1).ToList();
+            CollectionAssert.AreEqual(new[] { 38 }, actual);
 
-            ages = (from person in Model.AsQueryable<Person>() select person.Age).Take(1);
+            actual = (from person in Model.AsQueryable<Person>() orderby person.Age select person.Age).Take(2).ToList();
+            CollectionAssert.AreEqual(new[] { 38, 69 }, actual);
 
-            Assert.AreEqual(1, ages.ToArray().Length);
-
-            ages = (from person in Model.AsQueryable<Person>() select person.Age).Take(2);
-
-            Assert.AreEqual(2, ages.ToArray().Length);
-
-            ages = (from person in Model.AsQueryable<Person>() select person.Age).Take(3);
-
-            Assert.AreEqual(3, ages.ToArray().Length);
+            actual = (from person in Model.AsQueryable<Person>() orderby person.Age select person.Age).Take(3).ToList();
+            CollectionAssert.AreEqual(new[] { 38, 69, 76 }, actual);
         }
 
         [Test]
         public void CanSelectDateTimeWithBinaryExpression()
         {
-            var birthdays = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Birthday;
+            // True
+            var expectedTrue = new[] { new DateTime(1948, 2, 4) };
 
-            Assert.AreEqual(1, birthdays.ToList().Count);
+            var actual = (from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Birthday).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual);
 
-            birthdays = from person in Model.AsQueryable<Person>() where person.Status select person.Birthday;
+            actual = (from person in Model.AsQueryable<Person>() where !person.Status.Equals(false) select person.Birthday).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual);
 
-            Assert.AreEqual(1, birthdays.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Status select person.Birthday).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual);
 
-            birthdays = from person in Model.AsQueryable<Person>() where person.Status == true select person.Birthday;
+            actual = (from person in Model.AsQueryable<Person>() where person.Status == true select person.Birthday).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual);
 
-            Assert.AreEqual(1, birthdays.ToList().Count);
+            // False
+            var expectedFalse = new[] { new DateTime(1941, 5, 24), new DateTime(1978, 11, 10) };
 
-            birthdays = from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person.Birthday;
+            actual = (from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person.Birthday).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual);
 
-            Assert.AreEqual(2, birthdays.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where !person.Status.Equals(true) select person.Birthday).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual);
 
-            birthdays = from person in Model.AsQueryable<Person>() where !person.Status select person.Birthday;
+            actual = (from person in Model.AsQueryable<Person>() where !person.Status select person.Birthday).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual);
 
-            Assert.AreEqual(2, birthdays.ToList().Count);
-
-            birthdays = from person in Model.AsQueryable<Person>() where person.Status == false select person.Birthday;
-
-            Assert.AreEqual(2, birthdays.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Status == false select person.Birthday).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual);
         }
 
         [Test]
         public void CanSelectStringWithBinaryExpression()
         {
-            var names = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.FirstName;
+            // True
+            var expectedTrue = new[] { "Alice" };
 
-            Assert.AreEqual(1, names.ToList().Count);
+            var actual = (from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual);
 
-            names = from person in Model.AsQueryable<Person>() where person.Status select person.FirstName;
+            actual = (from person in Model.AsQueryable<Person>() where !person.Status.Equals(false) select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual);
 
-            Assert.AreEqual(1, names.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Status select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual);
 
-            names = from person in Model.AsQueryable<Person>() where person.Status == true select person.FirstName;
+            actual = (from person in Model.AsQueryable<Person>() where person.Status == true select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual);
 
-            Assert.AreEqual(1, names.ToList().Count);
+            // False
+            var expectedFalse = new[] { "Bob", "Eve" };
 
-            names = from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person.FirstName;
+            actual = (from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual);
 
-            Assert.AreEqual(2, names.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where !person.Status.Equals(true) select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual);
 
-            names = from person in Model.AsQueryable<Person>() where !person.Status select person.FirstName;
+            actual = (from person in Model.AsQueryable<Person>() where !person.Status select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual);
 
-            Assert.AreEqual(2, names.ToList().Count);
-
-            names = from person in Model.AsQueryable<Person>() where person.Status == false select person.FirstName;
-
-            Assert.AreEqual(2, names.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Status == false select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual);
         }
 
         [Test]
         public void CanSelectStringWithBinaryExpressionOnStringLength()
         {
-            var names = from person in Model.AsQueryable<Person>() where person.FirstName.Length == 5 select person.FirstName;
+            var actual = (from person in Model.AsQueryable<Person>() where person.FirstName.Length == 5 select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(new[] { "Alice" }, actual);
 
-            Assert.AreEqual(1, names.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.FirstName.Length != 5 select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(new[] { "Bob", "Eve" }, actual);
 
-            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length != 5 select person.FirstName;
+            actual = (from person in Model.AsQueryable<Person>() where person.FirstName.Length < 5 select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(new[] { "Bob", "Eve" }, actual);
 
-            Assert.AreEqual(2, names.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.FirstName.Length <= 5 select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(new[] { "Alice", "Bob", "Eve" }, actual);
 
-            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length < 5 select person.FirstName;
+            actual = (from person in Model.AsQueryable<Person>() where person.FirstName.Length > 5 select person.FirstName).ToList();
+            CollectionAssert.IsEmpty(actual);
 
-            Assert.AreEqual(2, names.ToList().Count);
-
-            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length <= 5 select person.FirstName;
-
-            Assert.AreEqual(3, names.ToList().Count);
-
-            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length > 5 select person.FirstName;
-
-            Assert.AreEqual(0, names.ToList().Count);
-
-            names = from person in Model.AsQueryable<Person>() where person.FirstName.Length >= 5 select person.FirstName;
-
-            Assert.AreEqual(1, names.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.FirstName.Length >= 5 select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(new[] { "Alice" }, actual);
         }
 
         [Test]
         public void CanSelectStringWithAsQueryable()
         {
-            var names = Model.AsQueryable<Person>().Select(p => p.FirstName);
+            var actual = (Model.AsQueryable<Person>().Select(p => p.FirstName));
+            CollectionAssert.AreEquivalent(new[] { "Alice", "Bob", "Eve" }, actual);
 
-            Assert.AreEqual(3, names.ToList().Count);
-
-            names = from p in Model.AsQueryable<Person>() select p.FirstName;
-
-            Assert.AreEqual(3, names.ToList().Count);
+            actual = (from p in Model.AsQueryable<Person>() select p.FirstName);
+            CollectionAssert.AreEquivalent(new[] { "Alice", "Bob", "Eve" }, actual);
         }
 
         [Test]
         public void CanSelectStringWithMethodEquals()
         {
-            var names = from person in Model.AsQueryable<Person>() where person.FirstName.Equals("Alice") select person.FirstName;
+            var actual = (from person in Model.AsQueryable<Person>() where person.FirstName.Equals("Alice") select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(new [] { "Alice" }, actual);
 
-            Assert.AreEqual(1, names.ToList().Count);
-
-            names = from person in Model.AsQueryable<Person>() where !person.FirstName.Equals("Alice") select person.FirstName;
-
-            Assert.AreEqual(2, names.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where !person.FirstName.Equals("Alice") select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(new [] { "Bob", "Eve" }, actual);
         }
 
         [Test]
         public void CanSelectStringWithMethodContains()
         {
-            var names = from person in Model.AsQueryable<Person>() where person.FirstName.Contains("e") select person.FirstName;
+            var actual = (from person in Model.AsQueryable<Person>() where person.FirstName.Contains("e") select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(new [] { "Alice", "Eve" }, actual);
 
-            Assert.AreEqual(2, names.ToList().Count);
-
-            names = from person in Model.AsQueryable<Person>() where !person.FirstName.Contains("e") select person.FirstName;
-
-            Assert.AreEqual(1, names.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where !person.FirstName.Contains("e") select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(new [] { "Bob" }, actual);
         }
 
         [Test]
         public void CanSelectStringWithMethodCount()
         {
-            var count = Model.AsQueryable<Person>().Count(p => p.FirstName == "Bob");
+            var actual = Model.AsQueryable<Person>().Count(p => p.FirstName == "Bob");
+            Assert.AreEqual(1, actual);
 
-            Assert.AreEqual(1, count);
+            actual = Model.AsQueryable<Person>().Count(p => p.FirstName != "Bob");
+            Assert.AreEqual(2, actual);
 
-            count = Model.AsQueryable<Person>().Count(p => p.FirstName != "Bob");
+            actual = Model.AsQueryable<Agent>().Count(p => p.FirstName != "Bob");
+            Assert.AreEqual(1, actual);
 
-            Assert.AreEqual(2, count);
+            actual = Model.AsQueryable<Person>().Count(p => p.KnownPeople.Any(q => q.FirstName.Equals("Alice") && q.LastName.StartsWith("C")));
+            Assert.AreEqual(1, actual);
 
-            count = Model.AsQueryable<Agent>().Count(p => p.FirstName != "Bob");
+            actual = Model.AsQueryable<Person>().Count(p => p.KnownPeople.Any(q => q.FirstName.Equals("Alice") && q.LastName.StartsWith("X")));
+            Assert.AreEqual(0, actual);
 
-            Assert.AreEqual(1, count);
+            actual = Model.AsQueryable<Person>().Count(p => p.KnownPeople.Any(q => q.FirstName.Equals("Alice") || q.LastName.StartsWith("d", StringComparison.InvariantCultureIgnoreCase)));
+            Assert.AreEqual(2, actual);
 
-            count = Model.AsQueryable<Person>().Count(p => p.KnownPeople.Any(q => q.FirstName.Equals("Alice") && q.LastName.StartsWith("C")));
-
-            Assert.AreEqual(1, count);
-
-            count = Model.AsQueryable<Person>().Count(p => p.KnownPeople.Any(q => q.FirstName.Equals("Alice") && q.LastName.StartsWith("X")));
-
-            Assert.AreEqual(0, count);
-
-            count = Model.AsQueryable<Person>().Count(p => p.KnownPeople.Any(q => q.FirstName.Equals("Alice") || q.LastName.StartsWith("d", StringComparison.InvariantCultureIgnoreCase)));
-
-            Assert.AreEqual(2, count);
-
-            count = Model.AsQueryable<Person>().Count(p => !p.Interests.Any());
-
-            Assert.AreEqual(2, count);
+            actual = Model.AsQueryable<Person>().Count(p => !p.Interests.Any());
+            Assert.AreEqual(2, actual);
         }
 
         [Test]
         public void CanSelectStringWithMethodStartsWith()
         {
-            var names = from person in Model.AsQueryable<Person>() where person.FirstName.StartsWith("A") select person.FirstName;
+            var expected = new [] { "Alice" };
 
-            Assert.AreEqual(1, names.ToList().Count);
+            // Case-sensitive
+            var actual = from person in Model.AsQueryable<Person>() where person.FirstName.StartsWith("A") select person.FirstName;
+            CollectionAssert.AreEquivalent(expected, actual);
 
-            names = from person in Model.AsQueryable<Person>() where person.FirstName.StartsWith("a", true, CultureInfo.CurrentCulture) select person.FirstName;
+            // Not case-sensitive
+            actual = from person in Model.AsQueryable<Person>() where person.FirstName.StartsWith("a", true, CultureInfo.CurrentCulture) select person.FirstName;
+            CollectionAssert.AreEquivalent(expected, actual);
 
-            Assert.AreEqual(1, names.ToList().Count);
+            actual = from person in Model.AsQueryable<Person>() where person.FirstName.StartsWith("a", StringComparison.CurrentCultureIgnoreCase) select person.FirstName;
+            CollectionAssert.AreEquivalent(expected, actual);
 
-            names = from person in Model.AsQueryable<Person>() where person.FirstName.StartsWith("a", StringComparison.CurrentCultureIgnoreCase) select person.FirstName;
-
-            Assert.AreEqual(1, names.ToList().Count);
-
-            names = from person in Model.AsQueryable<Person>() where person.FirstName.StartsWith("a", StringComparison.InvariantCultureIgnoreCase) select person.FirstName;
-
-            Assert.AreEqual(1, names.ToList().Count);
+            actual = from person in Model.AsQueryable<Person>() where person.FirstName.StartsWith("a", StringComparison.InvariantCultureIgnoreCase) select person.FirstName;
+            CollectionAssert.AreEquivalent(expected, actual);
         }
 
         [Test]
         public void CanSelectStringWithMethodEndsWith()
         {
-            var names = from person in Model.AsQueryable<Person>() where person.FirstName.EndsWith("e") select person.FirstName;
+            var expected = new [] { "Alice", "Eve" };
 
-            Assert.AreEqual(2, names.ToList().Count);
+            // Case-sensitive
+            var actual = (from person in Model.AsQueryable<Person>() where person.FirstName.EndsWith("e") select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(expected, actual);
 
-            names = from person in Model.AsQueryable<Person>() where person.FirstName.EndsWith("E", true, CultureInfo.CurrentCulture) select person.FirstName;
+            // Not case-sensitive
+            actual = (from person in Model.AsQueryable<Person>() where person.FirstName.EndsWith("E", true, CultureInfo.CurrentCulture) select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(expected, actual);
 
-            Assert.AreEqual(2, names.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.FirstName.EndsWith("E", StringComparison.CurrentCultureIgnoreCase) select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(expected, actual);
 
-            names = from person in Model.AsQueryable<Person>() where person.FirstName.EndsWith("E", StringComparison.CurrentCultureIgnoreCase) select person.FirstName;
-
-            Assert.AreEqual(2, names.ToList().Count);
-
-            names = from person in Model.AsQueryable<Person>() where person.FirstName.EndsWith("E", StringComparison.InvariantCultureIgnoreCase) select person.FirstName;
-
-            Assert.AreEqual(2, names.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.FirstName.EndsWith("E", StringComparison.InvariantCultureIgnoreCase) select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(expected, actual);
         }
 
         [Test]
         public void CanSelectStringWithRegexIsMatch()
         {
-            var names = from person in Model.AsQueryable<Person>() where Regex.IsMatch(person.FirstName, "e") select person.FirstName;
+            var expected = new [] { "Alice", "Eve" };
 
-            Assert.AreEqual(2, names.ToList().Count);
+            // Case-sensitive
+            var actual = (from person in Model.AsQueryable<Person>() where Regex.IsMatch(person.FirstName, "e") select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(expected, actual);
 
-            names = from person in Model.AsQueryable<Person>() where Regex.IsMatch(person.FirstName, "E", RegexOptions.IgnoreCase) select person.FirstName;
-
-            Assert.AreEqual(2, names.ToList().Count);
+            // Not case-sensitive
+            actual = (from person in Model.AsQueryable<Person>() where Regex.IsMatch(person.FirstName, "E", RegexOptions.IgnoreCase) select person.FirstName).ToList();
+            CollectionAssert.AreEquivalent(expected, actual);
         }
 
         [Test]
         public void CanSelectResourcesWithAsQueryable()
         {
-            var persons = Model.AsQueryable<Person>();
+            var expected = new [] { ex.Alice, ex.Bob, ex.Eve };
+            var actual = Model.AsQueryable<Person>().ToList();
 
-            Assert.AreEqual(3, persons.ToList().Count);
+            CollectionAssert.AreEquivalent(expected, actual.Select(p => p.Uri));
         }
 
         [Test]
         public void CanSelectResourceWithBinaryExpression()
         {
-            var groups = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Group;
+            // True
+            var expectedTrue = new [] { ex.TheSpiders };
 
-            Assert.AreEqual(1, groups.ToList().Count);
+            var actual = (from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person.Group).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual.Select(p => p.Uri));
 
-            groups = from person in Model.AsQueryable<Person>() where person.Status select person.Group;
+            actual = (from person in Model.AsQueryable<Person>() where person.Status select person.Group).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(1, groups.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Status == true select person.Group).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual.Select(p => p.Uri));
 
-            groups = from person in Model.AsQueryable<Person>() where person.Status == true select person.Group;
+            actual = (from person in Model.AsQueryable<Person>() where person.Status != false select person.Group).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(1, groups.ToList().Count);
+            // False
+            var expectedFalse = new [] { ex.AlicaKeys };
+            actual = (from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person.Group).ToList();
 
-            groups = from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person.Group;
+            CollectionAssert.AreEquivalent(expectedFalse, actual.Select(p => p.Uri));
+            actual = (from person in Model.AsQueryable<Person>() where !person.Status select person.Group).ToList();
 
-            Assert.AreEqual(2, groups.ToList().Count);
+            CollectionAssert.AreEquivalent(expectedFalse, actual.Select(p => p.Uri));
 
-            groups = from person in Model.AsQueryable<Person>() where !person.Status select person.Group;
-
-            Assert.AreEqual(2, groups.ToList().Count);
-
-            groups = from person in Model.AsQueryable<Person>() where person.Status == false select person.Group;
-
-            Assert.AreEqual(2, groups.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Status == false select person.Group).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual.Select(p => p.Uri));
         }
 
         [Test]
         public void CanSelectResourcesWithBinaryExpressionOnBoolean()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person;
+            // True
+            var expectedTrue = new [] { ex.Alice };
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            var actual = (from person in Model.AsQueryable<Person>() where person.Status.Equals(true) select person).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.Status select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Status select person).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Status == true select person).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.Status == true select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Status != false select person).ToList();
+            CollectionAssert.AreEquivalent(expectedTrue, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            // False
+            var expectedFalse = new UriRef[] { ex.Bob, ex.Eve };
 
-            persons = from person in Model.AsQueryable<Person>() where person.Status != true select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Status == false select person).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.Status.Equals(false) select person;
+            actual = (from person in Model.AsQueryable<Person>() where !person.Status select person).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToList().Count);
-
-            persons = from person in Model.AsQueryable<Person>() where person.Status == false select person;
-
-            Assert.AreEqual(2, persons.ToList().Count);
-
-            persons = from person in Model.AsQueryable<Person>() where person.Status != false select person;
-
-            Assert.AreEqual(1, persons.ToList().Count);
-
-            persons = from person in Model.AsQueryable<Person>() where !person.Status select person;
-
-            Assert.AreEqual(2, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Status != true select person).ToList();
+            CollectionAssert.AreEquivalent(expectedFalse, actual.Select(p => p.Uri));
         }
 
         [Test]
         public void CanSelectResourcesWithBinaryExpressionOnDateTime()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.Birthday.Equals(new DateTime(1948, 2, 4)) select person;
+            var value = new DateTime(1948, 2, 4);
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            // Equal
+            var expectedEqual = new UriRef[] { ex.Alice };
 
-            persons = from person in Model.AsQueryable<Person>() where person.Birthday == new DateTime(1948, 2, 4) select person;
+            var actual = (from person in Model.AsQueryable<Person>() where person.Birthday.Equals(value) select person).ToList();
+            CollectionAssert.AreEquivalent(expectedEqual, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Birthday == value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedEqual, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.Birthday != new DateTime(1948, 2, 4) select person;
+            // NotEqual
+            var expectedNotEqual = new UriRef[] { ex.Bob, ex.Eve };
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Birthday != value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedNotEqual, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.Birthday < new DateTime(1948, 2, 4) select person;
+            actual = (from person in Model.AsQueryable<Person>() where !person.Birthday.Equals(value) select person).ToList();
+            CollectionAssert.AreEquivalent(expectedNotEqual, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            // Less
+            var expectedLess = new UriRef[] { ex.Bob };
 
-            persons = from person in Model.AsQueryable<Person>() where person.Birthday <= new DateTime(1948, 2, 4) select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Birthday < value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedLess, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            // LessOrEqual
+            var expectedLessOrEqual = new UriRef[] { ex.Alice, ex.Bob };
 
-            persons = from person in Model.AsQueryable<Person>() where person.Birthday >= new DateTime(1948, 2, 4) select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Birthday <= value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedLessOrEqual, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            // Greater
+            var expectedGreater = new UriRef[] { ex.Eve };
 
-            persons = from person in Model.AsQueryable<Person>() where person.Birthday > new DateTime(1948, 2, 4) select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Birthday > value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedGreater, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            // GreaterOrEqual
+            var expectedGreaterOrEqual = new UriRef[] { ex.Alice, ex.Eve };
+
+            actual = (from person in Model.AsQueryable<Person>() where person.Birthday >= value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedGreaterOrEqual, actual.Select(p => p.Uri));
         }
 
         [Test]
         public void CanSelectResourcesWithBinaryExpressionOnInteger()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.Age.Equals(69) select person;
+            var value = 69;
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            // Equal
+            var expectedEqual = new UriRef[] { ex.Alice };
 
-            persons = from person in Model.AsQueryable<Person>() where person.Age == 69 select person;
+            var actual = (from person in Model.AsQueryable<Person>() where person.Age.Equals(value) select person).ToList();
+            CollectionAssert.AreEquivalent(expectedEqual, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Age == value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedEqual, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.Age != 69 select person;
+            // NotEqual
+            var expectedNotEqual = new UriRef[] { ex.Bob, ex.Eve };
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Age != value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedNotEqual, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.Age < 50 select person;
+            actual = (from person in Model.AsQueryable<Person>() where !person.Age.Equals(value) select person).ToList();
+            CollectionAssert.AreEquivalent(expectedNotEqual, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            // Less
+            var expectedLess = new UriRef[] { ex.Eve };
 
-            persons = from person in Model.AsQueryable<Person>() where person.Age <= 69 select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Age < value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedLess, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            // LessOrEqual
+            var expectedLessOrEqual = new UriRef[] { ex.Alice, ex.Eve };
 
-            persons = from person in Model.AsQueryable<Person>() where person.Age >= 69 select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Age <= value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedLessOrEqual, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            // Greater
+            var expectedGreater = new UriRef[] { ex.Bob };
+            actual = (from person in Model.AsQueryable<Person>() where person.Age > value select person).ToList();
 
-            persons = from person in Model.AsQueryable<Person>() where person.Age > 50 select person;
+            CollectionAssert.AreEquivalent(expectedGreater, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            // GreaterOrEqual
+            var expectedGreaterOrEqual = new UriRef[] { ex.Alice, ex.Bob };
+
+            actual = (from person in Model.AsQueryable<Person>() where person.Age >= value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedGreaterOrEqual, actual.Select(p => p.Uri));
         }
 
         [Test]
         public void CanSelectResourcesWithBinaryExpressionOnFloat()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.AccountBalance.Equals(100000) select person;
+            float value = 100000f;
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            // Equal
+            var expectedEqual = new UriRef[] { ex.Alice };
 
-            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance == 100000 select person;
+            var actual = (from person in Model.AsQueryable<Person>() where person.AccountBalance.Equals(value) select person).ToList();
+            CollectionAssert.AreEquivalent(expectedEqual, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.AccountBalance == value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedEqual, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance != 100000 select person;
+            // NotEqual
+            var expectedNotEqual = new UriRef[] { ex.Bob, ex.Eve };
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.AccountBalance != value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedNotEqual, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance < 100000 select person;
+            actual = (from person in Model.AsQueryable<Person>() where !person.AccountBalance.Equals(value) select person).ToList();
+            CollectionAssert.AreEquivalent(expectedNotEqual, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(0, persons.ToList().Count);
+            // Less
+            var expectedLess = new UriRef[] { ex.Bob };
 
-            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance <= 100000 select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.AccountBalance < value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedLess, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            // LessOrEqual
+            var expectedLessOrEqual = new UriRef[] { ex.Alice, ex.Bob };
 
-            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance >= 100000 select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.AccountBalance <= value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedLessOrEqual, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(3, persons.ToList().Count);
+            // Greater
+            var expectedGreater = new UriRef[] { ex.Eve };
 
-            persons = from person in Model.AsQueryable<Person>() where person.AccountBalance > 100000 select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.AccountBalance > value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedGreater, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            // GreaterOrEqual
+            var expectedGreaterOrEqual = new UriRef[] { ex.Alice, ex.Eve };
+
+            actual = (from person in Model.AsQueryable<Person>() where person.AccountBalance >= value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedGreaterOrEqual, actual.Select(p => p.Uri));
         }
 
         [Test]
         public void CanSelectResourcesWithBinaryExpressionOnString()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" select person;
+            string value = "Alice";
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            // Equal
+            var expectedEqual = new UriRef[] { ex.Alice };
 
-            persons = from person in Model.AsQueryable<Person>() where person.FirstName != "Alice" select person;
+            var actual = (from person in Model.AsQueryable<Person>() where person.FirstName.Equals(value) select person).ToList();
+            CollectionAssert.AreEquivalent(expectedEqual, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.FirstName == value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedEqual, actual.Select(p => p.Uri));
+
+            // NotEqual
+            var expectedNotEqual = new UriRef[] { ex.Bob, ex.Eve };
+
+            actual = (from person in Model.AsQueryable<Person>() where !person.FirstName.Equals(value) select person).ToList();
+            CollectionAssert.AreEquivalent(expectedNotEqual, actual.Select(p => p.Uri));
+
+            actual = (from person in Model.AsQueryable<Person>() where person.FirstName != value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedNotEqual, actual.Select(p => p.Uri));
         }
 
         [Test]
         public void CanSelectResourcesWithBinaryExpressionOnResource()
         {
-            Person p = new Person(ex.Alice);
+            Person value = new Person(ex.Alice);
 
-            var persons = from person in Model.AsQueryable<Person>() where person == p select person;
+            // Equal
+            var expectedEqual = new UriRef[] { ex.Alice };
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            var actual = (from person in Model.AsQueryable<Person>() where person.Equals(value) select person).ToList();
+            CollectionAssert.AreEquivalent(expectedEqual, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person != p select person;
+            actual = (from person in Model.AsQueryable<Person>() where person == value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedEqual, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            // NotEqual
+            var expectedNotEqual = new UriRef[] { ex.Bob, ex.Eve };
+
+            actual = (from person in Model.AsQueryable<Person>() where !person.Equals(value) select person).ToList();
+            CollectionAssert.AreEquivalent(expectedNotEqual, actual.Select(p => p.Uri));
+
+            actual = (from person in Model.AsQueryable<Person>() where person != value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedNotEqual, actual.Select(p => p.Uri));
         }
 
         [Test]
         public void CanSelectResourcesWithBinaryExpressionOnResourceMember()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.Group.Name.Equals("The Spiders") select person;
+            string value = "The Spiders";
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            // Equal
+            var expectedEqual = new UriRef[] { ex.Alice };
 
-            persons = from person in Model.AsQueryable<Person>() where person.Group.Name == "The Spiders" select person;
+            var actual = (from person in Model.AsQueryable<Person>() where person.Group.Name.Equals(value) select person).ToList();
+            CollectionAssert.AreEquivalent(expectedEqual, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Group.Name == value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedEqual, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.Group.Name != "The Spiders" select person;
+            // NotEqual
+            var expectedNotEqual = new UriRef[] { ex.Eve };
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where !person.Group.Name.Equals(value) select person).ToList();
+            CollectionAssert.AreEquivalent(expectedNotEqual, actual.Select(p => p.Uri));
+
+            actual = (from person in Model.AsQueryable<Person>() where person.Group.Name != value select person).ToList();
+            CollectionAssert.AreEquivalent(expectedNotEqual, actual.Select(p => p.Uri));
         }
 
         [Test]
         public void CanSelectResourcesWithBinaryExpressionOnUri()
         {
-            Person p = new Person(ex.Alice);
+            Person value = new Person(ex.Alice);
 
-            var persons = from person in Model.AsQueryable<Person>() where person.Uri == p.Uri select person;
+            // Equal
+            var expectedEqual = new UriRef[] { ex.Alice };
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            var actual = (from person in Model.AsQueryable<Person>() where person.Uri == value.Uri select person).ToList();
+            CollectionAssert.AreEquivalent(expectedEqual, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.Uri != p.Uri select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Group.Uri == ex.TheSpiders select person).ToList();
+            CollectionAssert.AreEquivalent(expectedEqual, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Group.Uri.Equals(ex.TheSpiders) select person).ToList();
+            CollectionAssert.AreEquivalent(expectedEqual, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.Group.Uri == ex.TheSpiders select person;
+            // NotEqual
+            var expectedNotEqual = new UriRef[] { ex.Bob, ex.Eve };
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Uri != value.Uri select person).ToList();
+            CollectionAssert.AreEquivalent(expectedNotEqual, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.Group.Uri != ex.TheSpiders select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Group.Uri != ex.TheSpiders select person).ToList();
+            CollectionAssert.AreEquivalent(expectedNotEqual, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where !person.Group.Uri.Equals(ex.TheSpiders) select person).ToList();
+            CollectionAssert.AreEquivalent(expectedNotEqual, actual.Select(p => p.Uri));
         }
 
         [Test]
         public void CanSelectResourcesWithBinaryExpressionOnNull()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.Group == null select person;
+            string value = "Bob";
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            var actual = (from person in Model.AsQueryable<Person>() where person.Group == null select person).ToList();
+            CollectionAssert.AreEquivalent(new [] { ex.Bob }, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.Group != null select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Group == null && person.FirstName == value select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Bob }, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Group == null && person.FirstName != value select person).ToList();
+            CollectionAssert.IsEmpty(actual);
 
-            persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Bob" && person.Group == null select person;
-
-            Assert.AreEqual(1, persons.ToList().Count);
-
-            persons = from person in Model.AsQueryable<Person>() where person.FirstName != "Bob" && person.Group == null select person;
-
-            Assert.AreEqual(0, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Group != null select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Alice, ex.Eve }, actual.Select(p => p.Uri));
         }
 
         [Test]
         public void CanSelectResourcesWithNodeTypeAndAlso()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" && person.LastName == "Cooper" select person;
+            var actual = (from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" && person.LastName == "Cooper" select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Alice }, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" && person.LastName == "Dylan" select person).ToList();
+            CollectionAssert.IsEmpty(actual);
 
-            persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" && person.LastName == "Dylan" select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" && person.LastName == "Cooper" && person.KnownPeople.Count == 1 select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Alice }, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(0, persons.ToList().Count);
-
-            persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" && person.LastName == "Cooper" && person.KnownPeople.Count == 1 select person;
-
-            Assert.AreEqual(1, persons.ToList().Count);
-
-            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Any(q => q.FirstName.Equals("Alice") && q.LastName.StartsWith("C")) select person;
-
-            Assert.AreEqual(1, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.KnownPeople.Any(q => q.FirstName.Equals("Alice") && q.LastName.StartsWith("C")) select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Bob }, actual.Select(p => p.Uri));
         }
 
         [Test]
         public void CanSelectResourcesWithNodeTypeOrElse()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" || person.FirstName == "Bob" select person;
+            var actual = (from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" || person.FirstName == "Bob" select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Alice, ex.Bob }, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" || person.FirstName == "Bob" || person.FirstName == "Eve" select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Alice, ex.Bob, ex.Eve }, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" || person.FirstName == "Bob" || person.FirstName == "Eve" select person;
-
-            Assert.AreEqual(3, persons.ToList().Count);
-
-            persons = from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" || person.FirstName == "Bob" || person.KnownPeople.Count == 0 select person;
-
-            Assert.AreEqual(3, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" || person.FirstName == "Bob" || person.KnownPeople.Count == 0 select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Alice, ex.Bob, ex.Eve }, actual.Select(p => p.Uri));
         }
 
         [Test]
         public void CanSelectResourcesWithEqualsOnString()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.FirstName.Equals("Alice") select person;
-
-            Assert.AreEqual(1, persons.ToList().Count);
+            var actual = (from person in Model.AsQueryable<Person>() where person.FirstName.Equals("Alice") select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Alice }, actual.Select(p => p.Uri));
         }
 
         [Test]
         public void CanSelectResourcesWithResultOperatorCount()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count != 1 select person;
+            var actual = (from person in Model.AsQueryable<Person>() where person.KnownPeople.Count != 1 select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Bob, ex.Eve }, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.KnownPeople.Count > 0 select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Alice, ex.Bob }, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count > 0 select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.KnownPeople.Count >= 1 select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Alice, ex.Bob }, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.KnownPeople.Count < 1 select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Eve }, actual.Select(p => p.Uri));
 
-            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count >= 1 select person;
-
-            Assert.AreEqual(2, persons.ToList().Count);
-
-            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count < 1 select person;
-
-            Assert.AreEqual(1, persons.ToList().Count);
-
-            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Count <= 1 select person;
-
-            Assert.AreEqual(2, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.KnownPeople.Count <= 1 select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Alice, ex.Eve }, actual.Select(p => p.Uri));
         }
 
         [Test]
@@ -1031,127 +1083,113 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectResourcesWithResultOperatorSkip()
         {
-            var persons = (from person in Model.AsQueryable<Person>() select person).Skip(0);
+            var actual = (from person in Model.AsQueryable<Person>() orderby person.FirstName select person).Skip(0).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Alice, ex.Bob, ex.Eve }, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(3, persons.ToArray().Length);
+            actual = (from person in Model.AsQueryable<Person>() orderby person.FirstName select person).Skip(1).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Bob, ex.Eve }, actual.Select(p => p.Uri));
 
-            persons = (from person in Model.AsQueryable<Person>() select person).Skip(1);
+            actual = (from person in Model.AsQueryable<Person>() orderby person.FirstName select person).Skip(2).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Eve }, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(2, persons.ToArray().Length);
-
-            persons = (from person in Model.AsQueryable<Person>() select person).Skip(2);
-
-            Assert.AreEqual(1, persons.ToArray().Length);
-
-            persons = (from person in Model.AsQueryable<Person>() select person).Skip(3);
-
-            Assert.AreEqual(0, persons.ToArray().Length);
+            actual = (from person in Model.AsQueryable<Person>() orderby person.FirstName select person).Skip(3).ToList();
+            CollectionAssert.IsEmpty(actual);
         }
 
         [Test]
         public void CanSelectResourcesWithResultOperatorTake()
         {
-            var persons = (from person in Model.AsQueryable<Person>() select person).Take(0);
+            var actual = (from person in Model.AsQueryable<Person>() orderby person.FirstName select person).Take(0).ToList();
+            CollectionAssert.IsEmpty(actual);
 
-            Assert.AreEqual(0, persons.ToArray().Length);
+            actual = (from person in Model.AsQueryable<Person>() orderby person.FirstName select person).Take(1).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Alice }, actual.Select(p => p.Uri));
 
-            persons = (from person in Model.AsQueryable<Person>() select person).Take(1);
+            actual = (from person in Model.AsQueryable<Person>() orderby person.FirstName select person).Take(2).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Alice, ex.Bob }, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(1, persons.ToArray().Length);
-
-            persons = (from person in Model.AsQueryable<Person>() select person).Take(2);
-
-            Assert.AreEqual(2, persons.ToArray().Length);
-
-            persons = (from person in Model.AsQueryable<Person>() select person).Take(3);
-
-            Assert.AreEqual(3, persons.ToArray().Length);
+            actual = (from person in Model.AsQueryable<Person>() orderby person.FirstName select person).Take(3).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Alice, ex.Bob, ex.Eve }, actual.Select(p => p.Uri));
         }
 
         [Test]
         public void CanSelectResourcesWithOperatorTypeOf()
         {
-            var resources = from resource in Model.AsQueryable<Resource>() select resource;
+            var actual0 = (from resource in Model.AsQueryable<Resource>() select resource).ToList();
+            CollectionAssert.AllItemsAreInstancesOfType(actual0, typeof(Resource));
+            Assert.AreEqual(7, actual0.Count);
 
-            Assert.AreEqual(7, resources.ToList().Count);
+            actual0 = (from resource in Model.AsQueryable<Resource>() where resource is Person select resource).ToList();
+            CollectionAssert.AllItemsAreInstancesOfType(actual0, typeof(Resource));
+            Assert.AreEqual(3, actual0.Count);
 
-            resources = from resource in Model.AsQueryable<Resource>() where resource is Person select resource;
+            var actual1 = (from resource in Model.AsQueryable<Person>() where resource.Interests.OfType<Group>().Count() > 0 select resource).ToList();
+            CollectionAssert.AllItemsAreInstancesOfType(actual1, typeof(Person));
+            Assert.AreEqual(1, actual1.Count);
 
-            Assert.AreEqual(3, resources.ToList().Count);
-
-            resources = from resource in Model.AsQueryable<Person>() where resource.Interests.OfType<Group>().Count() > 0 select resource;
-
-            Assert.AreEqual(1, resources.ToList().Count);
-
-            resources = from resource in Model.AsQueryable<Person>() where resource.Interests.OfType<Person>().Count() > 0 select resource;
-
-            Assert.AreEqual(1, resources.ToList().Count);
+            actual1 = (from resource in Model.AsQueryable<Person>() where resource.Interests.OfType<Person>().Count() > 0 select resource).ToList();
+            CollectionAssert.AllItemsAreInstancesOfType(actual1, typeof(Person));
+            Assert.AreEqual(1, actual1.Count);
         }
 
         [Test]
         public void CanSelectResourcesWithSubQuery()
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Any(p => p.FirstName == "Alice") select person;
+            var actual = (from person in Model.AsQueryable<Person>() where person.KnownPeople.Any(p => p.FirstName == "Alice") select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Bob }, actual.Select(p => p.Uri));
 
-            Assert.AreEqual(1, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.KnownPeople.Any(p => p.FirstName == "Alice") && person.KnownPeople.Any(p => p.FirstName == "Bob") && person.KnownPeople.Any(p => p.FirstName == "Eve") select person).ToList();
+            CollectionAssert.IsEmpty(actual);
 
-            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Any(p => p.FirstName == "Alice") && person.KnownPeople.Any(p => p.FirstName == "Bob") && person.KnownPeople.Any(p => p.FirstName == "Eve") select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.KnownPeople.Any(p => p.FirstName == "Alice") || person.KnownPeople.Any(p => p.FirstName == "Eve") select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Bob }, actual.Select(p => p.Uri));
 
-            var x = persons.ToList();
-
-            Assert.AreEqual(0, persons.ToList().Count);
-
-            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Any(p => p.FirstName == "Alice") || person.KnownPeople.Any(p => p.FirstName == "Eve") select person;
-
-            var y = persons.ToList();
-
-            Assert.AreEqual(1, persons.ToList().Count);
-
-            persons = from person in Model.AsQueryable<Person>() where person.KnownPeople.Any(p => p.FirstName == "Alice") || person.KnownPeople.Any(p => p.FirstName == "Bob") select person;
-
-            var z = persons.ToList();
-
-            Assert.AreEqual(2, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.KnownPeople.Any(p => p.FirstName == "Alice") || person.KnownPeople.Any(p => p.FirstName == "Bob") select person).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Alice, ex.Bob }, actual.Select(p => p.Uri));
         }
 
         [Test]
         public void CanSelectResourcesWithOrderBy()
         {
-            var persons = from person in Model.AsQueryable<Person>() orderby person.KnownPeople.Count select person;
+            var actual = (from person in Model.AsQueryable<Person>() orderby person.KnownPeople.Count select person).ToList();
 
-            var P = persons.ToArray();
+            Assert.AreEqual(3, actual.Count);
+            Assert.AreEqual(0, actual[0].KnownPeople.Count);
+            Assert.AreEqual(1, actual[1].KnownPeople.Count);
+            Assert.AreEqual(2, actual[2].KnownPeople.Count);
+            CollectionAssert.AllItemsAreInstancesOfType(actual, typeof(Person));
+            CollectionAssert.AllItemsAreInstancesOfType(actual[1].KnownPeople, typeof(Person));
+            CollectionAssert.AllItemsAreInstancesOfType(actual[2].KnownPeople, typeof(Person));
 
-            Assert.AreEqual(3, P.Length);
-            Assert.AreEqual(0, P[0].KnownPeople.Count);
-            Assert.AreEqual(1, P[1].KnownPeople.Count);
-            Assert.AreEqual(2, P[2].KnownPeople.Count);
+            actual = (from person in Model.AsQueryable<Person>() orderby person.KnownPeople.Count descending select person).ToList();
 
-            persons = from person in Model.AsQueryable<Person>() orderby person.KnownPeople.Count descending select person;
+            Assert.AreEqual(3, actual.Count);
+            Assert.AreEqual(2, actual[0].KnownPeople.Count);
+            Assert.AreEqual(1, actual[1].KnownPeople.Count);
+            Assert.AreEqual(0, actual[2].KnownPeople.Count);
+            CollectionAssert.AllItemsAreInstancesOfType(actual, typeof(Person));
+            CollectionAssert.AllItemsAreInstancesOfType(actual[0].KnownPeople, typeof(Person));
+            CollectionAssert.AllItemsAreInstancesOfType(actual[1].KnownPeople, typeof(Person));
 
-            P = persons.ToArray();
+            actual = (from person in Model.AsQueryable<Person>() select person).OrderBy(p => p.KnownPeople.Count).ToList();
 
-            Assert.AreEqual(3, P.Length);
-            Assert.AreEqual(2, P[0].KnownPeople.Count);
-            Assert.AreEqual(1, P[1].KnownPeople.Count);
-            Assert.AreEqual(0, P[2].KnownPeople.Count);
+            Assert.AreEqual(3, actual.Count);
+            Assert.AreEqual(0, actual[0].KnownPeople.Count);
+            Assert.AreEqual(1, actual[1].KnownPeople.Count);
+            Assert.AreEqual(2, actual[2].KnownPeople.Count);
+            CollectionAssert.AllItemsAreInstancesOfType(actual, typeof(Person));
+            CollectionAssert.AllItemsAreInstancesOfType(actual[1].KnownPeople, typeof(Person));
+            CollectionAssert.AllItemsAreInstancesOfType(actual[2].KnownPeople, typeof(Person));
 
-            persons = (from person in Model.AsQueryable<Person>() select person).OrderBy(p => p.KnownPeople.Count);
+            actual = (from person in Model.AsQueryable<Person>() select person).OrderByDescending(p => p.KnownPeople.Count).ToList();
 
-            P = persons.ToArray();
-
-            Assert.AreEqual(3, P.Length);
-            Assert.AreEqual(0, P[0].KnownPeople.Count);
-            Assert.AreEqual(1, P[1].KnownPeople.Count);
-            Assert.AreEqual(2, P[2].KnownPeople.Count);
-
-            persons = (from person in Model.AsQueryable<Person>() select person).OrderByDescending(p => p.KnownPeople.Count);
-
-            P = persons.ToArray();
-
-            Assert.AreEqual(3, P.Length);
-            Assert.AreEqual(2, P[0].KnownPeople.Count);
-            Assert.AreEqual(1, P[1].KnownPeople.Count);
-            Assert.AreEqual(0, P[2].KnownPeople.Count);
+            Assert.AreEqual(3, actual.Count);
+            Assert.AreEqual(2, actual[0].KnownPeople.Count);
+            Assert.AreEqual(1, actual[1].KnownPeople.Count);
+            Assert.AreEqual(0, actual[2].KnownPeople.Count);
+            CollectionAssert.AllItemsAreInstancesOfType(actual, typeof(Person));
+            CollectionAssert.AllItemsAreInstancesOfType(actual[0].KnownPeople, typeof(Person));
+            CollectionAssert.AllItemsAreInstancesOfType(actual[1].KnownPeople, typeof(Person));
         }
 
         [Test]
@@ -1166,48 +1204,47 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectResourcesWhichImplementInterface()
         {
-            var images = (from image in Model.AsQueryable<Image>() where image.DepictedAgent.Uri == ex.Alice select image).ToList();
+            var actual = (from image in Model.AsQueryable<Image>() where image.DepictedAgent.Uri == ex.Alice select image).ToList();
 
-            Assert.AreEqual(1, images.Count);
+            Assert.AreEqual(1, actual.Count);
+            CollectionAssert.AllItemsAreInstancesOfType(actual, typeof(Image));
 
             // Tests if retrieving resources is possible through extension methods 
             // that have generic parameters with iterfaces.
             Agent agent = Model.GetResource<Agent>(ex.Alice);
 
-            images = agent.GetImages<Image>(Model).Where(i => i.DepictedAgent == agent).ToList();
+            actual = agent.GetImages<Image>(Model).Where(i => i.DepictedAgent == agent).ToList();
 
-            Assert.AreEqual(1, images.Count);
+            Assert.AreEqual(1, actual.Count);
+            CollectionAssert.AllItemsAreInstancesOfType(actual, typeof(Image));
         }
 
         [Test]
         public void CanSelectResourcesFromQuerySourceProperty()
         {
-            var agents = (from image in Model.AsQueryable<Image>() where image.DepictedAgent.FirstName == "Alice" select image.DepictedAgent).ToList();
+            var actual = (from image in Model.AsQueryable<Image>(true) where image.DepictedAgent.FirstName == "Alice" select image.DepictedAgent).ToList();
 
-            Assert.AreEqual(1, agents.Count);
-            Assert.AreEqual("Alice", agents.First().FirstName);
+            Assert.AreEqual(1, actual.Count);
+            Assert.AreEqual("Alice", actual.First().FirstName);
+            CollectionAssert.AllItemsAreInstancesOfType(actual, typeof(Agent));
         }
 
         [Test]
         public void CanExecuteCollectionWithInferencingEnabled()
         {
-            // See if inferencing works on resource queries.
-            var agents = Model.AsQueryable<Agent>().ToList();
+            // Check if inferencing works on resource queries.
+            var actual0 = Model.AsQueryable<Agent>().ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.John }, actual0.Select(p => p.Uri));
 
-            Assert.AreEqual(1, agents.Count);
+            actual0 = Model.AsQueryable<Agent>(true).ToList();
+            CollectionAssert.AreEquivalent(new[] { ex.Alice, ex.Bob, ex.Eve, ex.John, ex.TheSpiders, ex.AlicaKeys }, actual0.Select(p => p.Uri));
 
-            agents = Model.AsQueryable<Agent>(true).ToList();
+            // Check if inferencing works with queries that return bindings.
+            var actual1 = Model.AsQueryable<Agent>().Select(a => a.FirstName).ToList();
+            CollectionAssert.AreEquivalent(new[] { "John" }, actual1);
 
-            Assert.AreEqual(6, agents.Count);
-
-            // See if inferencing works with queries that return bindings.
-            var names = Model.AsQueryable<Agent>().Select(a => a.FirstName).ToList();
-
-            Assert.AreEqual(1, names.Count);
-
-            names = Model.AsQueryable<Agent>(true).Select(a => a.FirstName).ToList();
-
-            Assert.AreEqual(4, names.Count);
+            actual1 = Model.AsQueryable<Agent>(true).Select(a => a.FirstName).ToList();
+            CollectionAssert.AreEquivalent(new[] { "John", "Alice", "Bob", "Eve" }, actual1);
         }
 
         [Test]
@@ -1215,62 +1252,38 @@ namespace Semiodesk.Trinity.Test.Linq
         {
             // See if inferencing works for boolean (ASK) queries.
             bool hasAgent = Model.AsQueryable<Agent>().Where(a => a.FirstName == "Alice").Any();
-
             Assert.IsFalse(hasAgent);
 
             hasAgent = Model.AsQueryable<Agent>(true).Where(a => a.FirstName == "Alice").Any();
-
             Assert.IsTrue(hasAgent);
 
             // See if inferencing works for queries that return numeric bindings.
             int agentCount = Model.AsQueryable<Agent>().Where(a => a.FirstName == "Alice").Count();
-
             Assert.AreEqual(0, agentCount);
 
             agentCount = Model.AsQueryable<Agent>(true).Where(a => a.FirstName == "Alice").Count();
-
             Assert.AreEqual(1, agentCount);
         }
 
         private void CanSelectResourcesWithVariableExpression(int minAge)
         {
-            var persons = from person in Model.AsQueryable<Person>() where person.Age > minAge select person;
+            var actual = (from person in Model.AsQueryable<Person>() where person.Age > minAge select person).ToList();
+            Assert.AreEqual(2, actual.Count);
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Age >= minAge select person).ToList();
+            Assert.AreEqual(2, actual.Count);
 
-            persons = from person in Model.AsQueryable<Person>() where person.Age >= minAge select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Age < minAge select person).ToList();
+            Assert.AreEqual(1, actual.Count);
 
-            Assert.AreEqual(2, persons.ToList().Count);
+            actual = (from person in Model.AsQueryable<Person>() where person.Age <= minAge select person).ToList();
+            Assert.AreEqual(1, actual.Count);
 
-            persons = from person in Model.AsQueryable<Person>() where person.Age < minAge select person;
+            actual = (from person in Model.AsQueryable<Person>() where person.Age != minAge select person).ToList();
+            Assert.AreEqual(3, actual.Count);
 
-            Assert.AreEqual(1, persons.ToList().Count);
-
-            persons = from person in Model.AsQueryable<Person>() where person.Age <= minAge select person;
-
-            Assert.AreEqual(1, persons.ToList().Count);
-
-            persons = from person in Model.AsQueryable<Person>() where person.Age != minAge select person;
-
-            Assert.AreEqual(3, persons.ToList().Count);
-
-            persons = from person in Model.AsQueryable<Person>() where person.Age == minAge select person;
-
-            Assert.AreEqual(0, persons.ToList().Count);
-        }
-
-        private void DumpModel()
-        {
-            Debug.WriteLine("");
-
-            ISparqlQuery q = new SparqlQuery(@"SELECT * WHERE { ?s ?p ?o . }");
-
-            foreach (BindingSet b in Model.GetBindings(q))
-            {
-                Debug.WriteLine(b["s"] + " " + b["p"] + " " + b["o"]);
-            }
-
-            Debug.WriteLine("");
+            actual = (from person in Model.AsQueryable<Person>() where person.Age == minAge select person).ToList();
+            Assert.AreEqual(0, actual.Count);
         }
     }
 }

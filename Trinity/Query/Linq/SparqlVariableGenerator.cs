@@ -176,13 +176,13 @@ namespace Semiodesk.Trinity.Query
         /// <returns></returns>
         public SparqlVariable TryGetSubjectVariable(Expression expression)
         {
-            if (expression is MemberExpression)
-            {
-                QuerySourceReferenceExpression sourceExpression = expression.TryGetQuerySourceReference();
+            //if (expression is MemberExpression)
+            //{
+            //    QuerySourceReferenceExpression sourceExpression = expression.TryGetQuerySourceReference();
 
-                return TryGetVariable(_subjectVariables, expression, sourceExpression) ?? _parentGenerator?.TryGetSubjectVariable(expression);
-            }
-            else
+            //    return TryGetVariable(_subjectVariables, expression, sourceExpression) ?? _parentGenerator?.TryGetSubjectVariable(expression);
+            //}
+            //else
             {
                 // For instances of ConstantExpression, QuerySourceReferenceExpression and SubQueryExpression there must be a direct mapping.
                 return TryGetVariable(_subjectVariables, expression) ?? _parentGenerator?.TryGetSubjectVariable(expression);
