@@ -27,6 +27,7 @@
 
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
+using Remotion.Linq.Clauses.Expressions;
 using Remotion.Linq.Clauses.ResultOperators;
 using System;
 using System.Collections.Generic;
@@ -102,7 +103,9 @@ namespace Semiodesk.Trinity.Query
                 BindSelectVariables();
             }
 
-            return QueryBuilder.BuildQuery().ToString();
+            var query = QueryBuilder.BuildQuery();
+
+            return query.ToString();
         }
 
         public void BindSelectVariables()
@@ -177,13 +180,13 @@ namespace Semiodesk.Trinity.Query
             // the declaring member and invoke a SPARQL built in call to get the value.
             if (member.IsBuiltInCall())
             {
-                MemberExpression parentExpression = memberExpression.Expression as MemberExpression;
+                MemberExpression parentMember = memberExpression.Expression as MemberExpression;
 
-                return BuildMemberAccess(parentExpression, patternBuilder);
+                return BuildMemberAccess(parentMember, patternBuilder);
             }
             else if (memberExpression.Expression is MemberExpression)
             {
-                MemberExpression parentExpression = memberExpression.Expression as MemberExpression;
+                MemberExpression parentMember = memberExpression.Expression as MemberExpression;
 
                 // Note: When we build an optional property path, we consider the relation to the 
                 // parent properties of the accessed property to be non-optional.
@@ -191,7 +194,7 @@ namespace Semiodesk.Trinity.Query
 
                 // We might encounter property paths (i.e. contact.Organization.Name). Therefore,
                 // implement the parent expression of the current member recursively..
-                SparqlVariable po = BuildMemberAccess(parentExpression, builder);
+                SparqlVariable po = BuildMemberAccess(parentMember, builder);
 
                 // If we are building a node on a property path (parentExpression != null), we associate 
                 // the object variable with the parent expression so that it becomes the subject of the parent.
@@ -214,24 +217,58 @@ namespace Semiodesk.Trinity.Query
 
                 return s;
             }
+            else if (memberExpression.Expression is QuerySourceReferenceExpression)
+            {
+                QuerySourceReferenceExpression querySource = memberExpression.Expression as QuerySourceReferenceExpression;
+
+                if (VariableGenerator.TryGetSubjectVariable(memberExpression) == VariableGenerator.GlobalSubject)
+                {
+                    // In case the accessed member is the global query subject (i.e. from x select x.Y)..
+                    SparqlVariable s = VariableGenerator.TryGetSubjectVariable(querySource);
+                    SparqlVariable o = VariableGenerator.GlobalSubject;
+
+                    if(s == null)
+                    {
+                        s = VariableGenerator.CreateSubjectVariable(querySource);
+
+                        BuildMemberAccess(memberExpression, patternBuilder, member, s, o);
+                    }
+
+                    return o;
+                }
+                else
+                {
+                    // Otherwise we are accessing a member of the globale query subject (i.e. from x where x.Y select x)
+                    SparqlVariable s = VariableGenerator.TryGetSubjectVariable(querySource) ?? VariableGenerator.GlobalSubject;
+                    SparqlVariable o = VariableGenerator.TryGetObjectVariable(memberExpression) ?? VariableGenerator.CreateObjectVariable(memberExpression);
+
+                    BuildMemberAccess(memberExpression, patternBuilder, member, s, o);
+
+                    return o;
+                }
+            }
             else
             {
-                SparqlVariable s = VariableGenerator.TryGetSubjectVariable(memberExpression) ?? SubjectVariable;
+                SparqlVariable s = VariableGenerator.TryGetSubjectVariable(memberExpression) ?? VariableGenerator.CreateSubjectVariable(memberExpression);
                 SparqlVariable o = VariableGenerator.TryGetObjectVariable(memberExpression) ?? VariableGenerator.CreateObjectVariable(memberExpression);
 
-                // Now we have handled parent properties, built-in calls (.Length) and accesses to .Uri
-                RdfPropertyAttribute p = memberExpression.TryGetRdfPropertyAttribute();
-
-                if (p == null)
-                {
-                    throw new Exception(string.Format("No RdfPropertyAttribute found for member: {0}", member.Name));
-                }
-
-                // Invoke the final user-handled member access triple builder callback.
-                patternBuilder.Where(t => t.Subject(s).PredicateUri(p.MappedUri).Object(o));
+                BuildMemberAccess(memberExpression, patternBuilder, member, s, o);
 
                 return o;
             }
+        }
+
+        private void BuildMemberAccess(MemberExpression memberExpression, IGraphPatternBuilder patternBuilder, MemberInfo member, SparqlVariable s, SparqlVariable o)
+        {
+            RdfPropertyAttribute p = memberExpression.TryGetRdfPropertyAttribute();
+
+            if (p == null)
+            {
+                throw new Exception(string.Format("No RdfPropertyAttribute found for member: {0}", member.Name));
+            }
+
+            // Invoke the final user-handled member access triple builder callback.
+            patternBuilder.Where(t => t.Subject(s).PredicateUri(p.MappedUri).Object(o));
         }
 
         protected void BuildBuiltInCall(MemberExpression memberExpression, Func<NumericExpression, BooleanExpression> buildFilter)
@@ -389,13 +426,11 @@ namespace Semiodesk.Trinity.Query
                         // If we want to filter for non-bound values we need to mark the properties as optional.
                         SparqlVariable o = BuildMemberAccessOptional(expression);
 
-                        LiteralExpression literalExpression = c.AsLiteralExpression();
-
                         // Mark the variable to be coalesced with the default value when selected.
-                        CoalescedVariables[o] = literalExpression;
+                        CoalescedVariables[o] = Expression.Constant(defaultValue).AsLiteralExpression();
 
                         // Comparing with null means the variable is not bound.
-                        PatternBuilder.Filter(e => e.Variable(o.Name) == literalExpression || !e.Bound(o.Name));
+                        PatternBuilder.Filter(e => e.Variable(o.Name) == c.AsLiteralExpression() || !e.Bound(o.Name));
                     }
                     else
                     {
@@ -463,13 +498,11 @@ namespace Semiodesk.Trinity.Query
                         // If we want to filter for non-bound values we need to mark the properties as optional.
                         SparqlVariable o = BuildMemberAccessOptional(expression);
 
-                        LiteralExpression literalExpression = c.AsLiteralExpression();
-
                         // Mark the variable to be coalesced with the default value when selected.
-                        CoalescedVariables[o] = literalExpression;
+                        CoalescedVariables[o] = Expression.Constant(defaultValue).AsLiteralExpression();
 
                         // Comparing with null means the variable is not bound.
-                        PatternBuilder.Filter(e => e.Variable(o.Name) != literalExpression || !e.Bound(o.Name));
+                        PatternBuilder.Filter(e => e.Variable(o.Name) != c.AsLiteralExpression() || !e.Bound(o.Name));
                     }
                     else
                     {
@@ -710,9 +743,14 @@ namespace Semiodesk.Trinity.Query
             {
                 SkipResultOperator op = QueryModel.ResultOperators.OfType<SkipResultOperator>().First();
 
-                if (int.Parse(op.Count.ToString()) > 0)
+                int skipCount = int.Parse(op.Count.ToString());
+
+                if (skipCount > 0)
                 {
-                    QueryModel.ResultOperators.Insert(0, new TakeResultOperator(Expression.Constant(int.MaxValue)));
+                    // OpenLink Virtuoso does not support returning more than 10000 results in an ordered query.
+                    int limit = QueryModel.HasOrdering() ? 10000 - skipCount : int.MaxValue;
+
+                    QueryModel.ResultOperators.Insert(0, new TakeResultOperator(Expression.Constant(limit)));
                 }
             }
         }

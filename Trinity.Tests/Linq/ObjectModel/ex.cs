@@ -40,16 +40,16 @@ namespace Semiodesk.Trinity.Test.Linq
         public static readonly string Prefix = "ex";
         public static string GetPrefix() { return Prefix; }
 
-        public static readonly Uri Alice = new Uri("http://example.org/test/Alice");
+        public static readonly UriRef Alice = new UriRef("http://example.org/test/Alice");
 
-        public static readonly Uri Bob = new Uri("http://example.org/test/Bob");
+        public static readonly UriRef Bob = new UriRef("http://example.org/test/Bob");
 
-        public static readonly Uri Eve = new Uri("http://example.org/test/Eve");
+        public static readonly UriRef Eve = new UriRef("http://example.org/test/Eve");
 
-        public static readonly Uri John = new Uri("http://example.org/test/John");
+        public static readonly UriRef John = new UriRef("http://example.org/test/John");
 
-        public static readonly Uri TheSpiders = new Uri("http://example.org/test/TheSpiders");
+        public static readonly UriRef TheSpiders = new UriRef("http://example.org/test/TheSpiders");
 
-        public static readonly Uri AlicaKeys = new Uri("http://example.org/test/AlicaKeys");
+        public static readonly UriRef AlicaKeys = new UriRef("http://example.org/test/AlicaKeys");
     }
 }

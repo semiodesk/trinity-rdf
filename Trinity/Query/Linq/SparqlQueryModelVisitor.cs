@@ -29,6 +29,7 @@ using Remotion.Linq;
 using Remotion.Linq.Clauses;
 using System;
 using System.Diagnostics;
+using VDS.RDF.Query.Optimisation;
 
 namespace Semiodesk.Trinity.Query
 {
@@ -168,7 +169,9 @@ namespace Semiodesk.Trinity.Query
 
             ISparqlQuery query = new SparqlQuery(queryString);
 
+#if DEBUG
             Debug.WriteLine(query.ToString());
+#endif
 
             return query;
         }
