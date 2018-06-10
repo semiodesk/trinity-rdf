@@ -1277,18 +1277,20 @@ namespace Semiodesk.Trinity.Test
             IModel m = GetModel();
             m.Clear();
 
+            Uri v = new Uri("urn:test#myUri");
+
             Uri t1Uri = new Uri("semio:test:testInstance1");
             MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
 
             // Add value using the mapping interface
-            Uri Value = new Uri("urn:test#myUri");
-            t1.uniqueUriTest = Value;
+            t1.uniqueUriTest = v;
             t1.Commit();
 
             MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
             // Test if value was stored
-            Assert.AreEqual(Value.ToString(), t_actual.uniqueUriTest.ToString());
+            Assert.IsNotNull(t_actual.uniqueUriTest);
+            Assert.AreEqual(v.ToString(), t_actual.uniqueUriTest.ToString());
 
             // Test if property is present
             var l = t_actual.ListProperties();
@@ -1298,10 +1300,10 @@ namespace Semiodesk.Trinity.Test
             // Test if ListValues works
             Assert.IsTrue( t_actual.ListValues(TestOntology.uniqueUriTest).First() is Uri);
             Uri u = (Uri)t_actual.ListValues(TestOntology.uniqueUriTest).First();
-            Assert.AreEqual(Value.ToString(), u.ToString());
+            Assert.AreEqual(v.ToString(), u.ToString());
 
             // Remove with RemoveProperty
-            t1.RemoveProperty(TestOntology.uniqueUriTest, Value);
+            t1.RemoveProperty(TestOntology.uniqueUriTest, v);
             t1.Commit();
 
             t_actual = m.GetResource<MappingTestClass>(t1Uri);

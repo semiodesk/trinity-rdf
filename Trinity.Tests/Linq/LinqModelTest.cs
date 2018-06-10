@@ -39,15 +39,16 @@ namespace Semiodesk.Trinity.Test.Linq
         public override void SetUp()
         {
             // DotNetRdf memory store.
-            //string connectionString = "provider=dotnetrdf";
+            string connectionString = "provider=dotnetrdf";
 
             // Stardog store.
             //string connectionString = "provider=stardog;host=http://localhost:5820;uid=admin;pw=admin;sid=test";
 
             // OpenLink Virtoso store.
-            string connectionString = string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString);
+            //string connectionString = string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString);
 
             Store = StoreFactory.CreateStore(connectionString);
+            Store.InitializeFromConfiguration();
 
             Model = Store.CreateModel(ex.Namespace);
             Model.Clear();
@@ -75,16 +76,15 @@ namespace Semiodesk.Trinity.Test.Linq
             p1.Birthday = new DateTime(1948, 2, 4);
             p1.Group = g1;
             p1.Status = true;
-            p1.AccountBalance = 10000000.1f;
+            p1.AccountBalance = 100000f;
             p1.Commit();
 
             Person p2 = Model.CreateResource<Person>(ex.Bob);
             p2.FirstName = "Bob";
             p2.LastName = "Dylan";
             p2.Age = 76;
-            //p2.Status = false;
             p2.Birthday = new DateTime(1941, 5, 24);
-            p2.AccountBalance = 1000000.1f;
+            p2.AccountBalance = 10000.1f;
             p2.Commit();
 
             Person p3 = Model.CreateResource<Person>(ex.Eve);
@@ -93,7 +93,7 @@ namespace Semiodesk.Trinity.Test.Linq
             p3.Birthday = new DateTime(1978, 11, 10);
             p3.Age = 38;
             p3.Group = g2;
-            p3.AccountBalance = 100000.0f;
+            p3.AccountBalance = 1000000.1f;
             p3.Commit();
 
             p1.KnownPeople.Add(p2);

@@ -370,18 +370,21 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(Uri uri, ITransaction transaction = null)
         {
-            SparqlQuery query = new SparqlQuery(String.Format("DESCRIBE {0} {1}", SparqlSerializer.SerializeUri(uri), DatasetClause));
+            ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?s ?p ?o " + DatasetClause + " WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
+            query.Bind("@subject", uri);
+
             ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);
 
             IList resources = result.GetResources().ToList();
 
             if (resources.Count > 0)
             {
-                Resource res = resources[0] as Resource;
-                res.IsNew = false;
-                res.IsReadOnly = true;
-                res.IsSynchronized = true;
-                res.SetModel(this);
+                Resource r = resources[0] as Resource;
+                r.IsNew = false;
+                r.IsReadOnly = true;
+                r.IsSynchronized = true;
+                r.SetModel(this);
+
                 return (IResource)resources[0];
             }
             else
@@ -410,19 +413,21 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
-            SparqlQuery query = new SparqlQuery(String.Format("DESCRIBE {0} {1}", SparqlSerializer.SerializeUri(uri), DatasetClause));
+            ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?s ?p ?o " + DatasetClause + " WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
+            query.Bind("@subject", uri);
+
             ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);
 
             IList resources = result.GetResources<T>().ToList();
 
             if (resources.Count > 0)
             {
-                T res = resources[0] as T;
-                res.IsNew = false;
-                res.IsSynchronized = true;
-                res.IsReadOnly = true;
-                res.SetModel(this);
-                return res;
+                T r = resources[0] as T;
+                r.IsNew = false;
+                r.IsSynchronized = true;
+                r.IsReadOnly = true;
+                r.SetModel(this);
+                return r;
             }
             else
             {
@@ -457,12 +462,14 @@ namespace Semiodesk.Trinity
                 if (typeof(IResource).IsAssignableFrom(type))
                 {
                     MethodInfo getResource = _getResourceMethod.MakeGenericMethod(type);
-                    Resource res = getResource.Invoke(this, new object[] { uri, transaction }) as Resource;
-                    res.IsNew = false;
-                    res.IsReadOnly = true;
-                    res.IsSynchronized = true;
-                    res.SetModel(this);
-                    return res;
+
+                    Resource r = getResource.Invoke(this, new object[] { uri, transaction }) as Resource;
+                    r.IsNew = false;
+                    r.IsReadOnly = true;
+                    r.IsSynchronized = true;
+                    r.SetModel(this);
+
+                    return r;
                 }
                 else
                 {
