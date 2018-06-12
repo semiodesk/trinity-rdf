@@ -70,7 +70,7 @@ Task("add-nuget").IsDependentOn("prepare-work-directory").Does(() => {
 		Information("Adding NuGet to "+project+"\n--------------------------------------------\n");
 		NuGetInstall(nugetPackage, new NuGetInstallSettings {
 			Source = new [] {MakeAbsolute(nugetSource).FullPath},
-			FallbackSource= new [] { "https://api.nuget.org/v3/index.json"},
+			FallbackSource= new [] { },
 			Verbosity = Cake.Common.Tools.NuGet.NuGetVerbosity.Detailed
 		});
 	}

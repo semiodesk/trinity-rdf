@@ -35,3 +35,4 @@ tests/cilg-integration/build/*
 tests/nuget-integration/work/*
 **/.vs/**
 tests/nuget-integration/blueprint/net35/packages.config
+_site/**

@@ -4,7 +4,8 @@
       "src": [
         {
           "files": [
-            "**/**.csproj"
+            "../../Trinity/Trinity.csproj",
+            "../../Trinity.Virtuoso/Trinity.Virtuoso.csproj"
           ],
           "exclude": [
             "**/obj/**",
@@ -16,8 +17,8 @@
         }
       ],
       "dest": "api",
-      "disableGitFeatures": false
-      //"filter": "filterConfig.yml"
+      "disableGitFeatures": false,
+      "filter": "filterConfig.yml"
     }
   ],
   "build": {
@@ -54,7 +55,7 @@
     ],
     "globalMetadata": {
       "_appTitle": "Semiodesk Trinity",
-      "_appFooter": "Copyright © 2015 - 2017 Semiodesk GmbH",
+      "_appFooter": "Copyright © 2018 Semiodesk GmbH",
       "_appLogoPath": "images/logo.svg",
       "_appFaviconPath": "images/favicon.ico"
     },
@@ -69,7 +70,7 @@
         ]
       }
     ],
-    "dest": "_site",
+    "dest": "../../_site",
     "globalMetadataFiles": [],
     "fileMetadataFiles": [],
     "template": [

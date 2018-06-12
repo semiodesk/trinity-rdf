@@ -1,131 +1,69 @@
 ### YamlMime:TableOfContent
-- uid: Semiodesk.Trinity
-  name: Semiodesk.Trinity
+- uid: FirstSteps.FirstQueries
+  name: FirstSteps.FirstQueries
   items:
-  - uid: Semiodesk.Trinity.BindingSet
-    name: BindingSet
-  - uid: Semiodesk.Trinity.Class
-    name: Class
-  - uid: Semiodesk.Trinity.FileSystemInfoExtensions
-    name: FileSystemInfoExtensions
-  - uid: Semiodesk.Trinity.FilterOperation
-    name: FilterOperation
-  - uid: Semiodesk.Trinity.FinishedTransaction
-    name: FinishedTransaction
-  - uid: Semiodesk.Trinity.IModel
-    name: IModel
-  - uid: Semiodesk.Trinity.IModelGroup
-    name: IModelGroup
-  - uid: Semiodesk.Trinity.InvalidQueryException
-    name: InvalidQueryException
-  - uid: Semiodesk.Trinity.IResource
-    name: IResource
-  - uid: Semiodesk.Trinity.IResourceQueryResult
-    name: IResourceQueryResult
-  - uid: Semiodesk.Trinity.ISparqlQuery
-    name: ISparqlQuery
-  - uid: Semiodesk.Trinity.ISparqlQueryResult
-    name: ISparqlQueryResult
-  - uid: Semiodesk.Trinity.IStore
-    name: IStore
-  - uid: Semiodesk.Trinity.ITransaction
-    name: ITransaction
-  - uid: Semiodesk.Trinity.ITransactional
-    name: ITransactional
-  - uid: Semiodesk.Trinity.MappingDiscovery
-    name: MappingDiscovery
-  - uid: Semiodesk.Trinity.MappingDiscovery.MappingClass
-    name: MappingDiscovery.MappingClass
-  - uid: Semiodesk.Trinity.Model
-    name: Model
-  - uid: Semiodesk.Trinity.ModelChangedDelegate
-    name: ModelChangedDelegate
-  - uid: Semiodesk.Trinity.ModelChangedEventArgs
-    name: ModelChangedEventArgs
-  - uid: Semiodesk.Trinity.ModelChangeType
-    name: ModelChangeType
-  - uid: Semiodesk.Trinity.ModelManager
-    name: ModelManager
-  - uid: Semiodesk.Trinity.NamespaceManager
-    name: NamespaceManager
-  - uid: Semiodesk.Trinity.NotifyPropertyChangedAttribute
-    name: NotifyPropertyChangedAttribute
-  - uid: Semiodesk.Trinity.Ontology
-    name: Ontology
-  - uid: Semiodesk.Trinity.OntologyDiscovery
-    name: OntologyDiscovery
-  - uid: Semiodesk.Trinity.Property
-    name: Property
-  - uid: Semiodesk.Trinity.PropertyMapping`1
-    name: PropertyMapping<T>
-    name.vb: PropertyMapping(Of T)
-  - uid: Semiodesk.Trinity.PropertyValue
-    name: PropertyValue
-  - uid: Semiodesk.Trinity.RdfClassAttribute
-    name: RdfClassAttribute
-  - uid: Semiodesk.Trinity.RdfNamespaceAttribute
-    name: RdfNamespaceAttribute
-  - uid: Semiodesk.Trinity.RdfPropertyAttribute
-    name: RdfPropertyAttribute
-  - uid: Semiodesk.Trinity.RdfSerializationFormat
-    name: RdfSerializationFormat
-  - uid: Semiodesk.Trinity.Resource
-    name: Resource
-  - uid: Semiodesk.Trinity.ResourceProvider
-    name: ResourceProvider
-  - uid: Semiodesk.Trinity.ResourceQuery
-    name: ResourceQuery
-  - uid: Semiodesk.Trinity.ResourceQuery.rdf
-    name: ResourceQuery.rdf
-  - uid: Semiodesk.Trinity.ResourceQueryResult
-    name: ResourceQueryResult
-  - uid: Semiodesk.Trinity.SortCriterion
-    name: SortCriterion
-  - uid: Semiodesk.Trinity.SortDirection
-    name: SortDirection
-  - uid: Semiodesk.Trinity.SparqlPreprocessor
-    name: SparqlPreprocessor
-  - uid: Semiodesk.Trinity.SparqlQuery
-    name: SparqlQuery
-  - uid: Semiodesk.Trinity.SparqlQueryItemsProvider`1
-    name: SparqlQueryItemsProvider<T>
-    name.vb: SparqlQueryItemsProvider(Of T)
-  - uid: Semiodesk.Trinity.SparqlQueryPreprocessor
-    name: SparqlQueryPreprocessor
-  - uid: Semiodesk.Trinity.SparqlQueryType
-    name: SparqlQueryType
-  - uid: Semiodesk.Trinity.SparqlQueryVariableScope
-    name: SparqlQueryVariableScope
-  - uid: Semiodesk.Trinity.SparqlSerializer
-    name: SparqlSerializer
-  - uid: Semiodesk.Trinity.SparqlUpdate
-    name: SparqlUpdate
-  - uid: Semiodesk.Trinity.StatementPattern
-    name: StatementPattern
-  - uid: Semiodesk.Trinity.StoreFactory
-    name: StoreFactory
-  - uid: Semiodesk.Trinity.StoreProvider
-    name: StoreProvider
-  - uid: Semiodesk.Trinity.StringExtensions
-    name: StringExtensions
-  - uid: Semiodesk.Trinity.TransactionEventArgs
-    name: TransactionEventArgs
-  - uid: Semiodesk.Trinity.UriExtensions
-    name: UriExtensions
-  - uid: Semiodesk.Trinity.UriRef
-    name: UriRef
-  - uid: Semiodesk.Trinity.VirtualizingResourceCollection`1
-    name: VirtualizingResourceCollection<T>
-    name.vb: VirtualizingResourceCollection(Of T)
-  - uid: Semiodesk.Trinity.VirtualizingSparqlCollection`1
-    name: VirtualizingSparqlCollection<T>
-    name.vb: VirtualizingSparqlCollection(Of T)
-  - uid: Semiodesk.Trinity.XsdTypeMapper
-    name: XsdTypeMapper
-  - uid: Semiodesk.Trinity.XsdTypeMapper.ObjectDeserializationDelegate
-    name: XsdTypeMapper.ObjectDeserializationDelegate
-  - uid: Semiodesk.Trinity.XsdTypeMapper.ObjectSerializationDelegate
-    name: XsdTypeMapper.ObjectSerializationDelegate
+  - uid: FirstSteps.FirstQueries.Agent
+    name: Agent
+  - uid: FirstSteps.FirstQueries.Group
+    name: Group
+  - uid: FirstSteps.FirstQueries.Person
+    name: Person
+  - uid: FirstSteps.FirstQueries.SemiodeskDiscovery
+    name: SemiodeskDiscovery
+- uid: MusicBrowser
+  name: MusicBrowser
+  items:
+  - uid: MusicBrowser.dces
+    name: dces
+  - uid: MusicBrowser.DCES
+    name: DCES
+  - uid: MusicBrowser.foaf
+    name: foaf
+  - uid: MusicBrowser.FOAF
+    name: FOAF
+  - uid: MusicBrowser.mo
+    name: mo
+  - uid: MusicBrowser.MO
+    name: MO
+  - uid: MusicBrowser.MusicBrowserForm
+    name: MusicBrowserForm
+  - uid: MusicBrowser.owl
+    name: owl
+  - uid: MusicBrowser.OWL
+    name: OWL
+  - uid: MusicBrowser.rdf
+    name: rdf
+  - uid: MusicBrowser.RDF
+    name: RDF
+  - uid: MusicBrowser.rdfs
+    name: rdfs
+  - uid: MusicBrowser.RDFS
+    name: RDFS
+  - uid: MusicBrowser.SemiodeskDiscovery
+    name: SemiodeskDiscovery
+- uid: MusicBrowser.ObjectModel
+  name: MusicBrowser.ObjectModel
+  items:
+  - uid: MusicBrowser.ObjectModel.Agent
+    name: Agent
+  - uid: MusicBrowser.ObjectModel.Group
+    name: Group
+  - uid: MusicBrowser.ObjectModel.Person
+    name: Person
+- uid: NetCore_Test
+  name: NetCore_Test
+  items:
+  - uid: NetCore_Test.Agent
+    name: Agent
+  - uid: NetCore_Test.foaf
+    name: foaf
+  - uid: NetCore_Test.FOAF
+    name: FOAF
+- uid: NugetIntegrationTest
+  name: NugetIntegrationTest
+  items:
+  - uid: NugetIntegrationTest.Agent
+    name: Agent
 - uid: Semiodesk.Trinity.CilGenerator
   name: Semiodesk.Trinity.CilGenerator
   items:
@@ -178,61 +116,6 @@
     name: MethodGeneratorTask
   - uid: Semiodesk.Trinity.CilGenerator.Tasks.PropertyGeneratorTaskHelper
     name: PropertyGeneratorTaskHelper
-- uid: Semiodesk.Trinity.Collections
-  name: Semiodesk.Trinity.Collections
-  items:
-  - uid: Semiodesk.Trinity.Collections.AsyncVirtualizingCollection`1
-    name: AsyncVirtualizingCollection<T>
-    name.vb: AsyncVirtualizingCollection(Of T)
-  - uid: Semiodesk.Trinity.Collections.AsyncVirtualizingResourceCollection`1
-    name: AsyncVirtualizingResourceCollection<T>
-    name.vb: AsyncVirtualizingResourceCollection(Of T)
-  - uid: Semiodesk.Trinity.Collections.AsyncVirtualizingSparqlCollection`1
-    name: AsyncVirtualizingSparqlCollection<T>
-    name.vb: AsyncVirtualizingSparqlCollection(Of T)
-  - uid: Semiodesk.Trinity.Collections.IItemsProvider`1
-    name: IItemsProvider<T>
-    name.vb: IItemsProvider(Of T)
-  - uid: Semiodesk.Trinity.Collections.VirtualizingCollection`1
-    name: VirtualizingCollection<T>
-    name.vb: VirtualizingCollection(Of T)
-- uid: Semiodesk.Trinity.Configuration
-  name: Semiodesk.Trinity.Configuration
-  items:
-  - uid: Semiodesk.Trinity.Configuration.FileSource
-    name: FileSource
-  - uid: Semiodesk.Trinity.Configuration.Graph
-    name: Graph
-  - uid: Semiodesk.Trinity.Configuration.GraphCollection
-    name: GraphCollection
-  - uid: Semiodesk.Trinity.Configuration.Ontology
-    name: Ontology
-  - uid: Semiodesk.Trinity.Configuration.OntologyCollection
-    name: OntologyCollection
-  - uid: Semiodesk.Trinity.Configuration.RuleSet
-    name: RuleSet
-  - uid: Semiodesk.Trinity.Configuration.RuleSetCollection
-    name: RuleSetCollection
-  - uid: Semiodesk.Trinity.Configuration.TrinitySettings
-    name: TrinitySettings
-  - uid: Semiodesk.Trinity.Configuration.VirtuosoStoreSettings
-    name: VirtuosoStoreSettings
-- uid: Semiodesk.Trinity.OntologyDeployment
-  name: Semiodesk.Trinity.OntologyDeployment
-  items:
-  - uid: Semiodesk.Trinity.OntologyDeployment.ConsoleLogger
-    name: ConsoleLogger
-  - uid: Semiodesk.Trinity.OntologyDeployment.ILogger
-    name: ILogger
-  - uid: Semiodesk.Trinity.OntologyDeployment.TaskLogger
-    name: TaskLogger
-  - uid: Semiodesk.Trinity.OntologyDeployment.VirtuosoSettings
-    name: VirtuosoSettings
-- uid: Semiodesk.Trinity.OntologyDeployment.Task
-  name: Semiodesk.Trinity.OntologyDeployment.Task
-  items:
-  - uid: Semiodesk.Trinity.OntologyDeployment.Task.DeployOntology
-    name: DeployOntology
 - uid: Semiodesk.Trinity.OntologyGenerator
   name: Semiodesk.Trinity.OntologyGenerator
   items:
@@ -250,37 +133,25 @@
     name: rdfs
   - uid: Semiodesk.Trinity.OntologyGenerator.TaskLogger
     name: TaskLogger
-- uid: Semiodesk.Trinity.Serialization
-  name: Semiodesk.Trinity.Serialization
+- uid: Semiodesk.Trinity.Virtuoso
+  name: Semiodesk.Trinity.Virtuoso
   items:
-  - uid: Semiodesk.Trinity.Serialization.JsonResourceConverter
-    name: JsonResourceConverter
-  - uid: Semiodesk.Trinity.Serialization.JsonResourceSerializerSettings
-    name: JsonResourceSerializerSettings
-- uid: Semiodesk.Trinity.Store
-  name: Semiodesk.Trinity.Store
-  items:
-  - uid: Semiodesk.Trinity.Store.dotNetRDFStore
-    name: dotNetRDFStore
-  - uid: Semiodesk.Trinity.Store.dotNetRDFStoreProvider
-    name: dotNetRDFStoreProvider
-  - uid: Semiodesk.Trinity.Store.ITripleProvider
-    name: ITripleProvider
-  - uid: Semiodesk.Trinity.Store.SparqlEndpointStoreProvider
-    name: SparqlEndpointStoreProvider
-  - uid: Semiodesk.Trinity.Store.StardogStoreProvider
-    name: StardogStoreProvider
-  - uid: Semiodesk.Trinity.Store.VirtuosoTransaction
+  - uid: Semiodesk.Trinity.Virtuoso.Graph
+    name: Graph
+  - uid: Semiodesk.Trinity.Virtuoso.Ruleset
+    name: Ruleset
+  - uid: Semiodesk.Trinity.Virtuoso.Rulesets
+    name: Rulesets
+  - uid: Semiodesk.Trinity.Virtuoso.VirtuosoStoreProvider
+    name: VirtuosoStoreProvider
+  - uid: Semiodesk.Trinity.Virtuoso.VirtuosoTransaction
     name: VirtuosoTransaction
-- uid: Semiodesk.Trinity.Utility
-  name: Semiodesk.Trinity.Utility
+- uid: Semiodesk.Trinity.Virtuoso.Legacy
+  name: Semiodesk.Trinity.Virtuoso.Legacy
   items:
-  - uid: Semiodesk.Trinity.Utility.Tuple`4
-    name: Tuple<T1, T2, T3, T4>
-    name.vb: Tuple(Of T1, T2, T3, T4)
-  - uid: Semiodesk.Trinity.Utility.Tuple`3
-    name: Tuple<T1, T2, T3>
-    name.vb: Tuple(Of T1, T2, T3)
-  - uid: Semiodesk.Trinity.Utility.Tuple`2
-    name: Tuple<T1, T2>
-    name.vb: Tuple(Of T1, T2)
+  - uid: Semiodesk.Trinity.Virtuoso.Legacy.Graph
+    name: Graph
+  - uid: Semiodesk.Trinity.Virtuoso.Legacy.Ruleset
+    name: Ruleset
+  - uid: Semiodesk.Trinity.Virtuoso.Legacy.Rulesets
+    name: Rulesets
