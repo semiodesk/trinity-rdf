@@ -3,7 +3,7 @@ apiRules:
       uidRegex: ^Mono\.Options
       type: Namespace
 - exclude:
-      hasAttribute:
-        uid: System.ComponentModel.EditorBrowsableAttribute
-        ctorArguments:
-        - System.ComponentModel.EditorBrowsableState.Never
+      #hasAttribute:
+      #  uid: System.ComponentModel.EditorBrowsableAttribute
+      #  ctorArguments:
+      #  - System.ComponentModel.EditorBrowsableState.Never

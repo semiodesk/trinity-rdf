@@ -2,8 +2,7 @@
 //#addin "Cake.XdtTransform"
 //#addin "Cake.SemVer"
 #tool nuget:?package=NUnit.ConsoleRunner&version=3.7.0
-#addin "Cake.DocFx"
-#tool "docfx.msbuild"
+
 
 var configuration = Argument("configuration", "Release");
 
@@ -53,7 +52,7 @@ void Build(FilePath solution)
     NuGetRestore(solution);
 
     Section("Build");
-    DotNetBuild(solution, settings => settings
+    MSBuild(solution, settings => settings
             .SetConfiguration(configuration)
             .WithTarget("Rebuild")
             .SetVerbosity(Verbosity.Quiet));
@@ -129,7 +128,7 @@ Task("Documentation")
     .IsDependentOn("Test")
     .Does(()=>{
     
-        DocFxBuild("./doc/docfx_project/docfx.json");
+        //DocFxBuild("./doc/docfx_project/docfx.json");
     });
 
 Task("Integration-Test-Build")
