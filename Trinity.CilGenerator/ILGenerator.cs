@@ -94,81 +94,84 @@ namespace Semiodesk.Trinity.CilGenerator
 
             try
             {
-                var module = CustomResolver.LoadMainModule(sourceFile);
-                module.ReadSymbols();
-                FileInfo sourceDll = new FileInfo(sourceFile);
-
-                Assembly = module.Assembly;
-                var resolver = module.AssemblyResolver;
-                var trinityRef = module.AssemblyReferences.Where(x => x.Name == "Semiodesk.Trinity").First();
-                var trinity = resolver.Resolve(trinityRef);
-                var g = trinity.MainModule.Types.Where(b => b.FullName == "Semiodesk.Trinity.PropertyMapping`1").First();
-                propertyMapping = g;
-                
-
-                Log.LogMessage("------ Begin Task: ImplementRdfMapping [{0}]", Assembly.Name);
-
-                bool assemblyModified = false;
-
-                // Iterate over all types in the main assembly.
-                foreach (TypeDefinition type in Assembly.MainModule.Types)
+                using (var module = CustomResolver.LoadMainModule(sourceFile))
                 {
-                    // In the following we need to seperate between properties which have the following attribute combinations:
-                    //  - PropertyAttribute with PropertyChangedAttribute
-                    //  - PropertyAttribute without PropertyChangedAttribute
-                    //  - PropertyChangedAttribute only
-                    HashSet<PropertyDefinition> mapping = type.GetPropertiesWithAttribute("RdfPropertyAttribute").ToHashSet();
-                    HashSet<PropertyDefinition> notifying = type.GetPropertiesWithAttribute("NotifyPropertyChangedAttribute").ToHashSet();
 
-                    // Implement the GetTypes()-method for the given type.
-                    if (mapping.Any() || type.TryGetCustomAttribute("RdfClassAttribute").Any())
+                    module.ReadSymbols();
+                    FileInfo sourceDll = new FileInfo(sourceFile);
+
+                    Assembly = module.Assembly;
+                    var resolver = module.AssemblyResolver;
+                    var trinityRef = module.AssemblyReferences.Where(x => x.Name == "Semiodesk.Trinity").First();
+                    var trinity = resolver.Resolve(trinityRef);
+                    var g = trinity.MainModule.Types.Where(b => b.FullName == "Semiodesk.Trinity.PropertyMapping`1").First();
+                    propertyMapping = g;
+
+
+                    Log.LogMessage("------ Begin Task: ImplementRdfMapping [{0}]", Assembly.Name);
+
+                    bool assemblyModified = false;
+
+                    // Iterate over all types in the main assembly.
+                    foreach (TypeDefinition type in Assembly.MainModule.Types)
                     {
-                        ImplementRdfClassTask implementClass = new ImplementRdfClassTask(this, type);
-                        if (implementClass.CanExecute())
+                        // In the following we need to seperate between properties which have the following attribute combinations:
+                        //  - PropertyAttribute with PropertyChangedAttribute
+                        //  - PropertyAttribute without PropertyChangedAttribute
+                        //  - PropertyChangedAttribute only
+                        HashSet<PropertyDefinition> mapping = type.GetPropertiesWithAttribute("RdfPropertyAttribute").ToHashSet();
+                        HashSet<PropertyDefinition> notifying = type.GetPropertiesWithAttribute("NotifyPropertyChangedAttribute").ToHashSet();
+
+                        // Implement the GetTypes()-method for the given type.
+                        if (mapping.Any() || type.TryGetCustomAttribute("RdfClassAttribute").Any())
                         {
-                            // RDF types _must_ be implemented for classes with mapped properties.
-                            assemblyModified = implementClass.Execute();
+                            ImplementRdfClassTask implementClass = new ImplementRdfClassTask(this, type);
+                            if (implementClass.CanExecute())
+                            {
+                                // RDF types _must_ be implemented for classes with mapped properties.
+                                assemblyModified = implementClass.Execute();
+                            }
+                        }
+
+                        // Properties which do not raise the PropertyChanged-event can be implemented using minimal IL code.
+                        if (mapping.Any())
+                        {
+                            var implementProperty = new ImplementRdfPropertyTask(this, type);
+
+                            foreach (PropertyDefinition p in mapping.Except(notifying).Where(implementProperty.CanExecute))
+                            {
+                                assemblyModified = implementProperty.Execute(p);
+                            }
+                        }
+
+                        // Properties which raise the PropertyChanged-event may also have the RdfProperty attribute.
+                        if (notifying.Any())
+                        {
+                            var implementPropertyChanged = new ImplementNotifyPropertyChangedTask(this, type);
+
+                            foreach (PropertyDefinition p in notifying.Where(implementPropertyChanged.CanExecute))
+                            {
+                                implementPropertyChanged.IsMappedProperty = mapping.Contains(p);
+
+                                assemblyModified = implementPropertyChanged.Execute(p);
+                            }
                         }
                     }
 
-                    // Properties which do not raise the PropertyChanged-event can be implemented using minimal IL code.
-                    if (mapping.Any())
+                    if (assemblyModified)
                     {
-                        var implementProperty = new ImplementRdfPropertyTask(this, type);
+                        var param = new WriterParameters { WriteSymbols = WriteSymbols };
 
-                        foreach (PropertyDefinition p in mapping.Except(notifying).Where(implementProperty.CanExecute))
-                        {
-                            assemblyModified = implementProperty.Execute(p);
-                        }
+                        FileInfo targetDll = new FileInfo(targetFile);
+                        if (sourceDll.FullName != targetDll.FullName)
+                            Assembly.Write(targetDll.FullName, param);
+                        else
+                            Assembly.Write(param);
+
                     }
 
-                    // Properties which raise the PropertyChanged-event may also have the RdfProperty attribute.
-                    if (notifying.Any())
-                    {
-                        var implementPropertyChanged = new ImplementNotifyPropertyChangedTask(this, type);
-
-                        foreach (PropertyDefinition p in notifying.Where(implementPropertyChanged.CanExecute))
-                        {
-                            implementPropertyChanged.IsMappedProperty = mapping.Contains(p);
-
-                            assemblyModified = implementPropertyChanged.Execute(p);
-                        }
-                    }
+                    result = true;
                 }
-
-                if (assemblyModified)
-                {
-                    var param = new WriterParameters { WriteSymbols = WriteSymbols };
-
-                    FileInfo targetDll = new FileInfo(targetFile);
-                    if (sourceDll.FullName != targetDll.FullName)
-                        Assembly.Write(targetDll.FullName, param);
-                    else
-                        Assembly.Write(param);
-
-                }
-
-                result = true;
             }
             catch (Exception ex)
             {

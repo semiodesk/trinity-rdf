@@ -26,7 +26,7 @@ namespace Semiodesk.Trinity.CilGenerator.Resolver
             });
 
             resolver.TargetFramework = module.Assembly.DetectTargetFrameworkId();
-
+            
             return module;
         }
     }
