@@ -33,8 +33,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
-using Mono.Cecil.Rocks;
-using NUnit.Framework;
+
 
 namespace Semiodesk.Trinity.CilGenerator.Tasks
 {
@@ -75,7 +74,8 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
             MethodDefinition raisePropertyChanged = Type.TryGetInheritedGenericMethod("RaisePropertyChanged", typeof(string));
 
-            Assert.NotNull(raisePropertyChanged, "{0}: Found no suitable RaisePropertyChanged method.", Type.FullName);
+            if(raisePropertyChanged == null )
+                throw new ArgumentException("{0}: Found no suitable RaisePropertyChanged method.", Type.FullName);
 
             if (IsMappedProperty)
             {
@@ -188,12 +188,14 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
             IList<Instruction> roe = GetReturnOnEqualsInstructionsForMapping(setValueGenerator.Processor, mappingField, getValue, sv.First(), ret).ToList();
 
-            Assert.Greater(roe.Count, 0, "{0}.{1}: Failed to generate byte code for return on equality.", Type.FullName, property.Name);
+            if(roe.Count <= 0)
+                throw new ArgumentException(string.Format("{0}.{1}: Failed to generate byte code for return on equality.", Type.FullName, property.Name));
 
             // Instructions for calling RaisePropertyChanged()
             IList<Instruction> rpc = GetRaisePropertyChangedInstructions(setValueGenerator.Processor, property, raisePropertyChanged).ToList();
 
-            Assert.Greater(rpc.Count, 0, "{0}: Failed to generate byte code for calling the RaisePropertyChanged() method.", Type.FullName);
+            if(rpc.Count <= 0)
+                throw new ArgumentException("{0}: Failed to generate byte code for calling the RaisePropertyChanged() method.", Type.FullName);
 
             // Re-write the instructions for the SetValue() method generator.
             setValueGenerator.Processor.Body.MaxStackSize = IsMappedProperty ? 4 : 2;

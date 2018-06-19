@@ -33,7 +33,6 @@ using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Rocks;
 using Semiodesk.Trinity.CilGenerator.Extensions;
-using NUnit.Framework;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
@@ -118,7 +117,8 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             TypeReference mappingType = MainModule.ImportReference(ILGenerator.propertyMapping);
             
 
-            Assert.IsNotNull(mappingType, "{0}: Failed to import type {1}.", Assembly.FullName, mappingType.FullName);
+            if(mappingType == null)
+                throw new ArgumentException(string.Format("{0}: Failed to import type {1}.", Assembly.FullName, mappingType.FullName));
 
             // Add the property type as generic parameter.
             GenericInstanceType fieldType = new GenericInstanceType(mappingType);
@@ -204,7 +204,8 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             // Load a reference to the GetValue method for the property mapping.
             MethodReference getValue = Type.TryGetGetValueMethod(Assembly, p.Property.PropertyType);
 
-            Assert.IsNotNull(getValue, "{0}: Type has no GetValue() method.", p.Property.DeclaringType.FullName);
+            if(getValue == null)
+                throw new ArgumentException("{0}: Type has no GetValue() method.", p.Property.DeclaringType.FullName);
 
             MethodGeneratorTask generator = new MethodGeneratorTask(p.Property.GetMethod);
 
@@ -218,7 +219,8 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             // Load a reference to the SetValue method for the property mapping.
             MethodReference setValue = Type.TryGetSetValueMethod(Assembly, PropertyMappingType, p.Property.PropertyType);
 
-            Assert.IsNotNull(setValue, "{0}: Type has no SetValue() method.", p.Property.DeclaringType.FullName);
+            if(setValue == null)
+                throw new ArgumentException("{0}: Type has no SetValue() method.", p.Property.DeclaringType.FullName);
 
             MethodGeneratorTask generator = new MethodGeneratorTask(p.Property.SetMethod);
 

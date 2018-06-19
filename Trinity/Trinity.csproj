@@ -51,7 +51,7 @@
       </TfmSpecificPackageFile>
 
       <!-- Here is the tools folder -->
-      <TfmSpecificPackageFile Include="$(OutputPath)\../tools\*" Condition="'$(TargetFramework)'=='net40'">
+      <TfmSpecificPackageFile Include="$(OutputPath)\../tools\*.exe*;$(OutputPath)\../tools\*.dll" Condition="'$(TargetFramework)'=='net40'">
         <PackagePath>tools</PackagePath>
       </TfmSpecificPackageFile>
 

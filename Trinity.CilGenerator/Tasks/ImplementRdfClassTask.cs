@@ -29,9 +29,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
-using Mono.Cecil.Rocks;
 using Semiodesk.Trinity.CilGenerator.Extensions;
-using NUnit.Framework;
 using System;
 
 namespace Semiodesk.Trinity.CilGenerator.Tasks
@@ -107,8 +105,11 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                 }
             }
 
-            Assert.NotNull(getTypes, "{0}: Found no GetTypes() method for type.", Type.FullName);
-            Assert.NotNull(getTypeBase, "{0}: Failed to find virtual base method of {1}", Type.FullName, getTypes.FullName);
+            if (getTypes == null)
+                throw new ArgumentException("{0}: Found no GetTypes() method for type.", Type.FullName);
+
+            if(getTypeBase == null)
+                throw new ArgumentException(string.Format("{0}: Failed to find virtual base method of {1}", Type.FullName, getTypes.FullName));
 
             // The override method must be created in the module where the type is defined.
             getTypes = getTypeBase.GetOverrideMethod(MainModule);
