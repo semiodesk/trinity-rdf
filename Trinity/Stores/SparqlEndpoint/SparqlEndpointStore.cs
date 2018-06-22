@@ -49,10 +49,19 @@ namespace Semiodesk.Trinity.Store
 
         SparqlRemoteEndpoint _endpoint;
 
+        /// <summary>
+        /// Indicates if the store is ready to be queried.
+        /// </summary>
         public bool IsReady
         {
             get { throw new NotImplementedException(); }
         }
+
+        /// <summary>
+        /// Set this property to log the SPARQL queries which are executed on this store.
+        /// For example, to log to the console, set this property to System.Console.Write(System.String).
+        /// </summary>
+        public Action<string> Log { get; set; }
 
         #endregion
 
@@ -77,6 +86,7 @@ namespace Semiodesk.Trinity.Store
         public IModelGroup CreateModelGroup(params Uri[] models)
         {
             List<IModel> modelList = new List<IModel>();
+
             foreach (var x in models)
             {
                 modelList.Add(GetModel(x));
@@ -151,6 +161,8 @@ namespace Semiodesk.Trinity.Store
         public ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
             string q = query.ToString();
+
+            Log?.Invoke(q);
 
             SparqlQueryParser p = new SparqlQueryParser();
 

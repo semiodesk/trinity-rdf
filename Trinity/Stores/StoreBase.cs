@@ -39,10 +39,17 @@ namespace Semiodesk.Trinity
     public abstract class StoreBase : IStore
     {
         #region Methods
+
         /// <summary>
         /// This property gives the state of the store. True means that the connection is ready and awaiting queries.
         /// </summary>
         public virtual bool IsReady { get; protected set; } = true;
+
+        /// <summary>
+        /// Set this property to log the SPARQL queries which are executed on this store.
+        /// For example, to log to the console, set this property to System.Console.Write(System.String).
+        /// </summary>
+        public Action<string> Log { get; set; }
 
         /// <summary>
         /// Removes model from the store.

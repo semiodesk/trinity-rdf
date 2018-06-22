@@ -30,21 +30,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
-using System.Xml;
-using System.Xml.Serialization;
-using System.Xml.Schema;
-using System.Xml.XPath;
-using System.Data.Odbc;
 using System.Data;
-using System.Globalization;
 using System.Diagnostics;
 using System.ComponentModel;
 using OpenLink.Data.Virtuoso;
 using VDS.RDF.Parsing;
 using VDS.RDF;
-using Semiodesk.Trinity.Configuration;
-using System.Configuration;
-using System.Reflection;
 using Semiodesk.Trinity.Store;
 
 namespace Semiodesk.Trinity.Virtuoso
@@ -130,7 +121,7 @@ namespace Semiodesk.Trinity.Virtuoso
 
             Connection = new VirtuosoConnection();
             Connection.ConnectionString = CreateConnectionString();
-            
+
             Connection.Open();
         }
 
@@ -187,7 +178,7 @@ namespace Semiodesk.Trinity.Virtuoso
                 {
                     string query = string.Format("SPARQL ASK {{ GRAPH <{0}> {{ ?s ?p ?o . }} }}", uri.AbsoluteUri);
 
-                    using(var result = ExecuteQuery(query, transaction))
+                    using (var result = ExecuteQuery(query, transaction))
                     {
                         return result.Rows.Count > 0;
                     }
@@ -214,7 +205,7 @@ namespace Semiodesk.Trinity.Virtuoso
 
             ISparqlQueryResult result = ExecuteQuery(query);
 
-            foreach(BindingSet b in result.GetBindings())
+            foreach (BindingSet b in result.GetBindings())
             {
                 IModel model = null;
 
@@ -244,7 +235,7 @@ namespace Semiodesk.Trinity.Virtuoso
             return transaction;
         }
 
-        public override  ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
+        public override ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
             VirtuosoTransaction transaction = new VirtuosoTransaction(this);
             transaction.Transaction = Connection.BeginTransaction(isolationLevel);
@@ -280,8 +271,8 @@ namespace Semiodesk.Trinity.Virtuoso
                 {
                     throw new Exception("You tried to query with inferencing but the inference rule is empty or not set.");
                 }
-                
-                queryBuilder.Append("DEFINE input:inference '"+_defaultInferenceRule+"' \n");
+
+                queryBuilder.Append("DEFINE input:inference '" + _defaultInferenceRule + "' \n");
             }
 
             queryBuilder.Append(query.ToString());
@@ -298,10 +289,12 @@ namespace Semiodesk.Trinity.Virtuoso
 
             try
             {
-                if(Connection.State != ConnectionState.Open)
+                if (Connection.State != ConnectionState.Open)
                 {
                     throw new Exception("Lost database connection to Virtuoso store.");
                 }
+
+                Log?.Invoke(queryString);
 
                 command = Connection.CreateCommand();
                 command.CommandText = queryString;
@@ -326,11 +319,11 @@ namespace Semiodesk.Trinity.Virtuoso
             // This seems to be different in 7.x version of Openlink.Virtuoso.dll
             //catch (VirtuosoException e)
             //{
-               
+
             //    if (e.ErrorCode == 40001)
             //        throw new ResourceLockedException(e);
             //    else
-                
+
             //        throw;
             //}
             finally
@@ -357,6 +350,8 @@ namespace Semiodesk.Trinity.Virtuoso
             {
                 command = Connection.CreateCommand();
                 command.CommandText = queryString;
+
+                Log?.Invoke(queryString);
 
                 if (transaction is VirtuosoTransaction)
                 {
@@ -434,7 +429,7 @@ namespace Semiodesk.Trinity.Virtuoso
                     {
                         return ReadTripleFormat(reader, graph, format, update);
                     }
-                } 
+                }
             }
             else if (url.Scheme == "http")
             {
@@ -458,7 +453,11 @@ namespace Semiodesk.Trinity.Virtuoso
         {
             using (TextReader reader = new StreamReader(stream))
             {
+#if !NET35
+                if (format == RdfSerializationFormat.Trig || format == RdfSerializationFormat.NQuads || format == RdfSerializationFormat.JsonLd)
+#else
                 if (format == RdfSerializationFormat.Trig)
+#endif
                 {
                     return ReadQuadFormat(reader, graph, format, update);
                 }
@@ -550,13 +549,13 @@ namespace Semiodesk.Trinity.Virtuoso
                     switch (format)
                     {
                         case RdfSerializationFormat.RdfXml:
-                        {
-                            VDS.RDF.Writing.RdfXmlWriter xmlWriter = new VDS.RDF.Writing.RdfXmlWriter();
+                            {
+                                VDS.RDF.Writing.RdfXmlWriter xmlWriter = new VDS.RDF.Writing.RdfXmlWriter();
 
-                            xmlWriter.Save(g, streamWriter);
+                                xmlWriter.Save(g, streamWriter);
 
-                            break;
-                        }
+                                break;
+                            }
                     }
                 }
             }
@@ -577,27 +576,16 @@ namespace Semiodesk.Trinity.Virtuoso
         public override void InitializeFromConfiguration(string configPath = null, string sourceDir = "")
         {
             var config = LoadConfiguration(configPath);
+
             LoadOntologies(config, sourceDir);
 
             var settings = from x in config.ListStoreConfigurations() where x.Type == "virtuoso" select x;
-            if ( settings.Any() )
+
+            if (settings.Any())
             {
                 VirtuosoSettings s = new VirtuosoSettings(settings.First());
                 s.Update(this);
             }
-                
-            
-            
-            /*
-            var virtuosoSettings = (VirtuosoStoreSettings)settings.GetSettings("VirtuosoStoreSettings");
-            if (virtuosoSettings != null)
-            {
-                IStorageSpecific spec = new VirtuosoSettings(virtuosoSettings);
-                updater.UpdateStorageSpecifics(spec);
-            }*/
-
-
-         
         }
 
         #endregion
@@ -626,6 +614,7 @@ namespace Semiodesk.Trinity.Virtuoso
         public override void Dispose()
         {
             Dispose(true);
+
             GC.SuppressFinalize(this);
         }
 
@@ -634,7 +623,7 @@ namespace Semiodesk.Trinity.Virtuoso
             if (_isDisposed)
                 return;
 
-            if( isDisposing )
+            if (isDisposing)
             {
                 if (Connection != null)
                 {
@@ -642,12 +631,10 @@ namespace Semiodesk.Trinity.Virtuoso
                     Connection.Dispose();
                 }
             }
+
             _isDisposed = true;
         }
 
         #endregion
     }
-
-
-
 }
