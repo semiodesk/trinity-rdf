@@ -140,7 +140,11 @@ namespace Semiodesk.Trinity.Store
         /// <param name="transaction">An associated transaction</param>
         public override void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
         {
-            SparqlUpdateCommandSet cmds = _parser.ParseFromString(query.ToString());
+            string q = query.ToString();
+
+            Log?.Invoke(q);
+
+            SparqlUpdateCommandSet cmds = _parser.ParseFromString(q);
 
             _updateProcessor.ProcessCommandSet(cmds);
         }
@@ -161,7 +165,12 @@ namespace Semiodesk.Trinity.Store
             {
                 _store.ClearInferenceEngines();
             }
-            object results = ExecuteQuery(query.ToString());
+
+            string q = query.ToString();
+
+            Log?.Invoke(q);
+
+            object results = ExecuteQuery(q);
 
             if (results is IGraph)
             {
@@ -182,6 +191,8 @@ namespace Semiodesk.Trinity.Store
         /// <returns></returns>
         public object ExecuteQuery(string query)
         {
+            Log?.Invoke(query);
+
             SparqlQueryParser parser = new SparqlQueryParser();
 
             var q = parser.ParseFromString(query);

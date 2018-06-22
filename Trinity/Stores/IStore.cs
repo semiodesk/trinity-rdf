@@ -44,6 +44,12 @@ namespace Semiodesk.Trinity
         /// </summary>
         bool IsReady { get; }
 
+        /// <summary>
+        /// Set this property to log the SPARQL queries which are executed on this store.
+        /// For example, to log to the console, set this property to System.Console.Write(System.String).
+        /// </summary>
+        Action<string> Log { get; set; }
+
         #endregion
 
         #region Methods

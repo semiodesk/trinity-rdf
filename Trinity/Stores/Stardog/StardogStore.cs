@@ -27,14 +27,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
-using System.Reflection;
 using VDS.RDF;
 using VDS.RDF.Parsing;
 using VDS.RDF.Storage;
 using VDS.RDF.Writing;
-using TrinitySettings = Semiodesk.Trinity.Configuration.TrinitySettings;
 
 namespace Semiodesk.Trinity.Store.Stardog
 {
@@ -45,7 +42,12 @@ namespace Semiodesk.Trinity.Store.Stardog
         private StardogConnector _connector;
 
         private StardogRdfHandler _rdfHandler;
-        
+
+        public bool IsReady
+        {
+            get { return true; }
+        }
+
         #endregion
 
         #region Constructors
@@ -60,11 +62,13 @@ namespace Semiodesk.Trinity.Store.Stardog
 
         #region Methods
 
+        [Obsolete]
         public override IModel CreateModel(Uri uri)
         {
             return new Model(this, new UriRef(uri));
         }
 
+        [Obsolete]
         public override bool ContainsModel(Uri uri)
         {
             string query = string.Format("ASK {{ GRAPH <{0}> {{ ?s ?p ?o . }} }}", uri.AbsoluteUri);
@@ -82,11 +86,17 @@ namespace Semiodesk.Trinity.Store.Stardog
                 throw new Exception("This store does not support SPARQL update.");
             }
 
-            _connector.Update(query.ToString());
+            string q = query.ToString();
+
+            Log?.Invoke(q);
+
+            _connector.Update(q);
         }
 
         public StardogResultHandler ExecuteQuery(string query, ITransaction transaction = null)
         {
+            Log?.Invoke(query);
+
             StardogResultHandler resultHandler = new StardogResultHandler();
 
             _connector.Query(_rdfHandler, resultHandler, query);
@@ -96,10 +106,12 @@ namespace Semiodesk.Trinity.Store.Stardog
 
         public override ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
-            bool reasoning = query.IsInferenceEnabled;
+            string q = query.ToString();
+
+            Log?.Invoke(q);
 
             StardogResultHandler resultHandler = new StardogResultHandler();
-            _connector.Query(_rdfHandler, resultHandler, query.ToString(), reasoning);
+            _connector.Query(_rdfHandler, resultHandler, q, query.IsInferenceEnabled);
 
             return new StardogQueryResult(this, query, resultHandler);
         }
@@ -107,11 +119,6 @@ namespace Semiodesk.Trinity.Store.Stardog
         public IModel GetModel(Uri uri)
         {
             return new Model(this, new UriRef(uri));
-        }
-
-        public bool IsReady
-        {
-            get { return true; }
         }
 
         public override IEnumerable<IModel> ListModels()
@@ -142,43 +149,43 @@ namespace Semiodesk.Trinity.Store.Stardog
             }
         }
 
-        public static IRdfReader GetReader(RdfSerializationFormat format)
-        {
-            switch (format)
-            {
-                case RdfSerializationFormat.N3:
-                    return new Notation3Parser();
+        //public static IRdfReader GetReader(RdfSerializationFormat format)
+        //{
+        //    switch (format)
+        //    {
+        //        case RdfSerializationFormat.N3:
+        //            return new Notation3Parser();
 
-                case RdfSerializationFormat.NTriples:
-                    return new NTriplesParser();
+        //        case RdfSerializationFormat.NTriples:
+        //            return new NTriplesParser();
 
-                case RdfSerializationFormat.Turtle:
-                    return new TurtleParser();
+        //        case RdfSerializationFormat.Turtle:
+        //            return new TurtleParser();
 
-                default:
-                case RdfSerializationFormat.RdfXml:
-                    return new RdfXmlParser();
-            }
-        }
+        //        default:
+        //        case RdfSerializationFormat.RdfXml:
+        //            return new RdfXmlParser();
+        //    }
+        //}
 
-        public static IRdfWriter GetWriter(RdfSerializationFormat format)
-        {
-            switch (format)
-            {
-                case RdfSerializationFormat.N3:
-                    return new Notation3Writer();
+        //public static IRdfWriter GetWriter(RdfSerializationFormat format)
+        //{
+        //    switch (format)
+        //    {
+        //        case RdfSerializationFormat.N3:
+        //            return new Notation3Writer();
 
-                case RdfSerializationFormat.NTriples:
-                    return new NTriplesWriter();
+        //        case RdfSerializationFormat.NTriples:
+        //            return new NTriplesWriter();
 
-                case RdfSerializationFormat.Turtle:
-                    return new CompressingTurtleWriter();
+        //        case RdfSerializationFormat.Turtle:
+        //            return new CompressingTurtleWriter();
 
-                default:
-                case RdfSerializationFormat.RdfXml:
-                    return new RdfXmlWriter();
-            }
-        }
+        //        default:
+        //        case RdfSerializationFormat.RdfXml:
+        //            return new RdfXmlWriter();
+        //    }
+        //}
 
         public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
         {
@@ -190,21 +197,22 @@ namespace Semiodesk.Trinity.Store.Stardog
             throw new NotImplementedException();
         }
 
+        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format)
+        {
+            throw new NotImplementedException();
+        }
+
         public override void RemoveModel(Uri uri)
         {
             try
             {
                 SparqlUpdate clear = new SparqlUpdate(string.Format("CLEAR GRAPH <{0}>", uri.AbsoluteUri));
+
                 ExecuteNonQuery(clear);
             }
             catch (Exception)
             {
             }
-        }
-
-        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format)
-        {
-            throw new NotImplementedException();
         }
 
         public override ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
@@ -241,12 +249,6 @@ namespace Semiodesk.Trinity.Store.Stardog
         {
             _connector.Dispose();
         }
-
-
-
-        
-
-
 
         #endregion
     }
