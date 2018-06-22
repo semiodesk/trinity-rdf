@@ -502,9 +502,7 @@ namespace Semiodesk.Trinity.Virtuoso
             {
                 using (VDS.RDF.Graph graph = new VDS.RDF.Graph())
                 {
-                    IRdfReader parser = dotNetRDFStore.GetReader(format);
-
-                    parser.Load(graph, reader);
+                    dotNetRDFStore.TryParse(reader, graph, format);
 
                     graph.BaseUri = graphUri;
 

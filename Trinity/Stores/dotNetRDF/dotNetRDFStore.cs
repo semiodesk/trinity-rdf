@@ -32,6 +32,7 @@ using System.IO;
 using System.Reflection;
 using VDS.RDF;
 using VDS.RDF.Parsing;
+using VDS.RDF.Parsing.Handlers;
 using VDS.RDF.Query;
 using VDS.RDF.Query.Inference;
 using VDS.RDF.Update;
@@ -222,42 +223,35 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-
-        public static IRdfReader GetReader(RdfSerializationFormat format)
+        public static void TryParse(TextReader reader, IGraph graph, RdfSerializationFormat format)
         {
             switch (format)
             {
                 case RdfSerializationFormat.N3:
-                    return new Notation3Parser();
+                    new Notation3Parser().Load(graph, reader); break;
 
                 case RdfSerializationFormat.NTriples:
-                    return new NTriplesParser();
+                    new NTriplesParser().Load(graph, reader); break;
+
+#if !NET35
+                case RdfSerializationFormat.NQuads:
+                    new NQuadsParser().Load(new GraphHandler(graph), reader); break;
+#endif
 
                 case RdfSerializationFormat.Turtle:
-                    return new TurtleParser();
+                    new TurtleParser().Load(graph, reader); break;
+
+                case RdfSerializationFormat.Json:
+                    new RdfJsonParser().Load(graph, reader); break;
+
+#if !NET35
+                case RdfSerializationFormat.JsonLd:
+                    new JsonLdParser().Load(new GraphHandler(graph), reader); break;
+#endif
 
                 default:
                 case RdfSerializationFormat.RdfXml:
-                    return new RdfXmlParser();
-            }
-        }
-
-        public static IRdfWriter GetWriter(RdfSerializationFormat format)
-        {
-            switch (format)
-            {
-                case RdfSerializationFormat.N3:
-                    return new Notation3Writer();
-
-                case RdfSerializationFormat.NTriples:
-                    return new NTriplesWriter();
-
-                case RdfSerializationFormat.Turtle:
-                    return new CompressingTurtleWriter();
-
-                default:
-                case RdfSerializationFormat.RdfXml:
-                    return new RdfXmlWriter();
+                    new RdfXmlParser().Load(graph, reader); break;
             }
         }
 
@@ -271,23 +265,23 @@ namespace Semiodesk.Trinity.Store
         /// <returns></returns>
         public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
         {
-            IRdfReader parser = GetReader(format);
-            TextReader reader = new StreamReader(stream);
-
-            IGraph graph = new Graph();
-
-            parser.Load(graph, reader);
-
-            graph.BaseUri = graphUri;
-
-            if (!update)
+            using (TextReader reader = new StreamReader(stream))
             {
-                _store.Remove(graphUri);
+                IGraph graph = new Graph();
+
+                TryParse(reader, graph, format);
+
+                graph.BaseUri = graphUri;
+
+                if (!update)
+                {
+                    _store.Remove(graphUri);
+                }
+
+                _store.Add(graph, update);
+
+                return graphUri;
             }
-
-            _store.Add(graph, update);
-
-            return graphUri;
         }
 
         /// <summary>
@@ -335,7 +329,7 @@ namespace Semiodesk.Trinity.Store
                     else
                     {
                         graph = new Graph();
-                        graph.LoadFromFile(path, GetReader(format));
+                        graph.LoadFromFile(path);
                         graph.BaseUri = graphUri;
                     }
                 }
@@ -379,7 +373,34 @@ namespace Semiodesk.Trinity.Store
 
                 using (StreamWriter writer = new StreamWriter(stream))
                 {
-                    graph.SaveToStream(writer, GetWriter(format));
+                    switch (format)
+                    {
+                        case RdfSerializationFormat.N3:
+                            graph.SaveToStream(writer, new Notation3Writer()); break;
+
+                        case RdfSerializationFormat.NTriples:
+                            graph.SaveToStream(writer, new NTriplesWriter()); break;
+
+#if !NET35
+                        case RdfSerializationFormat.NQuads:
+                            graph.SaveToStream(writer, new NQuadsWriter()); break;
+#endif
+
+                        case RdfSerializationFormat.Turtle:
+                            graph.SaveToStream(writer, new CompressingTurtleWriter()); break;
+
+                        case RdfSerializationFormat.Json:
+                            graph.SaveToStream(writer, new RdfJsonWriter()); break;
+
+#if !NET35
+                        case RdfSerializationFormat.JsonLd:
+                            graph.SaveToStream(writer, new JsonLdWriter()); break;
+#endif
+
+                        default:
+                        case RdfSerializationFormat.RdfXml:
+                            graph.SaveToStream(writer, new RdfXmlWriter()); break;
+                    }
                 }
             }
         }
@@ -416,7 +437,7 @@ namespace Semiodesk.Trinity.Store
         /// </summary>
         /// <param name="models"></param>
         /// <returns></returns>
-        public IModelGroup CreateModelGroup(params IModel[] models)
+        public new IModelGroup CreateModelGroup(params IModel[] models)
         {
             List<IModel> modelList = new List<IModel>();
 
@@ -434,16 +455,11 @@ namespace Semiodesk.Trinity.Store
         /// </summary>
         public override void Dispose()
         {
-            this.IsReady = false;
+            IsReady = false;
             _updateProcessor.Discard();
             _store.Dispose();
         }
 
-
-
-
-
-
-        #endregion
+#endregion
     }
 }

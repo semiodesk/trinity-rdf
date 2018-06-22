@@ -37,7 +37,6 @@ namespace Semiodesk.Trinity.Test.Linq
         [RdfProperty(FOAF.maker)]
         public Person Maker { get; set; }
 
-
         [RdfProperty("http://www.w3.org/2000/01/rdf-schema#label")]
         public string Title { get; set; }
 

@@ -1094,6 +1094,7 @@ namespace Semiodesk.Trinity
 
             return false;
         }
+
         /// <summary>
         /// This method returns the mapped property of the given rdf property and type. It returns null if this mapping is not available.
         /// </summary>
@@ -1143,6 +1144,7 @@ namespace Semiodesk.Trinity
         protected virtual void SetValue<T>(PropertyMapping<T> propertyMapping, T value)
         {
             propertyMapping.SetValue(value);
+
             IsSynchronized = false;
         }
 
@@ -1175,10 +1177,7 @@ namespace Semiodesk.Trinity
         {
             VerifyPropertyName(propertyName);
 
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         protected void ReloadLocalizedMappings()
@@ -1188,9 +1187,12 @@ namespace Semiodesk.Trinity
                 if (!mapping.Value.IsUnsetValue)
                 {
                     TransferMappingToProperties(mapping.Value);
+
                     mapping.Value.Clear();
                 }
+
                 mapping.Value.Language = Language;
+
                 foreach (var value in ListValues(mapping.Value.Property).ToList())
                 {
                     if (string.IsNullOrEmpty(Language))
@@ -1198,23 +1200,21 @@ namespace Semiodesk.Trinity
                         if (value is string)
                         {
                             mapping.Value.SetOrAddMappedValue(value);
+
                             _properties[mapping.Value.Property].Remove(value);
                         }
-
                     }
-                    else
+                    else if (value is Tuple<string, string>)
                     {
-                        if (value is Tuple<string, string>)
+                        var localizedString = value as Tuple<string, string>;
+
+                        if (string.Compare(localizedString.Item2, Language, true) == 0)
                         {
-                            var localizedString = value as Tuple<string, string>;
-                            if (string.Compare(localizedString.Item2, Language, true) == 0)
-                            {
-                                mapping.Value.SetOrAddMappedValue(localizedString.Item1);
-                                _properties[mapping.Value.Property].Remove(localizedString);
-                            }
+                            mapping.Value.SetOrAddMappedValue(localizedString.Item1);
+
+                            _properties[mapping.Value.Property].Remove(localizedString);
                         }
                     }
-
                 }
             }
         }
@@ -1235,7 +1235,6 @@ namespace Semiodesk.Trinity
             {
                 _properties[mapping.Property].Add(mapping.GetValueObject());
             }
-
         }
 
         /// <summary>

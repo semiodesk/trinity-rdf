@@ -49,6 +49,12 @@ namespace Semiodesk.Trinity
         /// NTriples <see href="http://www.w3.org/2001/sw/RDFCore/ntriples/">http://www.w3.org/2001/sw/RDFCore/ntriples/</see>
         /// </summary>
         NTriples,
+#if !NET35
+        /// <summary>
+        /// NTriples <see href="https://www.w3.org/TR/2014/REC-n-quads-20140225/">https://www.w3.org/TR/2014/REC-n-quads-20140225/</see>
+        /// </summary>
+        NQuads,
+#endif
         /// <summary>
         /// TriG <see href="http://www.w3.org/TR/trig/">http://www.w3.org/TR/trig/</see>
         /// </summary>
@@ -56,6 +62,16 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Turtle <see href="http://www.w3.org/TR/turtle/">http://www.w3.org/TR/turtle/</see>
         /// </summary>
-        Turtle
+        Turtle,
+        /// <summary>
+        /// JSON
+        /// </summary>
+        Json,
+#if !NET35
+        /// <summary>
+        /// JSON-LD <see href="https://www.w3.org/TR/json-ld/">https://www.w3.org/TR/json-ld/</see>
+        /// </summary>
+        JsonLd
+#endif
     };
 }
