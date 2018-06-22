@@ -124,7 +124,6 @@ namespace Semiodesk.Trinity.Test.Cilg
         [RdfProperty(TestOntology.stringTestString)]
         public List<string> stringTest { get; set; } = new List<string>();
 
-    
         #endregion
 
         #region Constructors

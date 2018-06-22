@@ -165,7 +165,7 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">ransaction associated with this action.</param>
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
-        public virtual IResource CreateResource(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null)
+        public virtual IResource CreateResource(string format = "urn:uuid:{0}", ITransaction transaction = null)
         {
             return CreateResource<Resource>(format, transaction);
         }
@@ -201,7 +201,7 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">ransaction associated with this action.</param>
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
-        public virtual T CreateResource<T>(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null) where T : Resource
+        public virtual T CreateResource<T>(string format = "urn:uuid:{0}", ITransaction transaction = null) where T : Resource
         {
             return CreateResource(UriRef.GetGuid(format), typeof(T), transaction) as T;
         }
@@ -227,7 +227,7 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">ransaction associated with this action.</param>
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
-        public virtual object CreateResource(Type t, string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null)
+        public virtual object CreateResource(Type t, string format = "urn:uuid:{0}", ITransaction transaction = null)
         {
             return CreateResource(UriRef.GetGuid(format), t, transaction);
         }

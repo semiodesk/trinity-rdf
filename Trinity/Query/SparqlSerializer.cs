@@ -200,8 +200,11 @@ namespace Semiodesk.Trinity
         public static string SerializeResource(IResource resource)
         {
             var valueList = resource.ListValues();
+
             if (!valueList.Any())
+            {
                 return string.Empty;
+            }
 
             StringBuilder result = new StringBuilder(SerializeUri(resource.Uri));
             result.Append(' ');
