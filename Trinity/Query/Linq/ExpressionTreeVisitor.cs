@@ -169,6 +169,12 @@ namespace Semiodesk.Trinity.Query
 
                 VisitBinaryQuerySourceReferenceExpression(expression.NodeType, querySource, constant);
             }
+            else if(expression.HasExpressionOfType<MethodCallExpression>())
+            {
+                MethodCallExpression methodCall = expression.TryGetExpressionOfType<MethodCallExpression>();
+
+                VisitBinaryMethodCallExpression(expression.NodeType, methodCall, constant);
+            }
         }
 
         private void VisitBinaryQuerySourceReferenceExpression(ExpressionType type, QuerySourceReferenceExpression sourceExpression, ConstantExpression constant)
@@ -253,6 +259,38 @@ namespace Semiodesk.Trinity.Query
                     break;
                 default:
                     throw new NotSupportedException(type.ToString());
+            }
+        }
+
+        private void VisitBinaryMethodCallExpression(ExpressionType type, MethodCallExpression methodCall, ConstantExpression constant)
+        {
+            string method = methodCall.Method.Name;
+
+            switch (method)
+            {
+                case "GetType":
+                    {
+                        ISparqlQueryGenerator g = QueryGeneratorTree.CurrentGenerator;
+
+                        // Make sure that the method call object (i.e. a MemberExpression) has been visited before.
+                        SparqlVariable o = g.VariableGenerator.TryGetObjectVariable(methodCall.Object);
+
+                        if(o == null)
+                        {
+                            o = g.VariableGenerator.CreateObjectVariable(methodCall.Object);
+
+                            Visit(methodCall.Object);
+                        }
+
+                        // Now create a type constraint on the method call object.
+                        g.WhereResourceOfType(methodCall.Object, (Type)constant.Value);
+
+                        break;
+                    }
+                default:
+                    {
+                        throw new NotSupportedException(methodCall.Method.ToString());
+                    }
             }
         }
 
@@ -420,7 +458,7 @@ namespace Semiodesk.Trinity.Query
                     }
             }
 
-            throw new NotSupportedException();
+            throw new NotSupportedException(methodCall.Method.ToString());
         }
 
         protected override Expression VisitNew(NewExpression @new)

@@ -658,9 +658,9 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereResourceOfType(Expression expression, Type type)
         {
-            SparqlVariable s = VariableGenerator.TryGetSubjectVariable(expression) ?? SubjectVariable;
+            SparqlVariable so = VariableGenerator.TryGetSubjectVariable(expression) ?? VariableGenerator.TryGetObjectVariable(expression);
 
-            WhereResourceOfType(s, type);
+            WhereResourceOfType(so, type);
         }
 
         public void WhereResourceOfType(SparqlVariable s, Type type)
