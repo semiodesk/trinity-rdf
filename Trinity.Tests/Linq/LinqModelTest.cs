@@ -27,6 +27,7 @@
 
 using NUnit.Framework;
 using System;
+using System.Diagnostics;
 
 namespace Semiodesk.Trinity.Test.Linq
 {
@@ -49,6 +50,7 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Store = StoreFactory.CreateStore(connectionString);
             Store.InitializeFromConfiguration();
+            Store.Log = (l) => Debug.WriteLine(l);
 
             Model = Store.CreateModel(ex.Namespace);
             Model.Clear();

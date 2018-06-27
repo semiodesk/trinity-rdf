@@ -28,6 +28,7 @@
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.ResultOperators;
+using System;
 using System.Linq;
 using System.Linq.Expressions;
 
@@ -35,6 +36,25 @@ namespace Semiodesk.Trinity.Query
 {
     internal static class QueryModelExtensions
     {
+        public static bool HasTypeConstraintOnExpression(this QueryModel queryModel, Expression expression)
+        {
+            foreach (WhereClause clause in queryModel.BodyClauses.OfType<WhereClause>().Where(c => c.Predicate is BinaryExpression))
+            {
+                BinaryExpression binary = clause.Predicate as BinaryExpression;
+
+                ConstantExpression constant = binary.TryGetExpressionOfType<ConstantExpression>();
+
+                if (constant.Type == typeof(Type))
+                {
+                    MethodCallExpression methodCall = binary.TryGetExpressionOfType<MethodCallExpression>();
+
+                    return methodCall != null && methodCall.Object.ToString() == expression.ToString();
+                }
+            }
+
+            return false;
+        }
+
         public static bool HasOrdering(this QueryModel queryModel)
         {
             return queryModel.BodyClauses.OfType<OrderByClause>().Any();

@@ -128,8 +128,12 @@ namespace Semiodesk.Trinity.Query
                 // have been processed (see <c>OnSelectClauseVisited</c>). This is because the dotNetRDF 
                 // query generator does not correctly handle result operators when it is already set as a child.
             }
-            else
+            else if(!QueryModel.HasTypeConstraintOnExpression(selector))
             {
+                // NOTE: This should not be done here. Simply because the HasTypeConstraintOnExpression
+                // requires us to look ahead at the body clauses which is already done in more detail
+                // by the expression visitor. We need a way to generate the type constraint after the query
+                // has been visited and no type constraint was generated.
                 GenerateTypeConstraintOnSubject(this, selector);
             }
 
