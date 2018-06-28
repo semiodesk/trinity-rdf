@@ -457,11 +457,7 @@ namespace Semiodesk.Trinity
                             }
 
                             outputBuilder.Append(ParameterValues[key]);
-
-                            if(token.TokenType == CustomToken.GRAPHPARAMETER)
-                            {
-                                outputBuilder.Append(' ');
-                            }
+                            outputBuilder.Append(' ');
 
                             break;
                         }
