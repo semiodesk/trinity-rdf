@@ -34,8 +34,6 @@ namespace Semiodesk.Trinity.Test.Linq
     [TestFixture]
     public class LinqModelTest : LinqTestBase
     {
-        public LinqModelTest() {}
-
         [SetUp]
         public override void SetUp()
         {
@@ -54,8 +52,6 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Model = Store.CreateModel(ex.Namespace);
             Model.Clear();
-
-            Assert.IsTrue(Model.IsEmpty);
 
             // Add an agent so we can check if types are correctly queried.
             Agent a1 = Model.CreateResource<Agent>(ex.John);
@@ -112,8 +108,6 @@ namespace Semiodesk.Trinity.Test.Linq
             Image i1 = Model.CreateResource<Image>();
             i1.DepictedAgent = p1;
             i1.Commit();
-
-            Assert.IsFalse(Model.IsEmpty);
         }
     }
 }

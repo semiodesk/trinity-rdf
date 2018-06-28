@@ -130,7 +130,7 @@ namespace Semiodesk.Trinity.Query
                         // TODO: There might be a different default value on the member using the DefaultValue() attribute.
                         object defaultValue = TypeHelper.GetDefaultValue(memberType);
 
-                        if(defaultValue != null)
+                        if(defaultValue != null && memberType != typeof(string))
                         {
                             ConstantExpression coalescedValue = Expression.Constant(defaultValue);
 
