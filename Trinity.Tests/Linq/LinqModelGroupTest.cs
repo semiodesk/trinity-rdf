@@ -56,9 +56,6 @@ namespace Semiodesk.Trinity.Test.Linq
             IModel model2 = Store.CreateModel(new Uri("http://test.com/test2"));
             model2.Clear();
 
-            Assert.IsTrue(model1.IsEmpty);
-            Assert.IsTrue(model2.IsEmpty);
-
             // Add an agent so we can check if types are correctly queried.
             Agent a1 = model1.CreateResource<Agent>(ex.John);
             a1.FirstName = "John";
@@ -114,9 +111,6 @@ namespace Semiodesk.Trinity.Test.Linq
             Image i1 = model1.CreateResource<Image>();
             i1.DepictedAgent = p1;
             i1.Commit();
-
-            Assert.IsFalse(model1.IsEmpty);
-            Assert.IsFalse(model2.IsEmpty);
 
             Model = Store.CreateModelGroup(model1, model2);
         }
