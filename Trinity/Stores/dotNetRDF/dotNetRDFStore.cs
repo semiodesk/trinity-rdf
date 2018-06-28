@@ -168,8 +168,6 @@ namespace Semiodesk.Trinity.Store
 
             string q = query.ToString();
 
-            Log?.Invoke(q);
-
             object results = ExecuteQuery(q);
 
             if (results is IGraph)
