@@ -44,7 +44,7 @@ namespace Semiodesk.Trinity.Query
 
                 ConstantExpression constant = binary.TryGetExpressionOfType<ConstantExpression>();
 
-                if (constant.Type == typeof(Type))
+                if (constant != null && constant.Type == typeof(Type))
                 {
                     MethodCallExpression methodCall = binary.TryGetExpressionOfType<MethodCallExpression>();
 
