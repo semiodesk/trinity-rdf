@@ -149,44 +149,6 @@ namespace Semiodesk.Trinity.Store.Stardog
             }
         }
 
-        //public static IRdfReader GetReader(RdfSerializationFormat format)
-        //{
-        //    switch (format)
-        //    {
-        //        case RdfSerializationFormat.N3:
-        //            return new Notation3Parser();
-
-        //        case RdfSerializationFormat.NTriples:
-        //            return new NTriplesParser();
-
-        //        case RdfSerializationFormat.Turtle:
-        //            return new TurtleParser();
-
-        //        default:
-        //        case RdfSerializationFormat.RdfXml:
-        //            return new RdfXmlParser();
-        //    }
-        //}
-
-        //public static IRdfWriter GetWriter(RdfSerializationFormat format)
-        //{
-        //    switch (format)
-        //    {
-        //        case RdfSerializationFormat.N3:
-        //            return new Notation3Writer();
-
-        //        case RdfSerializationFormat.NTriples:
-        //            return new NTriplesWriter();
-
-        //        case RdfSerializationFormat.Turtle:
-        //            return new CompressingTurtleWriter();
-
-        //        default:
-        //        case RdfSerializationFormat.RdfXml:
-        //            return new RdfXmlWriter();
-        //    }
-        //}
-
         public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
         {
             throw new NotImplementedException();
@@ -197,9 +159,69 @@ namespace Semiodesk.Trinity.Store.Stardog
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="stream">Stream to which the content should be written.</param>
+        /// <param name="graphUri">Uri fo the graph in this store</param>
+        /// <param name="format">Allowed formats</param>
+        /// <returns></returns>
         public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format)
         {
-            throw new NotImplementedException();
+            var query = $"SELECT * {{ GRAPH <{graphUri.AbsoluteUri}> {{ ?s ?p ?o . }} }}";
+
+            var result = ExecuteQuery(query);
+
+            if (result.SparqlResultSet.Result)
+            {
+                using (var graphEmpty = new Graph())
+                using (var writer = new StreamWriter(stream))
+                {
+                    var triples = result.SparqlResultSet.ToTripleCollection(graphEmpty);
+
+                    using (var graph = new Graph(triples))
+                    {
+                        graph.BaseUri = graphUri;
+
+                        switch (format)
+                        {
+                            case RdfSerializationFormat.N3:
+                                graph.SaveToStream(writer, new Notation3Writer());
+                                break;
+
+                            case RdfSerializationFormat.NTriples:
+                                graph.SaveToStream(writer, new NTriplesWriter());
+                                break;
+
+#if !NET35
+                            case RdfSerializationFormat.NQuads:
+                                graph.SaveToStream(writer, new NQuadsWriter());
+                                break;
+#endif
+
+                            case RdfSerializationFormat.Turtle:
+                                graph.SaveToStream(writer, new CompressingTurtleWriter());
+                                break;
+
+                            case RdfSerializationFormat.Json:
+                                graph.SaveToStream(writer, new RdfJsonWriter());
+                                break;
+
+#if !NET35
+                            case RdfSerializationFormat.JsonLd:
+                                graph.SaveToStream(writer, new JsonLdWriter());
+                                break;
+#endif
+                            case RdfSerializationFormat.RdfXml:
+                                graph.SaveToStream(writer, new RdfXmlWriter());
+                                break;
+
+                            default:
+                                throw new ArgumentOutOfRangeException(nameof(format), format, null);
+                        }
+                    }
+                }
+            }
         }
 
         public override void RemoveModel(Uri uri)

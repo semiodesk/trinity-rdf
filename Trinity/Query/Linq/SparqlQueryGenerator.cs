@@ -675,6 +675,30 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
+        public void WhereResourceNotOfType(Expression expression, Type type)
+        {
+            SparqlVariable so = VariableGenerator.TryGetSubjectVariable(expression) ?? VariableGenerator.TryGetObjectVariable(expression);
+
+            WhereResourceNotOfType(so, type);
+        }
+
+        public void WhereResourceNotOfType(SparqlVariable s, Type type)
+        {
+            RdfClassAttribute t = type.TryGetCustomAttribute<RdfClassAttribute>();
+
+            if (t != null)
+            {
+                Uri a = new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+
+                SparqlVariable o = VariableGenerator.CreateObjectVariable();
+
+                ConstantExpression c = Expression.Constant(t.MappedUri);
+
+                PatternBuilder.Where(e => e.Subject(s).PredicateUri(a).Object(o));
+                PatternBuilder.Filter(e => e.Variable(o.Name) != c.AsIriExpression() || !e.Bound(o.Name));
+            }
+        }
+
         public void OrderBy(SparqlVariable v)
         {
             QueryBuilder.OrderBy(v.Name);
