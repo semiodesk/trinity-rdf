@@ -1138,6 +1138,14 @@ namespace Semiodesk.Trinity.Test.Linq
             CollectionAssert.AllItemsAreInstancesOfType(actual1, typeof(Person));
             Assert.AreEqual(0, actual1.Count);
 
+            actual1 = (from person in Model.AsQueryable<Person>() where person.Group.GetType() != typeof(Person) select person).ToList();
+            CollectionAssert.AllItemsAreInstancesOfType(actual1, typeof(Person));
+            Assert.AreEqual(2, actual1.Count);
+
+            actual1 = (from person in Model.AsQueryable<Person>() where person.GetType() != typeof(Person) select person).ToList();
+            CollectionAssert.AllItemsAreInstancesOfType(actual1, typeof(Person));
+            Assert.AreEqual(0, actual1.Count);
+
             var actual2 = (from agent in Model.AsQueryable<Agent>() where agent.GetType() == typeof(Person) select agent).ToList();
             CollectionAssert.AllItemsAreInstancesOfType(actual2, typeof(Person));
             Assert.AreEqual(3, actual2.Count);

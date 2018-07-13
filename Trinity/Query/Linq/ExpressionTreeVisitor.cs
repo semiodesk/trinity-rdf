@@ -283,7 +283,14 @@ namespace Semiodesk.Trinity.Query
                         }
 
                         // Now create a type constraint on the method call object.
-                        g.WhereResourceOfType(methodCall.Object, (Type)constant.Value);
+                        if(type == ExpressionType.NotEqual || (type == ExpressionType.Equal && Trace.Any(e => e.NodeType == ExpressionType.Not)))
+                        {
+                            g.WhereResourceNotOfType(methodCall.Object, (Type)constant.Value);
+                        }
+                        else
+                        {
+                            g.WhereResourceOfType(methodCall.Object, (Type)constant.Value);
+                        }
 
                         break;
                     }

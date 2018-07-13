@@ -93,6 +93,10 @@ namespace Semiodesk.Trinity.Query
 
         void WhereResourceOfType(Expression expression, Type type);
 
+        void WhereResourceNotOfType(SparqlVariable s, Type type);
+
+        void WhereResourceNotOfType(Expression expression, Type type);
+
         void Where(MemberExpression member, SparqlVariable variable);
 
         void WhereEqual(SparqlVariable variable, ConstantExpression constant);
