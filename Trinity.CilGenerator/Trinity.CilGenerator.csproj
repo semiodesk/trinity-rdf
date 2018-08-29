@@ -41,12 +41,6 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Humanizer, Version=2.2.0.0, Culture=neutral, PublicKeyToken=979442b78dfc278e, processorArchitecture=MSIL">
-      <HintPath>..\packages\Humanizer.Core.2.2.0\lib\netstandard1.0\Humanizer.dll</HintPath>
-    </Reference>
-    <Reference Include="ICSharpCode.Decompiler, Version=3.1.0.3652, Culture=neutral, PublicKeyToken=d4bfe873e7598c49, processorArchitecture=MSIL">
-      <HintPath>..\packages\ICSharpCode.Decompiler.3.1.0.3652\lib\net46\ICSharpCode.Decompiler.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Build.Framework, Version=15.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Build.Framework.15.7.179\lib\net46\Microsoft.Build.Framework.dll</HintPath>
       <Private>True</Private>
@@ -72,12 +66,14 @@
       <HintPath>..\packages\Mono.Cecil.0.10.0\lib\net40\Mono.Cecil.Rocks.dll</HintPath>
     </Reference>
     <Reference Include="System" />
-    <Reference Include="System.Collections.Immutable, Version=1.2.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Collections.Immutable.1.3.1\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="System.Collections.Immutable, Version=1.2.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Collections.Immutable.1.5.0\lib\netstandard2.0\System.Collections.Immutable.dll</HintPath>
     </Reference>
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Reflection.Metadata, Version=1.4.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reflection.Metadata.1.6.0\lib\netstandard2.0\System.Reflection.Metadata.dll</HintPath>
+    </Reference>
     <Reference Include="System.Runtime.InteropServices.RuntimeInformation, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Runtime.InteropServices.RuntimeInformation.4.3.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
       <Private>True</Private>
@@ -110,7 +106,26 @@
     <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Resolver\AssemblyReferences.cs" />
+    <Compile Include="Resolver\CollectionExtensions.cs" />
     <Compile Include="Resolver\CustomResolver.cs" />
+    <Compile Include="Resolver\Dom.cs" />
+    <Compile Include="Resolver\DotNetCorePathFinder.cs" />
+    <Compile Include="Resolver\DotNetCorePathFinderExtensions.cs" />
+    <Compile Include="Resolver\LightJson\JsonArray.cs" />
+    <Compile Include="Resolver\LightJson\JsonObject.cs" />
+    <Compile Include="Resolver\LightJson\JsonValue.cs" />
+    <Compile Include="Resolver\LightJson\JsonValueType.cs" />
+    <Compile Include="Resolver\LightJson\Serialization\JsonParseException.cs" />
+    <Compile Include="Resolver\LightJson\Serialization\JsonReader.cs" />
+    <Compile Include="Resolver\LightJson\Serialization\TextPosition.cs" />
+    <Compile Include="Resolver\LightJson\Serialization\TextScanner.cs" />
+    <Compile Include="Resolver\MetadataExtensions.cs" />
+    <Compile Include="Resolver\PEFile.cs" />
+    <Compile Include="Resolver\SRMExtensions.cs" />
+    <Compile Include="Resolver\TypeSystem\FullTypeName.cs" />
+    <Compile Include="Resolver\TypeSystem\TopLevelTypeName.cs" />
+    <Compile Include="Resolver\UniversalAssemblyResolver.cs" />
     <Compile Include="Tasks\CilGeneratorTask.cs" />
     <Compile Include="Tasks\GeneratorTaskBase.cs" />
     <Compile Include="Tasks\IGeneratorTask.cs" />
