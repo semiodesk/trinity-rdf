@@ -94,6 +94,7 @@ namespace Semiodesk.Trinity.CilGenerator
 
             try
             {
+
                 using (var module = CustomResolver.LoadMainModule(sourceFile))
                 {
 
