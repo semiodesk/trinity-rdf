@@ -35,7 +35,7 @@ using VDS.RDF.Writing;
 
 namespace Semiodesk.Trinity.Store.Stardog
 {
-    class StardogStore : StoreBase
+    public class StardogStore : StoreBase
     {
         #region Members
 
@@ -116,7 +116,7 @@ namespace Semiodesk.Trinity.Store.Stardog
             return new StardogQueryResult(this, query, resultHandler);
         }
 
-        public IModel GetModel(Uri uri)
+        public override IModel GetModel(Uri uri)
         {
             return new Model(this, new UriRef(uri));
         }
