@@ -23,7 +23,7 @@ namespace Semiodesk.Trinity.Store.Stardog
         }
     }
 
-    class StardogResultHandler : BaseResultsHandler
+    public class StardogResultHandler : BaseResultsHandler
     {
         public bool BoolResult { get; set; }
 
