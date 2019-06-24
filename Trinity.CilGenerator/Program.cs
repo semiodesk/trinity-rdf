@@ -74,11 +74,15 @@ namespace Semiodesk.Trinity.CilGenerator
                     }
 
                     ILGenerator generator = new ILGenerator(new ConsoleLogger(), writeSymbols);
-                    if (generator.ProcessFile(input, output))
-                        return 0;
-                    else
-                        return -1;
 
+                    if (generator.ProcessFile(input, output))
+                    {
+                        return 0;
+                    }
+                    else
+                    {
+                        return -1;
+                    }
                 }
             }
             catch (OptionException e)
