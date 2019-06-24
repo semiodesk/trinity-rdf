@@ -126,7 +126,7 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
             LoadType("Semiodesk.Trinity.Class", out ClassType);
             ClassArrayType= new ArrayType(ClassType);
 
-            PropertyMappingType = ILGenerator.propertyMapping;
+            PropertyMappingType = ILGenerator.PropertyMapping;
             
 
 

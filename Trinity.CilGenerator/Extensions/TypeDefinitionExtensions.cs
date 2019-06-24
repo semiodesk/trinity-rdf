@@ -311,13 +311,13 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
         public static MethodReference TryGetGetValueMethod(this TypeDefinition type, AssemblyDefinition assembly, params TypeReference[] genericArguments)
         {
 
-            TypeReference mappingType =ILGenerator.propertyMapping;
+            TypeReference mappingType =ILGenerator.PropertyMapping;
             assembly.MainModule.ImportReference(mappingType);
             GenericParameter valueType = mappingType.GenericParameters[0];
 
             if (mappingType == null) return null;
 
-            MethodDefinition method = type.TryGetInheritedGenericMethod("GetValue",ILGenerator.propertyMapping);
+            MethodDefinition method = type.TryGetInheritedGenericMethod("GetValue",ILGenerator.PropertyMapping);
 
             if (method == null) return null;
 

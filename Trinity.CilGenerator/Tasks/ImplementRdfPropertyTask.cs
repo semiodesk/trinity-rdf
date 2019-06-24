@@ -112,13 +112,13 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
         internal FieldDefinition ImplementMappingField(PropertyDefinition property)
         {
-            
             // Load the property mapping type.
-            TypeReference mappingType = MainModule.ImportReference(ILGenerator.propertyMapping);
-            
+            TypeReference mappingType = MainModule.ImportReference(ILGenerator.PropertyMapping);
 
-            if(mappingType == null)
+            if (mappingType == null)
+            {
                 throw new ArgumentException(string.Format("{0}: Failed to import type {1}.", Assembly.FullName, mappingType.FullName));
+            }
 
             // Add the property type as generic parameter.
             GenericInstanceType fieldType = new GenericInstanceType(mappingType);

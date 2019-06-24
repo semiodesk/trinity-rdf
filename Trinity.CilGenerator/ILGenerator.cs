@@ -65,6 +65,8 @@ namespace Semiodesk.Trinity.CilGenerator
         /// </summary>
         public bool WriteSymbols { get; set; }
 
+        public static TypeDefinition PropertyMapping;
+
         #endregion
 
         #region Constructors
@@ -78,7 +80,6 @@ namespace Semiodesk.Trinity.CilGenerator
         #endregion
 
         #region Methods
-        public static TypeDefinition propertyMapping;
 
         public bool ProcessFile(string sourceFile, string targetFile = "")
         {
@@ -94,20 +95,20 @@ namespace Semiodesk.Trinity.CilGenerator
 
             try
             {
-
                 using (var module = CustomResolver.LoadMainModule(sourceFile))
                 {
-
-                    module.ReadSymbols();
-                    FileInfo sourceDll = new FileInfo(sourceFile);
+                    if (WriteSymbols)
+                    {
+                        module.ReadSymbols();
+                    }
 
                     Assembly = module.Assembly;
+
                     var resolver = module.AssemblyResolver;
                     var trinityRef = module.AssemblyReferences.Where(x => x.Name == "Semiodesk.Trinity").First();
                     var trinity = resolver.Resolve(trinityRef);
-                    var g = trinity.MainModule.Types.Where(b => b.FullName == "Semiodesk.Trinity.PropertyMapping`1").First();
-                    propertyMapping = g;
 
+                    PropertyMapping = trinity.MainModule.Types.Where(b => b.FullName == "Semiodesk.Trinity.PropertyMapping`1").First();
 
                     Log.LogMessage("------ Begin Task: ImplementRdfMapping [{0}]", Assembly.Name);
 
@@ -163,12 +164,17 @@ namespace Semiodesk.Trinity.CilGenerator
                     {
                         var param = new WriterParameters { WriteSymbols = WriteSymbols };
 
+                        FileInfo sourceDll = new FileInfo(sourceFile);
                         FileInfo targetDll = new FileInfo(targetFile);
-                        if (sourceDll.FullName != targetDll.FullName)
-                            Assembly.Write(targetDll.FullName, param);
-                        else
-                            Assembly.Write(param);
 
+                        if (sourceDll.FullName != targetDll.FullName)
+                        {
+                            Assembly.Write(targetDll.FullName, param);
+                        }
+                        else
+                        {
+                            Assembly.Write(param);
+                        }
                     }
 
                     result = true;
@@ -186,19 +192,6 @@ namespace Semiodesk.Trinity.CilGenerator
             Log.LogMessage("------ End Task: ImplementRdfMapping [Total time: {0}s]", stopwatch.Elapsed.TotalSeconds);
 
             return result;
-        }
-
-        string GetAssemblyDirectoryFromType(Type type)
-        {
-            return new FileInfo(System.Reflection.Assembly.GetAssembly(type).Location).DirectoryName;
-        }
-
-        void WriteSymbolsToAssembly(string targetFile, ISymbolReader symbolReader, ISymbolWriterProvider symbolWriter)
-        {
-            Assembly.MainModule.ReadSymbols(symbolReader);
-
-            // NOTE: "WriteSymbols = true" generates the .pdb symbols required for debugging.
-            Assembly.Write(targetFile, new WriterParameters { WriteSymbols = true, SymbolWriterProvider = symbolWriter });
         }
 
         #endregion
