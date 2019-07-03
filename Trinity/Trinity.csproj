@@ -26,7 +26,7 @@
     <DocumentationFile>..\Build\$(Configuration)\$(TargetFramework)\Semiodesk.Trinity.xml</DocumentationFile>
     <NeutralLanguage>en-001</NeutralLanguage>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <PackageId>Semiodesk.Trinity</PackageId>
+    <PackageId>trinity-rdf</PackageId>
     <Authors>Semiodesk GmbH</Authors>
     <Product>Semiodesk.Trinity</Product>
     <PackageTags>RDF SPARQL Database Semantic Object Mapping Linked Data</PackageTags>

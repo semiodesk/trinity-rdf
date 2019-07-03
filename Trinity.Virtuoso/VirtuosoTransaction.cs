@@ -26,11 +26,9 @@
 // Copyright (c) Semiodesk GmbH 2018
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
-namespace Semiodesk.Trinity.Virtuoso
+
+namespace Semiodesk.Trinity.Store.Virtuoso
 {
 
     /// <summary>

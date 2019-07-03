@@ -7,7 +7,7 @@ using Semiodesk.TinyVirtuoso;
 using System.Reflection;
 using System.IO;
 using Semiodesk.Trinity.Store;
-using Semiodesk.Trinity.Virtuoso;
+using Semiodesk.Trinity.Store.Virtuoso;
 
 namespace Semiodesk.Trinity.Test
 {

@@ -25,17 +25,14 @@
 //
 // Copyright (c) Semiodesk GmbH 2018
 
-using System;
+
 using System.Collections.Generic;
 #if !NET35
 using System.ComponentModel.Composition;
 #endif
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
 
-namespace Semiodesk.Trinity.Virtuoso
+
+namespace Semiodesk.Trinity.Store.Virtuoso
 {
 #if !NET35
     [Export(typeof(StoreProvider))]

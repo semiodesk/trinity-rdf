@@ -35,12 +35,12 @@ using System.Data;
 using OpenLink.Data.Virtuoso;
 using System.Globalization;
 using System.Diagnostics;
-using System.Xml;
+using Semiodesk.Trinity.Exceptions;
 #if NET35
 using Semiodesk.Trinity.Utility;
 #endif
 
-namespace Semiodesk.Trinity.Virtuoso
+namespace Semiodesk.Trinity.Store.Virtuoso
 {
     /// <summary>
     /// The results returned from a SPARQL query.
@@ -556,7 +556,7 @@ namespace Semiodesk.Trinity.Virtuoso
                 #if DEBUG
                 Debug.WriteLine(e);
                 #endif
-                throw new Trinity.InvalidQueryException("The current query led to an error in Virtuoso. See inner exception for more details.", e, queryString);
+                throw new InvalidQueryException("The current query led to an error in Virtuoso. See inner exception for more details.", e, queryString);
             }
         }
 

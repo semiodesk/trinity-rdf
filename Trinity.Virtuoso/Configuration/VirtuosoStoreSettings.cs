@@ -26,14 +26,10 @@
 // Copyright (c) Semiodesk GmbH 2015
 
 
-using System;
 using System.Collections.Generic;
-using System.Configuration;
-using System.Linq;
-using System.Text;
 using System.Xml.Serialization;
 
-namespace Semiodesk.Trinity.Virtuoso.Legacy
+namespace Semiodesk.Trinity.Store.Virtuoso.Legacy
 {
 
     [XmlRoot(ElementName = "graph")]

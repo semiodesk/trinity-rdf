@@ -36,9 +36,8 @@ using System.ComponentModel;
 using OpenLink.Data.Virtuoso;
 using VDS.RDF.Parsing;
 using VDS.RDF;
-using Semiodesk.Trinity.Store;
 
-namespace Semiodesk.Trinity.Virtuoso
+namespace Semiodesk.Trinity.Store.Virtuoso
 {
     /// <summary>
     /// This class is the implementation of the IStorage inteface for the Virtuoso Database.

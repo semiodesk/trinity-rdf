@@ -32,12 +32,22 @@ using System.Text;
 
 namespace Semiodesk.Trinity
 {
+    /// <summary>
+    /// Objects of this class represent RDF properties.
+    /// </summary>
     public class Property : Resource
     {
         #region Constructors
-
+        /// <summary>
+        /// Constructor taking a Uri parameter
+        /// </summary>
+        /// <param name="uri">Uri of the property</param>
         public Property(Uri uri) : base(uri) { }
 
+        /// <summary>
+        /// Constructor taking a UriRef parameter
+        /// </summary>
+        /// <param name="uri">Uri of the property</param>
         public Property(UriRef uri)  : base(uri)  { }
 
         #endregion

@@ -29,7 +29,9 @@ using System;
 
 namespace Semiodesk.Trinity
 {
-    
+    /// <summary>
+    /// 
+    /// </summary>
     [AttributeUsage(AttributeTargets.All)]
     public class RdfNamespaceAttribute : Attribute
     {

@@ -1,0 +1,25 @@
+apiRules:
+- exclude:
+    hasAttribute:
+      uid: System.ComponentModel.EditorBrowsableAttribute
+      ctorArguments:
+      - System.ComponentModel.EditorBrowsableState.Never
+
+- exclude: 
+    uidRegex: ^Semiodesk\.Trinity\.Configuration\.Legacy
+    type: Namespace
+
+- exclude: 
+    uidRegex: ^Semiodesk\.Trinity\.Configuration
+    type: Namespace
+
+- exclude: 
+    uidRegex: ^Semiodesk\.Trinity\.Store\.Virtuoso\.Legacy
+    type: Namespace
+
+
+attributeRules:
+- exclude: 
+    uidRegex: ^Mono\.Options
+    type: Namespace
+

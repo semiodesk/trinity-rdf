@@ -32,9 +32,8 @@ using System.Text;
 using System.Xml.Serialization;
 using Semiodesk.Trinity;
 using Semiodesk.Trinity.Configuration;
-using Semiodesk.Trinity.Store;
 
-namespace Semiodesk.Trinity.Virtuoso
+namespace Semiodesk.Trinity.Store.Virtuoso
 {
     [XmlRoot(ElementName = "graph")]
     public class Graph
