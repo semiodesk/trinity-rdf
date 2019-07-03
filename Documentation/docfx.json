@@ -16,10 +16,10 @@
         }
       ],
       "dest": "obj/api",
-      "properties": { "TargetFramework": "netstandard2.0" },
-      "filter": "filterConfig.yml"
+      "filter": "filterConfig.yml",
     }
   ],
+
   "build": {
     "content": [
       {
@@ -32,6 +32,7 @@
         "files": [
           "api/*.md",
           "articles/**.md",
+          "tutorials/**.md",
           "toc.yml",
           "*.md"
         ],
@@ -67,6 +68,11 @@
     "template": [
       "default",
       "templates/material"
-    ]
+    ],
+    "globalMetadata": {
+      "_enableSearch": true,
+      "properties": { "TargetFramework": "netstandard2.0" }
+    }
+
   }
-}
+  }

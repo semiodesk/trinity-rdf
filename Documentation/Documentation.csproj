@@ -47,13 +47,14 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="api\index.md" />
-    <None Include="articles\documentation.md" />
-    <None Include="articles\firstSteps.md" />
-    <None Include="articles\installation.md" />
-    <None Include="articles\intro.md" />
-    <None Include="articles\license.md" />
-    <None Include="articles\toc.md" />
-    <None Include="articles\virtuoso.md" />
+    <None Include="templates\material\partials\navbar.tmpl.partial" />
+    <None Include="tutorials\firstSteps.md" />
+    <None Include="tutorials\installation.md" />
+    <None Include="tutorials\intro.md" />
+    <None Include="tutorials\license.md" />
+    <None Include="tutorials\simpleUnity.md" />
+    <None Include="tutorials\toc.md" />
+    <None Include="tutorials\virtuoso.md" />
     <None Include="docfx.json" />
     <None Include="filterConfig.yml" />
     <None Include="index.md" />
@@ -64,7 +65,11 @@
   <ItemGroup>
     <Content Include=".gitignore" />
     <Content Include="api\.gitignore" />
+    <Content Include="images\favicon.ico" />
+    <Content Include="images\trinity-logo.svg" />
     <Content Include="templates\material\styles\main.css" />
+    <None Include="tutorials\webApp.md" />
+    <None Include="tutorials\musicBrowser.md" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\docfx.console.2.43.2\build\docfx.console.targets" Condition="Exists('..\packages\docfx.console.2.43.2\build\docfx.console.targets')" />
