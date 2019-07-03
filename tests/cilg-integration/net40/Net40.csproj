@@ -34,7 +34,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Semiodesk.Trinity">
-      <HintPath>..\..\..\Build\Net40\Release\Semiodesk.Trinity.dll</HintPath>
+      <HintPath>..\..\..\Build\Release\net40\Semiodesk.Trinity.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

@@ -30,7 +30,7 @@ PathStruct Paths = new PathStruct{
 void Clean(FilePath solution)
 {
     Section("Clean and remove obj");
-        DotNetBuild(solution, settings => settings
+        MSBuild(solution, settings => settings
                         .SetConfiguration(configuration)
                         .WithTarget("Clean")
                         .SetVerbosity(Verbosity.Quiet));
@@ -101,7 +101,7 @@ Task("Pack")
     .IsDependentOn("Build")
     .Does(() => {
         
-        DotNetBuild("./Trinity/Trinity.csproj", settings => settings
+        MSBuild("./Trinity/Trinity.csproj", settings => settings
                 .SetConfiguration(configuration)
                 .WithTarget("pack")
                 .SetVerbosity(Verbosity.Quiet));
