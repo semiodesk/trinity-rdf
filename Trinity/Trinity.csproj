@@ -6,7 +6,7 @@
 	<Copyright>Copyright © Semiodesk GmbH 2018</Copyright>
 	<Description>This library is an enterprise ready platform for developing knowlege-based applications. Trinity offers superior modelling and querying flexibility combined with extreme scalability when compared with traditional ORM solutions. Supporting the powerful RDF metadata standard Trinity offers a sustainable foundation for your desktop, mobile or web applications.</Description>
 	<Company>Semiodesk GmbH</Company>
-	<Version>1.0.0-rc005a</Version>
+	<Version>1.0.0-rc005</Version>
 	<AssemblyVersion>1.0.0.5</AssemblyVersion>
 	<FileVersion>1.0.0.5</FileVersion>
 	<AssemblyName>Semiodesk.Trinity</AssemblyName>
@@ -25,7 +25,7 @@
   <PropertyGroup>
     <DocumentationFile>..\Build\$(Configuration)\$(TargetFramework)\Semiodesk.Trinity.xml</DocumentationFile>
     <NeutralLanguage>en-001</NeutralLanguage>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <PackageId>trinity-rdf</PackageId>
     <Authors>Semiodesk GmbH</Authors>
     <Product>Semiodesk.Trinity</Product>
