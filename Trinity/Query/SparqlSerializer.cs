@@ -199,7 +199,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string SerializeResource(IResource resource)
         {
-            var valueList = resource.ListValues();
+            var valueList = resource.ListValues(true);
 
             if (!valueList.Any())
             {

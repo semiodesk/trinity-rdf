@@ -88,17 +88,21 @@ namespace Semiodesk.Trinity.Query
             SelectedVariables = new List<SparqlVariable>();
             CoalescedVariables = new Dictionary<SparqlVariable, SparqlExpression>();
             SelectBuilder = selectBuilder;
+#if !NET35
+            QueryBuilder = SelectBuilder;
+#else
             QueryBuilder = selectBuilder.GetQueryBuilder();
+#endif
             PatternBuilder = QueryBuilder.RootGraphPatternBuilder;
         }
 
         #endregion
 
         #region Methods
-    
+
         public string BuildQuery()
         {
-            if(!IsBound)
+            if (!IsBound)
             {
                 BindSelectVariables();
             }
@@ -118,7 +122,7 @@ namespace Semiodesk.Trinity.Query
 
                 foreach (SparqlVariable v in SelectedVariables)
                 {
-                    if(CoalescedVariables.ContainsKey(v))
+                    if (CoalescedVariables.ContainsKey(v))
                     {
                         SparqlExpression defaultValue = CoalescedVariables[v];
 
@@ -131,13 +135,21 @@ namespace Semiodesk.Trinity.Query
 
                     if (hasAggregate && !v.IsAggregate)
                     {
+#if !NET35
+                        SelectBuilder.GroupBy(v.Name);
+#else
                         QueryBuilder.GroupBy(v.Name);
+#endif
                     }
                 }
 
-                if(hasAggregate && !IsRoot)
+                if (hasAggregate && !IsRoot)
                 {
-                    QueryBuilder.Distinct();
+#if !NET35
+                    SelectBuilder.Distinct();
+#else
+                        QueryBuilder.Distinct();
+#endif
                 }
             }
         }
@@ -201,7 +213,7 @@ namespace Semiodesk.Trinity.Query
                 VariableGenerator.SetSubjectVariable(memberExpression, po);
             }
 
-            if(member.IsUriType())
+            if (member.IsUriType())
             {
                 // When we access the .Uri member of a resource we do not need a property mapping and return the subject as the bound variable.
 
@@ -227,7 +239,7 @@ namespace Semiodesk.Trinity.Query
                     SparqlVariable s = VariableGenerator.TryGetSubjectVariable(querySource);
                     SparqlVariable o = VariableGenerator.GlobalSubject;
 
-                    if(s == null)
+                    if (s == null)
                     {
                         s = VariableGenerator.CreateSubjectVariable(querySource);
 
@@ -295,7 +307,7 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
-        public virtual void SetObjectOperator(ResultOperatorBase resultOperator) {}
+        public virtual void SetObjectOperator(ResultOperatorBase resultOperator) { }
 
         public void SetObjectVariable(SparqlVariable v, bool select = false)
         {
@@ -311,7 +323,7 @@ namespace Semiodesk.Trinity.Query
             ObjectVariable = v;
         }
 
-        public virtual void SetSubjectOperator(ResultOperatorBase resultOperator) {}
+        public virtual void SetSubjectOperator(ResultOperatorBase resultOperator) { }
 
         public void SetSubjectVariable(SparqlVariable v, bool select = false)
         {
@@ -345,7 +357,7 @@ namespace Semiodesk.Trinity.Query
 
         public void SelectVariable(SparqlVariable v)
         {
-            if(SelectBuilder != null)
+            if (SelectBuilder != null)
             {
                 if (v != null && !SelectedVariables.Any(x => x.Name == v.Name))
                 {
@@ -366,7 +378,7 @@ namespace Semiodesk.Trinity.Query
 
         public void Where(MemberExpression member, SparqlVariable v)
         {
-            if(CoalescedVariables.ContainsKey(v))
+            if (CoalescedVariables.ContainsKey(v))
             {
                 // If the member may be unbound, we create an optional binding.
                 BuildMemberAccessOptional(member);
@@ -384,7 +396,7 @@ namespace Semiodesk.Trinity.Query
             {
                 PatternBuilder.Filter(e => !e.Bound(v.Name));
             }
-            else if(c.Type.IsValueType || c.Type == typeof(string))
+            else if (c.Type.IsValueType || c.Type == typeof(string))
             {
                 PatternBuilder.Filter(e => e.Variable(v.Name) == c.AsLiteralExpression());
             }
@@ -406,9 +418,9 @@ namespace Semiodesk.Trinity.Query
                 // Comparing with null means the variable is not bound.
                 PatternBuilder.Filter(e => !e.Bound(so.Name));
             }
-            else if(c.Type.IsValueType || c.Type == typeof(string))
+            else if (c.Type.IsValueType || c.Type == typeof(string))
             {
-                if(expression.Member.DeclaringType == typeof(string))
+                if (expression.Member.DeclaringType == typeof(string))
                 {
                     BuildMemberAccess(expression);
 
@@ -454,11 +466,11 @@ namespace Semiodesk.Trinity.Query
 
         public void WhereNotEqual(SparqlVariable v, ConstantExpression c)
         {
-            if(c.Value == null)
+            if (c.Value == null)
             {
                 PatternBuilder.Filter(e => e.Bound(v.Name));
             }
-            else if(c.Type.IsValueType || c.Type == typeof(string))
+            else if (c.Type.IsValueType || c.Type == typeof(string))
             {
                 PatternBuilder.Filter(e => e.Variable(v.Name) != c.AsLiteralExpression());
             }
@@ -713,7 +725,7 @@ namespace Semiodesk.Trinity.Query
         {
             QueryBuilder.Offset(offset);
         }
-        
+
         public void Limit(int limit)
         {
             QueryBuilder.Limit(limit);

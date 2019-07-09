@@ -357,8 +357,10 @@ namespace Semiodesk.Trinity
         /// Enumerates all properties associated with this resource in form 
         /// of a tuple mapping properties to their corresponding values.
         /// </summary>
+        /// <param name="forSerialization">Only return values which should be serialized.</param>
         /// <returns></returns>
-        IEnumerable<Tuple<Property, object>> ListValues();
+        IEnumerable<Tuple<Property, object>> ListValues(bool forSerialization = false);
+
 
         /// <summary>
         /// Enumerates all property values associated with this resource.

@@ -28,8 +28,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Newtonsoft.Json;
+using Semiodesk.Trinity.Stores.Stardog;
 using VDS.RDF;
-using VDS.RDF.Parsing;
 using VDS.RDF.Storage;
 using VDS.RDF.Writing;
 
@@ -88,9 +89,24 @@ namespace Semiodesk.Trinity.Store.Stardog
 
             string q = query.ToString();
 
-            Log?.Invoke(q);
+            if (_stardogTransaction?.IsActive ?? false)
+            {
+                Log?.Invoke($"**{q}");
+                var convertor = new StardogUpdateSparqlConvertor(this);
 
-            _connector.Update(q);
+                convertor.ParseQuery(q);
+                Log?.Invoke($"UpdateGraph,{convertor.Additions.Count},{convertor.Removals.Count},{JsonConvert.SerializeObject(convertor.Additions)},{JsonConvert.SerializeObject(convertor.Removals)}");
+                _stardogTransaction.AddTripleCount += convertor.Additions.Count;
+                _stardogTransaction.RemoveTripleCount += convertor.Removals.Count;
+
+                _connector.UpdateGraph(convertor.GraphUri, convertor.Additions, convertor.Removals);
+            }
+            else
+            {
+                // No transaction so just call update with the query
+                Log?.Invoke(q);
+                _connector.Update(q);
+            }
         }
 
         public StardogResultHandler ExecuteQuery(string query, ITransaction transaction = null)
@@ -237,9 +253,17 @@ namespace Semiodesk.Trinity.Store.Stardog
             }
         }
 
+        private StardogTransaction _stardogTransaction;
         public override ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
-            throw new NotImplementedException();
+            if (_stardogTransaction != null) throw new ApplicationException("Only one transaction is supported at a time.  Dispose and rollback changes or use the open transaction.");
+            _stardogTransaction = new StardogTransaction(_connector);
+            _stardogTransaction.OnFinishedTransaction += OnTransactionCompleted;
+            return _stardogTransaction;
+        }
+        protected void OnTransactionCompleted(object sender, TransactionEventArgs e)
+        {
+            _stardogTransaction = null;
         }
 
         public IModelGroup CreateModelGroup(params Uri[] models)
@@ -269,6 +293,7 @@ namespace Semiodesk.Trinity.Store.Stardog
 
         public override void Dispose()
         {
+            _stardogTransaction?.Dispose();
             _connector.Dispose();
         }
 
