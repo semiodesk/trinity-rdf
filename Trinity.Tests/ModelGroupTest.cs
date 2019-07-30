@@ -147,22 +147,6 @@ namespace Semiodesk.Trinity.Test
         }
 
         [Test]
-        public void ResourceQueryTest()
-        {
-            Uri resourceUri = new Uri("http://example.com/testResource");
-
-            IModelGroup g = Store.CreateModelGroup(Model.Uri, Model2.Uri);
-
-            Contact resource = Model.CreateResource<Contact>(resourceUri);
-            resource.Fullname = "Hans Peter";
-            resource.Commit();
-
-            ResourceQuery q = new ResourceQuery(nco.Contact);
-
-            var res = g.GetResources(q);
-        }
-
-        [Test]
         public void LazyLoadResourceTest()
         {
             IModel model = Model;

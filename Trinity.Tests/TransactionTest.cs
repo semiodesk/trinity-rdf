@@ -27,15 +27,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Threading;
 using NUnit.Framework;
-using Semiodesk.Trinity.Ontologies;
-using Semiodesk.Trinity.Test;
 
 namespace Semiodesk.Trinity.Test
 {

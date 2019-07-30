@@ -28,14 +28,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Globalization;
-using Semiodesk.Trinity;
 using System.Collections.ObjectModel;
 using Semiodesk.Trinity.Ontologies;
-using System.Reflection;
 using NUnit.Framework;
-using Semiodesk.Trinity.Test;
 using Semiodesk.Trinity.Serialization;
 using Newtonsoft.Json;
 #if NET35
@@ -1626,39 +1621,34 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void MappingTypeWithInferencingTest()
         {
-            IModel m = GetModel();
-            m.Clear();
+            IModel model = GetModel();
+            model.Clear();
 
-            Uri t3Uri = new Uri("semio:test:testInstance3");
-            PersonContact t3 = m.CreateResource<PersonContact>(t3Uri);
-            t3.NameGiven = "Hans";
-            t3.Commit();
+            PersonContact r = model.CreateResource<PersonContact>(new Uri("ex:t3"));
+            r.NameGiven = "Hans";
+            r.Commit();
 
-            ResourceQuery q = new ResourceQuery(nco.Contact);
+            SparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o . ?s a @type .}");
+            query.Bind("type", nco.Contact);
 
-            var queryResult = m.ExecuteQuery(q, true);
-
-            Assert.IsNotEmpty(queryResult.GetResources());
+            Assert.AreEqual(1, model.ExecuteQuery(query, true).GetResources().Count());
         }
 
         IModel GetModel()
         {
-            string connectionString = SetupClass.ConnectionString;
-            _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+            _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString));
 
-            Uri testModelUri = new Uri("http://example.org/TestModel");
-
-            return _store.GetModel(testModelUri); ;
+            return _store.GetModel(new Uri("http://example.org/TestModel"));
         }
 
         [Test]
         public void RollbackTest()
         {
-            IModel m = GetModel();
-            m.Clear();
-            Uri t1Uri = new Uri("semio:test:testInstance1");
-            MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
+            IModel model = GetModel();
+            model.Clear();
 
+            Uri t1Uri = new Uri("semio:test:testInstance1");
+            MappingTestClass t1 = model.CreateResource<MappingTestClass>(t1Uri);
 
             // Add value using the mapping interface
             string strValue = "Hallo Welt!";
@@ -1669,10 +1659,9 @@ namespace Semiodesk.Trinity.Test
 
             t1.Rollback();
 
-
             Assert.AreEqual(strValue, t1.uniqueStringTest);
 
-            MappingTestClass newRef = m.GetResource<MappingTestClass>(t1Uri);
+            MappingTestClass newRef = model.GetResource<MappingTestClass>(t1Uri);
             newRef.stringTest.Add("Hi");
             newRef.stringTest.Add("Blub");
             newRef.Commit();
@@ -1686,11 +1675,11 @@ namespace Semiodesk.Trinity.Test
 
 
             Uri t2Uri = new Uri("semio:test:testInstance2");
-            MappingTestClass2 p = m.CreateResource<MappingTestClass2>(t2Uri);
+            MappingTestClass2 p = model.CreateResource<MappingTestClass2>(t2Uri);
             p.uniqueStringTest = "blub";
             p.Commit();
 
-            newRef = m.GetResource<MappingTestClass>(t1Uri);
+            newRef = model.GetResource<MappingTestClass>(t1Uri);
             newRef.resourceTest.Add(p);
             newRef.Commit();
 

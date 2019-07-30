@@ -30,9 +30,35 @@ using System.Collections.Generic;
 
 namespace Semiodesk.Trinity
 {
-    public interface ISparqlQueryResult : IResourceQueryResult, IDisposable
+    /// <summary>
+    /// Exposes the results of a SPARQL query.
+    /// </summary>
+    public interface ISparqlQueryResult : IDisposable
     {
         #region Methods
+
+        /// <summary>
+        /// Number of items in the result set.
+        /// </summary>
+        /// <returns></returns>
+        int Count();
+
+        /// <summary>
+        /// Enumerate the resource objects in the result.
+        /// </summary>
+        /// <param name="offset"></param>
+        /// <param name="limit"></param>
+        /// <returns></returns>
+        IEnumerable<Resource> GetResources(int offset = -1, int limit = -1);
+
+        /// <summary>
+        /// Enumerate the resource objects of a given type in the result.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="offset"></param>
+        /// <param name="limit"></param>
+        /// <returns></returns>
+        IEnumerable<T> GetResources<T>(int offset = -1, int limit = -1) where T : Resource;
 
         /// <summary>
         /// Returns the bool value from ASK query forms.

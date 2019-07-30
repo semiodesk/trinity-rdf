@@ -160,35 +160,6 @@ namespace Semiodesk.Trinity.Test
 
         }
 
-
-        [Test]
-        public void ConnectTest()
-        {
-            Assert.NotNull(Model);
-            Assert.NotNull(Model2);
-            IModel model = Model;
-
-            ResourceQuery contact = new ResourceQuery(nco.PersonContact);
-            contact.Where(nco.birthDate).LessThan(new DateTime(1990, 1, 1));
-
-            ResourceQuery group = new ResourceQuery(nco.ContactGroup);
-            group.Where(nco.contactGroupName, "Family");
-
-            contact.Where(nco.belongsToGroup, group);
-
-            IResourceQueryResult result = model.ExecuteQuery(contact);
-            foreach (Resource r in result.GetResources())
-            {
-                Console.WriteLine(r.Uri);
-            }
-
-            Contact c = model.CreateResource<Contact>(); // create new resource with GUID
-            c.Birthday = new DateTime(1980, 6, 14);
-            c.Fullname = "John Doe";
-            c.Commit();
-
-        }
-
         [Test]
         public void ContainsResourceTest()
         {
@@ -209,8 +180,6 @@ namespace Semiodesk.Trinity.Test
         {
             var res = Model.CreateResource(new Uri("http://semiodesk.com/emptyResource"));
             res.Commit();
-
-
         }
 
         [Test]

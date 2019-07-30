@@ -45,7 +45,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
     /// <summary>
     /// The results returned from a SPARQL query.
     /// </summary>
-    internal class VirtuosoSparqlQueryResult : ISparqlQueryResult, IResourceQueryResult
+    internal class VirtuosoSparqlQueryResult : ISparqlQueryResult
     {
         #region Members
 

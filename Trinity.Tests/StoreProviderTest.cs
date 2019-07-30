@@ -25,10 +25,7 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using NUnit.Framework;
 using Semiodesk.Trinity.Store;
 
@@ -37,7 +34,6 @@ namespace Semiodesk.Trinity.Test
     [TestFixture]
     class StoreProviderTest
     {
-
         [Test]
         public void ParseConfigurationTest()
         {
@@ -54,13 +50,13 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual("c:/path/to/my/files.ext", result["path"]);
 
             result = StoreFactory.ParseConfiguration("provider=dotnetrdf;schema=c:/path/to/my/schema1.rdf,c:/path/to/my/schema2.rdf");
-
         }
 
         [Test]
         public void DotNetRDFConfigTest()
         {
           dotNetRDFStoreProvider p = new dotNetRDFStoreProvider();
+
           p.GetStore(StoreFactory.ParseConfiguration("provider=dotnetrdf;schema=Models/rdf-schema.rdf,Models/rdf-syntax.rdf"));
         }
 
@@ -75,7 +71,5 @@ namespace Semiodesk.Trinity.Test
             Assert.IsNotNull(anObject);
             anObject.Dispose();
         }
-
-
     }
 }

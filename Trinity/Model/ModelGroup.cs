@@ -24,7 +24,6 @@
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
 // Copyright (c) Semiodesk GmbH 2017
-
 using Remotion.Linq.Parsing.Structure;
 using Semiodesk.Trinity.Query;
 using System;
@@ -52,7 +51,7 @@ namespace Semiodesk.Trinity
     [EditorBrowsable(EditorBrowsableState.Never)]
     public class ModelGroup : IModelGroup
     {
-        #region Member
+        #region Members
 
         private IStore _store;
 
@@ -72,9 +71,32 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// The default model of this group.
+        /// </summary>
+        public IModel DefaultModel { get; set; }
+
+        /// <summary>
+        /// Uri of the model group is null.
+        /// </summary>
+        public UriRef Uri { get { return null; } }
+
+        /// <summary>
+        /// Tests if all contained models are empty.
+        /// </summary>
+        public bool IsEmpty
+        {
+            get
+            {
+                SparqlQuery query = new SparqlQuery(string.Format(@"ASK {0} {{ ?s ?p ?o . }}", DatasetClause));
+                return !ExecuteQuery(query).GetAnwser();
+            }
+        }
+
         #endregion
 
-        #region Constructor
+        #region Constructors
+
         /// <summary>
         /// Create a new model group from a store and a collection of models
         /// </summary>
@@ -101,6 +123,7 @@ namespace Semiodesk.Trinity
         {
             
         }
+
         #endregion
 
         #region Methods
@@ -110,41 +133,6 @@ namespace Semiodesk.Trinity
             _datasetClause = SparqlSerializer.GenerateDatasetClause(_set);
         }
 
-        #region IModelGroup Members
-        /// <summary>
-        /// The default model of this group
-        /// </summary>
-        public IModel DefaultModel
-        {
-            get;
-            set;
-        }
-
-        #endregion
-
-        #region IModel Members
-
-        /// <summary>
-        /// Uri of the model group is null
-        /// </summary>
-        public UriRef Uri
-        {
-            get { return null; }
-        }
-
-        /// <summary>
-        /// Tests if all contained models are empty
-        /// </summary>
-        public bool IsEmpty
-        {
-            get 
-            {
-                SparqlQuery query = new SparqlQuery(string.Format(@"ASK {0} {{ ?s ?p ?o . }}", DatasetClause));
-                return !ExecuteQuery(query).GetAnwser();
-            }
-        }
-
-        #region Not Supported
         /// <summary>
         /// Not supported. ModelGroups are read-only.
         /// </summary>
@@ -174,7 +162,7 @@ namespace Semiodesk.Trinity
         /// <param name="format"></param>
         /// <param name="transaction"></param>
         /// <returns></returns>
-        public IResource CreateResource(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null)
+        public IResource CreateResource(string format = "urn:uuid:{0}", ITransaction transaction = null)
         {
             throw new NotSupportedException();
         }
@@ -197,7 +185,7 @@ namespace Semiodesk.Trinity
         /// <param name="format"></param>
         /// <param name="transaction"></param>
         /// <returns></returns>
-        public T CreateResource<T>(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null) where T : Resource
+        public T CreateResource<T>(string format = "urn:uuid:{0}", ITransaction transaction = null) where T : Resource
         {
             throw new NotSupportedException();
         }
@@ -221,7 +209,7 @@ namespace Semiodesk.Trinity
         /// <param name="format"></param>
         /// <param name="transaction"></param>
         /// <returns></returns>
-        public object CreateResource(Type t, string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null)
+        public object CreateResource(Type t, string format = "urn:uuid:{0}", ITransaction transaction = null)
         {
             throw new NotSupportedException();
         }
@@ -308,9 +296,6 @@ namespace Semiodesk.Trinity
             throw new NotSupportedException();
         }
 
-
-        #endregion
-
         /// <summary>
         /// Indicates wheter a given resource is part of the model.
         /// </summary>
@@ -348,18 +333,6 @@ namespace Semiodesk.Trinity
             query.IsInferenceEnabled = inferenceEnabled;
 
             return _store.ExecuteQuery(query, transaction);
-        }
-
-        /// <summary>
-        /// Execute a ResourceQuery against the model.
-        /// </summary>
-        /// <param name="query">A ResourceQuery object.</param>
-        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
-        /// <param name="transaction">Transaction associated with the action.</param>
-        /// <returns>A SPARQL query result object.</returns>
-        public IResourceQueryResult ExecuteQuery(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
-        {
-            return new ResourceQueryResult(this, query, inferenceEnabled, transaction);
         }
 
         /// <summary>
@@ -510,32 +483,6 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Executes a resource query and provides an enumeration of matching resources.
-        /// </summary>
-        /// <param name="query">A ResourceQuery object.</param>
-        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
-        /// <param name="transaction">Transaction associated with the action.</param>
-        /// <returns>An enumeration of resources that match the given query.</returns>
-        public IEnumerable<Resource> GetResources(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
-        {
-            IEnumerable<Resource> result = ExecuteQuery(query, inferenceEnabled, transaction).GetResources<Resource>();
-
-            if (result != null)
-            {
-                // TODO: Should be done in the SparqlQueryResult for increased performance.
-                foreach (Resource r in result)
-                {
-                    r.SetModel(this);
-                    r.IsNew = false;
-                    r.IsSynchronized = true;
-                    r.IsReadOnly = true;
-                }
-            }
-
-            return result;
-        }
-
-        /// <summary>
         /// Executes a SPARQL query and provides an enumeration of matching resources.
         /// </summary>
         /// <param name="query">A SparqlQuery object.</param>
@@ -543,38 +490,6 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
         public IEnumerable<T> GetResources<T>(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
-        {
-            IEnumerable<T> result = ExecuteQuery(query, inferenceEnabled, transaction).GetResources<T>();
-
-            // TODO: Could be done in the SparqlQueryResult for increased performance.
-            if (result != null)
-            {
-                foreach (object r in result)
-                {
-                    T t = r as T;
-
-                    // NOTE: This safeguard is required because of a bug in ExecuteQuery where 
-                    // it returns null objects when a rdf:type triple is missing..
-                    if (t == null) continue;
-
-                    t.SetModel(this);
-                    t.IsNew = false;
-                    t.IsSynchronized = true;
-                    t.IsReadOnly = true;
-
-                    yield return t;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Executes a resource query and provides an enumeration of matching resources.
-        /// </summary>
-        /// <param name="query">A ResourceQuery object.</param>
-        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
-        /// <param name="transaction">Transaction associated with the action.</param>
-        /// <returns>An enumeration of resources that match the given query.</returns>
-        public IEnumerable<T> GetResources<T>(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
         {
             IEnumerable<T> result = ExecuteQuery(query, inferenceEnabled, transaction).GetResources<T>();
 
@@ -661,10 +576,6 @@ namespace Semiodesk.Trinity
         {
             throw new NotSupportedException();
         }
-
-        #endregion
-
-        #region ISet<IModel> Members
 
         /// <summary>
         /// Add another model to the model group.
@@ -778,10 +689,6 @@ namespace Semiodesk.Trinity
             UpdateDatasetClause();
         }
 
-        #endregion
-
-        #region ICollection<IModel> Members
-
         void ICollection<IModel>.Add(IModel item)
         {
             _set.Add(item);
@@ -836,10 +743,6 @@ namespace Semiodesk.Trinity
             return res;
         }
 
-        #endregion
-
-        #region IEnumerable<IModel> Members
-
         /// <summary>
         /// Enumerator of the models
         /// </summary>
@@ -849,20 +752,15 @@ namespace Semiodesk.Trinity
             return _set.GetEnumerator();
         }
 
-        #endregion
-
-        #region IEnumerable Members
-
         /// <summary>
         /// Enumerator of the models
         /// </summary>
         /// <returns></returns>
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        IEnumerator IEnumerable.GetEnumerator()
         {
             return _set.GetEnumerator();
         }
 
-        #endregion
         #endregion
     }
 }

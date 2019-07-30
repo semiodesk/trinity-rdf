@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using Newtonsoft.Json;
 using Semiodesk.Trinity.Query;
 using Remotion.Linq.Parsing.Structure;
@@ -376,18 +377,6 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Execute a resource query.
-        /// </summary>
-        /// <param name="query">A ResourceQuery object containing the query that should be executed.</param>
-        /// <param name="inferenceEnabled">Indicate that this query should work with enabled inferencing.</param>
-        /// <param name="transaction">ransaction associated with this action.</param>
-        /// <returns></returns>
-        public IResourceQueryResult ExecuteQuery(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
-        {
-            return new ResourceQueryResult(this, query, inferenceEnabled, transaction);
-        }
-
-        /// <summary>
         /// Execute a SPARQL Update.
         /// </summary>
         /// <param name="update">A SparqlUpdate object.</param>
@@ -539,31 +528,6 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Executes a resource query and provides an enumeration of matching resources.
-        /// </summary>
-        /// <param name="query">A ResourceQuery object containing the query that should be executed.</param>
-        /// <param name="inferenceEnabled">Indicate that this query should work with enabled inferencing.</param>
-        /// <param name="transaction">transaction associated with this action.</param>
-        /// <returns>An enumeration of resources that match the given query.</returns>
-        public IEnumerable<Resource> GetResources(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null)
-        {
-            IEnumerable<Resource> result = ExecuteQuery(query, inferenceEnabled, transaction).GetResources<Resource>();
-
-            if (result != null)
-            {
-                // TODO: Should be done in the SparqlQueryResult for increased performance.
-                foreach (Resource r in result)
-                {
-                    r.SetModel(this);
-                    r.IsNew = false;
-                    r.IsSynchronized = true;
-                }
-            }
-
-            return result;
-        }
-
-        /// <summary>
         /// Executes a SPARQL query and provides an enumeration of matching resources. 
         /// Provides a resource object of the given type.
         /// </summary>
@@ -596,38 +560,6 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Executes a Resource query and provides an enumeration of matching resources. 
-        /// Provides a resource object of the given type.
-        /// </summary>
-        /// <param name="query">A ResourceQuery object containing the query that should be executed.</param>
-        /// <param name="inferenceEnabled">Indicate that this query should work with enabled inferencing.</param>
-        /// <param name="transaction">transaction associated with this action.</param>
-        /// <returns>An enumeration of resources that match the given query.</returns>
-        public IEnumerable<T> GetResources<T>(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
-        {
-            IEnumerable<T> result = ExecuteQuery(query, inferenceEnabled, transaction).GetResources<T>();
-
-            // TODO: Could be done in the SparqlQueryResult for increased performance.
-            if (result != null)
-            {
-                foreach (object r in result)
-                {
-                    T t = r as T;
-
-                    // NOTE: This safeguard is required because of a bug in ExecuteQuery where 
-                    // it returns null objects when a rdf:type triple is missing..
-                    if (t == null) continue;
-
-                    t.SetModel(this);
-                    t.IsNew = false;
-                    t.IsSynchronized = true;
-
-                    yield return t;
-                }
-            }
-        }
-
-        /// <summary>
         /// Returns a enumeration of all resources that match the given type.
         /// </summary>
         /// <param name="inferenceEnabled">Indicate that this query should work with enabled inferencing.</param>
@@ -635,12 +567,19 @@ namespace Semiodesk.Trinity
         /// <returns>An enumeration of resources that match the given query.</returns>
         public IEnumerable<T> GetResources<T>(bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
         {
-            T temp = (T)Activator.CreateInstance(typeof(T), new Uri("semio:desk"));
+            StringBuilder queryBuilder = new StringBuilder();
+            queryBuilder.Append("SELECT ?s ?p ?o WHERE { ");
 
-            ResourceQuery query = new ResourceQuery(temp.GetTypes())
+            T instance = (T)Activator.CreateInstance(typeof(T), "_:");
+
+            foreach(Class type in instance.GetTypes())
             {
-                InferencingEnabled = inferenceEnabled
-            };
+                queryBuilder.Append($"?s a <{type.Uri}> . ");
+            }
+
+            queryBuilder.Append("}");
+
+            SparqlQuery query = new SparqlQuery(queryBuilder.ToString());
 
             return GetResources<T>(query, inferenceEnabled, transaction);
         }

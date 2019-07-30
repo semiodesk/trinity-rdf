@@ -26,75 +26,47 @@
 // Copyright (c) Semiodesk GmbH 2015
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using NUnit.Framework;
-using Semiodesk.Trinity;
-using System.Diagnostics;
-using Semiodesk.Trinity.Ontologies;
 
 namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class SparqlEndpointTest
     {
-
-        [SetUp]
-        public void SetUp()
-        {
-
-        }
-
-        [TearDown]
-        public void TearDown()
-        {
-
-        }
-
-
         [Test]
         public void QueryDBPediaTest()
         {
+            IStore store = StoreFactory.CreateStore("provider=sparqlendpoint;endpoint=http://live.dbpedia.org/sparql");
+            IModel model = store.GetModel(new Uri("http://dbpedia.org"));
 
-            var store = StoreFactory.CreateStore("provider=sparqlendpoint;endpoint=http://live.dbpedia.org/sparql");
-            IModel m = store.GetModel(new Uri("http://dbpedia.org"));
-            ResourceQuery q = new ResourceQuery();
-            Property wikiPageID = new Property(new Uri("http://dbpedia.org/ontology/wikiPageID"));
-            q.Where(wikiPageID, 445980);
-            var result = m.ExecuteQuery(q); 
-            var b = result.GetResources();
-            foreach (var res in b)
-            {
-                Console.WriteLine(res);
-            }
+            SparqlQuery query = new SparqlQuery(@"SELECT ?s ?p ?o WHERE { ?s ?p ?o . ?s <http://dbpedia.org/ontology/wikiPageID> @id . }");
+            query.Bind("id", 445980);
+
+            Assert.AreEqual(1, model.ExecuteQuery(query).GetResources().Count());
         }
 
         [Test]
         public void GetResourceDBPediaTest()
         {
+            IStore store = StoreFactory.CreateStore("provider=sparqlendpoint;endpoint=http://live.dbpedia.org/sparql");
+            IModel model = store.GetModel(new Uri("http://dbpedia.org"));
 
-            var store = StoreFactory.CreateStore("provider=sparqlendpoint;endpoint=http://live.dbpedia.org/sparql");
-            IModel m = store.GetModel(new Uri("http://dbpedia.org"));
-            IResource res = m.GetResource(new Uri("http://dbpedia.org/resource/Munich"));
-            
+            IResource r = model.GetResource(new Uri("http://dbpedia.org/resource/Munich"));
+
+            Assert.Greater(0, r.ListProperties().Count());
         }
 
         //[Test]
         public void QueryWordnetTest()
         {
-            var store = StoreFactory.CreateStore("provider=sparqlendpoint;endpoint=http://wordnet.rkbexplorer.com/sparql/");
-            IModel m = store.GetModel(new Uri("http://wordnet.rkbexplorer.com/sparql/"));
-            ResourceQuery q = new ResourceQuery();
-            q.Where(rdfs.label, "eat");
-            var result = m.ExecuteQuery(q);
-            var b = result.GetResources();
-            foreach (var res in b)
-            {
-                Console.WriteLine(res);
-            }
-        }
+            IStore store = StoreFactory.CreateStore("provider=sparqlendpoint;endpoint=http://wordnet.rkbexplorer.com/sparql/");
+            IModel model = store.GetModel(new Uri("http://wordnet.rkbexplorer.com/sparql/"));
 
-  
+            SparqlQuery query = new SparqlQuery(@"SELECT ?s ?p ?o WHERE { ?s ?p ?o . ?s <http://www.w3.org/2000/01/rdf-schema#label> @label . }");
+            query.Bind("label", "eat");
+
+            Assert.Greater(0, model.ExecuteQuery(query).GetResources().Count());
+        }
     }
 }

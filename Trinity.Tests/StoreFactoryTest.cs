@@ -25,19 +25,13 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using NUnit.Framework;
-using Semiodesk.Trinity.Store;
 
 namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     class StoreFactoryTest
     {
-
         [Test]
         public void TestConnectionStringTest()
         {
@@ -46,6 +40,5 @@ namespace Semiodesk.Trinity.Test
             Assert.IsTrue(StoreFactory.TestConnectionString("provider=sparqlendpoint;endpoint=http://live.dbpedia.org/sparql"));
             Assert.IsFalse(StoreFactory.TestConnectionString("data source=.\\SQLEXPRESS;Integrated Security=SSPI;AttachDBFilename=|DataDirectory|aspnetdb.mdf;User Instance=true"));
         }
-
     }
 }

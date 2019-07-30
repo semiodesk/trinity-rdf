@@ -26,24 +26,17 @@
 // Copyright (c) Semiodesk GmbH 2015
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Diagnostics;
 using NUnit.Framework;
-using Semiodesk.Trinity;
-using System.IO;
 
 namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class SparqlUpdateTest
     {
-        private IModel _model = null;
-        IStore _store;
+        private IStore _store;
 
-        private NamespaceManager _namespaceManager = new NamespaceManager();
+        private IModel _model = null;
 
         [SetUp]
         public void SetUp()

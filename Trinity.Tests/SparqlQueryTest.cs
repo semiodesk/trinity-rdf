@@ -43,9 +43,6 @@ namespace Semiodesk.Trinity.Test
 
         protected IModel Model;
 
-        protected NamespaceManager NamespaceManager = new NamespaceManager();
-
-
         [SetUp]
         public void SetUp()
         {

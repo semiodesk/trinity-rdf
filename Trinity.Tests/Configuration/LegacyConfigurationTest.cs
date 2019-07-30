@@ -25,12 +25,8 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using NUnit.Framework;
-using Semiodesk.Trinity.Store;
 using Semiodesk.Trinity.Configuration;
 
 namespace Semiodesk.Trinity.Test
@@ -38,31 +34,27 @@ namespace Semiodesk.Trinity.Test
     [TestFixture]
     class LegacyConfigurationTest
     {
-
         [Test]
         public void TestAppConfig()
         {
             IConfiguration config = ConfigurationLoader.LoadConfiguration(null);
 
             Assert.AreEqual("Semiodesk.Trinity.Test", config.Namespace);
+
             var ontologies = config.ListOntologies();
             Assert.AreEqual(7, ontologies.Count());
+
             var x = config.ListStoreConfigurations().ToList();
             var b = x.First().Data;
-
         }
-
 
         [Test]
         public void TestInitialize()
         {
             string connectionString = SetupClass.ConnectionString;
 
-            var Store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
-            Store.InitializeFromConfiguration();
-
-
+            var store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
+            store.InitializeFromConfiguration();
         }
-
     }
 }

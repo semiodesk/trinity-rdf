@@ -2,15 +2,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace Semiodesk.Trinity.Test
 {
-        public class MappingTestOntology
+    public class MappingTestOntology
     {
         public static readonly Uri Namespace = new Uri("semio:mapping:test");
-        public Uri GetNamespace() { return Namespace; }
+
         public static readonly string Prefix = "mapping";
+
+        public Uri GetNamespace() { return Namespace; }
+
         public string GetPrefix() { return Prefix; }
 
         public static readonly Class BaseClass = new Class(new UriRef(BaseClassString));
@@ -24,9 +26,7 @@ namespace Semiodesk.Trinity.Test
 
         public static readonly Class AnotherBaseClass = new Class(new UriRef(AnotherBaseClassString));
         public const string AnotherBaseClassString = "semio:mapping:test:anotherBaseClass";
-      
     }
-
 
     public class BaseClass : Resource
     {
@@ -36,7 +36,6 @@ namespace Semiodesk.Trinity.Test
         {
             return new List<Class> { MappingTestOntology.BaseClass };
         }
-
     }
 
     public class SubClass : BaseClass
@@ -57,7 +56,6 @@ namespace Semiodesk.Trinity.Test
         {
             return new List<Class> { MappingTestOntology.SubSubClass };
         }
-
     }
 
     public class AnotherBaseClas : Resource
@@ -68,7 +66,6 @@ namespace Semiodesk.Trinity.Test
         {
             return new List<Class> { MappingTestOntology.BaseClass, MappingTestOntology.AnotherBaseClass };
         }
-
     }
 
     [TestFixture]
@@ -77,7 +74,6 @@ namespace Semiodesk.Trinity.Test
         [SetUp]
         public void SetUp()
         {
-
         }
 
         [Test]
@@ -114,40 +110,28 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(2, baseTypes.Count());
             Assert.Contains(MappingTestOntology.BaseClass, baseTypes);
             Assert.Contains(MappingTestOntology.SubClass, baseTypes);
-
         }
-
 
         [Test]
         public void TestGetMatchingTypes()
         {
-            Class[] types = new[] {MappingTestOntology.BaseClass};
-
+            Class[] types = new[] { MappingTestOntology.BaseClass };
             var res = MappingDiscovery.GetMatchingTypes(types, typeof(BaseClass), false);
 
             Assert.AreEqual(1, res.Length);
             Assert.AreEqual(typeof(BaseClass), res.First());
 
-
             types = new[] { MappingTestOntology.BaseClass, MappingTestOntology.SubClass };
-
             res = MappingDiscovery.GetMatchingTypes(types, typeof(BaseClass), true);
 
             //Assert.AreEqual(1, res.Length);
             Assert.AreEqual(typeof(SubClass), res.First());
-
 
             types = new[] { MappingTestOntology.SubClass, MappingTestOntology.BaseClass };
-
             res = MappingDiscovery.GetMatchingTypes(types, typeof(BaseClass), true);
 
             //Assert.AreEqual(1, res.Length);
             Assert.AreEqual(typeof(SubClass), res.First());
-
-
-
         }
-
-
     }
 }

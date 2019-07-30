@@ -97,10 +97,10 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Generates a globally unique resource identifier in the Semiodesk namespace: &lt;http://semiodesk.com/id/{GUID}/&gt;
+        /// Generates a globally unique resource identifier in the Semiodesk namespace: &lt;urn:uuid:{GUID}/&gt;
         /// </summary>
         /// <returns>A Uniform Resource Identifier.</returns>
-        public static Uri GetGuid(string format = "http://semiodesk.com/id/{0}")
+        public static Uri GetGuid(string format = "urn:uuid:{0}")
         {
             return new Uri(string.Format(format, Guid.NewGuid()));
         }

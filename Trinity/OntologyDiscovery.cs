@@ -38,41 +38,63 @@ namespace Semiodesk.Trinity
     /// </summary>
     public static class OntologyDiscovery
     {
-        #region Fields
+        #region Members
 
         /// <summary>
         /// All registered RDF ontology prefixes in the current application.
         /// </summary>
-        public static Dictionary<string, Uri> Namespaces = new Dictionary<string, Uri>();
+        public static readonly Dictionary<string, Uri> Namespaces = new Dictionary<string, Uri>();
 
         /// <summary>
         /// All registered RDF properties in the current application.
         /// </summary>
-        public static Dictionary<string, Property> Properties = new Dictionary<string, Property>();
+        public static readonly Dictionary<string, Property> Properties = new Dictionary<string, Property>();
 
         /// <summary>
         /// All registered RDF classes in the current application.
         /// </summary>
-        public static Dictionary<string, Class> Classes = new Dictionary<string, Class>();
+        public static readonly Dictionary<string, Class> Classes = new Dictionary<string, Class>();
 
         #endregion
 
         #region Constructors
 
-        static OntologyDiscovery()
-        {
-        }
+        static OntologyDiscovery() {}
 
         #endregion
 
         #region Methods
 
+        /// <summary>
+        /// Register a namespace with a prefix.
+        /// </summary>
+        /// <param name="prefix">A namespace prefix.</param>
+        /// <param name="uri">A uniform resource identifier.</param>
         public static void AddNamespace(string prefix, Uri uri)
         {
-            // TODO: Implement support for adding ontologies without a file source to app.config.
             Namespaces[prefix] = uri;
         }
 
+        /// <summary>
+        /// Register an assembly to search for RDF ontologies.
+        /// </summary>
+        /// <param name="asm"></param>
+        public static void AddAssembly(Assembly asm)
+        {
+            var instances =
+                from type in asm.GetTypes()
+                where
+                    type.BaseType == typeof(Ontology) && type.GetConstructor(Type.EmptyTypes) != null
+                select
+                    (Ontology)Activator.CreateInstance(type);
+
+            AddOntologies(instances);
+        }
+
+        /// <summary>
+        /// Register the concepts from a given set of ontologies.
+        /// </summary>
+        /// <param name="ontologies">An enumeration of ontologies.</param>
         private static void AddOntologies(IEnumerable<Ontology> ontologies)
         {
             foreach (Ontology ontology in ontologies)
@@ -88,11 +110,11 @@ namespace Semiodesk.Trinity
                 foreach (FieldInfo field in fields)
                 {
                     // Register the Ontology prefix and name with the NamespaceManager.
-                    if(field.Name == "Prefix")
+                    if (field.Name == "Prefix")
                     {
                         prefix = field.GetValue(ontology) as string;
                     }
-                    else if(field.Name == "Namespace")
+                    else if (field.Name == "Namespace")
                     {
                         uri = field.GetValue(ontology) as Uri;
                     }
@@ -117,27 +139,11 @@ namespace Semiodesk.Trinity
                     }
                 }
 
-                if(!string.IsNullOrEmpty(prefix) && uri != null)
+                if (!string.IsNullOrEmpty(prefix) && uri != null)
                 {
                     Namespaces[prefix] = uri;
                 }
             }
-        }
-
-        /// <summary>
-        /// Register an assembly to search for RDF ontologies.
-        /// </summary>
-        /// <param name="asm"></param>
-        public static void AddAssembly(Assembly asm)
-        {
-            AddOntologies(GetInstances<Ontology>(asm));
-        }
-
-        private static IList<T> GetInstances<T>(Assembly asm)
-        {
-            return (from t in asm.GetTypes()
-                    where t.BaseType == (typeof(T)) && t.GetConstructor(Type.EmptyTypes) != null
-                    select (T)Activator.CreateInstance(t)).ToList();
         }
 
         /// <summary>

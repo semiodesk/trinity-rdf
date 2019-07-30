@@ -39,9 +39,11 @@ namespace Semiodesk.Trinity
         #region Members
 
         private readonly ISparqlQueryResult _queryResult;
+
         #endregion
 
-        #region Constructor
+        #region Constructors
+
         /// <summary>
         /// Constructor for the SparqlQueryItemsProvider.
         /// </summary>
@@ -55,7 +57,7 @@ namespace Semiodesk.Trinity
 
         #endregion
 
-        #region IItemsProvider Members
+        #region Methods
 
         /// <summary>
         /// Number of elements in the result.
@@ -76,7 +78,6 @@ namespace Semiodesk.Trinity
         {
             return _queryResult.GetResources<T>(offset, limit);
         }
-
 
         #endregion
     }

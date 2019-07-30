@@ -26,7 +26,6 @@
 // Copyright (c) Semiodesk GmbH 2015
 
 using System;
-using System.Data;
 
 namespace Semiodesk.Trinity
 {
@@ -36,6 +35,7 @@ namespace Semiodesk.Trinity
     public class TransactionEventArgs : EventArgs
     {
         #region Members
+
         /// <summary>
         /// Indicates that the transaction finished with a commit.
         /// </summary>
@@ -45,11 +45,13 @@ namespace Semiodesk.Trinity
         /// Indicates that the transaction finished with a rollback.
         /// </summary>
         public readonly bool FinishedWithRollback;
+
         #endregion
 
-        #region Constructor
+        #region Constructors
+
         /// <summary>
-        /// Cosntructor
+        /// Create a new transaction event object.
         /// </summary>
         /// <param name="success">Pass true to indicate that a commit happened. Pass false to indicate that a rollback happend.</param>
         public TransactionEventArgs(bool success)
@@ -64,10 +66,8 @@ namespace Semiodesk.Trinity
                 FinishedWithRollback = true;
                 FinishedWithCommit = false;
             }
-
         }
+
         #endregion
-
-
     }
 }

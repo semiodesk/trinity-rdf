@@ -25,15 +25,15 @@
 //
 // Copyright (c) Semiodesk GmbH 2015
 
+#if !NET35
+
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Threading;
 
-
 namespace Semiodesk.Trinity.Collections
 {
-#if !NET35
     /// <summary>
     /// Derived VirtualizatingCollection, performing loading asychronously.
     /// </summary>
@@ -60,7 +60,7 @@ namespace Semiodesk.Trinity.Collections
         /// Gets or sets a value indicating whether the collection is loading.
         /// </summary>
         /// <value>
-        /// 	<c>true</c> if this collection is loading; otherwise, <c>false</c>.
+        /// <c>true</c> if this collection is loading; otherwise, <c>false</c>.
         /// </value>
         public bool IsLoading
         {
@@ -219,5 +219,6 @@ namespace Semiodesk.Trinity.Collections
 
         #endregion
     }
-#endif
 }
+
+#endif

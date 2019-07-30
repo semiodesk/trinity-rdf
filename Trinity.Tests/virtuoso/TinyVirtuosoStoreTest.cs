@@ -35,13 +35,11 @@ using Semiodesk.Trinity.Test;
 
 namespace Semiodesk.Trinity.Test
 {
-
-
     [TestFixture]
     class TinyVirtuosoStoreTest
     {
+        Uri _testModel = new Uri("ex:Test");
 
-        Uri testModel = new Uri("ex:Test");
         IStore Store;
 
         [SetUp]
@@ -51,7 +49,7 @@ namespace Semiodesk.Trinity.Test
 
             Store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
             Store.InitializeFromConfiguration();
-            Store.RemoveModel(testModel);
+            Store.RemoveModel(_testModel);
         }
 
         [TearDown]
@@ -60,8 +58,6 @@ namespace Semiodesk.Trinity.Test
             Store.Dispose();
             Store = null;
         }
-
-
 
         [Test]
         public void LoadOntologiesFromFileTest()
@@ -76,7 +72,7 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void AddModelTest()
         {
-            IModel m = Store.CreateModel(testModel);
+            IModel m = Store.CreateModel(_testModel);
 
             Assert.IsNotNull(m);
         }
@@ -95,20 +91,20 @@ namespace Semiodesk.Trinity.Test
         public void GetModelTest()
         {
             IModel model;
-            Store.RemoveModel(testModel);
-            model = Store.GetModel(testModel);
+            Store.RemoveModel(_testModel);
+            model = Store.GetModel(_testModel);
             Assert.IsTrue(model.IsEmpty);
-            IModel m = Store.CreateModel(testModel);
+            IModel m = Store.CreateModel(_testModel);
 
             var res = m.CreateResource(new Uri("ex:test:resource"));
 
             res.AddProperty(new Property(new Uri("ex:test:property")), "var");
             res.Commit();
 
-            model = Store.GetModel(testModel);
+            model = Store.GetModel(_testModel);
             Assert.IsFalse(model.IsEmpty);
-            IModel model2 = Store.GetModel(testModel);
-            Assert.AreEqual(testModel, model2.Uri);
+            IModel model2 = Store.GetModel(_testModel);
+            Assert.AreEqual(_testModel, model2.Uri);
 
             Assert.IsTrue(model2.ContainsResource(res));
         }
@@ -117,26 +113,25 @@ namespace Semiodesk.Trinity.Test
         public void RemoveModelTest()
         {
             IModel model;
-            Store.RemoveModel(testModel);
+            Store.RemoveModel(_testModel);
 
-            model = Store.GetModel(testModel);
+            model = Store.GetModel(_testModel);
             Assert.IsTrue(model.IsEmpty);
-            IModel m = Store.CreateModel(testModel);
+            IModel m = Store.CreateModel(_testModel);
 
             var res = m.CreateResource(new Uri("ex:test:resource"));
 
             res.AddProperty(new Property(new Uri("ex:test:property")), "var");
             res.Commit();
 
-            model = Store.GetModel(testModel);
+            model = Store.GetModel(_testModel);
             Assert.IsFalse(model.IsEmpty);
-            Assert.AreEqual(testModel, model.Uri);
+            Assert.AreEqual(_testModel, model.Uri);
 
-            Store.RemoveModel(testModel);
-            model = Store.GetModel(testModel);
+            Store.RemoveModel(_testModel);
+            model = Store.GetModel(_testModel);
             Assert.IsTrue(model.IsEmpty);
 
         }
-
     }
 }

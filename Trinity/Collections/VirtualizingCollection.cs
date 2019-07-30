@@ -431,6 +431,7 @@ namespace Semiodesk.Trinity.Collections
         {
             return _itemsProvider.Count();
         }
+
         #endregion
     }
 }

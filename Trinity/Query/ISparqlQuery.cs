@@ -25,15 +25,12 @@
 //
 // Copyright (c) Semiodesk GmbH 2016
 
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Semiodesk.Trinity
 {
     /// <summary>
-    /// A generic sparql query interface.  
+    /// Exposes a SPARQL query.
     /// </summary>
     public interface ISparqlQuery
     {
@@ -77,18 +74,34 @@ namespace Semiodesk.Trinity
         /// <returns>An enumeration of URI strings.</returns>
         IEnumerable<string> GetDefaultModels();
 
+        /// <summary>
+        /// Get an array of all variable names that are defined in the root scope of the query.
+        /// </summary>
+        /// <returns>An array of avaiable names without the preceding '$' or '?' characters, if any.</returns>
         string[] GetGlobalScopeVariableNames();
 
+        /// <summary>
+        /// Get the root graph pattern.
+        /// </summary>
+        /// <returns>A non empty string, on success.</returns>
         string GetRootGraphPattern();
 
+        /// <summary>
+        /// Gets the outermost ORDER BY clause.
+        /// </summary>
+        /// <returns>A non empty string if a ORDER BY clause is defined.</returns>
         string GetRootOrderByClause();
 
+        /// <summary>
+        /// Indicates if the query selects variables that are used as subject, predicate and object in a triple pattern.
+        /// </summary>
+        /// <returns><c>true</c> if the query selects triples, <c>false</c> otherwise.</returns>
         bool ProvidesStatements();
 
         /// <summary>
         /// Returns the string representation of the query.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The SPARQL query string.</returns>
         string ToString();
 
         #endregion

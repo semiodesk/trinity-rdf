@@ -72,6 +72,5 @@ namespace Semiodesk.Trinity
         }
 
         #endregion
-
     }
 }

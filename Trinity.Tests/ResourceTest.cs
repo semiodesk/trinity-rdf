@@ -26,16 +26,10 @@
 // Copyright (c) Semiodesk GmbH 2015
 
 using System;
-using System.Text;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using NUnit.Framework;
-using System.Xml;
-using System.Globalization;
-using Semiodesk.Trinity;
-using System.Collections.ObjectModel;
-using Semiodesk.Trinity.Ontologies;
-using System.Reflection;
 #if NET35
 using Semiodesk.Trinity.Utility;
 #endif
@@ -145,8 +139,6 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void Property()
         {
-            
-
             Property myProperty = new Property(new Uri("ex:myProperty"));
             Property myPropertyCopy = new Property(new Uri("ex:myProperty"));
             Resource t1 = new Resource(new Uri("ex:myResource"));
@@ -1146,13 +1138,6 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(false, target.HasProperty(property));
         }
 
-
-
         #endregion
-
-  
     }
-
-
-
 }

@@ -36,11 +36,13 @@ using VDS.RDF.Parsing.Tokens;
 namespace Semiodesk.Trinity
 {
     /// <summary>
-    /// A _very_ simple SPARQL parser. This class is primarily intended to support
-    /// a limited range of query preprocessing tasks such as setting the values of 
-    /// query parameters (@-variables) as quickly as possible. It does not aim to 
-    /// support the full SPARQL standard syntax.
+    /// A simple SPARQL parser.
     /// </summary>
+    /// <remarks>
+    /// This class is primarily intended to support a limited range of query 
+    /// preprocessing tasks such as setting the values of query parameters (@-variables)
+    /// as quickly as possible. It does not aim to support the full SPARQL standard syntax.
+    /// </remarks>
     public class SparqlPreprocessor : SparqlTokeniser
     {
         #region Members

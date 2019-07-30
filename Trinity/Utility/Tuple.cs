@@ -1,28 +1,31 @@
-﻿/*
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+﻿// LICENSE:
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//
+// AUTHORS:
+//
+//  Moritz Eberl <moritz@semiodesk.com>
+//  Sebastian Faubel <sebastian@semiodesk.com>
+//
+// Copyright (c) Semiodesk GmbH 2015
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
-Copyright (c) 2015 Semiodesk GmbH
-
-Authors:
-Moritz Eberl <moritz@semiodesk.com>
-Sebastian Faubel <sebastian@semiodesk.com>
-*/
+#if NET35
 
 using System;
 using System.Collections.Generic;
@@ -31,8 +34,6 @@ using System.Text;
 
 namespace Semiodesk.Trinity.Utility
 {
-    #if NET35
-
     /// <summary>
     /// A tuple is a finite sequence of elements.
     /// 
@@ -42,7 +43,7 @@ namespace Semiodesk.Trinity.Utility
     /// <typeparam name="T2">Type of the second item.</typeparam>
     public class Tuple<T1, T2>
     {
-        #region Members
+#region Members
         /// <summary>
         /// The first item in the sequence.
         /// </summary>
@@ -52,9 +53,9 @@ namespace Semiodesk.Trinity.Utility
         /// The second item in the sequence.
         /// </summary>
         public T2 Item2 { get; private set; }
-        #endregion
+#endregion
 
-        #region Constructor
+#region Constructor
         /// <summary>
         /// The constructor, takes the items as parameters.
         /// </summary>
@@ -65,9 +66,9 @@ namespace Semiodesk.Trinity.Utility
             Item1 = item1;
             Item2 = item2;
         }
-        #endregion
+#endregion
 
-        #region Methods
+#region Methods
 
         /// <summary>
         /// Compares two tuples by comparing its items.
@@ -93,7 +94,7 @@ namespace Semiodesk.Trinity.Utility
             return this.Item1.GetHashCode() & this.Item2.GetHashCode();
         }
 
-        #endregion
+#endregion
     }
 
     /// <summary>
@@ -106,7 +107,7 @@ namespace Semiodesk.Trinity.Utility
     /// <typeparam name="T3">Type of the third item.</typeparam>
     public class Tuple<T1, T2, T3>
     {
-        #region Members
+#region Members
         /// <summary>
         /// The first item in the sequence.
         /// </summary>
@@ -121,9 +122,9 @@ namespace Semiodesk.Trinity.Utility
         /// The third item in the sequence.
         /// </summary>
         public T3 Item3 { get; private set; }
-        #endregion
+#endregion
 
-        #region Constructor
+#region Constructor
         /// <summary>
         /// The constructor, takes the items as parameters.
         /// </summary>
@@ -136,9 +137,9 @@ namespace Semiodesk.Trinity.Utility
             Item2 = item2;
             Item3 = item3;
         }
-        #endregion
+#endregion
 
-        #region Methods
+#region Methods
         /// <summary>
         /// Compares two tuples by comparing its items.
         /// </summary>
@@ -162,7 +163,7 @@ namespace Semiodesk.Trinity.Utility
         {
             return this.Item1.GetHashCode() & this.Item2.GetHashCode() & this.Item3.GetHashCode();
         }
-        #endregion
+#endregion
     }
 
     /// <summary>
@@ -176,7 +177,7 @@ namespace Semiodesk.Trinity.Utility
     /// <typeparam name="T4">Type of the fourth item.</typeparam>
     public class Tuple<T1, T2, T3, T4>
     {
-        #region Members
+#region Members
         /// <summary>
         /// The first item in the sequence.
         /// </summary>
@@ -196,9 +197,9 @@ namespace Semiodesk.Trinity.Utility
         /// The foruth item in the sequence.
         /// </summary>
         public T4 Item4 { get; private set; }
-        #endregion
+#endregion
 
-        #region Constructor
+#region Constructor
         /// <summary>
         /// The constructor, takes the items as parameters.
         /// </summary>
@@ -213,9 +214,9 @@ namespace Semiodesk.Trinity.Utility
             Item3 = item3;
             Item4 = item4;
         }
-        #endregion
+#endregion
 
-        #region Methods
+#region Methods
         /// <summary>
         /// Compares two tuples by comparing its items.
         /// </summary>
@@ -239,7 +240,8 @@ namespace Semiodesk.Trinity.Utility
         {
             return this.Item1.GetHashCode() & this.Item2.GetHashCode() & this.Item3.GetHashCode() & this.Item4.GetHashCode();
         }
-        #endregion
+#endregion
     }
-    #endif
 }
+
+#endif

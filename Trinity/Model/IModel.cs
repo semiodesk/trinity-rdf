@@ -80,7 +80,7 @@ namespace Semiodesk.Trinity
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <returns>The newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
-        IResource CreateResource(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null);
+        IResource CreateResource(string format = "urn:uuid:{0}", ITransaction transaction = null);
 
         /// <summary>
         /// Creates a new resource in the model and its backing RDF store.
@@ -99,7 +99,7 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
-        T CreateResource<T>(string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null) where T : Resource;
+        T CreateResource<T>(string format = "urn:uuid:{0}", ITransaction transaction = null) where T : Resource;
 
         /// <summary>
         /// Creates a new resource in the model and its backing RDF store. Provides a resource object of the given type.
@@ -119,7 +119,7 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>An instance of the given object type wrapping the newly created resource.</returns>
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
-        object CreateResource(Type type, string format = "http://semiodesk.com/id/{0}", ITransaction transaction = null);
+        object CreateResource(Type type, string format = "urn:uuid:{0}", ITransaction transaction = null);
 
         /// <summary>
         /// Creates a new resource in the model and its backing RDF store. Provides a resource object of the given type.
@@ -172,15 +172,6 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>A SPARQL query result object.</returns>
         ISparqlQueryResult ExecuteQuery(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
-
-        /// <summary>
-        /// Execute a ResourceQuery against the model.
-        /// </summary>
-        /// <param name="query">A ResourceQuery object.</param>
-        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
-        /// <param name="transaction">Transaction associated with the action.</param>
-        /// <returns>A SPARQL query result object.</returns>
-        IResourceQueryResult ExecuteQuery(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
 
         /// <summary>
         /// Execute a SparqlUpdate against the model.
@@ -240,15 +231,6 @@ namespace Semiodesk.Trinity
         IEnumerable<Resource> GetResources(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
 
         /// <summary>
-        /// Executes a resource query and provides an enumeration of matching resources.
-        /// </summary>
-        /// <param name="query">A ResourceQuery object.</param>
-        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
-        /// <param name="transaction">Transaction associated with the action.</param>
-        /// <returns>An enumeration of resources that match the given query.</returns>
-        IEnumerable<Resource> GetResources(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null);
-
-        /// <summary>
         /// Executes a SPARQL query and provides an enumeration of matching resources.
         /// </summary>
         /// <param name="query">A SparqlQuery object.</param>
@@ -256,15 +238,6 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with the action.</param>
         /// <returns>An enumeration of resources that match the given query.</returns>
         IEnumerable<T> GetResources<T>(ISparqlQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource;
-
-        /// <summary>
-        /// Executes a resource query and provides an enumeration of matching resources.
-        /// </summary>
-        /// <param name="query">A ResourceQuery object.</param>
-        /// <param name="inferenceEnabled">Modifier to enable inferencing. Default is false.</param>
-        /// <param name="transaction">Transaction associated with the action.</param>
-        /// <returns>An enumeration of resources that match the given query.</returns>
-        IEnumerable<T> GetResources<T>(ResourceQuery query, bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource;
 
         /// <summary>
         /// Returns a enumeration of all resources that match the given type.
@@ -336,7 +309,6 @@ namespace Semiodesk.Trinity
         /// <returns>A handle to the transaction.</returns>
         ITransaction BeginTransaction(IsolationLevel isolationLevel);
         
-
         #endregion
     }
 }
