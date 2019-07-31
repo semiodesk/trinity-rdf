@@ -25,6 +25,7 @@
 //
 // Copyright (c) Semiodesk GmbH 2015-2019
 
+using System;
 using System.Collections.Generic;
 using Semiodesk.Trinity.Collections;
 
@@ -34,6 +35,7 @@ namespace Semiodesk.Trinity
     /// The item provider for sparql queries.
     /// </summary>
     /// <typeparam name="T"></typeparam>
+    [Obsolete]
     public class SparqlQueryItemsProvider<T> : IItemsProvider<T> where T : Resource
     {
         #region Members

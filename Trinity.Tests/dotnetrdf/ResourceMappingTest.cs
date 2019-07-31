@@ -66,7 +66,6 @@ namespace dotNetRDFStore.Test
 
             Store = StoreFactory.CreateStore("provider=dotnetrdf");
 
-
             Uri testModel = new Uri("ex:Test");
             Model = Store.CreateModel(testModel);
         }

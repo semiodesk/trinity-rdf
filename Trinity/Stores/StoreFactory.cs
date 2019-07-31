@@ -89,10 +89,10 @@ namespace Semiodesk.Trinity
         public static IStore CreateStore(string connectionString)
         {
             var config = ParseConfiguration(connectionString);
+
             if (config.ContainsKey("provider"))
             {
                 string provider = config["provider"];
-
 
                 if (_storeConfigurations.ContainsKey(provider))
                 {
@@ -103,13 +103,13 @@ namespace Semiodesk.Trinity
                     }
                     catch (Exception e)
                     {
-                        throw new StoreProviderMissingException("An error occured while trying to create the store with key \"" + provider + "\". Check the inner exception.", e);
+                        throw new StoreProviderMissingException($"An error occured while trying to create the store with key '{provider}'. Check the inner exception.", e);
                     }
-
-                    
                 }
-                throw new StoreProviderMissingException("No store provider with key \"" + provider + "\" found. Try to register it with \"StoreFactory.LoadProvider()\"");
+
+                throw new StoreProviderMissingException($"No store provider with key '{provider}' found. Try to register it with 'StoreFactory.LoadProvider()'");
             }
+
             throw new StoreProviderMissingException("No store provider key specified.");
         }
 
@@ -123,16 +123,33 @@ namespace Semiodesk.Trinity
             foreach (ConnectionStringSettings setting in ConfigurationManager.ConnectionStrings)
             {
                 if (!string.IsNullOrEmpty(name) && setting.Name != name)
+                {
                     continue;
+                }
 
                 string conString = setting.ConnectionString;
+
                 if (setting.ProviderName == "Semiodesk.Trinity" && StoreFactory.TestConnectionString(conString))
+                {
                     return CreateStore(conString);
+                }
             }
+
             if (!string.IsNullOrEmpty(name))
+            {
                 throw new ArgumentException(string.Format("Connection string with given name \"{0}\" not found.", name));
+            }
 
             return null;
+        }
+
+        /// <summary>
+        /// Creates a temporary in-memory store using the dotNetRDF provider.
+        /// </summary>
+        /// <returns></returns>
+        public static IStore CreateMemoryStore()
+        {
+            return CreateStoreFromConfiguration("provider=dotnetrdf");
         }
 
         /// <summary>
@@ -143,11 +160,14 @@ namespace Semiodesk.Trinity
         public static bool LoadProvider(string assemblyPath)
         {
             bool result = false;
+
             try
             {
-                #if NETSTANDARD2_0
+#if NETSTANDARD2_0
                 ContainerConfiguration config = new ContainerConfiguration().WithAssembly(Assembly.LoadFrom(assemblyPath));
+
                 var container = config.CreateContainer();
+
                 foreach (StoreProvider provider in container.GetExports<StoreProvider>())
                 {
                     if (!_storeConfigurations.ContainsKey(provider.Name))
@@ -157,36 +177,42 @@ namespace Semiodesk.Trinity
                     }
                 }
 #elif NET35
-
                 Assembly assembly = Assembly.LoadFrom(assemblyPath);
+
                 var types = assembly.GetTypes().Where(x => x.IsSubclassOf(typeof(StoreProvider)));
+
                 foreach (var item in types)
                 {
                     StoreProvider provider = (StoreProvider)Activator.CreateInstance(item);
+
                     if (!_storeConfigurations.ContainsKey(provider.Name))
                     {
                         _storeConfigurations.Add(provider.Name, provider);
                         result = true;
                     }
                 }
-                #else
+#else
                 AssemblyCatalog catalog = new AssemblyCatalog(assemblyPath);
+
                 var container = new CompositionContainer(catalog);
+
                 foreach (var item in container.GetExports<StoreProvider>())
                 {
                     StoreProvider provider = item.Value;
+
                     if (!_storeConfigurations.ContainsKey(provider.Name))
                     {
                         _storeConfigurations.Add(provider.Name, provider);
                         result = true;
                     }
                 }
-                #endif
+#endif
             }
             catch (Exception)
             {
                 return false;
             }
+
             return result;
         }
 

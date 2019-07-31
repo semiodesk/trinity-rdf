@@ -25,6 +25,7 @@
 //
 // Copyright (c) Semiodesk GmbH 2015-2019
 
+using System;
 using System.Collections.Generic;
 
 namespace Semiodesk.Trinity.Collections
@@ -33,6 +34,7 @@ namespace Semiodesk.Trinity.Collections
     /// A generic items provider collection.
     /// </summary>
     /// <typeparam name="T"></typeparam>
+    [Obsolete]
     public interface IItemsProvider<T>
     {
         /// <summary>

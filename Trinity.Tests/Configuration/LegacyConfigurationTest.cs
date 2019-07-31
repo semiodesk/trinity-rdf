@@ -42,10 +42,12 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual("Semiodesk.Trinity.Test", config.Namespace);
 
             var ontologies = config.ListOntologies();
+
             Assert.AreEqual(7, ontologies.Count());
 
             var x = config.ListStoreConfigurations().ToList();
-            var b = x.First().Data;
+
+            Assert.IsNotNull(x.First().Data);
         }
 
         [Test]
