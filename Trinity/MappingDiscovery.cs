@@ -23,7 +23,7 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
 using System.Collections.Generic;
@@ -38,30 +38,38 @@ namespace Semiodesk.Trinity
     /// </summary>
     public static class MappingDiscovery
     {
-        #region MappingClass Definition
+        #region Types
+
         /// <summary>
         /// A class containing information about a RDF class mapped to c#.
         /// </summary>
         public class MappingClass
         {
-            private static Class ResourceClass = new Class(new UriRef("http://www.w3.org/2000/01/rdf-schema#Class"));
+            #region Members
 
             /// <summary>
-            /// The c# type of the class.
+            /// The .NET type of the class.
             /// </summary>
             public readonly Type MappingClassType;
 
             /// <summary>
-            /// The RDF classes that are mapped to this class
+            /// RDF classes that are mapped to this class.
             /// </summary>
             public readonly Class[] RdfClasses;
 
             /// <summary>
-            /// A list of inferenced RDF classes mapped to this class. Currently not used.
+            /// Inferenced RDF classes mapped to this class. Currently not used.
             /// </summary>
             public readonly Class[] RdfBaseClasses;
 
+            /// <summary>
+            /// The number of classes that are not sub class of any other class.
+            /// </summary>
             public readonly uint BaseClassCount;
+
+            #endregion
+
+            #region Constructors
 
             /// <summary>
             /// Constructor to create a new MappingClass
@@ -74,23 +82,26 @@ namespace Semiodesk.Trinity
                 MappingClassType = mappingClassType;
                 RdfClasses = rdfClasses.ToArray();
                 RdfBaseClasses = rdfBaseClasses.ToArray();
-
                 BaseClassCount = 0;
+
                 Type t = mappingClassType;
+
                 while( t.BaseType != typeof(object))
                 {
                     BaseClassCount++;
                     t = t.BaseType;
                 }
             }
+
+            #endregion
         }
 
         #endregion
 
-        #region Fields
+        #region Members
 
         /// <summary>
-        /// The list of all registered assemblies
+        /// The list of all registered assemblies.
         /// </summary>
         public static List<string> RegisteredAssemblies = new List<string>();
 
@@ -101,7 +112,7 @@ namespace Semiodesk.Trinity
 
         #endregion
 
-        #region Constructor
+        #region Constructors
 
         static MappingDiscovery()
         {
@@ -178,20 +189,28 @@ namespace Semiodesk.Trinity
             }
         }
 
-        public static void GetBaseTypes(Type _class, ref List<Class> baseTypes)
+        /// <summary>
+        /// Add the super classes of a given .NET type to a given list.
+        /// </summary>
+        /// <param name="type">A .NET type.</param>
+        /// <param name="baseTypes">List where the base types will be added to.</param>
+        public static void GetBaseTypes(Type type, ref List<Class> baseTypes)
         {
-            if (_class.BaseType == typeof(Resource) || _class.BaseType == typeof(Object))
-                return;
-
-            try { 
-            Resource r = (Resource)Activator.CreateInstance(_class.BaseType, new UriRef("semio:empty"));
-
-            baseTypes.AddRange(r.GetTypes());
-
-            GetBaseTypes(_class.BaseType, ref baseTypes);
-            }catch(Exception)
+            if (type.BaseType == typeof(Resource) || type.BaseType == typeof(Object))
             {
+                return;
+            }
 
+            try
+            { 
+                Resource r = (Resource)Activator.CreateInstance(type.BaseType, new UriRef("_:"));
+
+                baseTypes.AddRange(r.GetTypes());
+
+                GetBaseTypes(type.BaseType, ref baseTypes);
+            }
+            catch (Exception)
+            {
             }
         }
 

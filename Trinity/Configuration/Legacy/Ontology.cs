@@ -23,14 +23,10 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
-
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
-using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
-using System.Text;
 
 namespace Semiodesk.Trinity.Configuration.Legacy
 {
@@ -40,7 +36,7 @@ namespace Semiodesk.Trinity.Configuration.Legacy
     public class Ontology : ConfigurationElement, IOntologyConfiguration
     {
         /// <summary>
-        /// Prefix of this ontology
+        /// Prefix of this ontology.
         /// </summary>
         [ConfigurationProperty("Prefix", IsRequired=true)]
         public string Prefix
@@ -50,42 +46,40 @@ namespace Semiodesk.Trinity.Configuration.Legacy
         }
 
         /// <summary>
-        /// Uri of this ontology
+        /// URI of this ontology.
         /// </summary>
         public Uri Uri
         {
             get
             {
-                if (string.IsNullOrEmpty(uriString))
-                    return null;
-                return new UriRef(uriString);
+                return !string.IsNullOrEmpty(UriString) ? new UriRef(UriString) : null;
             }
             set
             {
-                uriString = value.OriginalString;
+                UriString = value.OriginalString;
             }
         }
 
         /// <summary>
-        /// String representation of the uri
+        /// String representation of the URI.
         /// </summary>
         [ConfigurationProperty("Uri", IsKey = true, IsRequired = true)]
-        public string uriString
+        public string UriString
         {
             get { return (string)base["Uri"]; }
             set { base["Uri"] = value; }
         }
 
         /// <summary>
-        /// The key of the element
+        /// The key of the element.
         /// </summary>
         public object KeyElement
         {
-            get { return uriString; }
+            get { return UriString; }
         }
 
         /// <summary>
-        /// The location of the ontology file
+        /// The location of the ontology file.
         /// </summary>
         [ConfigurationProperty("FileSource", IsRequired = true)]
         public FileSource FileSource
@@ -95,46 +89,41 @@ namespace Semiodesk.Trinity.Configuration.Legacy
         }
 
         /// <summary>
-        /// The uri of the metadata graph, only needed for TriG serialisations
+        /// The uri of the metadata graph, only needed for TriG serialisations.
         /// </summary>
         public UriRef MetadataUri
         {
             get
             {
-                if (string.IsNullOrEmpty(metadataUriString))
-                    return null;
-                return new UriRef(metadataUriString);
+                return !string.IsNullOrEmpty(MetadataUriString) ? new UriRef(MetadataUriString) : null;
             }
             set
             {
-                metadataUriString = value.OriginalString;
+                MetadataUriString = value.OriginalString;
             }
         }
 
         /// <summary>
-        /// The string representation of the metadata graph uri
+        /// The string representation of the metadata graph URI.
         /// </summary>
         [ConfigurationProperty("MetadataUri", IsRequired = false)]
-        public string metadataUriString
+        public string MetadataUriString
         {
             get { return (string)base["MetadataUri"]; }
             set { base["MetadataUri"] = value; }
         }
 
         /// <summary>
-        /// String representation of this element
+        /// String representation of this element.
         /// </summary>
         /// <returns></returns>
         public override string ToString()
         {
-            if (Uri != null)
-                return Uri.OriginalString;
-            else
-                return "Empty Ontology";
+            return Uri != null ? Uri.OriginalString : "Empty Ontology.";
         }
 
         /// <summary>
-        /// Overwritten hashcode
+        /// Overwritten hashcode.
         /// </summary>
         /// <returns></returns>
         public override int GetHashCode()
@@ -142,16 +131,14 @@ namespace Semiodesk.Trinity.Configuration.Legacy
             return base.GetHashCode();
         }
 
-
+        /// <summary>
+        /// Get the location of the ontology file source.
+        /// </summary>
         public string Location
         {
             get 
             {
-                if (FileSource != null)
-                    return FileSource.Location;
-
-                return null;
-                
+                return FileSource?.Location;                
             }
         }
     }

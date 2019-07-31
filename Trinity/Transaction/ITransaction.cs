@@ -23,7 +23,7 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
 
@@ -32,16 +32,25 @@ namespace Semiodesk.Trinity
     /// <summary>
     /// Handle for transaction events.
     /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
+    /// <param name="sender">Object which raised the event.</param>
+    /// <param name="e">Event arguments.</param>
     public delegate void FinishedTransactionEvent(object sender, TransactionEventArgs e);
 
+    /// <summary>
+    /// Exposes a repository which supports transactions.
+    /// </summary>
     public interface ITransaction : IDisposable
     {
+        #region Members
+
         /// <summary>
-        /// Will be raised if transaction finishes.
+        /// The isolation level of the transaction.
         /// </summary>
-        event FinishedTransactionEvent OnFinishedTransaction;
+        System.Data.IsolationLevel IsolationLevel { get; }
+
+        #endregion
+
+        #region Methods
 
         /// <summary>
         /// Commit the transaction.
@@ -53,9 +62,15 @@ namespace Semiodesk.Trinity
         /// </summary>
         void Rollback();
 
+        #endregion
+
+        #region Events
+
         /// <summary>
-        /// The isolation level of the transaction.
+        /// Will be raised if transaction finishes.
         /// </summary>
-        System.Data.IsolationLevel IsolationLevel { get; }
+        event FinishedTransactionEvent OnFinishedTransaction;
+
+        #endregion
     }
 }

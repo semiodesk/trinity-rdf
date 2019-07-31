@@ -23,7 +23,7 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2017
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
 using System.Linq.Expressions;
@@ -35,28 +35,56 @@ using VDS.RDF.Query.Expressions.Primary;
 
 namespace Semiodesk.Trinity.Query
 {
+    /// <summary>
+    /// Extensions for the <c>ConstantExpression</c> type.
+    /// </summary>
     public static class ConstantExpressionExtensions
     {
+        /// <summary>
+        /// Convert the expression into a <c>ConstantTerm</c>.
+        /// </summary>
+        /// <param name="constant">A constant expression.</param>
+        /// <returns>A <c>ConstantTerm</c> object.</returns>
         public static ISparqlExpression AsSparqlExpression(this ConstantExpression constant)
         {
             return new ConstantTerm(constant.AsNode());
         }
 
+        /// <summary>
+        /// Convert the expression into a <c>IriExpression.</c>
+        /// </summary>
+        /// <param name="constant">A constant expression.</param>
+        /// <returns>A <c>IriExpression</c> object.</returns>
         public static IriExpression AsIriExpression(this ConstantExpression constant)
         {
             return new IriExpression(constant.AsSparqlExpression());
         }
 
+        /// <summary>
+        /// Convert the expression into a <c>LiteralExpression</c>.
+        /// </summary>
+        /// <param name="constant">A constant expression.</param>
+        /// <returns>A <c>LiteralExpression</c> object.</returns>
         public static LiteralExpression AsLiteralExpression(this ConstantExpression constant)
         {
             return new LiteralExpression(constant.AsSparqlExpression());
         }
 
+        /// <summary>
+        /// Convert the expression into a numeric expression.
+        /// </summary>
+        /// <param name="constant">A constant expression.</param>
+        /// <returns>A <c>NumericExpression</c> object.</returns>
         public static NumericExpression AsNumericExpression(this ConstantExpression constant)
         {
             return new NumericExpression(constant.AsSparqlExpression());
         }
 
+        /// <summary>
+        /// Convert the expression into a node.
+        /// </summary>
+        /// <param name="constant">A constant expression.</param>
+        /// <returns>A <c>Node</c> object.</returns>
         public static INode AsNode(this ConstantExpression constant)
         {
             if (typeof(Uri).IsAssignableFrom(constant.Type))
@@ -122,6 +150,11 @@ namespace Semiodesk.Trinity.Query
             }
         }
 
+        /// <summary>
+        /// Indicates if the expression can be evaluated to <c>false</c>.
+        /// </summary>
+        /// <param name="constant">A constant expression.</param>
+        /// <returns><c>true</c> if the value is either <c>null</c> or <c>false</c>, <c>false</c> otherwise.</returns>
         public static bool IsNullOrFalse(this ConstantExpression constant)
         {
             return constant.Value == null || constant.Value is bool && ((bool)constant.Value) == false;

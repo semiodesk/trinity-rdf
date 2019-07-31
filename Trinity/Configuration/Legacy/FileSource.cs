@@ -23,15 +23,9 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
-using System;
-using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Xml.Serialization;
 
 namespace Semiodesk.Trinity.Configuration.Legacy
 {

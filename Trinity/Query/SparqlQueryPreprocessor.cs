@@ -23,9 +23,8 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -35,6 +34,9 @@ using VDS.RDF.Parsing.Tokens;
 
 namespace Semiodesk.Trinity
 {
+    /// <summary>
+    /// A preprocsesor for SPARQL queries.
+    /// </summary>
     public class SparqlQueryPreprocessor : SparqlPreprocessor
     {
         #region Members
@@ -46,30 +48,47 @@ namespace Semiodesk.Trinity
 
         private int _nestingLevel;
 
-        // --- STATEMENT VARIABLES
+        // STATEMENT VARIABLES
 
         private bool _parseVariables;
 
         private SparqlQueryVariableScope _variableScope = SparqlQueryVariableScope.Default;
 
+        /// <summary>
+        /// Indicates if the query returns triples.
+        /// </summary>
         public bool QueryProvidesStatements { get; protected set; }
 
+        /// <summary>
+        /// Variables visible in the query root scope.
+        /// </summary>
         public readonly List<string> GlobalScopeVariables = new List<string>();
 
+        /// <summary>
+        /// Variables only visible in local scope.
+        /// </summary>
         public readonly List<string> InScopeVariables = new List<string>();
 
-        // --- SOLUTION MODIFIERS
+        // SOLUTION MODIFIERS
 
         private IToken _offsetValueToken;
 
         private IToken _limitValueToken;
 
+        /// <summary>
+        /// Indicates if the query has an ORDER BY solution modifier.
+        /// </summary>
         public bool IsOrdered { get; protected set; }
 
         #endregion
 
         #region Constructors
 
+        /// <summary>
+        /// Create a new instance of the <c>SparqlQueryPreprocessor</c> class.
+        /// </summary>
+        /// <param name="input">A text reader.</param>
+        /// <param name="syntax">SPARQL syntax level.</param>
         public SparqlQueryPreprocessor(TextReader input, SparqlQuerySyntax syntax)
             : base(input, syntax)
         {
@@ -80,6 +99,10 @@ namespace Semiodesk.Trinity
 
         #region Methods
 
+        /// <summary>
+        /// Gets the next token in the query and advance the reader position.
+        /// </summary>
+        /// <returns>A SPARQL token.</returns>
         public override IToken GetNextToken()
         {
             IToken token = base.GetNextToken();
@@ -317,11 +340,19 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Get the entire SPARQL query string.
+        /// </summary>
+        /// <returns>A SPARQL query string.</returns>
         public string GetRootGraphPattern()
         {
             return Serialize(1);
         }
 
+        /// <summary>
+        /// Get the ORDER BY clause.
+        /// </summary>
+        /// <returns>A string.</returns>
         public string GetOrderByClause()
         {
             // We want the next token after the last closing curly bracket.

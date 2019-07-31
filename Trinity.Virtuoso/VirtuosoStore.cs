@@ -570,7 +570,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                 result.Add(GetModel(model));
             }
 
-            return ModelGroupFactory.CreateModelGroup(this, result);
+            return new ModelGroup(this, result);
         }
 
         public override void InitializeFromConfiguration(string configPath = null, string sourceDir = "")

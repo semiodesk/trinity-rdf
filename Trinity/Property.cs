@@ -23,7 +23,7 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
 
@@ -51,6 +51,11 @@ namespace Semiodesk.Trinity
 
         #region Methods
 
+        /// <summary>
+        /// Determines wheter the URIs of the compared objects are equal.
+        /// </summary>
+        /// <param name="other">The object to be compared.</param>
+        /// <returns><c>true</c> if the URIs of the compared objects are equal, <c>false</c> otherwise.</returns>
         public override bool Equals(object other)
         {
             if (other is IResource)
@@ -67,6 +72,10 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Returns the hash code of the objects URI.
+        /// </summary>
+        /// <returns>A hash code string.</returns>
         public override int GetHashCode()
         {
             return base.GetHashCode();

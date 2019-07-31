@@ -23,13 +23,9 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
 
 namespace Semiodesk.Trinity
 {
@@ -104,63 +100,7 @@ namespace Semiodesk.Trinity
         {
             return new Uri(string.Format(format, Guid.NewGuid()));
         }
+
         #endregion
-    }
-
-    /// <summary>
-    /// Collection of string extension related to Uris
-    /// </summary>
-    public static class StringExtensions
-    {
-        /// <summary>
-        /// Create a UriRef from this string.
-        /// </summary>
-        /// <param name="uriString"></param>
-        /// <returns></returns>
-        public static UriRef ToUriRef(this string uriString)
-        {
-            return new UriRef(uriString);
-        }
-
-        /// <summary>
-        /// Create a UriRef from this string with a given kind
-        /// </summary>
-        /// <returns></returns>
-        public static UriRef ToUriRef(this string uriString, UriKind uriKind)
-        {
-            return new UriRef(uriString, uriKind);
-        }
-    }
-
-    /// <summary>
-    /// Extension of Uri class concering UriRef handling.
-    /// </summary>
-    public static class UriExtensions
-    {
-        /// <summary>
-        /// Create a UriRef from this Uri.
-        /// </summary>
-        /// <param name="uri"></param>
-        /// <returns></returns>
-        public static UriRef ToUriRef(this Uri uri)
-        {
-            return new UriRef(uri);
-        }
-    }
-
-    /// <summary>
-    /// Extension to FileSystemInfo concerting UriRef handling
-    /// </summary>
-    public static class FileSystemInfoExtensions
-    {
-        /// <summary>
-        /// Create a UriRef from a FileSystemInfo
-        /// </summary>
-        /// <param name="fileInfo"></param>
-        /// <returns></returns>
-        public static UriRef ToUriRef(this FileSystemInfo fileInfo)
-        {
-            return new UriRef(new Uri(fileInfo.FullName).AbsoluteUri);
-        }
     }
 }

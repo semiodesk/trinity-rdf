@@ -23,17 +23,13 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 using VDS.RDF.Parsing;
-using VDS.RDF.Query.Patterns;
 
 namespace Semiodesk.Trinity
 {
@@ -185,11 +181,19 @@ namespace Semiodesk.Trinity
             return _preprocessor.DeclaredPrefixes;
         }
 
+        /// <summary>
+        /// Gets the names of all variables which are defined in the root graph pattern.
+        /// </summary>
+        /// <returns></returns>
         public string[] GetGlobalScopeVariableNames()
         {
             return _globalScopeVariableNames;
         }
 
+        /// <summary>
+        /// Gets the entire query as a string.
+        /// </summary>
+        /// <returns></returns>
         public string GetRootGraphPattern()
         {
             return _preprocessor.GetRootGraphPattern();
@@ -242,5 +246,27 @@ namespace Semiodesk.Trinity
     /// <summary>
     /// The SPARQL query forms as specified in http://www.w3.org/TR/rdf-sparql-query/#QueryForms
     /// </summary>
-    public enum SparqlQueryType { Unknown, Ask, Construct, Describe, Select };
+    public enum SparqlQueryType
+    {
+        /// <summary>
+        /// The SPARQL query type could not be determined.
+        /// </summary>
+        Unknown,
+        /// <summary>
+        /// The ASK query form.
+        /// </summary>
+        Ask,
+        /// <summary>
+        /// The CONSTRUCT query form.
+        /// </summary>
+        Construct,
+        /// <summary>
+        /// The DESCRIBE query form.
+        /// </summary>
+        Describe,
+        /// <summary>
+        /// The SELECT query form.
+        /// </summary>
+        Select
+    };
 }

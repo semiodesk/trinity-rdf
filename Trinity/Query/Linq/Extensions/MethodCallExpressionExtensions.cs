@@ -23,15 +23,25 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2017
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System.Linq;
 using System.Linq.Expressions;
 
 namespace Semiodesk.Trinity.Query
 {
+    /// <summary>
+    /// Extensions for the <c>MethodCall</c> type.
+    /// </summary>
     public static class MethodCallExpressionExtensions
     {
+        /// <summary>
+        /// Indicates if the method call has an argument with a specified value at a specified location.
+        /// </summary>
+        /// <param name="expression">A method call expression.</param>
+        /// <param name="index">Location of the argument.</param>
+        /// <param name="value">Value of the argument.</param>
+        /// <returns><c>true</c> if the method call has an argument with the given value, <c>false</c> otherwise.</returns>
         public static bool HasArgumentValue(this MethodCallExpression expression, int index, object value)
         {
             if (index < expression.Arguments.Count)
@@ -44,6 +54,13 @@ namespace Semiodesk.Trinity.Query
             return false;
         }
 
+        /// <summary>
+        /// Indicates if the method call has an argument at a speficied loaction with one of the specified values.
+        /// </summary>
+        /// <param name="expression">A method call expression.</param>
+        /// <param name="index">Location of the argument.</param>
+        /// <param name="values">Values of the argument.</param>
+        /// <returns><c>true</c> if the method call has an argument with one of the given values, <c>false</c> otherwise.</returns>
         public static bool HasArgumentValueFromAlternatives(this MethodCallExpression expression, int index, params object[] values)
         {
             if (index < expression.Arguments.Count)
@@ -63,6 +80,13 @@ namespace Semiodesk.Trinity.Query
             return false;
         }
 
+        /// <summary>
+        /// Get the value of an argument at the specified location.
+        /// </summary>
+        /// <typeparam name="T">Value type.</typeparam>
+        /// <param name="expression">A method call expression.</param>
+        /// <param name="index">Argument location.</param>
+        /// <returns></returns>
         public static T GetArgumentValue<T>(this MethodCallExpression expression, int index)
         {
             ConstantExpression arg = expression.Arguments[index] as ConstantExpression;
@@ -70,6 +94,14 @@ namespace Semiodesk.Trinity.Query
             return (T)arg.Value;
         }
 
+        /// <summary>
+        /// Get the value of an argument at the specified location.
+        /// </summary>
+        /// <typeparam name="T">Value type.</typeparam>
+        /// <param name="expression">A method call expression.</param>
+        /// <param name="index">Argument location.</param>
+        /// <param name="defaultValue">Value to be returned if no argument is specified at the given location.</param>
+        /// <returns></returns>
         public static T GetArgumentValue<T>(this MethodCallExpression expression, int index, T defaultValue)
         {
             if (index < expression.Arguments.Count)

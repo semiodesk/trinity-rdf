@@ -23,15 +23,11 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
-
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using Semiodesk.Trinity.Configuration.Legacy;
-using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
-using System.Text;
 
 // This namespace needs to be this for legacy applications to resolve the configuration correctly
 namespace Semiodesk.Trinity.Configuration
@@ -59,7 +55,7 @@ namespace Semiodesk.Trinity.Configuration
         }
 
         /// <summary>
-        /// Collection of ontologies
+        /// Collection of ontology settings.
         /// </summary>
         [ConfigurationProperty("OntologySettings", IsDefaultCollection = true)]
         public OntologyCollection Ontologies
@@ -68,7 +64,7 @@ namespace Semiodesk.Trinity.Configuration
         }
 
         /// <summary>
-        /// Virtuoso specific settings
+        /// Virtuoso specific triple store settings.
         /// </summary>
         [ConfigurationProperty("VirtuosoStoreSettings")]
         public VirtuosoStoreSettings VirtuosoStoreSettings
@@ -84,9 +80,9 @@ namespace Semiodesk.Trinity.Configuration
         }
 
         /// <summary>
-        /// Lists the ontology specific configuration.
+        /// Get the ontology settings for the current project.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>An enumeration of ontology settings.</returns>
         public IEnumerable<IOntologyConfiguration> ListOntologies()
         {
 
@@ -98,6 +94,10 @@ namespace Semiodesk.Trinity.Configuration
 #endif
         }
 
+        /// <summary>
+        /// Get the triple store settings for the current project.
+        /// </summary>
+        /// <returns>An enumeration of triple store settings.</returns>
         public IEnumerable<IStoreConfiguration> ListStoreConfigurations()
         {
             yield return VirtuosoStoreSettings;

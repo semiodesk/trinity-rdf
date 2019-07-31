@@ -23,18 +23,23 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Semiodesk.Trinity.Serialization
 {
+    /// <summary>
+    /// Settings for the serializing resources to and from JSON format.
+    /// </summary>
     public class JsonResourceSerializerSettings : JsonSerializerSettings
     {
+        #region Constructors
+
+        /// <summary>
+        /// Create a new instance of the <c>JsonResourceSerializerSettings</c> class.
+        /// </summary>
+        /// <param name="store">A triple store.</param>
         public JsonResourceSerializerSettings(IStore store)
         {
             // Allow to use the private parameterless constructor of the Resource class.
@@ -43,5 +48,7 @@ namespace Semiodesk.Trinity.Serialization
             // A custom conveter for loading the URI and setting the model.
             Converters = new JsonConverter[] { new JsonResourceConverter(store) };
         }
+
+        #endregion
     }
 }

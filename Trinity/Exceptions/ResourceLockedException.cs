@@ -23,21 +23,26 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
 
 namespace Semiodesk.Trinity.Exceptions
 {
+    /// <summary>
+    /// Represents error when one or more resources you tried to access was locked.
+    /// </summary>
     public class ResourceLockedException : Exception
     {
-        #region Constructor
+        #region Constructors
 
+        /// <summary>
+        /// Create a new instance of the <c>ResourceLockedException</c> class.
+        /// </summary>
+        /// <param name="inner">Inner exception.</param>
         public ResourceLockedException(Exception inner)
-            : base(string.Format("ResourceLockedException: One or more resources you tried to access was locked. Either try using transactions or try to repeat the action after reloading your resources."), inner)
-        {
-
-        }
+            : base(string.Format("One or more resources you tried to access was locked. Either try using transactions or try to repeat the action after reloading your resources."), inner)
+        {}
 
         #endregion
     }

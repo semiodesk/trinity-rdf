@@ -23,7 +23,7 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using Semiodesk.Trinity.Configuration;
 using System;
@@ -254,7 +254,7 @@ namespace Semiodesk.Trinity
                 result.Add(GetModel(model));
             }
 
-            return ModelGroupFactory.CreateModelGroup(this, result);
+            return new ModelGroup(this, result);
         }
 
         /// <summary>

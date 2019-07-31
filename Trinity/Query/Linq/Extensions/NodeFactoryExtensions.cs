@@ -23,15 +23,24 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2017
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System.Xml;
 using VDS.RDF;
 
 namespace Semiodesk.Trinity.Query
 {
+    /// <summary>
+    /// Extension for the <c>NodeFactory</c> type.
+    /// </summary>
     public static class NodeFactoryExtensions
     {
+        /// <summary>
+        /// Create a boolean literal value.
+        /// </summary>
+        /// <param name="factory">A node factory.</param>
+        /// <param name="value">Value of the literal node.</param>
+        /// <returns>A new literal node object.</returns>
         public static INode CreateLiteralNode(this NodeFactory factory, bool value)
         {
             var literalValue = XmlConvert.ToString(value);

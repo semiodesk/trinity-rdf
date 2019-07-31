@@ -23,17 +23,17 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Semiodesk.Trinity.Serialization
 {
+    /// <summary>
+    /// Converts resources to and from JSON format.
+    /// </summary>
     public class JsonResourceConverter : JsonConverter
     {
         #region Members
@@ -44,6 +44,10 @@ namespace Semiodesk.Trinity.Serialization
 
         #region Constructors
 
+        /// <summary>
+        /// Create a new instance of the <c>JsonResourceConverter</c> class.
+        /// </summary>
+        /// <param name="store">A triple store.</param>
         public JsonResourceConverter(IStore store)
         {
             _store = store;
@@ -53,11 +57,24 @@ namespace Semiodesk.Trinity.Serialization
 
         #region Methods
 
+        /// <summary>
+        /// Indicates if the given object can be converted.
+        /// </summary>
+        /// <param name="objectType">An object.</param>
+        /// <returns><c>true</c> if the object is of type <c>Resource</c>, <c>false</c> otherwise.</returns>
         public override bool CanConvert(Type objectType)
         {
             return typeof(Resource).IsAssignableFrom(objectType);
         }
 
+        /// <summary>
+        /// Convert a JSON string into an object.
+        /// </summary>
+        /// <param name="reader">A JSON reader.</param>
+        /// <param name="objectType">Returned object type.</param>
+        /// <param name="existingValue">The existing value of object being read.</param>
+        /// <param name="serializer">The calling serializer.</param>
+        /// <returns></returns>
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             JObject resourceJson = JObject.Load(reader);
@@ -99,11 +116,20 @@ namespace Semiodesk.Trinity.Serialization
             return resource;
         }
 
+        /// <summary>
+        /// Indicates if the converter can write JSON.
+        /// </summary>
         public override bool CanWrite
         {
             get { return false; }
         }
 
+        /// <summary>
+        /// Write the JSON representation of an object.
+        /// </summary>
+        /// <param name="writer">The JSON writer to be used.</param>
+        /// <param name="value">The object value.</param>
+        /// <param name="serializer">The JSON serializer to be used.</param>
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             throw new NotImplementedException();

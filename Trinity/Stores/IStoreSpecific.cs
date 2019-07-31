@@ -23,15 +23,22 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System.ComponentModel;
 
 namespace Semiodesk.Trinity
 {
+    /// <summary>
+    /// Exposes methods for executing triple store specific methods.
+    /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public interface IStoreSpecific
     {
+        /// <summary>
+        /// Load storage specific configurations.
+        /// </summary>
+        /// <param name="store">Triple store instance.</param>
         void Update(IStore store);
     }
 }

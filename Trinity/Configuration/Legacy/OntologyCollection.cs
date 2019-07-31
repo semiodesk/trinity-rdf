@@ -23,39 +23,58 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
-
-using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
-using System.Text;
 
 namespace Semiodesk.Trinity.Configuration.Legacy
 {
+    /// <summary>
+    /// A collection of ontology settings.
+    /// </summary>
     public sealed class OntologyCollection : ConfigurationElementCollection, IEnumerable<Ontology>
     {
+        /// <summary>
+        /// Create a new ontology configuration element.
+        /// </summary>
+        /// <returns>A new configuration element.</returns>
         protected override ConfigurationElement CreateNewElement()
         {
             return new Ontology();
         }
 
+        /// <summary>
+        /// Get the key associated with a configuration element.
+        /// </summary>
+        /// <param name="element"></param>
+        /// <returns>URI of the configuration element.</returns>
         protected override object GetElementKey(ConfigurationElement element)
         {
-            return ((Ontology)element).uriString;
+            return ((Ontology)element).UriString;
         }
 
+        /// <summary>
+        /// Get the configuration element collection type.
+        /// </summary>
         public override ConfigurationElementCollectionType CollectionType
         {
             get { return ConfigurationElementCollectionType.BasicMap; }
         }
 
+        /// <summary>
+        /// XML element tag name.
+        /// </summary>
         protected override string ElementName
         {
             get { return "Ontology"; }
         }
 
+        /// <summary>
+        /// Gets the configuration element at the specified index location.
+        /// </summary>
+        /// <param name="index">The index location of the System.Configuration.ConfigurationElement to return.</param>
+        /// <returns>The <c>System.Configuration.ConfigurationElement</c> at the specified index.</returns>
         public Ontology this[int index]
         {
             get { return (Ontology)BaseGet(index); }
@@ -69,15 +88,27 @@ namespace Semiodesk.Trinity.Configuration.Legacy
             }
         }
 
-        new public Ontology this[string employeeID]
+        /// <summary>
+        /// Gets the configuration element with the specified identifier.
+        /// </summary>
+        /// <param name="key">The identifier of the System.Configuration.ConfigurationElement to return.</param>
+        /// <returns>The <c>System.Configuration.ConfigurationElement</c> at the specified index.</returns>
+        new public Ontology this[string key]
         {
-            get { return (Ontology)BaseGet(employeeID); }
+            get { return (Ontology)BaseGet(key); }
         }
 
+        /// <summary>
+        /// Indicates if an element with the given key exists in this collection.
+        /// </summary>
+        /// <param name="key">The identifier to be checked.</param>
+        /// <returns><c>true</c> if an element with the given key exists, <c>false</c> otherwise.</returns>
         public bool ContainsKey(string key)
         {
             bool result = false;
+
             object[] keys = BaseGetAllKeys();
+
             foreach (object obj in keys)
             {
                 if ((string)obj == key)
@@ -86,11 +117,16 @@ namespace Semiodesk.Trinity.Configuration.Legacy
                     break;
                 }
             }
+
             return result;
         }
 
         #region IEnumerable<Ontology> Members
 
+        /// <summary>
+        /// Get an enumerator for iterating over the items in this collection.
+        /// </summary>
+        /// <returns>An enumerator.</returns>
         public new IEnumerator<Ontology> GetEnumerator()
         {
             foreach (var k in BaseGetAllKeys())

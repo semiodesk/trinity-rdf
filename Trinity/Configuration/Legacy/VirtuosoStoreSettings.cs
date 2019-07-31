@@ -23,28 +23,21 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
-
-using Semiodesk.Trinity.Configuration.Legacy;
-using System;
-using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
 using System.Text;
-using System.Xml;
 using System.Xml.Linq;
-using System.Xml.Serialization;
 
 namespace Semiodesk.Trinity.Configuration.Legacy
 {
     /// <summary>
-    /// Constains Virtuoso specific settings
+    /// Constains Virtuoso specific settings.
     /// </summary>
     public class VirtuosoStoreSettings : ConfigurationElement, IStoreConfiguration
     {
         /// <summary>
-        /// A collection of rule sets
+        /// A collection of inference rule sets.
         /// </summary>
         [ConfigurationProperty("RuleSets", IsDefaultCollection = true)]
         public RuleSetCollection RuleSets
@@ -52,12 +45,17 @@ namespace Semiodesk.Trinity.Configuration.Legacy
             get { return (RuleSetCollection)base["RuleSets"]; }
         }
 
-
+        /// <summary>
+        /// Get the triple store type identifier.
+        /// </summary>
         public string Type
         {
             get { return "virtuoso"; }
         }
 
+        /// <summary>
+        /// Get store specific XML configuration data.
+        /// </summary>
         public XElement Data
         {
             get 

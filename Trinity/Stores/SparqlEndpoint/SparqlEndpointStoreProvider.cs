@@ -23,12 +23,10 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System.Collections.Generic;
-using System.IO;
 using System;
-
 #if NETSTANDARD2_0 
 using System.Composition;
 #elif !NET35
@@ -37,6 +35,9 @@ using System.ComponentModel.Composition;
 
 namespace Semiodesk.Trinity.Store
 {
+    /// <summary>
+    /// A store adapter for SPARQL protocol endpoints.
+    /// </summary>
 #if ! NET35
     [Export(typeof(StoreProvider))]
 #endif
@@ -44,6 +45,9 @@ namespace Semiodesk.Trinity.Store
     {
         #region Constructor
 
+        /// <summary>
+        /// Create a new instance of the <c>SparqlEndpointStoreProvider</c>.
+        /// </summary>
         public SparqlEndpointStoreProvider()
         {
             Name = "sparqlendpoint";
@@ -51,18 +55,27 @@ namespace Semiodesk.Trinity.Store
 
         #endregion
 
+        #region Methods
 
-
+        /// <summary>
+        /// Create a new triple store with a specified configuration.
+        /// </summary>
+        /// <param name="configurationDictionary">Triple store specific configuration variables.</param>
+        /// <returns></returns>
         public override IStore GetStore(Dictionary<string, string> configurationDictionary)
         {
             string endpointKey = "endpoint";
+
             if (configurationDictionary.ContainsKey(endpointKey))
             {
                 Uri endpoint = new Uri(configurationDictionary[endpointKey]);
 
                 return new SparqlEndpointStore(endpoint);
             }
+
             return null;
         }
+
+        #endregion
     }
 }

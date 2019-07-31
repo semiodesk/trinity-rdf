@@ -23,7 +23,7 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
 using System.Collections.Generic;
@@ -642,6 +642,13 @@ namespace Semiodesk.Trinity
             return (_store.Read(Uri, url, format, update) != null);
         }
 
+        /// <summary>
+        /// Reads model contents from a stream. The method supports importing files and other models stored in the local RDF store.
+        /// </summary>
+        /// <param name="stream">A stream.</param>
+        /// <param name="format">Serialization format <see cref="RdfSerializationFormat"/></param>
+        /// <param name="update">Pass false if you want to overwrite existing data. True if you want to keep the data and add the new entries.</param>
+        /// <returns>True if the contents of the model were imported, False if not.</returns>
         public bool Read(Stream stream, RdfSerializationFormat format, bool update)
         {
             if (format == RdfSerializationFormat.Trig)

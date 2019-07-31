@@ -23,11 +23,9 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System.Collections.Generic;
-using System.IO;
-
 #if NETSTANDARD2_0
 using System.Composition;
 #elif !NET35
@@ -36,6 +34,9 @@ using System.ComponentModel.Composition;
 
 namespace Semiodesk.Trinity.Store
 {
+    /// <summary>
+    /// A store provider for dotNetRDF triple store adapters.
+    /// </summary>
 #if !NET35
     [Export(typeof(StoreProvider))]
 #endif
@@ -43,6 +44,9 @@ namespace Semiodesk.Trinity.Store
     {
         #region Constructor
 
+        /// <summary>
+        /// Create a new instance of the <c>dotNetRDFStoreProvider</c> class.
+        /// </summary>
         public dotNetRDFStoreProvider()
         {
             Name = "dotNetRDF";
@@ -52,6 +56,11 @@ namespace Semiodesk.Trinity.Store
 
         #region Methods
 
+        /// <summary>
+        /// Create a new triple store with the given settings.
+        /// </summary>
+        /// <param name="configurationDictionary">Triple store setting variables.</param>
+        /// <returns></returns>
         public override IStore GetStore(Dictionary<string, string> configurationDictionary)
         {
             string schemaKey = "schema";

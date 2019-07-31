@@ -23,13 +23,12 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Globalization;
 using System.Xml;
 #if NET35
@@ -46,9 +45,9 @@ namespace Semiodesk.Trinity
         #region Methods
 
         /// <summary>
-        /// Serializes a string and excapes special characters
+        /// Serializes a string and excapes special characters.
         /// </summary>
-        /// <param name="str"></param>
+        /// <param name="str">A string literal.</param>
         /// <returns></returns>
         public static string SerializeString(string str)
         {
@@ -70,8 +69,8 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Serializes a string with a translation
         /// </summary>
-        /// <param name="str"></param>
-        /// <param name="lang"></param>
+        /// <param name="str">A string literal.</param>
+        /// <param name="lang">A language tag.</param>
         /// <returns></returns>
         public static string SerializeTranslatedString(string str, string lang)
         {
@@ -79,10 +78,10 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Serializes a typed literal
+        /// Serializes a typed literal.
         /// </summary>
-        /// <param name="obj"></param>
-        /// <param name="typeUri"></param>
+        /// <param name="obj">A value.</param>
+        /// <param name="typeUri">A type URI.</param>
         /// <returns></returns>
         public static string SerializeTypedLiteral(object obj, Uri typeUri)
         {
@@ -90,9 +89,9 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Serializes a value
+        /// Serializes a value depdening on its type.
         /// </summary>
-        /// <param name="obj"></param>
+        /// <param name="obj">An object.</param>
         /// <returns></returns>
         public static string SerializeValue(object obj)
         {
@@ -145,19 +144,19 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Serializes a DateTime
+        /// Serializes a DateTime object.
         /// </summary>
-        /// <param name="obj"></param>
+        /// <param name="date">A date time object.</param>
         /// <returns></returns>
-        public static string SerializeDateTime(DateTime obj)
+        public static string SerializeDateTime(DateTime date)
         {
-            return string.Format("'{0}'^^<http://www.w3.org/2001/XMLSchema#dateTime>", XmlConvert.ToString((DateTime)obj, XmlDateTimeSerializationMode.Utc));
+            return string.Format("'{0}'^^<http://www.w3.org/2001/XMLSchema#dateTime>", XmlConvert.ToString((DateTime)date, XmlDateTimeSerializationMode.Utc));
         }
 
         /// <summary>
-        /// Serializes a Uri
+        /// Serializes a URI.
         /// </summary>
-        /// <param name="uri"></param>
+        /// <param name="uri">A uniform resource identifier.</param>
         /// <returns></returns>
         public static string SerializeUri(Uri uri)
         {
@@ -165,9 +164,9 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Serializes a resource
+        /// Serializes a resource.
         /// </summary>
-        /// <param name="resource"></param>
+        /// <param name="resource">A resource.</param>
         /// <returns></returns>
         public static string SerializeResource(IResource resource)
         {
@@ -197,9 +196,9 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Generate the Dataset for a single model
+        /// Generate the dataset clause for a given model.
         /// </summary>
-        /// <param name="model"></param>
+        /// <param name="model">A model.</param>
         /// <returns></returns>
         public static string GenerateDatasetClause(IModel model)
         {
@@ -213,13 +212,13 @@ namespace Semiodesk.Trinity
                 return GenerateDatasetClause(model as IModelGroup);
             }
 
-            return "FROM " + SparqlSerializer.SerializeUri(model.Uri) + " ";
+            return "FROM " + SerializeUri(model.Uri) + " ";
         }
 
         /// <summary>
-        /// Generate the Dataset for the given model group
+        /// Generate a dataset clause for a model group.
         /// </summary>
-        /// <param name="modelGroup"></param>
+        /// <param name="modelGroup">A model group.</param>
         /// <returns></returns>
         public static string GenerateDatasetClause(IModelGroup modelGroup)
         {
@@ -234,9 +233,9 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Generate the Dataset for a enumeration of models
+        /// Generate a dataset clause for an enumeration of models.
         /// </summary>
-        /// <param name="models"></param>
+        /// <param name="models">An enumeration of models.</param>
         /// <returns></returns>
         public static string GenerateDatasetClause(IEnumerable<IModel> models)
         {
@@ -258,10 +257,10 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Serialize a count query for the given SparqlQuery
+        /// Serialize a count query for the given SPARQL query.
         /// </summary>
-        /// <param name="model"></param>
-        /// <param name="query"></param>
+        /// <param name="model">The model to be queried.</param>
+        /// <param name="query">The query which results should be counted.</param>
         /// <returns></returns>
         public static string SerializeCount(IModel model, ISparqlQuery query)
         {
@@ -282,6 +281,14 @@ namespace Semiodesk.Trinity
             return queryBuilder.ToString();
         }
 
+        /// <summary>
+        /// Generate a query which returns the URIs of all resources selected in a given query.
+        /// </summary>
+        /// <param name="model">The model to be queried.</param>
+        /// <param name="query">The SPARQL query which provides resources.</param>
+        /// <param name="offset">Offset solution modifier.</param>
+        /// <param name="limit">Limit solution modifier.</param>
+        /// <returns></returns>
         public static string SerializeFetchUris(IModel model, ISparqlQuery query, int offset = -1, int limit = -1)
         {
             string variable = "?" + query.GetGlobalScopeVariableNames()[0];
@@ -293,32 +300,40 @@ namespace Semiodesk.Trinity
             
             foreach(string prefix in query.GetDeclaredPrefixes())
             {
-                queryBuilder.AppendFormat("prefix <{0}> ", prefix);
+                queryBuilder.Append($"PREFIX <{prefix}> ");
             }
 
-            queryBuilder.Append("select distinct ");
+            queryBuilder.Append("SELECT DISTINCT ");
             queryBuilder.Append(variable);
             queryBuilder.Append(from);
-            queryBuilder.Append(" where { ");
+            queryBuilder.Append(" WHERE { ");
             queryBuilder.Append(where);
             queryBuilder.Append(" } ");
             queryBuilder.Append(orderby);
 
             if (offset != -1)
             {
-                queryBuilder.Append(" offset ");
+                queryBuilder.Append(" OFFSET ");
                 queryBuilder.Append(offset);
             }
 
             if (limit != -1)
             {
-                queryBuilder.Append(" limit ");
+                queryBuilder.Append(" LIMIT ");
                 queryBuilder.Append(limit);
             }
 
             return queryBuilder.ToString();
         }
 
+        /// <summary>
+        /// Add an offset or limit solution modifier to a given SPARQL query.
+        /// </summary>
+        /// <param name="model">The model to be queried.</param>
+        /// <param name="query">The SPARQL query to be executed.</param>
+        /// <param name="offset">Offset solution modifier.</param>
+        /// <param name="limit">Limit solution modifier.</param>
+        /// <returns></returns>
         public static string SerializeOffsetLimit(IModel model, ISparqlQuery query, int offset = -1, int limit = -1)
         {
             string variable = "?" + query.GetGlobalScopeVariableNames()[0];

@@ -23,14 +23,11 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.IO;
-using Semiodesk.Trinity.Configuration;
 using System.ComponentModel;
 
 namespace Semiodesk.Trinity
@@ -41,22 +38,24 @@ namespace Semiodesk.Trinity
     [EditorBrowsable(EditorBrowsableState.Never)]   
     public class StoreUpdater
     {
-        #region Fields
+        #region Members
+
         private DirectoryInfo _sourceDirectory;
-        IStore _store;
+
+        private IStore _store;
+
         #endregion
 
         #region Constructors
 
         /// <summary>
-        /// Constructor
+        /// Create a new instance of the <c>StoreUpdater</c> class.
         /// </summary>
         /// <param name="store">The store you want to update.</param>
         /// <param name="sourceDir">A directory used as base path.</param>
         public StoreUpdater(IStore store, DirectoryInfo sourceDir)
         {
             _sourceDirectory = sourceDir;
-
             _store = store;
         }
 
@@ -87,6 +86,11 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Gets an absolute path from a location relative to the triple store instance.
+        /// </summary>
+        /// <param name="location">A relative path.</param>
+        /// <returns></returns>
         protected Uri GetPathFromLocation(string location)
         {
             Uri result = null;

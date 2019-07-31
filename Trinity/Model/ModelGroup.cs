@@ -23,7 +23,8 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2017
+// Copyright (c) Semiodesk GmbH 2015-2019
+
 using Remotion.Linq.Parsing.Structure;
 using Semiodesk.Trinity.Query;
 using System;
@@ -33,20 +34,11 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 
 namespace Semiodesk.Trinity
 {
-    public class ModelGroupFactory
-    {
-        public static IModelGroup CreateModelGroup(IStore store, IEnumerable<IModel> models)
-        {
-            return new ModelGroup(store, models);
-        }
-    }
-
     /// <summary>
-    /// Implementation of the IModelGroup interface
+    /// Implementation of the IModelGroup interface.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public class ModelGroup : IModelGroup
@@ -66,7 +58,10 @@ namespace Semiodesk.Trinity
             get
             {
                 if (_datasetClause == null)
+                {
                     UpdateDatasetClause();
+                }
+
                 return _datasetClause;
             }
         }
@@ -104,9 +99,13 @@ namespace Semiodesk.Trinity
         /// <param name="models">A collection of models belonging to that store.</param>
         public ModelGroup(IStore store, IEnumerable<IModel> models)
         {
-            _store = store; 
+            _store = store;
+
             foreach (var x in models)
+            {
                 _set.Add(x);
+            }
+
             UpdateDatasetClause();
 
             foreach (MethodInfo methodInfo in GetType().GetMethods())
@@ -119,16 +118,20 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Create a new model group from a store and a collection of models
+        /// </summary>
+        /// <param name="store">A store</param>
+        /// <param name="models">A set of models belonging to that store.</param>
         public ModelGroup(IStore store, params IModel[] models) : this(store, (IEnumerable<IModel>)models)
         {
-            
         }
 
         #endregion
 
         #region Methods
 
-        void UpdateDatasetClause()
+        private void UpdateDatasetClause()
         {
             _datasetClause = SparqlSerializer.GenerateDatasetClause(_set);
         }

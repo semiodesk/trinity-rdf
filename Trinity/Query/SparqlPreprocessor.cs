@@ -52,26 +52,52 @@ namespace Semiodesk.Trinity
         /// </summary>
         protected readonly List<IToken> Tokens = new List<IToken>();
 
+        /// <summary>
+        /// Type of the last read token.
+        /// </summary>
         protected int PreviousTokenType;
 
+        /// <summary>
+        /// URIs of the graphs queried or manipulated by the query.
+        /// </summary>
         public readonly HashSet<string> DefaultGraphs = new HashSet<string>();
 
+        /// <summary>
+        /// Namespace prefixes defined in the query.
+        /// </summary>
         public readonly HashSet<string> DeclaredPrefixes = new HashSet<string>();
 
+        /// <summary>
+        /// Namespace prefixes referenced in the query.
+        /// </summary>
         public readonly HashSet<string> UsedPrefixes = new HashSet<string>();
 
         // PARAMETERS
 
+        /// <summary>
+        /// Names of the bindable query parameters starting with '@'.
+        /// </summary>
         public readonly HashSet<string> Parameters = new HashSet<string>();
 
+        /// <summary>
+        /// Bound literal values of the query parameters.
+        /// </summary>
         public readonly Dictionary<string, string> ParameterValues = new Dictionary<string, string>();
 
+        /// <summary>
+        /// Token types of the query parameters.
+        /// </summary>
         public readonly Dictionary<string, int> ParameterTypes = new Dictionary<string, int>();
 
         #endregion
 
         #region Constructors
 
+        /// <summary>
+        /// Creates a new instance of the <c>SparqlPreprocessor</c> class.
+        /// </summary>
+        /// <param name="input">A text reader.</param>
+        /// <param name="syntax">SPARQL syntax level.</param>
         public SparqlPreprocessor(TextReader input, SparqlQuerySyntax syntax) :
             base(input, syntax)
         {
@@ -81,6 +107,10 @@ namespace Semiodesk.Trinity
 
         #region Methods
 
+        /// <summary>
+        /// Starts analyzing the SPARQL query.
+        /// </summary>
+        /// <param name="declarePrefixes">Trz to add prefix definitions for the namespaces used but not declared in the query.</param>
         public void Process(bool declarePrefixes)
         {
             IToken token;
@@ -116,6 +146,10 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Gets the next parseable Token from the Input or raises an Error.
+        /// </summary>
+        /// <returns></returns>
         public override IToken GetNextToken()
         {
             IToken token;
@@ -262,11 +296,19 @@ namespace Semiodesk.Trinity
             Tokens.Insert(0, new PrefixDirectiveToken(-1, -1));
         }
 
+        /// <summary>
+        /// Add FROM definition to the query.
+        /// </summary>
+        /// <param name="uri">URI of the graph.</param>
         public void AddDefaultGraph(Uri uri)
         {
             AddGraph(uri, new FromKeywordToken(-1, -1));
         }
 
+        /// <summary>
+        /// Add a FROM NAMED definition to the query.
+        /// </summary>
+        /// <param name="uri">URI of the graph.</param>
         public void AddNamedGraph(Uri uri)
         {
             AddGraph(uri, new FromNamedKeywordToken(-1, -1));
@@ -302,6 +344,10 @@ namespace Semiodesk.Trinity
             Tokens.Insert(i, token);
         }
 
+        /// <summary>
+        /// Gets the PREFIX definitions in the query.
+        /// </summary>
+        /// <returns></returns>
         public string GetPrefixDeclarations()
         {
             StringBuilder resultBuilder = new StringBuilder();
@@ -377,6 +423,11 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Return the query with all bound variables.
+        /// </summary>
+        /// <param name="outputLevel">Level of the sub graph to be returned (0 := entire query).</param>
+        /// <returns></returns>
         protected string Serialize(int outputLevel = 0)
         {
             StringBuilder outputBuilder = new StringBuilder();
@@ -469,6 +520,10 @@ namespace Semiodesk.Trinity
             return outputBuilder.ToString().Trim();
         }
 
+        /// <summary>
+        /// Returns the entire query string.
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             return Serialize();
@@ -479,9 +534,6 @@ namespace Semiodesk.Trinity
 
     internal class ParameterToken : BaseToken
     {
-        #region Members
-        #endregion
-
         #region Constructors
 
         public ParameterToken(IToken token)
@@ -503,5 +555,18 @@ namespace Semiodesk.Trinity
         public const int GRAPHPARAMETER = 1002;
     }
 
-    public enum SparqlQueryVariableScope { Global, Default }
+    /// <summary>
+    /// Graph pattern scope of variables defined in a SPARQL query.
+    /// </summary>
+    public enum SparqlQueryVariableScope
+    {
+        /// <summary>
+        /// A variable accessible in all levels of the query.
+        /// </summary>
+        Global,
+        /// <summary>
+        /// A locally accessible variable.
+        /// </summary>
+        Default
+    }
 }

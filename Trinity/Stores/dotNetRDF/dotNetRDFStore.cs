@@ -23,11 +23,10 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
 using System.Reflection;
 using VDS.RDF;
@@ -38,10 +37,11 @@ using VDS.RDF.Query.Inference;
 using VDS.RDF.Update;
 using VDS.RDF.Writing;
 
-using TrinitySettings = Semiodesk.Trinity.Configuration.TrinitySettings;
-
 namespace Semiodesk.Trinity.Store
 {
+    /// <summary>
+    /// A store adapter for dotNetRDF.
+    /// </summary>
     public class dotNetRDFStore : StoreBase
     {
         #region Members
@@ -64,7 +64,7 @@ namespace Semiodesk.Trinity.Store
         /// <summary>
         /// Creates a new dotNetRDFStore.
         /// </summary>
-        /// <param name="schema">A list of ontology file paths relative to this assembly. The store will be populated with these ontologies.</param>
+        /// <param name="schemes">A list of ontology file paths relative to this assembly. The store will be populated with these ontologies.</param>
         public dotNetRDFStore(string[] schemes)
         {
             _store = new TripleStore();
@@ -211,11 +211,7 @@ namespace Semiodesk.Trinity.Store
         /// <summary>
         /// Indicates if the store is ready to be queried.
         /// </summary>
-        public override bool IsReady
-        {
-            get;
-            protected set;
-        } = true;
+        public override bool IsReady { get; protected set; } = true;
 
         /// <summary>
         /// Lists all models in the store.
@@ -232,6 +228,12 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
+        /// <summary>
+        /// Try parse RDF from a given text reader into the store.
+        /// </summary>
+        /// <param name="reader">The text reader to read from.</param>
+        /// <param name="graph">The graph to store the read triples.</param>
+        /// <param name="format">RDF format to be read.</param>
         public static void TryParse(TextReader reader, IGraph graph, RdfSerializationFormat format)
         {
             switch (format)

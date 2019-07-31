@@ -23,14 +23,11 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Collections;
-using System.Collections.Specialized;
 #if NET35
 using Semiodesk.Trinity.Utility;
 #endif
@@ -51,12 +48,12 @@ namespace Semiodesk.Trinity
         private T _value;
 
         /// <summary>
-        /// The datatype of the the mapped property
+        /// The datatype of the the mapped property.
         /// </summary>
         private readonly Type _dataType;
 
         /// <summary>
-        /// The datatype of the the mapped property
+        /// The datatype of the the mapped property.
         /// </summary>
         Type IPropertyMapping.DataType 
         {
@@ -113,12 +110,15 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Language of the value
+        /// Language of the value.
         /// </summary>
         public string Language { get; set; }
 
         private Property _property;
 
+        /// <summary>
+        /// Gets the mapped RDF property.
+        /// </summary>
         Property IPropertyMapping.Property
         {
             get 
@@ -132,8 +132,14 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Gets the URI of the mapped RDF property.
+        /// </summary>
         public string PropertyUri { get; private set; }
 
+        /// <summary>
+        /// Gets the name of the mapped .NET property.
+        /// </summary>
         public string PropertyName { get; private set; }
 
         /// <summary>
@@ -178,7 +184,6 @@ namespace Semiodesk.Trinity
                 _genericType = null;
             }
 
-            
             #if DEBUG
 
             // Test if the given type is valid
@@ -247,9 +252,9 @@ namespace Semiodesk.Trinity
         #region Methods
 
         /// <summary>
-        /// Sets the value
+        /// Sets the property value.
         /// </summary>
-        /// <param name="value"></param>
+        /// <param name="value">A value.</param>
         internal void SetValue(T value)
         {
             _isUnsetValue = false;
@@ -257,24 +262,26 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Returns the value.
+        /// Returns the property value.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The value, if any.</returns>
         internal T GetValue()
         {
             return _value;
         }
 
         /// <summary>
+        /// Sets a single literal value or adds a value to a property mapped to a value collection.
+        /// </summary>
+        /// <remarks>
         /// This method is meant to be called from the non-mapped interface. It replaces the current value if 
         /// it is mapped to one value, adds it if the property is mapped to a list.
-        /// </summary>
-        /// <param name="value"></param>
+        /// </remarks>
+        /// <param name="value">The value.</param>
         void IPropertyMapping.SetOrAddMappedValue(object value)
         {
             if (_isList)
             {
-
                 if (_value is IList list)
                 {
                     Type t = value.GetType();
@@ -326,9 +333,9 @@ namespace Semiodesk.Trinity
                 typeString = typeof(T).ToString();
             }
 
-            string msg = string.Format("Provided argument value was not of type {0}", typeString);
+            string message = string.Format("Provided argument value was not of type {0}", typeString);
 
-            throw new Exception(msg);
+            throw new Exception(message);
         }
 
         /// <summary>
@@ -356,13 +363,19 @@ namespace Semiodesk.Trinity
             }
 
             string typeString;
+
             if (_isList)
+            {
                 typeString = _genericType.ToString();
+            }
             else
+            {
                 typeString = typeof(T).ToString();
-            string exceptionMessage = string.Format("Provided argument value was not of type {0}", typeString);
+            }
+
+            string message = string.Format("Provided argument value was not of type {0}", typeString);
             
-            throw new Exception(exceptionMessage);
+            throw new Exception(message);
         }
 
         /// <summary>
@@ -371,8 +384,10 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         object IPropertyMapping.GetValueObject()
         {
-            if (LanguageInvariant || string.IsNullOrEmpty(Language) && ( _dataType != typeof(string) || _genericType != typeof(string)))
+            if (LanguageInvariant || string.IsNullOrEmpty(Language) && (_dataType != typeof(string) || _genericType != typeof(string)))
+            {
                 return _value;
+            }
             else
             {
                 if (_isList)
@@ -392,13 +407,14 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         IList ToLanguageList()
         {
-            List<Tuple<string, string>> res = new List<Tuple<string, string>>();
-            foreach (string x in _value as IList<string>)
+            List<Tuple<string, string>> result = new List<Tuple<string, string>>();
+
+            foreach (string v in _value as IList<string>)
             {
-                res.Add(new Tuple<string, string>(x, Language));
+                result.Add(new Tuple<string, string>(v, Language));
             }
 
-            return res;
+            return result;
         }
 
         /// <summary>
@@ -409,19 +425,27 @@ namespace Semiodesk.Trinity
         bool IPropertyMapping.IsTypeCompatible(Type type)
         {
             Type mappingType = _dataType;
+
             if (_isList)
+            {
                 mappingType = _genericType;
+            }
 
             if( IsNumericType(type) )
             {
                 return IsPrecisionCompatible(type, mappingType);
-            }else
+            }
+            else
             {
                 return (mappingType.IsAssignableFrom(type) || typeof(Resource).IsAssignableFrom(mappingType) && typeof(Resource).IsAssignableFrom(type));
             }
-
         }
 
+        /// <summary>
+        /// Indicates if the mapped value is a numeric type.
+        /// </summary>
+        /// <param name="type">A .NET type object.</param>
+        /// <returns><c>true</c> if the type is numeric, <c>false</c> otherwise.</returns>
         public static bool IsNumericType(Type type)
         {
             switch (Type.GetTypeCode(type))
@@ -443,26 +467,43 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Indicates if the precision of a numeric target type is greater or equal to a given source type.
+        /// </summary>
+        /// <param name="source">The source type.</param>
+        /// <param name="target">The target type.</param>
+        /// <returns><c>true</c> if the types are precision compatible, <c>false</c> otherwise.</returns>
         public bool IsPrecisionCompatible(Type source, Type target)
         {
             if (target == typeof(Double))
+            {
                 return true;
+            }
             
             if (target == typeof(Single))
             {
                 if (source == typeof(Double))
+                {
                     return false;
+                }
                 else
+                {
                     return true;
+                }
             }
 
             if (target == typeof(Decimal))
             {
                 if (source == typeof(Double) || source == typeof(Single))
+                {
                     return false;
+                }
                 else
+                {
                     return true;
+                }
             }
+
             return true;   
         }
 
@@ -472,17 +513,24 @@ namespace Semiodesk.Trinity
         /// <param name="other"></param>
         void IPropertyMapping.CloneFrom(IPropertyMapping other)
         {
-            
-            if (this._dataType != other.DataType)
+            if (_dataType != other.DataType)
+            {
                 return;
+            }
 
             if (_value != null && _isList)
             {
                 IList collection = (IList)_value;
+
                 collection.Clear();
+
                 IList otherCollection = (IList) other.GetValueObject();
+
                 foreach (var v in otherCollection)
+                {
                     collection.Add(v);
+                }
+
                 _isUnsetValue = other.IsUnsetValue;
             }
             else
@@ -490,7 +538,6 @@ namespace Semiodesk.Trinity
                 _value = (T)other.GetValueObject();
                 _isUnsetValue = other.IsUnsetValue;
             }
-            
         }
 
         /// <summary>
@@ -506,6 +553,7 @@ namespace Semiodesk.Trinity
             {
                 _value = default(T);
             }
+
             _isUnsetValue = true;
         }
 

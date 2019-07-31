@@ -23,7 +23,7 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
 using System.Collections.Generic;
@@ -220,6 +220,10 @@ namespace Semiodesk.Trinity
 
         #region Methods
 
+        /// <summary>
+        /// Sets the model the resource is stored in.
+        /// </summary>
+        /// <param name="model">A model.</param>
         public void SetModel(IModel model)
         {
             Model = model;
@@ -246,9 +250,9 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Loads and initialises all mapped properties. 
         /// </summary>
-        /// <remarks>
-        /// TODO: This method could be re-reimplemented and sped up by the CIL generator.
-        /// </remarks>
+        /// <todo>
+        /// This method could be re-reimplemented and sped up by the CIL generator.
+        /// </todo>
         private void InitializePropertyMappings()
         {
             Type thisType = GetType();
@@ -298,21 +302,21 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// A resource is at the moment deemed equal if the Uri is equal.
+        /// Determines wheter the URIs of the compared objects are equal.
         /// </summary>
-        /// <param name="comparand"></param>
-        /// <returns></returns>
-        public override bool Equals(object comparand)
+        /// <param name="other">The object to be compared.</param>
+        /// <returns><c>true</c> if the URIs of the compared objects are equal, <c>false</c> otherwise.</returns>
+        public override bool Equals(object other)
         {
-            IResource other = comparand as Resource;
+            IResource r = other as Resource;
 
-            return other != null && other.Uri == Uri;
+            return r != null && r.Uri == Uri;
         }
 
         /// <summary>
-        /// We return the hashcode of the original string of the uri
+        /// Returns the hash code of the objects URI.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A hash code string.</returns>
         public override int GetHashCode()
         {
             return Uri.OriginalString.GetHashCode();
@@ -1179,6 +1183,9 @@ namespace Semiodesk.Trinity
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
+        /// <summary>
+        /// Update the property mappings with the values in the selected language.
+        /// </summary>
         protected void ReloadLocalizedMappings()
         {
             foreach (var mapping in _mappings.Where(x => (x.Value.DataType == typeof(string) || x.Value.GenericType == typeof(string)) && !x.Value.LanguageInvariant))

@@ -23,7 +23,7 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
 using System.Collections.Generic;
@@ -34,7 +34,6 @@ using Semiodesk.Trinity.Store;
 using System.Configuration;
 using System.Reflection;
 using Semiodesk.Trinity.Exceptions;
-
 #if NETSTANDARD2_0
 using System.Composition.Hosting;
 #elif !NET35
@@ -192,15 +191,20 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Tries to load a store provider from the given assembly.
+        /// Tries to load a store provider from the given assembly file.
         /// </summary>
-        /// <param name="assemblyFile"></param>
+        /// <param name="assemblyFile">A assembly file info object.</param>
         /// <returns></returns>
         public static bool LoadProvider(FileInfo assemblyFile)
         {
             return LoadProvider(assemblyFile.FullName);
         }
 
+        /// <summary>
+        /// Tries to load a store provider from the given assembly.
+        /// </summary>
+        /// <param name="assembly">An assembly.</param>
+        /// <returns></returns>
         public static bool LoadProvider(Assembly assembly)
         {
             return LoadProvider(assembly.Location);
