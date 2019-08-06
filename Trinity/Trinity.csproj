@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net40;net35</TargetFrameworks>
 	<Title>Semiodesk.Trinity</Title>
-	<Copyright>Copyright © Semiodesk GmbH 2018</Copyright>
-	<Description>This library is an enterprise ready platform for developing knowlege-based applications. Trinity offers superior modelling and querying flexibility combined with extreme scalability when compared with traditional ORM solutions. Supporting the powerful RDF metadata standard Trinity offers a sustainable foundation for your desktop, mobile or web applications.</Description>
+	<Copyright>Copyright © Semiodesk GmbH 2015-2019</Copyright>
+	<Description>Enterprise ready object mapper for developing RDF knowledge graph applications with .NET</Description>
 	<Company>Semiodesk GmbH</Company>
 	<Version>1.0.0-rc005</Version>
 	<AssemblyVersion>1.0.0.5</AssemblyVersion>
@@ -29,11 +29,11 @@
     <PackageId>trinity-rdf</PackageId>
     <Authors>Semiodesk GmbH</Authors>
     <Product>Semiodesk.Trinity</Product>
-    <PackageTags>RDF SPARQL Database Semantic Object Mapping Linked Data</PackageTags>
+    <PackageTags>RDF SPARQL ORM object mapping linked data semantic web knowledge graph database</PackageTags>
     <PackageLicenseUrl>https://bitbucket.org/semiodesk/trinity/wiki/License</PackageLicenseUrl>
-    <PackageProjectUrl>https://bitbucket.org/semiodesk/trinity</PackageProjectUrl>
-    <PackageIconUrl>http://static.semiodesk.com/images/trinity_logo.png</PackageIconUrl>
-    <RepositoryUrl>https://bitbucket.org/semiodesk/trinity</RepositoryUrl>
+    <PackageProjectUrl>https://trinity-rdf.net</PackageProjectUrl>
+    <PackageIconUrl>https://trinity-rdf.net/assets/img/trinity-logo.png</PackageIconUrl>
+    <RepositoryUrl>https://github.com/semiodesk/trinity-rdf</RepositoryUrl>
     <RepositoryType></RepositoryType>
   </PropertyGroup>
 
