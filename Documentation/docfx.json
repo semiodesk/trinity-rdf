@@ -1,6 +1,9 @@
 {
   "metadata": [
     {
+      "properties": {
+        "TargetFramework": "netstandard2.0"
+      },
       "src": [
         {
           "files": [
@@ -9,14 +12,13 @@
           ],
           "cwd": "..",
           "exclude": [
-            "**/obj/**",
-            "**/bin/**",
+
             "doc/**"
           ]
         }
       ],
       "dest": "obj/api",
-      "filter": "filterConfig.yml",
+      "filter": "filterConfig.yml"
     }
   ],
 
@@ -65,14 +67,18 @@
       }
     ],
     "dest": "_site",
+    
     "template": [
       "default",
       "templates/material"
     ],
     "globalMetadata": {
-      "_enableSearch": true,
-      "properties": { "TargetFramework": "netstandard2.0" }
+      "_enableSearch": true
+      
+
     }
+
+
 
   }
   }
