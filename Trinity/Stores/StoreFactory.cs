@@ -33,7 +33,6 @@ using System.Text.RegularExpressions;
 using Semiodesk.Trinity.Store;
 using System.Configuration;
 using System.Reflection;
-using Semiodesk.Trinity.Exceptions;
 #if NETSTANDARD2_0
 using System.Composition.Hosting;
 #elif !NET35
@@ -150,6 +149,16 @@ namespace Semiodesk.Trinity
         public static IStore CreateMemoryStore()
         {
             return CreateStoreFromConfiguration("provider=dotnetrdf");
+        }
+
+        /// <summary>
+        /// Create a store suitable for querying SPARQL protocol endpoints.
+        /// </summary>
+        /// <param name="url">URL of the SPARQL endpoint.</param>
+        /// <returns></returns>
+        public static IStore CreateSparqlEndpointStore(Uri url)
+        {
+            return CreateStore($"provider=sparqlendpoint;endpoint={url.AbsoluteUri}");
         }
 
         /// <summary>

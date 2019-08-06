@@ -236,6 +236,16 @@ namespace Semiodesk.Trinity.Test
             hans = Model.GetResource(new Uri("http://example.org/MyResource"), typeof(Resource)) as Resource;
             Assert.NotNull(hans);
             Assert.NotNull(hans.Model);
+
+            try
+            {
+                Model.GetResource<Resource>(new Uri("http://example.org/None"));
+
+                Assert.Fail();
+            }
+            catch(ArgumentException)
+            {
+            }
         }
 
         [Test]

@@ -30,18 +30,21 @@ using System;
 namespace Semiodesk.Trinity
 {
     /// <summary>
-    /// Represents error when one or more resources you tried to access was locked.
+    /// Represents error when a resource could not be retrieved.
     /// </summary>
-    public class ResourceLockedException : Exception
+    /// <remarks>
+    /// The exception is derived from <c>ArgumentException</c> to ensure backwards compatibility.
+    /// </remarks>
+    public class ResourceNotFoundException : ArgumentException
     {
         #region Constructors
 
         /// <summary>
-        /// Create a new instance of the <c>ResourceLockedException</c> class.
+        /// Create a new instance of the <c>ResourceNotFoundException</c> class.
         /// </summary>
-        /// <param name="inner">Inner exception.</param>
-        public ResourceLockedException(Exception inner)
-            : base(string.Format("One or more resources you tried to access was locked. Either try using transactions or try to repeat the action after reloading your resources."), inner)
+        /// <param name="uri">URI of the resource.</param>
+        public ResourceNotFoundException(Uri uri)
+            : base($"Could not find resource {uri}")
         {}
 
         #endregion

@@ -27,7 +27,7 @@
 
 using System;
 
-namespace Semiodesk.Trinity.Exceptions
+namespace Semiodesk.Trinity
 {
     /// <summary>
     /// This exception will be thrown if the store rejects the query as invalid.

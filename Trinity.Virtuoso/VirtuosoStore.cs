@@ -36,7 +36,6 @@ using System.ComponentModel;
 using OpenLink.Data.Virtuoso;
 using VDS.RDF.Parsing;
 using VDS.RDF;
-using Semiodesk.Trinity.Exceptions;
 
 namespace Semiodesk.Trinity.Store.Virtuoso
 {

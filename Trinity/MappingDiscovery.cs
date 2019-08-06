@@ -203,7 +203,7 @@ namespace Semiodesk.Trinity
 
             try
             { 
-                Resource r = (Resource)Activator.CreateInstance(type.BaseType, new UriRef("_:"));
+                Resource r = (Resource)Activator.CreateInstance(type.BaseType, new UriRef("urn:"));
 
                 baseTypes.AddRange(r.GetTypes());
 

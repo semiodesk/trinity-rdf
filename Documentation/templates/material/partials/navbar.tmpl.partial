@@ -1,24 +1,19 @@
 ﻿{{!Copyright (c) Microsoft. All rights reserved. Licensed under the MIT license. See LICENSE file in the project root for full license information.}}
 
-<nav id="autocollapse" class="navbar navbar-inverse ng-scope navbar-docfx" role="navigation">
-  <div class="container-fluid">
-    <div class="navbar-header">
-      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
-        <span class="sr-only">Toggle navigation</span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
-	  <a class="navbar-brand" data-scroll href="#page-top">
-         {{>partials/logo}} Trinity RDF
-      </a>
-    </div>
-    <div class="collapse navbar-collapse" id="navbar">
-      <form class="navbar-form navbar-right" role="search" id="search">
-        <div class="form-group">
-          <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
-        </div>
-      </form>
-    </div>
-  </div>
+<nav class="navbar navbar-docfx navbar-expand-lg navbar-light fixed-top" role="navigation" id="mainNav">
+	<div class="container-fluid">
+		<div class="d-flex flex-row">
+			<a class="navbar-brand" data-scroll href="/">
+				<img id="logo" src="/doc/images/logo.svg" width="48" height="48" alt="Trinity RDF"> Trinity RDF
+			</a>
+			<div class="d-flex align-items-center w-100" id="navbar">
+				<form class="navbar-form navbar-right" role="search" id="search">
+					<div class="form-group">
+						<input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+					</div>
+				</form>
+				<div class="w-100"></div>
+			</div>
+		</div>
+	</div>
 </nav>

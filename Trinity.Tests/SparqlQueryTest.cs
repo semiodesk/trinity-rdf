@@ -347,7 +347,7 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(false, Model.ContainsResource(new Uri("http://example.org/Peter")));
 
             IResource hans = Model.GetResource(new Uri("http://example.org/Hans"));
-            Assert.Throws(typeof(ArgumentException), delegate { Model.GetResource(new Uri("http://example.org/Peter")); });
+            Assert.Throws<ResourceNotFoundException>(delegate { Model.GetResource(new Uri("http://example.org/Peter")); });
 
             hans = Model.GetResource(new Uri("http://example.org/Hans"), typeof(Resource)) as IResource;
             Assert.NotNull(hans);

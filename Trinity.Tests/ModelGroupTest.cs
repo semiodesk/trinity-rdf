@@ -120,7 +120,7 @@ namespace Semiodesk.Trinity.Test
 
             IModelGroup g = Store.CreateModelGroup(Model.Uri, Model2.Uri);
             
-            Assert.Throws(typeof(ArgumentException), new TestDelegate( () => g.GetResource(resourceUri)));
+            Assert.Throws<ResourceNotFoundException>(new TestDelegate( () => g.GetResource(resourceUri)));
             
             IResource resource = Model.CreateResource(resourceUri);
             resource.AddProperty(rdf.type, nco.Contact);

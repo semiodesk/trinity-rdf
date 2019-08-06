@@ -27,7 +27,7 @@
 
 using System;
 
-namespace Semiodesk.Trinity.Exceptions
+namespace Semiodesk.Trinity
 {
     /// <summary>
     /// Represents errors when a suitable triple store adapter could not be found.

@@ -188,6 +188,13 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestConstruct()
         {
+            var c0 = Model.GetResources<PersonContact>();
+
+            foreach (var c in c0)
+            {
+                Assert.IsFalse(c.HasProperty(vcard.givenName));
+            }
+
             // Assert.Inconclusive("Blank nodes are currently problematic.");
             SparqlQuery query = new SparqlQuery(@"
                 CONSTRUCT
@@ -200,10 +207,14 @@ namespace Semiodesk.Trinity.Test
                     ?x nco:fullname ?name .
                 }");
 
-            ISparqlQueryResult result = Model.ExecuteQuery(query);
+            var c1 = Model.GetResources(query);
 
-            IList resources = result.GetResources().ToList();
-            Assert.AreEqual(2, resources.Count);
+            Assert.AreEqual(c0.Count(), c1.Count());
+
+            foreach(var c in c1)
+            {
+                Assert.IsTrue(c.HasProperty(vcard.givenName));
+            }
         }
 
         [Test]
@@ -258,7 +269,7 @@ namespace Semiodesk.Trinity.Test
             Assert.AreEqual(false, Model.ContainsResource(new Uri("http://example.org/Peter")));
 
             IResource hans = Model.GetResource(new Uri("http://example.org/Hans"));
-            Assert.Throws(typeof(ArgumentException), delegate { Model.GetResource(new Uri("http://example.org/Peter")); });
+            Assert.Throws<ResourceNotFoundException>(delegate { Model.GetResource(new Uri("http://example.org/Peter")); });
 
             hans = Model.GetResource(new Uri("http://example.org/Hans"), typeof(Resource)) as IResource;
             Assert.NotNull(hans);

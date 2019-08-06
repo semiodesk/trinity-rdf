@@ -1234,11 +1234,7 @@ namespace Semiodesk.Trinity.Test
         public void AddRemoveUriTest()
         {
             IModel model = GetModel();
-
-            if (!model.IsEmpty)
-            {
-                model.Clear();
-            }
+            model.Clear();
 
             Uri uri1 = new Uri("urn:1");
             Uri uri2 = new Uri("urn:2");
@@ -1269,19 +1265,19 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void AddRemoveUriPropTest()
         {
-            IModel m = GetModel();
-            m.Clear();
+            IModel model = GetModel();
+            model.Clear();
 
             Uri v = new Uri("urn:test#myUri");
 
             Uri t1Uri = new Uri("semio:test:testInstance1");
-            MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
+            MappingTestClass t1 = model.CreateResource<MappingTestClass>(t1Uri);
 
             // Add value using the mapping interface
             t1.uniqueUriTest = v;
             t1.Commit();
 
-            MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
+            MappingTestClass t_actual = model.GetResource<MappingTestClass>(t1Uri);
 
             // Test if value was stored
             Assert.IsNotNull(t_actual.uniqueUriTest);
@@ -1301,7 +1297,7 @@ namespace Semiodesk.Trinity.Test
             t1.RemoveProperty(TestOntology.uniqueUriTest, v);
             t1.Commit();
 
-            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+            t_actual = model.GetResource<MappingTestClass>(t1Uri);
 
             // Test if ListProperties works
             l = t_actual.ListProperties().ToList();
@@ -1317,11 +1313,11 @@ namespace Semiodesk.Trinity.Test
             t1.uriTest.Add(new Uri("urn:test#5"));
             t1.Commit();
 
-            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+            t_actual = model.GetResource<MappingTestClass>(t1Uri);
             Assert.AreEqual(t1.uriTest.Count, t_actual.uriTest.Count);
 
 
-            m.Clear();
+            model.Clear();
         }
         [Test]
         public void TimeZoneTest()
@@ -1629,7 +1625,7 @@ namespace Semiodesk.Trinity.Test
             r.Commit();
 
             SparqlQuery query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o . ?s a @type .}");
-            query.Bind("type", nco.Contact);
+            query.Bind("@type", nco.Contact);
 
             Assert.AreEqual(1, model.ExecuteQuery(query, true).GetResources().Count());
         }

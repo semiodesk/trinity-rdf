@@ -1,18 +1,16 @@
 # Installation #
-On this page we describe the methods to install Semiodesk Trinity.
+On this page we describe the methods to install Trinity RDF.
 
-## Via NuGet ##
-The easiest way to install the library is via NuGet. You can install the base library with the following command:
+## NuGet (Recommended) ##
+The easiest way to install the library is via [NuGet](https://nuget.org/). You can install the base library with the following command:
 
- > PM> Install-Package Semiodesk.Trinity.Core
+```
+> PM> Install-Package Trinity.RDF
+```
 
-If you want to be able to use the object mapping features of Trinity, you should add the following package:
-
- > PM> Install-Package Semiodesk.Trinity.Modelling
-
-## Via Package (Not recommended)##
-Download the latest [stable package](http://static.semiodesk.com/semiodesk.trinity/release/stable/current.php). 
-This archive contains everything that is needed to create a Semantic Web application with Semiodesk Trinity.
+## GitHub package (Not recommended)##
+Download the latest [stable package](https://github.com/semiodesk/Trinity-RDF/releases). 
+This archive contains everything that is needed to create a knowledge graph application with Trinity RDF.
 
 ## Further Information ##
-For a complete introduction follow our [First Steps](FirstSteps) tutorial.
+For a complete introduction follow our [First Steps](firstSteps.md) tutorial.

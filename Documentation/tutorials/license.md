@@ -1,8 +1,7 @@
 # License
+The Trinity RDF library and tools found in this repository are licensed under the the MIT License (MIT).
 
-The Semiodesk.Trinity library and tools found in this repository are licensed under the the MIT License (MIT).
-
-Copyright (c) 2015 Semiodesk GmbH
+Copyright (c) 2015-2019 Semiodesk GmbH
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

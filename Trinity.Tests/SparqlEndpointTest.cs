@@ -35,38 +35,26 @@ namespace Semiodesk.Trinity.Test
     public class SparqlEndpointTest
     {
         [Test]
-        public void QueryDBPediaTest()
+        public void TestDBPediaQuery()
         {
-            IStore store = StoreFactory.CreateStore("provider=sparqlendpoint;endpoint=http://live.dbpedia.org/sparql");
+            IStore store = StoreFactory.CreateSparqlEndpointStore(new Uri("http://live.dbpedia.org/sparql"));
             IModel model = store.GetModel(new Uri("http://dbpedia.org"));
 
             SparqlQuery query = new SparqlQuery(@"SELECT ?s ?p ?o WHERE { ?s ?p ?o . ?s <http://dbpedia.org/ontology/wikiPageID> @id . }");
-            query.Bind("id", 445980);
+            query.Bind("@id", 445980);
 
             Assert.AreEqual(1, model.ExecuteQuery(query).GetResources().Count());
         }
 
         [Test]
-        public void GetResourceDBPediaTest()
+        public void TestDBPediaGetResource()
         {
-            IStore store = StoreFactory.CreateStore("provider=sparqlendpoint;endpoint=http://live.dbpedia.org/sparql");
+            IStore store = StoreFactory.CreateSparqlEndpointStore(new Uri("http://live.dbpedia.org/sparql"));
             IModel model = store.GetModel(new Uri("http://dbpedia.org"));
 
             IResource r = model.GetResource(new Uri("http://dbpedia.org/resource/Munich"));
 
-            Assert.Greater(0, r.ListProperties().Count());
-        }
-
-        //[Test]
-        public void QueryWordnetTest()
-        {
-            IStore store = StoreFactory.CreateStore("provider=sparqlendpoint;endpoint=http://wordnet.rkbexplorer.com/sparql/");
-            IModel model = store.GetModel(new Uri("http://wordnet.rkbexplorer.com/sparql/"));
-
-            SparqlQuery query = new SparqlQuery(@"SELECT ?s ?p ?o WHERE { ?s ?p ?o . ?s <http://www.w3.org/2000/01/rdf-schema#label> @label . }");
-            query.Bind("label", "eat");
-
-            Assert.Greater(0, model.ExecuteQuery(query).GetResources().Count());
+            Assert.Greater(r.ListProperties().Count(), 0);
         }
     }
 }

@@ -83,7 +83,7 @@ namespace Semiodesk.Trinity
         {
             get
             {
-                SparqlQuery query = new SparqlQuery(string.Format(@"ASK {0} {{ ?s ?p ?o . }}", DatasetClause));
+                SparqlQuery query = new SparqlQuery("ASK " + DatasetClause + " { ?s ?p ?o . }");
                 return !ExecuteQuery(query).GetAnwser();
             }
         }
@@ -365,8 +365,7 @@ namespace Semiodesk.Trinity
             }
             else
             {
-                string msg = "Error: Could not find resource {0}.";
-                throw new ArgumentException(string.Format(msg, uri));
+                throw new ResourceNotFoundException(uri);
             }
         }
 
@@ -407,8 +406,7 @@ namespace Semiodesk.Trinity
             }
             else
             {
-                string msg = "Error: Could not find resource <{0}>.";
-                throw new ArgumentException(string.Format(msg, uri));
+                throw new ResourceNotFoundException(uri);
             }
         }
 
@@ -449,13 +447,13 @@ namespace Semiodesk.Trinity
                 }
                 else
                 {
-                    string msg = string.Format("Error: The given type {0} does not implement the IResource interface.", type);
+                    string msg = string.Format("The given type {0} does not implement the IResource interface.", type);
                     throw new ArgumentException(msg);
                 }
             }
             else
             {
-                string msg = string.Format("Error: No handle to the generic method T GetResource<T>(Uri)");
+                string msg = string.Format("No handle to the generic method T GetResource<T>(Uri)");
                 throw new InvalidOperationException(msg);
             }
         }
@@ -525,10 +523,7 @@ namespace Semiodesk.Trinity
         /// <returns>An enumeration of resources that match the given query.</returns>
         public IEnumerable<T> GetResources<T>(bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
         {
-            T resource = Activator.CreateInstance<T>();
-
-            //resource.Classes
-            return null;
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -588,7 +583,9 @@ namespace Semiodesk.Trinity
         public bool Add(IModel item)
         {
             var x = _set.Add(item);
+
             UpdateDatasetClause();
+
             return x;
         }
 
@@ -599,6 +596,7 @@ namespace Semiodesk.Trinity
         public void ExceptWith(IEnumerable<IModel> other)
         {
             _set.ExceptWith(other);
+
             UpdateDatasetClause();
         }
 
@@ -609,6 +607,7 @@ namespace Semiodesk.Trinity
         public void IntersectWith(IEnumerable<IModel> other)
         {
             _set.IntersectWith(other);
+
             UpdateDatasetClause();
         }
 
@@ -679,6 +678,7 @@ namespace Semiodesk.Trinity
         public void SymmetricExceptWith(IEnumerable<IModel> other)
         {
             _set.SymmetricExceptWith(other);
+
             UpdateDatasetClause();
         }
 
@@ -689,12 +689,14 @@ namespace Semiodesk.Trinity
         public void UnionWith(IEnumerable<IModel> other)
         {
             _set.UnionWith(other);
+
             UpdateDatasetClause();
         }
 
         void ICollection<IModel>.Add(IModel item)
         {
             _set.Add(item);
+
             UpdateDatasetClause();
         }
 
@@ -741,9 +743,11 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public bool Remove(IModel item)
         {
-            var res = _set.Remove(item);
+            var x = _set.Remove(item);
+
             UpdateDatasetClause();
-            return res;
+
+            return x;
         }
 
         /// <summary>

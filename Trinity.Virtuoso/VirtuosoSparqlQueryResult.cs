@@ -26,16 +26,13 @@
 // Copyright (c) Semiodesk GmbH 2018
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Data;
 using OpenLink.Data.Virtuoso;
 using System.Globalization;
 using System.Diagnostics;
-using Semiodesk.Trinity.Exceptions;
 #if NET35
 using Semiodesk.Trinity.Utility;
 #endif
@@ -53,9 +50,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
         private readonly IModel _model;
 
-        private ISparqlQuery _query;
-
-        //private DataTable _queryResults;
+        private readonly ISparqlQuery _query;
 
         private readonly ITransaction _transaction;
 
@@ -136,15 +131,8 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             }
             else if (cellValue is int)
             {
-                //TODO: We need a different approach to store and read booleans
+                // TODO: We need a different approach to store and read booleans.
                 return cellValue;
-                /*
-                if ((int)cellValue == 1)
-                    return true;
-                else
-                    return false;
-                */
-
             }
             else if (cellValue is DateTime)
             {
@@ -294,8 +282,10 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                         }
                         else
                         {
-                            Resource r = new Resource(uri);
-                            r.IsNew = false;
+                            Resource r = new Resource(uri)
+                            {
+                                IsNew = false
+                            };
 
                             cache.Add(uri.OriginalString, r);
                             currentResource.AddPropertyToMapping(p, r, true);
@@ -425,8 +415,10 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         {
             string countQuery = SparqlSerializer.SerializeCount(_model, _query);
 
-            SparqlQuery query = new SparqlQuery(countQuery);
-            query.IsInferenceEnabled = _query.IsInferenceEnabled;
+            SparqlQuery query = new SparqlQuery(countQuery)
+            {
+                IsInferenceEnabled = _query.IsInferenceEnabled
+            };
 
             string q = _store.CreateQuery(query);
 

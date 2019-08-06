@@ -1,6 +1,5 @@
 #[Introduction](intro.md)
 #[First Steps](firstSteps.md)
 #[Music Browser](musicBrowser.md)
-#[Simple Unity Example](simpleUnity.md)
-
-#[Setting up Virtuoso](virtuoso.md)
+#[Unity 3D Game](simpleUnity.md)
+#[OpenLink Virtuoso](virtuoso.md)

@@ -331,17 +331,33 @@ namespace Semiodesk.Trinity
         [EditorBrowsable(EditorBrowsableState.Never)]
         public virtual void AddPropertyToMapping(Property property, object value, bool fromModel)
         {
+            if (value == null)
+            {
+                return;
+            }
+
             if (property.Uri.OriginalString == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
             {
-                IResource v = value as IResource;
+                Uri uri;
 
-                if (GetTypes().Any(t => t.Uri == v.Uri))
+                if(value is IResource)
+                {
+                    uri = (value as IResource).Uri;
+                }
+                else if(value is Uri)
+                {
+                    uri = value as Uri;
+                }
+                else
+                {
+                    return;
+                }
+
+                if (GetTypes().Any(t => t.Uri == uri))
                 {
                     return;
                 }
             }
-            if (value == null)
-                return;
 
             IPropertyMapping propertyMapping = GetPropertyMapping(property, value.GetType());
 
@@ -512,16 +528,6 @@ namespace Semiodesk.Trinity
         public void AddProperty(Property property, DateTime value)
         {
             AddPropertyToMapping(property, value, false);
-        }
-
-        /// <summary>
-        /// Add a property with a TimeSpan as value.
-        /// If this property is mapped with a compatible type, it will be filled with the given value.
-        /// </summary>
-        public void AddProperty(Property property, TimeSpan value)
-        {
-            throw new NotImplementedException();
-            //TODO!
         }
 
         /// <summary>

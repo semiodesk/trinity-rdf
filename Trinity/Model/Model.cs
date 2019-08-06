@@ -411,9 +411,7 @@ namespace Semiodesk.Trinity
                 return r;
             }
 
-            string msg = "Error: Could not find resource <{0}>.";
-
-            throw new ArgumentException(string.Format(msg, uri));
+            throw new ResourceNotFoundException(uri);
         }
 
         /// <summary>
@@ -568,9 +566,9 @@ namespace Semiodesk.Trinity
         public IEnumerable<T> GetResources<T>(bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource
         {
             StringBuilder queryBuilder = new StringBuilder();
-            queryBuilder.Append("SELECT ?s ?p ?o WHERE { ");
+            queryBuilder.Append("SELECT ?s ?p ?o WHERE { ?s ?p ?o . ");
 
-            T instance = (T)Activator.CreateInstance(typeof(T), "_:");
+            T instance = (T)Activator.CreateInstance(typeof(T), new UriRef("urn:"));
 
             foreach(Class type in instance.GetTypes())
             {

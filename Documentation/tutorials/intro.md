@@ -1,21 +1,13 @@
 # Tutorials
 
-## First Steps
-Learn quickly how to get started.
+## [First Steps](firstSteps.md)
+Learn the basic steps to get started.
 
-__[Tutorial](firstSteps.md)__
+## [Music Browser](musicBrowser.md)
+A sample desktop application that lets you browse through artists and their records.
 
-## Music Browser
-A sample desktop application that lets you browse through artists and their records
+## [Unity 3D](simpleUnity.md)
+A small Unity 3D example to get you started. 
 
-__[Tutorial](musicBrowser.md)__
-
-## Simple Unity3d Example
-A small Unity3d example to get you started. 
-
-__[Tutorial](simpleUnity.md)__
-
-## Web Application with ASP.NET and SignalR
-Utilize Trinity to write a web application vizualizing kowledge graphs.
-
-__[Tutorial](webApp.md)__
+## [ASP.NET](webApp.md)
+A basic web application with ASP.NET and SignalR.
