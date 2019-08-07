@@ -34,7 +34,6 @@ using System.Runtime.CompilerServices;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
-
 namespace Semiodesk.Trinity.CilGenerator.Tasks
 {
     public class ImplementNotifyPropertyChangedTask : GeneratorTaskBase
@@ -72,10 +71,12 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
                 throw new Exception(string.Format(msg, property.DeclaringType.FullName, property.Name));
             }
 
-            MethodDefinition raisePropertyChanged = Type.TryGetInheritedGenericMethod("RaisePropertyChanged", typeof(string));
+            MethodDefinition raisePropertyChanged = Type.TryGetInheritedMethod("RaisePropertyChanged", typeof(string));
 
-            if(raisePropertyChanged == null )
+            if (raisePropertyChanged == null)
+            {
                 throw new ArgumentException("{0}: Found no suitable RaisePropertyChanged method.", Type.FullName);
+            }
 
             if (IsMappedProperty)
             {

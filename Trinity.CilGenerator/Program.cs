@@ -90,7 +90,7 @@ namespace Semiodesk.Trinity.CilGenerator
                 Debug.WriteLine(e.Message);
             }
 
-            Console.WriteLine("CIL Generator, Copyright (C) 2015 Semiodesk GmbH");
+            Console.WriteLine("CIL Generator, Copyright (C) 2015-2019 Semiodesk GmbH");
             Console.WriteLine();
             Console.WriteLine("Generate byte code for Semiodesk Trinity specific attributes in CIL assemblies.");
             Console.WriteLine("Usage: cilg.exe [OPTIONS]");

@@ -76,7 +76,7 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
         /// <param name="name">Name of the method.</param>
         /// <param name="arguments">Argument signature of the method (a list of types).</param>
         /// <returns><c>true</c> if the type has a matching method, <c>false</c> otherwise.</returns>
-        public static bool HasMethod(this TypeDefinition type, string name, params object[] arguments)
+        public static bool HasMethod(this TypeDefinition type, string name, params Type[] arguments)
         {
             return type.TryGetInheritedMethod(name, arguments) != null;
         }
@@ -174,7 +174,7 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
         /// <param name="name">Name of the method.</param>
         /// <param name="arguments">List of method arguments.</param>
         /// <returns>A method definition on success, <c>null</c> otherwise.</returns>
-        public static MethodDefinition TryGetInheritedMethod(this TypeDefinition type, string name, params object[] arguments)
+        public static MethodDefinition TryGetInheritedMethod(this TypeDefinition type, string name, params Type[] arguments)
         {
             TypeDefinition[] types = { type };
 
@@ -184,7 +184,7 @@ namespace Semiodesk.Trinity.CilGenerator.Extensions
                 {
                     if (!m.Name.Equals(name) || m.Parameters.Count != arguments.Count()) continue;
 
-                    bool match = !m.Parameters.Where((t1, i) => !t1.ParameterType.FullName.Equals(arguments[i])).Any();
+                    bool match = !m.Parameters.Where((t1, i) => !t1.ParameterType.FullName.Equals(arguments[i].FullName)).Any();
 
                     if (match) return m;
                 }
