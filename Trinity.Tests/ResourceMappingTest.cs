@@ -1618,6 +1618,10 @@ namespace Semiodesk.Trinity.Test
         public void MappingTypeWithInferencingTest()
         {
             IModel model = GetModel();
+
+            // Load the rulesets for inferencing.
+            _store.InitializeFromConfiguration();
+
             model.Clear();
 
             PersonContact r = model.CreateResource<PersonContact>(new Uri("ex:t3"));

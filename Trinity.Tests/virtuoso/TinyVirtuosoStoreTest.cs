@@ -26,12 +26,8 @@
 // Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
-using System.IO;
-using NUnit.Framework;
-using Semiodesk.Trinity;
 using System.Linq;
-using System.Reflection;
-using Semiodesk.Trinity.Test;
+using NUnit.Framework;
 
 namespace Semiodesk.Trinity.Test
 {
@@ -66,7 +62,6 @@ namespace Semiodesk.Trinity.Test
 
             var res = model.GetResources(new SparqlQuery("SELECT ?s ?p ?o where { ?s ?p ?o. }"));
             var x = res.ToList();
-
         }
 
         [Test]
@@ -82,8 +77,6 @@ namespace Semiodesk.Trinity.Test
         public void ContainsModelTest()
         {
             Assert.Inconclusive("This method was marked obsolete and does not behave the same way as it used to.");
-
-
         }
         #pragma warning restore CS0618 // Type or member is obsolete
 
@@ -131,7 +124,6 @@ namespace Semiodesk.Trinity.Test
             Store.RemoveModel(_testModel);
             model = Store.GetModel(_testModel);
             Assert.IsTrue(model.IsEmpty);
-
         }
     }
 }

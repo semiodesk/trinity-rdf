@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   
   <PropertyGroup>
-    <TargetFrameworks>net40;net35</TargetFrameworks>
+    <TargetFrameworks>net40</TargetFrameworks>
     <Title>Semiodesk.Trinity.Virtuoso</Title>
     <Copyright>Copyright © Semiodesk GmbH 2018</Copyright>
     <Description>This library allows Semiodesk.Trinity to use the OpenLink Virtuoso store directly through the ODBC interface. It is also necessary if you want to use Semiodesk.Trinity with TinyVirtuoso.</Description>
@@ -33,17 +33,6 @@
     </Reference>
     <Reference Include="System.ComponentModel.Composition" />
   </ItemGroup>
-
-  <!-- ONLY NET3.5 -->
-  <ItemGroup Condition="'$(TargetFramework)'=='net35'">
-    <Reference Include="dotnetRDF.Data.Virtuoso">
-      <HintPath>Dependencies\Net35\dotNetRDF.Data.Virtuoso.dll</HintPath>
-    </Reference>
-    <Reference Include="dotNetRDF">
-      <HintPath>..\Dependencies\Net35\dotNetRDF.dll</HintPath>
-      <SpecificVersion>false</SpecificVersion>
-    </Reference>
-  </ItemGroup>
   
   <ItemGroup>
     <ProjectReference Include="..\Trinity\Trinity.csproj" />
@@ -63,9 +52,6 @@
 
   <Target Name="CustomContentTarget">
     <ItemGroup>
-      <TfmSpecificPackageFile Include="$(OutputPath)\*.Data.Virtuoso.dll" Condition="'$(TargetFramework)'=='net35'">
-        <PackagePath>lib/net35</PackagePath>
-      </TfmSpecificPackageFile>
       <TfmSpecificPackageFile Include="$(OutputPath)\*.Data.Virtuoso.dll" Condition="'$(TargetFramework)'=='net40'">
         <PackagePath>lib/net40</PackagePath>
       </TfmSpecificPackageFile>
