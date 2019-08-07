@@ -80,7 +80,11 @@ namespace Semiodesk.Trinity.Query
             SelectedVariables = new List<SparqlVariable>();
             CoalescedVariables = new Dictionary<SparqlVariable, SparqlExpression>();
             QueryBuilder = queryBuilder;
+#if NET35
             PatternBuilder = QueryBuilder.RootGraphPatternBuilder;
+#else
+            PatternBuilder = QueryBuilder.Root;
+#endif
         }
 
         public SparqlQueryGenerator(ISelectBuilder selectBuilder)
@@ -88,15 +92,16 @@ namespace Semiodesk.Trinity.Query
             SelectedVariables = new List<SparqlVariable>();
             CoalescedVariables = new Dictionary<SparqlVariable, SparqlExpression>();
             SelectBuilder = selectBuilder;
-#if !NET35
-            QueryBuilder = SelectBuilder;
-#else
+#if NET35
             QueryBuilder = selectBuilder.GetQueryBuilder();
-#endif
             PatternBuilder = QueryBuilder.RootGraphPatternBuilder;
+#else
+            QueryBuilder = SelectBuilder;
+            PatternBuilder = QueryBuilder.Root;
+#endif
         }
 
-        #endregion
+#endregion
 
         #region Methods
 

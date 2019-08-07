@@ -48,8 +48,11 @@ namespace Semiodesk.Trinity.Store
     #endif
     public class StardogStoreProvider : StoreProvider
     {
-        #region Constructor
+        #region Constructors
 
+        /// <summary>
+        /// Create a new instance of the class <c>StardogStoreProvider</c>.
+        /// </summary>
         public StardogStoreProvider()
         {
             Name = "stardog";
@@ -57,6 +60,13 @@ namespace Semiodesk.Trinity.Store
 
         #endregion
 
+        #region Methods
+
+        /// <summary>
+        /// The GetStore method which will be called with the parsed configuration string.
+        /// </summary>
+        /// <param name="configurationDictionary">Store specific configuation parameters.</param>
+        /// <returns>An instance of <c>IStore</c>.</returns>
         public override IStore GetStore(Dictionary<string, string> configurationDictionary)
         {
             string hostKey = "host";
@@ -87,5 +97,6 @@ namespace Semiodesk.Trinity.Store
             return new StardogStore(host, user, password, storeId);
         }
 
+        #endregion
     }
 }

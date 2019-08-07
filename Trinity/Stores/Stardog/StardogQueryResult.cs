@@ -28,10 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using VDS.RDF;
-using VDS.RDF.Query;
 #if NET35
 using Semiodesk.Trinity.Utility;
 #endif
@@ -39,19 +36,26 @@ using Semiodesk.Trinity.Utility;
 
 namespace Semiodesk.Trinity.Store.Stardog
 {
-    class StardogQueryResult : ISparqlQueryResult
+    /// <summary>
+    /// Handles query results for Stardog triple stores.
+    /// </summary>
+    internal class StardogQueryResult : ISparqlQueryResult
     {
         #region Members
 
         private IModel _model;
+
         private ISparqlQuery _query;
+
         private ITripleProvider _tripleProvider;
+
         private StardogResultHandler _resultHandler;
+
         private StardogStore _store;
 
         #endregion
 
-        #region Constructor
+        #region Constructors
 
         public StardogQueryResult(StardogStore store, ISparqlQuery query, StardogResultHandler resultHandler)
         {
@@ -88,26 +92,24 @@ namespace Semiodesk.Trinity.Store.Stardog
 
         #region Methods
 
-        #region ISparqlQueryResult
-
         public bool GetAnwser()
         {
             if (_query.QueryType == SparqlQueryType.Ask)
             {
-                return _resultHandler.BoolResult;
+                return _resultHandler.GetAnwser();
             }
             else
             {
-                throw new Exception();
+                throw new QueryTypeNotSupportedException(_query.QueryType);
             }
         }
 
         public IEnumerable<BindingSet> GetBindings()
         {
-            List<BindingSet> result = new List<BindingSet>();
-
             if (_query.QueryType == SparqlQueryType.Select)
             {
+                List<BindingSet> result = new List<BindingSet>();
+
                 foreach (var x in _resultHandler.SparqlResultSet)
                 {
                     BindingSet r = new BindingSet();
@@ -122,9 +124,13 @@ namespace Semiodesk.Trinity.Store.Stardog
 
                     result.Add(r);
                 }
-            }
 
-            return result;
+                return result;
+            }
+            else
+            {
+                throw new QueryTypeNotSupportedException(_query.QueryType);
+            }
         }
 
         public IEnumerable<T> GetResources<T>() where T : Resource
@@ -147,7 +153,7 @@ namespace Semiodesk.Trinity.Store.Stardog
                 Dictionary<string, IResource> cache = new Dictionary<string, IResource>();
 
                 Dictionary<string, T> types = FindResourceTypes<T>(_query.IsInferenceEnabled);
-                //Dictionary<string, T> types = new Dictionary<string, T>();
+
                 _tripleProvider.Reset();
 
                 foreach (KeyValuePair<string, T> resourceType in types)
@@ -389,7 +395,7 @@ namespace Semiodesk.Trinity.Store.Stardog
 
             SparqlQuery query = new SparqlQuery(countQuery);
 
-            // TODO: Apply inferencing if enabled
+            // TODO: Apply inferencing if enabled.
 
             var result = _store.ExecuteQuery(query.ToString()).SparqlResultSet;
 
@@ -419,7 +425,7 @@ namespace Semiodesk.Trinity.Store.Stardog
         {
             throw new NotImplementedException();
         }
-        #endregion
+
         #endregion
     }
 }

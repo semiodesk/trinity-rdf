@@ -58,8 +58,8 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// The GetStore method which will be called with the parsed configuration string.
         /// </summary>
-        /// <param name="configurationDictionary"></param>
-        /// <returns></returns>
+        /// <param name="configurationDictionary">Store specific configuation parameters.</param>
+        /// <returns>An instance of <c>IStore</c>.</returns>
         public abstract IStore GetStore(Dictionary<string, string> configurationDictionary );
 
 

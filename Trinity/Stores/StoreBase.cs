@@ -41,7 +41,7 @@ namespace Semiodesk.Trinity
         #region Methods
 
         /// <summary>
-        /// This property gives the state of the store. True means that the connection is ready and awaiting queries.
+        /// Indicates if the store is connected and awaiting queries.
         /// </summary>
         public virtual bool IsReady { get; protected set; } = true;
 
@@ -94,24 +94,24 @@ namespace Semiodesk.Trinity
         public abstract IEnumerable<IModel> ListModels();
 
         /// <summary>
-        /// Executes a SparqlQuery on the store.
+        /// Executes a <c>SparqlQuery</c> on the store.
         /// </summary>
-        /// <param name="query"></param>
-        /// <param name="transaction"></param>
+        /// <param name="query">SPARQL query to be executed.</param>
+        /// <param name="transaction">An optional transaction.</param>
         /// <returns></returns>
         public abstract ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null);
 
         /// <summary>
         /// Executes a query on the store which does not expect a result.
         /// </summary>
-        /// <param name="update"></param>
-        /// <param name="transaction"></param>
+        /// <param name="update">SPARQL Update to be executed.</param>
+        /// <param name="transaction">An optional transaction.</param>
         public abstract void ExecuteNonQuery(SparqlUpdate update, ITransaction transaction = null);
 
         /// <summary>
         /// Starts a transaction. The resulting transaction handle can be used to chain operations together.
         /// </summary>
-        /// <param name="isolationLevel"></param>
+        /// <param name="isolationLevel">Isolation level of the operations executed in the transaction.</param>
         /// <returns></returns>
         public abstract ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel);
 
@@ -233,7 +233,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Gets a handle to a model in the store.
         /// </summary>
-        /// <param name="uri">Uri of the model.</param>
+        /// <param name="uri">Model URI.</param>
         /// <returns></returns>
         public virtual IModel GetModel(Uri uri)
         {

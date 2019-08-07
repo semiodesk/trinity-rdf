@@ -22,6 +22,7 @@
 //
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
+//  Mark Stemmler <mark.stemmler@schneider-electric.com>
 //
 // Copyright (c) Semiodesk GmbH 2015-2019
 
@@ -36,6 +37,9 @@ using VDS.RDF.Writing;
 
 namespace Semiodesk.Trinity.Store.Stardog
 {
+    /// <summary>
+    /// A store adapter for Stardog databases.
+    /// </summary>
     public class StardogStore : StoreBase
     {
         #region Members
@@ -44,7 +48,12 @@ namespace Semiodesk.Trinity.Store.Stardog
 
         private StardogRdfHandler _rdfHandler;
 
-        public bool IsReady
+        private StardogTransaction _stardogTransaction;
+
+        /// <summary>
+        /// Indicates if the store is connected and awaiting queries.
+        /// </summary>
+        public new bool IsReady
         {
             get { return true; }
         }
@@ -53,6 +62,13 @@ namespace Semiodesk.Trinity.Store.Stardog
 
         #region Constructors
 
+        /// <summary>
+        /// Create a new instance of the <c>StardogStore</c> class.
+        /// </summary>
+        /// <param name="host">URL of the host to connect to.</param>
+        /// <param name="username">Username to be used when connecting.</param>
+        /// <param name="password">Password to be used when connecting.</param>
+        /// <param name="storeId">Knowledge base / database identifier.</param>
         public StardogStore(string host, string username, string password, string storeId)
         {
             _connector = new StardogConnector(host, storeId, username, password);
@@ -63,12 +79,23 @@ namespace Semiodesk.Trinity.Store.Stardog
 
         #region Methods
 
+        /// <summary>
+        /// Adds a new model with the given uri to the storage. 
+        /// </summary>
+        /// <param name="uri">Uri of the model</param>
+        /// <returns>Handle to the model</returns>
         [Obsolete]
         public override IModel CreateModel(Uri uri)
         {
             return new Model(this, new UriRef(uri));
         }
 
+        /// <summary>
+        /// Query if the model exists in the store.
+        /// OBSOLETE: This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty
+        /// </summary>
+        /// <param name="uri">Uri of the model which is to be queried.</param>
+        /// <returns></returns>
         [Obsolete]
         public override bool ContainsModel(Uri uri)
         {
@@ -76,39 +103,53 @@ namespace Semiodesk.Trinity.Store.Stardog
 
             var result = ExecuteQuery(query);
             {
-                return result.BoolResult;
+                return result.GetAnwser();
             }
         }
 
-        public override void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
+        /// <summary>
+        /// Executes a query on the store which does not expect a result.
+        /// </summary>
+        /// <param name="update">SPARQL Update to be executed.</param>
+        /// <param name="transaction">An optional transaction.</param>
+        public override void ExecuteNonQuery(SparqlUpdate update, ITransaction transaction = null)
         {
             if (!_connector.UpdateSupported)
             {
                 throw new Exception("This store does not support SPARQL update.");
             }
 
-            string q = query.ToString();
+            string q = update.ToString();
 
             if (_stardogTransaction?.IsActive ?? false)
             {
                 Log?.Invoke($"**{q}");
-                var convertor = new StardogUpdateSparqlConvertor(this);
 
-                convertor.ParseQuery(q);
-                Log?.Invoke($"UpdateGraph,{convertor.Additions.Count},{convertor.Removals.Count},{JsonConvert.SerializeObject(convertor.Additions)},{JsonConvert.SerializeObject(convertor.Removals)}");
-                _stardogTransaction.AddTripleCount += convertor.Additions.Count;
-                _stardogTransaction.RemoveTripleCount += convertor.Removals.Count;
+                var converter = new StardogUpdateSparqlConverter(this);
+                converter.ParseQuery(q);
 
-                _connector.UpdateGraph(convertor.GraphUri, convertor.Additions, convertor.Removals);
+                Log?.Invoke($"UpdateGraph,{converter.Additions.Count},{converter.Removals.Count},{JsonConvert.SerializeObject(converter.Additions)},{JsonConvert.SerializeObject(converter.Removals)}");
+
+                _stardogTransaction.AddTripleCount += converter.Additions.Count;
+                _stardogTransaction.RemoveTripleCount += converter.Removals.Count;
+
+                _connector.UpdateGraph(converter.GraphUri, converter.Additions, converter.Removals);
             }
             else
             {
                 // No transaction so just call update with the query
                 Log?.Invoke(q);
+
                 _connector.Update(q);
             }
         }
 
+        /// <summary>
+        /// Executes a <c>SparqlQuery</c> on the store.
+        /// </summary>
+        /// <param name="query">SPARQL query string to be executed.</param>
+        /// <param name="transaction">An optional transaction.</param>
+        /// <returns></returns>
         public StardogResultHandler ExecuteQuery(string query, ITransaction transaction = null)
         {
             Log?.Invoke(query);
@@ -120,6 +161,12 @@ namespace Semiodesk.Trinity.Store.Stardog
             return resultHandler;
         }
 
+        /// <summary>
+        /// Executes a <c>SparqlQuery</c> on the store.
+        /// </summary>
+        /// <param name="query">SPARQL query to be executed.</param>
+        /// <param name="transaction">An optional transaction.</param>
+        /// <returns></returns>
         public override ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
             string q = query.ToString();
@@ -132,11 +179,20 @@ namespace Semiodesk.Trinity.Store.Stardog
             return new StardogQueryResult(this, query, resultHandler);
         }
 
+        /// <summary>
+        /// Gets a handle to a model in the store.
+        /// </summary>
+        /// <param name="uri">Model URI.</param>
+        /// <returns></returns>
         public override IModel GetModel(Uri uri)
         {
             return new Model(this, new UriRef(uri));
         }
 
+        /// <summary>
+        /// Lists all models in the store.
+        /// </summary>
+        /// <returns>All handles to existing models.</returns>
         public override IEnumerable<IModel> ListModels()
         {
             ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } }");
@@ -165,12 +221,28 @@ namespace Semiodesk.Trinity.Store.Stardog
             }
         }
 
+        /// <summary>
+        /// Loads a serialized graph from the given stream into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="stream">Stream containing a serialized graph</param>
+        /// <param name="graphUri">Uri of the graph in this store</param>
+        /// <param name="format">Allowed formats</param>
+        /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
+        /// <returns></returns>
         public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
         {
             throw new NotImplementedException();
         }
 
-        public override Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update)
+        /// <summary>
+        /// Loads a serialized graph from the given location into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="modelUri">Uri of the graph in this store</param>
+        /// <param name="url">Location</param>
+        /// <param name="format">Allowed formats</param>
+        /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
+        /// <returns></returns>
+        public override Uri Read(Uri modelUri, Uri url, RdfSerializationFormat format, bool update)
         {
             throw new NotImplementedException();
         }
@@ -240,6 +312,10 @@ namespace Semiodesk.Trinity.Store.Stardog
             }
         }
 
+        /// <summary>
+        /// Removes model from the store.
+        /// </summary>
+        /// <param name="uri">Uri of the model which is to be removed.</param>
         public override void RemoveModel(Uri uri)
         {
             try
@@ -253,7 +329,11 @@ namespace Semiodesk.Trinity.Store.Stardog
             }
         }
 
-        private StardogTransaction _stardogTransaction;
+        /// <summary>
+        /// Starts a transaction. The resulting transaction handle can be used to chain operations together.
+        /// </summary>
+        /// <param name="isolationLevel">Isolation level of the operations executed in the transaction.</param>
+        /// <returns></returns>
         public override ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
             if (_stardogTransaction != null) throw new ApplicationException("Only one transaction is supported at a time.  Dispose and rollback changes or use the open transaction.");
@@ -261,12 +341,23 @@ namespace Semiodesk.Trinity.Store.Stardog
             _stardogTransaction.OnFinishedTransaction += OnTransactionCompleted;
             return _stardogTransaction;
         }
+
+        /// <summary>
+        /// Invoked when a transaction is completed.
+        /// </summary>
+        /// <param name="sender">Object which invoked the event.</param>
+        /// <param name="e">Event arguments.</param>
         protected void OnTransactionCompleted(object sender, TransactionEventArgs e)
         {
             _stardogTransaction = null;
         }
 
-        public IModelGroup CreateModelGroup(params Uri[] models)
+        /// <summary>
+        /// Creates a model group which allows for queries to be made on multiple models at once.
+        /// </summary>
+        /// <param name="models">The list of uris of the models that should be grouped together.</param>
+        /// <returns></returns>
+        public override IModelGroup CreateModelGroup(params Uri[] models)
         {
             List<IModel> modelList = new List<IModel>();
 
@@ -278,7 +369,12 @@ namespace Semiodesk.Trinity.Store.Stardog
             return new ModelGroup(this, modelList);
         }
 
-        public IModelGroup CreateModelGroup(params IModel[] models)
+        /// <summary>
+        /// Creates a model group which allows for queries to be made on multiple models at once.
+        /// </summary>
+        /// <param name="models">The list of model handles that should be grouped together.</param>
+        /// <returns></returns>
+        public override IModelGroup CreateModelGroup(params IModel[] models)
         {
             List<IModel> modelList = new List<IModel>();
 
@@ -291,6 +387,9 @@ namespace Semiodesk.Trinity.Store.Stardog
             return new ModelGroup(this, modelList);
         }
 
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
         public override void Dispose()
         {
             _stardogTransaction?.Dispose();

@@ -1,4 +1,28 @@
-﻿using System;
+﻿// LICENSE:
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//
+// AUTHORS:
+//
+//  Mark Stemmler <mark.stemmler@schneider-electric.com>
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Semiodesk.Trinity.Store.Stardog;
@@ -7,73 +31,117 @@ using VDS.RDF;
 namespace Semiodesk.Trinity.Stores.Stardog
 {
     /// <summary>
-    /// SPARQL converter.  Takes a typical Stardog "update" query and decomposes it so that it can be used with the StardogConnector's UpdateGraph method.
+    /// SPARQL converter. Takes a typical Stardog "update" query and decomposes it so that it can be used with the StardogConnector's UpdateGraph method.
     /// Does require a valid Store instance to extract the Removals from the current connection.  
     /// </summary>
-    public class StardogUpdateSparqlConvertor
+    public class StardogUpdateSparqlConverter
     {
-        private readonly StardogStore _store;
+        #region Types
 
-        #region Constructor
-        public StardogUpdateSparqlConvertor() : this(null) { }
-        public StardogUpdateSparqlConvertor(StardogStore store)
+        class TripleSet
         {
-            _store = store;
+            public ParsedNode Subject { get; set; }
+
+            public ParsedNode Predicate { get; set; }
+
+            public ParsedNode Object { get; set; }
+
+            public override string ToString() => $"<{Subject}> <{Predicate}> <{Object}>";
         }
+
+        class ParsedNode
+        {
+            public string Value { get; set; }
+
+            public string LiteralType { get; set; }
+
+            public bool IsLiteralNode { get; internal set; }
+
+            public override string ToString() => Value;
+        }
+
+        class PeakedNode
+        {
+            public bool NodePresent { get; set; }
+
+            public bool NodeIsLiteral { get; set; }
+
+            public string Start { get; set; }
+
+            public string End { get; set; }
+        }
+
         #endregion
 
-        #region LastParsedQuery
+        #region Members
+
+        private readonly StardogStore _store = null;
+
         /// <summary>
         /// The last SPARQL query supplied to <seealso cref="ParseQuery"/>
         /// </summary>
         public string LastParsedQuery { get; private set; }
-        #endregion
 
-        #region GraphUri
         /// <summary>
         /// The URI of the Graph Additions and Deletes will be applied to.
         /// </summary>
         public string GraphUri { get; private set; }
-        #endregion
-        #region PrimaryUri
+
         /// <summary>
         /// The URI of the entity being updated/saved.
         /// </summary>
         public string PrimaryUri { get; private set; }
-        #endregion
-        #region Removals
+
         /// <summary>
         /// Triple instances which will be removed
         /// </summary>
         public IList<Triple> Removals { get; private set; }
-        #endregion
-        #region Additions
+
         /// <summary>
         /// Triple instances converted from UpdateTriples
         /// </summary>
         public IList<Triple> Additions { get; private set; }
-        #endregion
-        #region UpdateTriples
+
         /// <summary>
         /// Parsed TripleSet instances which constitute the Additions
         /// </summary>
-        public List<TripleSet> UpdateTriples { get; private set; }
+        private List<TripleSet> _updateTriples { get; set; }
+
         #endregion
 
-        #region ParseQuery (Entry Point)
+        #region Constructors
+
+        /// <summary>
+        /// Create an instance of the class <c>StardogUpdateSparqlConvertor</c>.
+        /// </summary>
+        public StardogUpdateSparqlConverter() {}
+
+        /// <summary>
+        /// Create an instance of the class <c>StardogUpdateSparqlConvertor</c>.
+        /// </summary>
+        /// <param name="store">Startdog store instance.</param>
+        public StardogUpdateSparqlConverter(StardogStore store)
+        {
+            _store = store;
+        }
+
+        #endregion
+
+        #region Methods
+
         /// <summary>
         /// Given a typical SPARQL update query, it will be parsed and decomposed into the appropriate artifacts suitable to call the StardogConnector UpdateGraph method.
         /// </summary>
-        /// <param name="sparqlQuery"></param>
+        /// <param name="sparqlQuery">SPARQL query string.</param>
         public void ParseQuery(string sparqlQuery)
         {
             LastParsedQuery = sparqlQuery;
             ExtractGraphNameAndUriFromQuery(sparqlQuery);
 
             var insertPortion = sparqlQuery.Between("INSERT { ", " . } WHERE ");
-            UpdateTriples = ParseQueryIntoTripleSets(insertPortion);
+            _updateTriples = ParseQueryIntoTripleSets(insertPortion);
             var nf = new NodeFactory();
-            var additions = UpdateTriples.Select(x => CreateTriple(x, nf)).ToList();
+            var additions = _updateTriples.Select(x => CreateTriple(x, nf)).ToList();
 
             // Either a pure insert (which we already have info for) or we're not connected to a store so there's nothing we can query for anyway
             if (string.IsNullOrEmpty(PrimaryUri) || _store == null)
@@ -82,7 +150,7 @@ namespace Semiodesk.Trinity.Stores.Stardog
             }
             else
             {
-                // Per guidance from StarDog, include the pragma to disable reasoning here (requires StarDog 6.1 or later)
+                // Per guidance from Stardog, include the pragma to disable reasoning here (requires StarDog 6.1 or later)
                 // Since this query is only to determine actually persisted triples and reasoned triples aren't removable!
                 var queryTriplesToRemove = $@"SELECT ?s_ ?p_ ?o_ FROM <{GraphUri}> 
                                               WHERE {{ #pragma reasoning off
@@ -122,9 +190,7 @@ namespace Semiodesk.Trinity.Stores.Stardog
 
             Additions = additions;
         }
-        #endregion
 
-        #region ExtractGraphNameAndUriFromQuery
         private void ExtractGraphNameAndUriFromQuery(string sparqlQuery)
         {
             string graphUri;
@@ -161,25 +227,23 @@ namespace Semiodesk.Trinity.Stores.Stardog
             GraphUri = graphUri;
             PrimaryUri = primaryUri;
         }
-        #endregion
-        #region CreateTriple
+
         private Triple CreateTriple(TripleSet tripleSet, NodeFactory nf)
         {
-            var s = tripleSet.s == null ?
+            var s = tripleSet.Subject == null ?
                 nf.CreateUriNode(new Uri(PrimaryUri)) :
-                CreateNode(nf, tripleSet.s);
+                CreateNode(nf, tripleSet.Subject);
 
             // Pure inserts don't have the DELETE portion of the query expected in ParseQuery so we'll infer it here
             if (string.IsNullOrEmpty(PrimaryUri)) PrimaryUri = s.ToString();
 
-            var p = CreateNode(nf, tripleSet.p);
+            var p = CreateNode(nf, tripleSet.Predicate);
 
-            var o = CreateNode(nf, tripleSet.o);
+            var o = CreateNode(nf, tripleSet.Object);
 
             return new Triple(s, p, o);
         }
-        #endregion
-        #region CreateNode
+
         private INode CreateNode(NodeFactory nf, ParsedNode parsedNode)
         {
             if (!parsedNode.IsLiteralNode)
@@ -193,12 +257,11 @@ namespace Semiodesk.Trinity.Stores.Stardog
                 nf.CreateLiteralNode(unescaped) :
                 nf.CreateLiteralNode(unescaped, new Uri(parsedNode.LiteralType));
         }
-        #endregion
-        #region ParseQueryIntoTripleSets
+
         /// <summary>
         /// Returns string based triples, separated by a ' ; ' string.  If only two are found, the s value is returned as null since it is assumed that predicate and object are present.
         /// </summary>
-        public static List<TripleSet> ParseQueryIntoTripleSets(string query)
+        private static List<TripleSet> ParseQueryIntoTripleSets(string query)
         {
             var results = new List<TripleSet>();
             var working = query.Trim();
@@ -219,24 +282,23 @@ namespace Semiodesk.Trinity.Stores.Stardog
                     if (peakAhead.NodePresent)
                     {
                         var third = ParsePeakedNode(peakAhead, ref working, out pointer);
-                        results.Add(new TripleSet { s = first, p = second, o = third });
+                        results.Add(new TripleSet { Subject = first, Predicate = second, Object = third });
                     }
                     else
                     {
-                        results.Add(new TripleSet { s = null, p = first, o = second });
+                        results.Add(new TripleSet { Subject = null, Predicate = first, Object = second });
                     }
                 }
                 else
                 {
                     // probably won't happen but whatever
-                    results.Add(new TripleSet { s = first, p = null, o = null });
+                    results.Add(new TripleSet { Subject = first, Predicate = null, Object = null });
                 }
             }
 
             return results;
         }
-        #endregion
-        #region ParsePeakedNode
+
         private static ParsedNode ParsePeakedNode(PeakedNode peakAhead, ref string working, out int pointer)
         {
             var parsedNode = new ParsedNode();
@@ -268,10 +330,9 @@ namespace Semiodesk.Trinity.Stores.Stardog
 
             return parsedNode;
         }
-        #endregion
-        #region IsNodePresent
+
         /// <summary>
-        /// Peaks ahead to see if there is another node present; indicated by the next non-whitespace of a < or ' character
+        /// Peaks ahead to see if there is another node present; indicated by the next non-whitespace of a &lt; or ' character.
         /// </summary>
         private static PeakedNode IsNodePresent(string raw)
         {
@@ -282,32 +343,7 @@ namespace Semiodesk.Trinity.Stores.Stardog
             if (trimmed.StartsWith("<")) return new PeakedNode { NodePresent = true, NodeIsLiteral = false, Start = "<", End = ">" };
             return new PeakedNode { NodePresent = false, NodeIsLiteral = true };
         }
+
         #endregion
-    }
-
-    public class TripleSet
-    {
-        public ParsedNode s { get; set; }
-        public ParsedNode p { get; set; }
-        public ParsedNode o { get; set; }
-
-        public override string ToString() => $"<{s}> <{p}> <{o}>";
-    }
-
-    public class ParsedNode
-    {
-        public string Value { get; set; }
-        public string LiteralType { get; set; }
-        public bool IsLiteralNode { get; internal set; }
-
-        public override string ToString() => Value;
-    }
-
-    public class PeakedNode
-    {
-        public bool NodePresent { get; set; }
-        public bool NodeIsLiteral { get; set; }
-        public string Start { get; set; }
-        public string End { get; set; }
     }
 }
