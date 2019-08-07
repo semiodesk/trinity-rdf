@@ -61,7 +61,7 @@ namespace Semiodesk.Trinity.Store.Stardog
             string p = null;
             string o = null;
 
-            if(query.ProvidesStatements())
+            if (query.ProvidesStatements())
             {
                 // A list of global scope variables without the ?. Used to access the
                 // subject, predicate and object variable in statement providing queries.
@@ -213,7 +213,7 @@ namespace Semiodesk.Trinity.Store.Stardog
                             }
                         }
                     }
-                    else if(s is BlankNode)
+                    else if (s is BlankNode)
                     {
                         //TODO
                         Debugger.Break();
@@ -250,7 +250,7 @@ namespace Semiodesk.Trinity.Store.Stardog
                             currentResource.Model = _model;
                         }
                     }
-                    else if(o is BlankNode)
+                    else if (o is BlankNode)
                     {
                     }
                     else
@@ -299,8 +299,8 @@ namespace Semiodesk.Trinity.Store.Stardog
         {
             Dictionary<string, T> result = new Dictionary<string, T>();
             Dictionary<string, List<Class>> types = new Dictionary<string, List<Class>>();
-            string  p;
-            INode s,o;
+            string p;
+            INode s, o;
 
             // _tripleProvider.Reset();
 
@@ -317,7 +317,7 @@ namespace Semiodesk.Trinity.Store.Stardog
 
                 if (o.NodeType == NodeType.Uri && p == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
                 {
-                    if( s is IUriNode)
+                    if (s is IUriNode)
                     {
                         string suri = ((IUriNode)s).Uri.OriginalString;
 
@@ -339,7 +339,7 @@ namespace Semiodesk.Trinity.Store.Stardog
                     }
                 }
             }
-            
+
             // Iterate over all types and find the right class and instatiate it.
             foreach (string subject in types.Keys)
             {
@@ -350,8 +350,8 @@ namespace Semiodesk.Trinity.Store.Stardog
 #if DEBUG
                     if (classType.Length > 1)
                     {
-                        string msg = "Info: There is more that one assignable type for <{0}>. It was initialized using the first.";
-                        Debug.WriteLine(string.Format(msg, subject));
+                        var msg = "Info: There is more that one assignable type for <{0}>. It was initialized as <{1}>.";
+                        Debug.WriteLine(string.Format(msg, subject, classType[0].Name));
                     }
 #endif
 
@@ -391,7 +391,7 @@ namespace Semiodesk.Trinity.Store.Stardog
 
             // TODO: Apply inferencing if enabled
 
-            var result =  _store.ExecuteQuery(query.ToString()).SparqlResultSet;
+            var result = _store.ExecuteQuery(query.ToString()).SparqlResultSet;
 
             if (result.Count > 0 && result[0].Count > 0)
             {

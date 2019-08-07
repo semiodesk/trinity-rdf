@@ -838,15 +838,19 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// This method lists all combinations of properties and values.
         /// </summary>
+        /// <param name="forSerialization">Only return values which should be serialized.</param>
         /// <returns></returns>
-        public virtual IEnumerable<Tuple<Property, object>> ListValues()
+        public virtual IEnumerable<Tuple<Property, object>> ListValues(bool forSerialization = false)
         {
-            // List values from properties
-            foreach (var key in _properties)
+            if (!forSerialization)
             {
-                foreach (object value in key.Value)
+                // List values from properties
+                foreach (var key in _properties)
                 {
-                    yield return new Tuple<Property, object>(key.Key, value);
+                    foreach (object value in key.Value)
+                    {
+                        yield return new Tuple<Property, object>(key.Key, value);
+                    }
                 }
             }
 
