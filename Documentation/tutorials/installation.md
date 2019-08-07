@@ -5,7 +5,7 @@ On this page we describe the methods to install Trinity RDF.
 The easiest way to install the library is via [NuGet](https://nuget.org/). You can install the base library with the following command:
 
 ```
-> PM> Install-Package Trinity.RDF
+> PM> Install-Package Semiodesk.Trinity
 ```
 
 ## GitHub package (Not recommended)##

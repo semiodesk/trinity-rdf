@@ -148,7 +148,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static IStore CreateMemoryStore()
         {
-            return CreateStoreFromConfiguration("provider=dotnetrdf");
+            return CreateStore("provider=dotnetrdf");
         }
 
         /// <summary>

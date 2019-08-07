@@ -11,7 +11,7 @@ and LINQ without seeing any RDF at all.
 
 ## Setup
 One of the core requirements for [Trinity RDF](https://trinity-rdf.net) was that ontology terms 
-need to be easily accessible from native .NET languages. If you are using the <code>Trinity.RDF</code>-NuGet 
+need to be easily accessible from native .NET languages. If you are using the <code>Semiodesk.Trinity</code>-NuGet 
 package you are ready to go.
 
 ### Ontology Constants

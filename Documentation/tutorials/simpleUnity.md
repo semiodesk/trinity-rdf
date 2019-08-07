@@ -31,7 +31,7 @@ Open the Nuget Package Manager console (Tools -> NuGet Package Manager -> Packag
 and type the following:
 
 ```
-PM> Install-Package Trinity.RDF
+PM> Install-Package Semiodesk.Trinity
 ```
 
 Make a release build before you open the project in Unity.

@@ -11,7 +11,7 @@ we will show you how to do more complicated things.
 ## Create Project ##
 To get started we will open Visual Studio and create a new console project, lets call it 'CliExample'.
 
-Now we can start to add the dependencies using NuGet. We add the <code>Trinity.RDF</code> to the project. 
+Now we can start to add the dependencies using NuGet. We add the <code>Semiodesk.Trinity</code> to the project. 
 This package contains the tools that are neccessary to create the object mapping. The resulting project 
 structure should look like this:
 
@@ -39,7 +39,7 @@ Also to avoid confusion, we rename it to <code>foaf.rdf</code>. Then we just nee
 
 ![Ontologies.png](https://bitbucket.org/repo/pnBbge/images/1285680337-Ontologies.png)
 
-Now we need to change the configuration to make the new ontology known to Trinity.RDF.
+Now we need to change the configuration to make the new ontology known to Trinity RDF.
 To make this happen, we add the following passage to the <code>App.config</code> as a child of 
 the <code>OntologySettings</code> element:
 

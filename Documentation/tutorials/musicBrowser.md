@@ -13,7 +13,7 @@ to work. Open the Nuget Package Manager console ('Tools' -> 'NuGet Package Manag
 and enter the following:
 
 ```
-PM> Install-Package Trinity.RDF
+PM> Install-Package Semiodesk.Trinity
 ```
 
 ## Data Model ##
