@@ -44,7 +44,7 @@ Additionally this process can be integrated into the build process, that way the
 A different tool deploys the ontologies to your triple store. If you are working on your own ontologies, you can integrate 
 this process into your toolchain. 
 
-LINW
+LINQ
 ---------
 Not familiar with SPARQL? No problem. The powerful LINQ to SPARQL translator in Trinity RDF lets you query your RDF knowledge 
 graph using LINQ.
