@@ -51,8 +51,6 @@ namespace Semiodesk.Trinity
         // for implementing the GetResource(Uri, Type) method that supports runtime type specification.
         private MethodInfo _getResourceMethod;
 
-        private Dictionary<string, List<Resource>> _currentResources = new Dictionary<string, List<Resource>>();
-
         /// <summary>
         /// The Uniform Resource Identifier which provides a name for the model.
         /// </summary>
@@ -71,12 +69,6 @@ namespace Semiodesk.Trinity
                 return !ExecuteQuery(query).GetAnwser();
             }
         }
-
-        /// <summary>
-        /// Indicates if all changes in the model have been written back to its backing RDF store(s).
-        /// </summary>
-        [JsonIgnore]
-        private bool IsSynchronized { get; set; }
 
         #endregion
 
