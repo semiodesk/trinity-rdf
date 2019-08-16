@@ -38,7 +38,7 @@ namespace Semiodesk.Trinity.Stores.Stardog
     {
         #region Types
 
-        class TripleSet
+        public class TripleSet
         {
             public ParsedNode Subject { get; set; }
 
@@ -49,7 +49,7 @@ namespace Semiodesk.Trinity.Stores.Stardog
             public override string ToString() => $"<{Subject}> <{Predicate}> <{Object}>";
         }
 
-        class ParsedNode
+        public class ParsedNode
         {
             public string Value { get; set; }
 
@@ -105,7 +105,7 @@ namespace Semiodesk.Trinity.Stores.Stardog
         /// <summary>
         /// Parsed TripleSet instances which constitute the Additions
         /// </summary>
-        private List<TripleSet> _updateTriples { get; set; }
+        public List<TripleSet> UpdateTriples { get; set; }
 
         #endregion
 
@@ -139,9 +139,9 @@ namespace Semiodesk.Trinity.Stores.Stardog
             ExtractGraphNameAndUriFromQuery(sparqlQuery);
 
             var insertPortion = sparqlQuery.Between("INSERT { ", " . } WHERE ");
-            _updateTriples = ParseQueryIntoTripleSets(insertPortion);
+            UpdateTriples = ParseQueryIntoTripleSets(insertPortion);
             var nf = new NodeFactory();
-            var additions = _updateTriples.Select(x => CreateTriple(x, nf)).ToList();
+            var additions = UpdateTriples.Select(x => CreateTriple(x, nf)).ToList();
 
             // Either a pure insert (which we already have info for) or we're not connected to a store so there's nothing we can query for anyway
             if (string.IsNullOrEmpty(PrimaryUri) || _store == null)
