@@ -25,10 +25,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Semiodesk.Trinity.Store.Stardog;
 using VDS.RDF;
 
-namespace Semiodesk.Trinity.Stores.Stardog
+namespace Semiodesk.Trinity.Store.Stardog
 {
     /// <summary>
     /// SPARQL converter. Takes a typical Stardog "update" query and decomposes it so that it can be used with the StardogConnector's UpdateGraph method.

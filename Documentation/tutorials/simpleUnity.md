@@ -1,6 +1,7 @@
 ﻿# Unity 3D Game #
-[Download Project](http://static.semiodesk.com/semiodesk.trinity/examples/0.9/SimpleDbpedia.zip)
+**IMPORTANT:** This example was written for an older version of Semiodesk.Trinity and might not be compatible with the current release.
 
+[Download Project](http://static.semiodesk.com/semiodesk.trinity/examples/0.9/SimpleDbpedia.zip)
 
 We look at how, in general, the Trinity RDF platform can be used in combination with the [Unity gaming engine](https://unity.com).
 
@@ -44,7 +45,7 @@ the ontology mapping project. I usually call it External. Here we create a new C
 available our Unity projects, we need to set the build output (preferably of the release build) to *\..\\..\\Assets\\Plugins\\*
 The Plugins directory is a [special folder](http://docs.unity3d.com/Manual/SpecialFolders.html) of Unity which treats the contained DLLs differently.
 
-![FolderStructure.png](https://bitbucket.org/repo/pnBbge/images/1059885734-FolderStructure.png)
+![FolderStructure.png](/images/examples/unity/1059885734-FolderStructure.png)
 
 ## DBpedia Ontology ##
 I have picked up the DBpdia ontology [here](http://downloads.dbpedia.org/2015-04/dbpedia_2015-04.nt.bz2). The 
@@ -266,7 +267,7 @@ public class LoadData : MonoBehaviour
 Now we just need to set the Button to call the appropriate function. Select it and set the 
 *On Click()* handler like in the following image.
 
-![onclick.png](https://bitbucket.org/repo/pnBbge/images/397689992-onclick.png)
+![onclick.png](~/images/examples/unity/397689992-onclick.png)
 
 **Note:** Even tough the setting of *Target.text* does not seem like a call to Unity method, 
 it could be property that calls methods which are not allowed to be called from a thread. 
@@ -276,6 +277,6 @@ To be safe, relay as much as possible back to the UI thread.
 You now have a small game that gives you the title of all three parts of The Lord of the Rings 
 if you press the button repeatedly.
 
-![result.png](https://bitbucket.org/repo/pnBbge/images/932505194-result.png)
+![result.png](~/images/examples/unity/932505194-result.png)
 
 Hurray! :-)

@@ -105,10 +105,16 @@ namespace Semiodesk.Trinity.CilGenerator
                     Assembly = module.Assembly;
 
                     var resolver = module.AssemblyResolver;
-                    var trinityRef = module.AssemblyReferences.Where(x => x.Name == "Semiodesk.Trinity").First();
+                    var trinityRef = module.AssemblyReferences.Where(x => x.Name == "Semiodesk.Trinity").FirstOrDefault();
+                    if (trinityRef == null)
+                    {
+                        Log.LogMessage("Reference to Semiodesk.Trinity not found. Stopping ImplementRdfMapping...");
+                        return true;
+                    }
                     var trinity = resolver.Resolve(trinityRef);
 
-                    PropertyMapping = trinity.MainModule.Types.Where(b => b.FullName == "Semiodesk.Trinity.PropertyMapping`1").First();
+                    PropertyMapping = trinity.MainModule.Types.Where(b => b.FullName == "Semiodesk.Trinity.PropertyMapping`1").FirstOrDefault();
+                   
 
                     Log.LogMessage("------ Begin Task: ImplementRdfMapping [{0}]", Assembly.Name);
 

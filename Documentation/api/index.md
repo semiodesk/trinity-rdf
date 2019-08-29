@@ -16,8 +16,16 @@ package you are ready to go.
 
 ### Ontology Constants
 In a pre-compilation step, our framework generates a C# representation of your ontologies in a file named 
-<code>*obj/ontologies.g.cs*</code>. 
-It creates classes for each ontology configured in <code>App.config</code>. These classes contain basic information 
+<code>*Ontologies/Ontologies.g.cs*</code>. 
+
+Make sure to register the assembly containing the ontologies by calling one of the following methods.
+```
+OntologyDiscovery.RegisterCallingAssembly();
+// OR
+OntologyDiscovery.AddAssembly(Assembly.GetAssembly(typeof(rdf)));
+```
+
+The generated file creates classes for each ontology configured in <code>ontologies.config</code>. These classes contain basic information 
 about the ontology:
 
 ```
@@ -43,33 +51,35 @@ These constants can then be used to create queries, add values to resources or c
 The convention is that lower case ontology classes (e.g. rdf) contains the Class and Property instances, 
 upper case classes (e.g. RDF) contains the string representations neccessary for the attributes.
 
-The generation of the ontolgies can be configured in the <code>App.config</code> file:
+The generation of the ontolgies can be configured in the <code>ontologies.config</code> file:
 
 ```
+<?xml version="1.0" encoding="utf-8" ?>
 <configuration>
-  ...
-  <configSections>
-    <section name="TrinitySettings" type="Semiodesk.Trinity.Configuration.TrinitySettings, Semiodesk.Trinity" />
-  </configSections>
+  <ontologies namespace="TrinityExample" >
 
-  <!-- Generate the ontology classes in the 'CliExample'-namespace -->
-  <TrinitySettings namespace="CliExample">
-    <OntologySettings>
-      <!--Generate the class 'CliExample.rdf' from the contents of the file Ontologies\rdf.rdf -->
-      <Ontology Uri="http://www.w3.org/1999/02/22-rdf-syntax-ns#" Prefix="rdf">
-        <FileSource Location="Ontologies\rdf.rdf" />
-      </Ontology>
-    </OntologySettings>
-  </TrinitySettings>
-  ...
+    <!--http://www.w3.org/1999/02/22-rdf-syntax-ns#-->
+    <ontology uri="http://www.w3.org/1999/02/22-rdf-syntax-ns#" prefix="rdf">
+      <filesource location="Ontologies/rdf.ttl"/>
+    </ontology>
+
+    <!--http://www.w3.org/2000/01/rdf-schema#-->
+    <ontology uri="http://www.w3.org/2000/01/rdf-schema#" prefix="rdfs">
+      <filesource location="Ontologies/rdfs.ttl"/>
+    </ontology>
+
+    <ontology uri="http://schema.org/" prefix="schema">
+      <filesource location="Ontologies/schema.ttl"/>
+    </ontology>
+  </ontologies>
 </configuration>
 ```
 
-Using the <code>namespace</code> attribute of the <code>TrinitySettings</code> element you can control 
+Using the <code>namespace</code> attribute of the <code>ontologies</code> element you can control 
 the CLR namespace in which the ontologies should be generated.
 
-The <code>Uri</code> is the namespace of the ontology. The <code>Prefix</code> is a short identifier for the ontology. 
-It is used as the generated classes name. The <code>FileSource</code> element defines the location of the file 
+The <code>uri</code> is the namespace of the ontology. The <code>prefix</code> is a short identifier for the ontology. 
+It is used as the generated classes name. The <code>filesource</code> element defines the location of the file 
 relative to the configuration.
 
 **Note:** If you are using NuGet, please be aware that if you change the framework (for example from .Net 4.5 to 
@@ -112,7 +122,7 @@ is also possible to write and load a custom store module.
 ### Loading Configurations
 The ontologies specified in the configuration need to be loaded into the store to do things like inferencing. The 
 method to do this is called <code>Store.LoadOntologySettings()</code>. Optionally it can be given the path of a 
-configuration file. By default it will use the <code>App.config</code> file of the current assembly. As second 
+configuration file. By default it will use the <code>ontologies.config</code> file of the current assembly. As second 
 parameter you can define the base directory for the ontologies.
 
 **IMPORTANT:** Do not forget to set all ontologies to "Copy always" so they will be found at runtime.
@@ -150,23 +160,27 @@ Possible options are:
 | <code>pw</code> | Password |
 | <code>rule</code> | The default ruleset for inferencing. |
 
-Rulesets can be defined in the <code>App.config</code> like this:
+Rulesets can be defined in the <code>ontologies.config</code> like this:
 
 ```
+<?xml version="1.0" encoding="utf-8" ?>
 <configuration>
   ...
-  <TrinitySettings>
-    <VirtuosoStoreSettings>
-      <RuleSets>
-        <RuleSet Uri="urn:semiodesk/ruleset">
-          <Graphs>
-            <Graph Uri="http://www.w3.org/1999/02/22-rdf-syntax-ns#" />
-          </Graphs>
-        </RuleSet>
-      </RuleSets>
-    </VirtuosoStoreSettings>
-  </TrinitySettings>
-  ...
+
+  <stores>
+    <store type="virtuoso">
+      <data>
+        <rulesets>
+          <ruleset uri="urn:semiodesk/test/ruleset">
+            <graph uri="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>
+            <graph uri="http://www.w3.org/2000/01/rdf-schema#"/>
+            <graph uri="http://www.w3.org/2002/07/owl#"/>
+            <graph uri="http://xmlns.com/foaf/0.1/"/>
+          </ruleset>
+        </rulesets>
+      </data>
+    </store>
+  </stores>
 </configuration>
 ```
 
@@ -194,6 +208,7 @@ provider and register it. With the following function you can try to load the cu
 
 ```
 StoreFactory.LoadProvider("CustomStoreProvider.dll")
+StoreFactory.LoadProvider(Assembly.GetExecutingAssembly());
 ```
 
 The <code>CustomStoreProvider.dll</code> needs to contain a class derived from StoreProvider and 
@@ -358,11 +373,26 @@ john2.Commit();
 Trinity RDF offers two ways for defining object mappings. The recommended way is by decorating classes and 
 properties using attributes. The mapping is then implemented in a post-compiler step by our byte-code manipulator (cilg.exe).
 
-If for some reasons you cannot do that, you can also implement the mapping manually. In the following we describe both ways.
+If for some reason you are not able do that, you can also implement the mapping manually. In the following we describe both ways.
 
 **Note:** 
 Valid types for mapping are all value types, <code>DateTime</code> structs and classes derived from Resource. Additionally, all
 collections of these types which implement the <code>IList</code> interface.
+
+### Initialization
+
+To regiser the mapped classes make sure to register the assembly containing them by calling the appropriate MappingDiscovery method.
+
+Use the following one if you have a small project and have everything in one assembly.
+```
+MappingDiscovery.RegisterCallingAssembly();
+```
+
+If you have a dedicate data model assembly you can use the following call. You only have to provide one type, the rest will be loaded directly from the assembly.
+```
+MappingDiscovery.RegisterAssembly(Assembly.GetAssembly(typeof(MyMappedType)));
+```
+
 
 ### Using Decorators
 ```

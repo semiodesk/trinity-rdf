@@ -92,6 +92,16 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// Register the calling assembly to search for RDF ontologies.
+        /// </summary>
+        public static void RegisterCallingAssembly()
+        {
+            Assembly a = Assembly.GetCallingAssembly();
+
+            AddAssembly(a);
+        }
+
+        /// <summary>
         /// Register the concepts from a given set of ontologies.
         /// </summary>
         /// <param name="ontologies">An enumeration of ontologies.</param>

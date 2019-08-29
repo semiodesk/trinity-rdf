@@ -248,7 +248,7 @@ namespace Semiodesk.Trinity
         IEnumerable<T> GetResources<T>(bool inferenceEnabled = false, ITransaction transaction = null) where T : Resource;
 
         /// <summary>
-        /// TODO
+        /// Returns a queryable object that can be used to build LINQ statements.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>

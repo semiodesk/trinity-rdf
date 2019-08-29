@@ -1,4 +1,6 @@
 ﻿# Music Browser #
+**IMPORTANT:** This example was written for an older version of Semiodesk.Trinity and might not be compatible with the current release.
+
 [Download Project](http://static.semiodesk.com/semiodesk.trinity/examples/0.9/MusicBrowser.zip)
 
 This example shows you how to access the [LinkedBrainz](http://linkedbrainz.org) 
@@ -6,7 +8,7 @@ dataset with Trinity RDF. It uses Windows Forms as UI toolkit and utilises data 
 
 **Linkedbrainz seems to be offline. Before you try this example check the SPARQL endpoint at linkedbrainz.org!**
 
-![MusicBrowser.png](https://bitbucket.org/repo/pnBbge/images/2022201284-MusicBrowser.png)
+![MusicBrowser.png](~/images/examples/musicBrowser/2022201284-MusicBrowser.png)
 
 Because of the way NuGet works, there is one step that needs to be completed for the example 
 to work. Open the Nuget Package Manager console ('Tools' -> 'NuGet Package Manager' -> 'Package Manager Console') 
@@ -24,7 +26,7 @@ This example leverages the following ontologies for creating the data model:
 * [Dublin Core Element Set Vocabulary (dces)](http://purl.org/dc/elements/1.1/)
 
 For the object model we have created representations of artists and their created works:
-![ClassDiagram.png](https://bitbucket.org/repo/pnBbge/images/225525627-ClassDiagram.png)
+![ClassDiagram.png](~/images/examples/musicBrowser/225525627-ClassDiagram.png)
 
 **Note:** As you can see, there is no connection between <code>MusicArtist</code> and <code>Release</code>. In 
 this example we have solved the latency problem by wrapping this request in a separate query.

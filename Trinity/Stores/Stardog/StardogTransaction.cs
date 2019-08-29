@@ -2,7 +2,7 @@
 using System.Data;
 using VDS.RDF.Storage;
 
-namespace Semiodesk.Trinity.Stores.Stardog
+namespace Semiodesk.Trinity.Store.Stardog
 {
     /// <summary>
     /// Wrapper to support Stardog transactions.  At present, nested transaction is NOT supported as the transaction instance is a wrapper around the StardogConnector.

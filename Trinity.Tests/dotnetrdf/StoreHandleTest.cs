@@ -38,6 +38,23 @@ namespace dotNetRDFStore.Test
     [TestFixture]
     class StoreHandleTest
     {
+        [Test]
+        public void TestMemoryStoreMethod()
+        {
+            var p = new Property(new Uri("ex:myProperty"));
+
+            var Store = StoreFactory.CreateMemoryStore();
+            IModel m = Store.CreateModel(new UriRef("semio:test"));
+            Assert.IsNotNull(m);
+            m.Clear();
+            Assert.IsTrue(m.IsEmpty);
+            var x = m.CreateResource<Resource>();
+            x.AddProperty(p, "uarg");
+            x.Commit();
+            Assert.IsFalse(m.IsEmpty);
+            Store.Dispose();
+
+        }
 
         [Test]
         public void TestOpenClose()

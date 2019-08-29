@@ -49,6 +49,8 @@
     <None Include="api\index.md" />
     <None Include="articles\intro.md" />
     <None Include="articles\toc.md" />
+    <None Include="data\FirstSteps-1.0rc7.zip" />
+    <None Include="data\starter.zip" />
     <None Include="packages.config" />
     <None Include="templates\material\partials\navbar.tmpl.partial" />
     <None Include="tutorials\firstSteps.md" />
@@ -67,11 +69,18 @@
   <ItemGroup>
     <Content Include=".gitignore" />
     <Content Include="api\.gitignore" />
+    <Content Include="images\examples\musicBrowser\2022201284-MusicBrowser.png" />
+    <Content Include="images\examples\musicBrowser\225525627-ClassDiagram.png" />
+    <Content Include="images\examples\webApp\1927643689-result.png" />
+    <Content Include="images\examples\webApp\698958943-process.png" />
     <Content Include="images\favicon.ico" />
-    <Content Include="images\trinity-logo.svg" />
+    <Content Include="images\logo.svg" />
     <Content Include="templates\material\styles\main.css" />
     <None Include="tutorials\webApp.md" />
     <None Include="tutorials\musicBrowser.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="images\examples\firststeps\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\docfx.console.2.44.0\build\docfx.console.targets" Condition="Exists('..\packages\docfx.console.2.44.0\build\docfx.console.targets')" />

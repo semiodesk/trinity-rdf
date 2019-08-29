@@ -6,7 +6,7 @@
 	<Copyright>Copyright © Semiodesk GmbH 2015-2019</Copyright>
 	<Description>Enterprise ready object mapper for developing RDF knowledge graph applications with .NET</Description>
 	<Company>Semiodesk GmbH</Company>
-	<Version>1.0.0-rc007</Version>
+	<Version>1.0.0-rc008</Version>
 	<AssemblyVersion>1.0.0.7</AssemblyVersion>
 	<FileVersion>1.0.0.7</FileVersion>
 	<AssemblyName>Semiodesk.Trinity</AssemblyName>
@@ -79,6 +79,7 @@
 
   <ItemGroup>
     <None Remove="app.config" />
+    <None Remove="ontologies.config" />
     <None Remove="packages.config" />
     <None Remove="Stores\IStorageSpecific.cs.orig" />
     <None Remove="Stores\StoreUpdater.cs.orig" />

@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Semiodesk.Trinity" Version="1.0.0-rc007" />
+  </ItemGroup>
+  <Import Project="Semiodesk.Trinity.1.0.0-rc006\build\Semiodesk.Trinity.targets" Condition="Exists('Semiodesk.Trinity.1.0.0-rc006\build\Semiodesk.Trinity.targets')" />
+</Project>

@@ -24,7 +24,7 @@
 
 using System;
 
-namespace Semiodesk.Trinity.Stores.Stardog
+namespace Semiodesk.Trinity.Store.Stardog
 {
     /// <summary>
     /// Extensions for the <c>System.String</c> type.

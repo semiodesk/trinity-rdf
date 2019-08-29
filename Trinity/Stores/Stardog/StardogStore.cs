@@ -30,7 +30,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
-using Semiodesk.Trinity.Stores.Stardog;
 using VDS.RDF;
 using VDS.RDF.Storage;
 using VDS.RDF.Writing;
