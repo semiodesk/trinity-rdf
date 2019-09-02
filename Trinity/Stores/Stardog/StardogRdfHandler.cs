@@ -30,16 +30,69 @@ using VDS.RDF.Parsing.Handlers;
 
 namespace Semiodesk.Trinity.Store.Stardog
 {
+    /// <summary>
+    /// An RDF handler for Stardog triple stores.
+    /// </summary>
     internal class StardogRdfHandler : BaseRdfHandler
     {
+        #region Members
+
         public override bool AcceptsAll
         {
             get { return true;  }
         }
 
+        public ReadStartEventHandler OnReadStarted { get; set; }
+
+        public ReadEndEventHandler OnReadEnded { get; set; }
+
+        public ReadTripleEventHandler OnReadTriple { get; set; }
+
+        #endregion
+
+        #region Methods
+
+        protected override void StartRdfInternal()
+        {
+            base.StartRdfInternal();
+
+            OnReadStarted?.Invoke(this);
+        }
+
         protected override bool HandleTripleInternal(Triple t)
         {
+            OnReadTriple?.Invoke(this, t);
+
             return true;
         }
+
+        protected override void EndRdfInternal(bool ok)
+        {
+            base.EndRdfInternal(ok);
+
+            OnReadEnded?.Invoke(this, ok);
+        }
+
+        #endregion
     }
+
+    /// <summary>
+    /// Handles events when reading an RDF file has started and no triples have been read.
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    public delegate void ReadStartEventHandler(object sender);
+
+    /// <summary>
+    /// Handle events when reading an RDF file has ended and all triples have been read.
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="ok">Indicates if errors have occured while reading the file.</param>
+    public delegate void ReadEndEventHandler(object sender, bool ok);
+
+    /// <summary>
+    /// Handle events when during reading of an RDF file a triple has been read.
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="triple">The triple.</param>
+    public delegate void ReadTripleEventHandler(object sender, Triple triple);
 }

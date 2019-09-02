@@ -405,15 +405,24 @@ namespace Semiodesk.Trinity.Test.Stardog
         {
             IModel m = GetModel();
             m.Clear();
+
             Uri t1Uri = new Uri("semio:test:testInstance1");
             MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
-
             t1.AddProperty(TestOntology.uniqueStringTest, "Hallo Welt", "de");
             t1.Commit();
 
-            var tt = m.GetResource<MappingTestClass>(t1Uri);
+            var t1ref = m.GetResource<MappingTestClass>(t1Uri);
+            var values = t1ref.ListValues(TestOntology.uniqueStringTest);
 
+            Assert.IsTrue(values.OfType<Tuple<string, string>>().Any(t => t.Item1 == "Hallo Welt" && t.Item2 == "de"));
 
+            t1.RemoveProperty(TestOntology.uniqueStringTest, "Hallo Welt", "de");
+            t1.Commit();
+
+            t1ref = m.GetResource<MappingTestClass>(t1Uri);
+            values = t1ref.ListValues(TestOntology.uniqueStringTest);
+
+            Assert.AreEqual(0, values.Count());
         }
 
 
@@ -422,59 +431,52 @@ namespace Semiodesk.Trinity.Test.Stardog
         {
             IModel m = GetModel();
             m.Clear();
-            Uri t1Uri = new Uri("semio:test:testInstance1");
-            MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
+
+            string value = "（╯°□°）╯︵ ┻━┻";
 
             // Add value using the mapping interface
-            string strValue = "（╯°□°）╯︵ ┻━┻";
-            t1.stringTest.Add(strValue);
+            Uri u0 = new Uri("urn:id:0");
+            MappingTestClass r0 = m.CreateResource<MappingTestClass>(u0);
+            r0.stringTest.Add(value);
+            r0.Commit();
 
-            t1.Commit();
+            // Test if value was stored.
+            MappingTestClass r1 = m.GetResource<MappingTestClass>(u0);
+            Assert.AreEqual(1, r1.stringTest.Count());
+            Assert.AreEqual(value, r1.stringTest[0]);
 
-            MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
+            // Test if HasProperty works.
+            Assert.IsTrue(r1.HasProperty(TestOntology.stringTest));
+            Assert.IsTrue(r1.HasProperty(TestOntology.stringTest, value));
 
-            // Test if value was stored
-            Assert.AreEqual(1, t_actual.stringTest.Count());
-            Assert.AreEqual(strValue, t_actual.stringTest[0]);
+            // Test if ListValues works.
+            Assert.AreEqual(typeof(string), r1.ListValues(TestOntology.stringTest).First().GetType());
+            Assert.AreEqual(value, r1.ListValues(TestOntology.stringTest).First());
 
+            // Test if property is present.
+            var properties = r1.ListProperties();
+            Assert.True(properties.Contains(TestOntology.stringTest));
+            Assert.AreEqual(2, properties.Count());
 
-            // Test if property is present
-            var l = t_actual.ListProperties();
-            Assert.True(l.Contains(TestOntology.stringTest));
-            Assert.AreEqual(2, l.Count());
+            // Remove value from mapped list.
+            r0.stringTest.Remove(value);
+            r0.Commit();
 
-            var x = t_actual.HasProperty(TestOntology.stringTest);
-            Assert.IsTrue(x);
-
-            x = t_actual.HasProperty(TestOntology.stringTest, strValue);
-            Assert.IsTrue(x);
-
-            // Test if ListValues works
-            Assert.AreEqual(typeof(string), t_actual.ListValues(TestOntology.stringTest).First().GetType());
-            Assert.AreEqual(strValue, t_actual.ListValues(TestOntology.stringTest).First());
-
-
-            // Remove value from mapped list
-            t1.stringTest.Remove(strValue);
-            t1.Commit();
-
-            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+            r1 = m.GetResource<MappingTestClass>(u0);
 
             // Test if removed
-            Assert.AreEqual(0, t_actual.boolTest.Count());
+            Assert.AreEqual(0, r1.stringTest.Count());
 
             // Test if ListProperties works
-            l = t_actual.ListProperties();
-            Assert.False(l.Contains(TestOntology.stringTest));
+            properties = r1.ListProperties();
+            CollectionAssert.DoesNotContain(properties, TestOntology.stringTest);
 
-            x = t_actual.HasProperty(TestOntology.stringTest);
-            Assert.IsFalse(x);
-
-            x = t_actual.HasProperty(TestOntology.stringTest, strValue);
-            Assert.IsFalse(x);
+            // Test if HasProperty works.
+            Assert.IsFalse(r1.HasProperty(TestOntology.stringTest));
+            Assert.IsFalse(r1.HasProperty(TestOntology.stringTest, value));
 
             // Test if ListValues works
-            Assert.AreEqual(0, t_actual.ListValues(TestOntology.stringTest).Count());
+            Assert.AreEqual(0, r1.ListValues(TestOntology.stringTest).Count());
 
             m.Clear();
         }
@@ -620,9 +622,7 @@ namespace Semiodesk.Trinity.Test.Stardog
             // Test if ListValues works
             Assert.AreEqual(0, t_actual.ListValues(TestOntology.uniqueDatetimeTest).Count());
 
-
-            DateTime t = new DateTime();
-            Assert.IsTrue(DateTime.TryParse("2013-01-21T16:27:23.000Z", out t));
+            Assert.IsTrue(DateTime.TryParse("2013-01-21T16:27:23.000Z", out DateTime t));
 
             t1.uniqueDateTimeTest = t;
             t1.Commit();
@@ -640,14 +640,16 @@ namespace Semiodesk.Trinity.Test.Stardog
             m.Clear();
 
             Uri t1Uri = new Uri("semio:test:testInstance1");
-            DateTime t = new DateTime();
-            Assert.IsTrue(DateTime.TryParse("2013-01-21T16:27:23.000Z", out t));
+
+            Assert.IsTrue(DateTime.TryParse("2013-01-21T16:27:23.000Z", out DateTime t));
 
             MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
             t1.uniqueDateTimeTest = t;
             t1.Commit();
 
             MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
+
+            Assert.AreEqual(t.ToUniversalTime(), t_actual.uniqueDateTimeTest);
         }
 
         [Test]
@@ -831,7 +833,7 @@ namespace Semiodesk.Trinity.Test.Stardog
             Uri testRes1 = new Uri("semio:test:testInstance");
             Uri testRes2 = new Uri("semio:test:testInstance2");
             MappingTestClass t1 = model.CreateResource<MappingTestClass>(testRes1);
-            MappingTestClass2 t2 = model.CreateResource<MappingTestClass2>(new Uri("semio:test:testInstance2"));
+            MappingTestClass2 t2 = model.CreateResource<MappingTestClass2>(testRes2);
 
             t1.uniqueResourceTest = t2;
             // TODO: Debug messsage, because t2 was not commited
@@ -857,14 +859,10 @@ namespace Semiodesk.Trinity.Test.Stardog
 
             IResource tr1 = model.GetResource(testRes1, t1.GetType()) as Resource;
             Assert.AreEqual(typeof(MappingTestClass), tr1.GetType());
-            MappingTestClass2 p2 = model.GetResource<MappingTestClass2>(testRes2);
 
             Assert.AreEqual(t2, p1.uniqueResourceTest);
 
-
-
             model.Clear();
-
         }
 
         [Test]
@@ -872,6 +870,7 @@ namespace Semiodesk.Trinity.Test.Stardog
         {
             IModel m = GetModel();
             m.Clear();
+
             Uri t1Uri = new Uri("semio:test:testInstance1");
             MappingTestClass2 t1 = m.CreateResource<MappingTestClass2>(t1Uri);
             t1.uniqueStringTest = "testing 1";
@@ -902,52 +901,44 @@ namespace Semiodesk.Trinity.Test.Stardog
         public void RollbackTest()
         {
             IModel m = GetModel();
-            Uri t1Uri = new Uri("semio:test:testInstance1");
-            MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
 
+            Uri u0 = new Uri("urn:id:0");
+            MappingTestClass r0 = m.CreateResource<MappingTestClass>(u0);
 
             // Add value using the mapping interface
             string strValue = "Hallo Welt!";
-            t1.uniqueStringTest = strValue;
-            t1.Commit();
+            r0.uniqueStringTest = strValue;
+            r0.Commit();
+            r0.uniqueStringTest = "HelloWorld!";
+            r0.Rollback();
 
-            t1.uniqueStringTest = "HelloWorld!";
+            Assert.AreEqual(strValue, r0.uniqueStringTest);
 
-            t1.Rollback();
+            MappingTestClass r0ref = m.GetResource<MappingTestClass>(u0);
+            r0ref.stringTest.Add("Hi");
+            r0ref.stringTest.Add("Blub");
+            r0ref.Commit();
 
+            r0.Rollback();
 
-            Assert.AreEqual(strValue, t1.uniqueStringTest);
+            Assert.AreEqual(2, r0.stringTest.Count);
+            Assert.IsTrue(r0.stringTest.Contains("Hi"));
+            Assert.IsTrue(r0.stringTest.Contains("Blub"));
 
-            MappingTestClass newRef = m.GetResource<MappingTestClass>(t1Uri);
-            newRef.stringTest.Add("Hi");
-            newRef.stringTest.Add("Blub");
-            newRef.Commit();
+            Uri u1 = new Uri("urn:id:1");
+            MappingTestClass2 r1 = m.CreateResource<MappingTestClass2>(u1);
+            r1.uniqueStringTest = "blub";
+            r1.Commit();
 
-            t1.Rollback();
+            r0ref = m.GetResource<MappingTestClass>(u0);
+            r0ref.resourceTest.Add(r1);
+            r0ref.Commit();
 
+            r0.Rollback();
 
-            Assert.AreEqual(2, t1.stringTest.Count);
-            Assert.IsTrue(t1.stringTest.Contains("Hi"));
-            Assert.IsTrue(t1.stringTest.Contains("Blub"));
-
-
-            Uri t2Uri = new Uri("semio:test:testInstance2");
-            MappingTestClass2 p = m.CreateResource<MappingTestClass2>(t2Uri);
-            p.uniqueStringTest = "blub";
-            p.Commit();
-
-            newRef = m.GetResource<MappingTestClass>(t1Uri);
-            newRef.resourceTest.Add(p);
-            newRef.Commit();
-
-            t1.Rollback();
-
-
-            Assert.IsTrue(t1.resourceTest.Count == 1);
-            Assert.IsTrue(t1.resourceTest.Contains(p));
-
+            Assert.IsTrue(r0.resourceTest.Count == 1);
+            Assert.IsTrue(r0.resourceTest.Contains(r1));
         }
-
 
         [Test]
         public void RollbackMappedResourcesTest()
@@ -1042,11 +1033,12 @@ namespace Semiodesk.Trinity.Test.Stardog
         [Test]
         public void TestEquality()
         {
-            Resource c1 = new Resource(new Uri("http://www.semanticdesktop.org/ontologies/2007/04/02/ncal#cancelledStatus"));
-            Resource c2 = new Resource(new Uri("http://www.semanticdesktop.org/ontologies/2007/04/02/ncal#cancelledStatus"));
-
-            Assert.IsTrue(c1.Equals(c2));
-            Assert.IsFalse(c1 == c2);
+            using (Resource c1 = new Resource(new Uri("http://www.semanticdesktop.org/ontologies/2007/04/02/ncal#cancelledStatus")))
+            using (Resource c2 = new Resource(new Uri("http://www.semanticdesktop.org/ontologies/2007/04/02/ncal#cancelledStatus")))
+            {
+                Assert.IsTrue(c1.Equals(c2));
+                Assert.IsFalse(c1 == c2);
+            }
         }
     }
 

@@ -35,6 +35,7 @@ namespace Semiodesk.Trinity.Test.Stardog
 {
     /// <summary>
     /// How to set up test database on Windows:
+    /// 
     /// 1. Download community edition
     /// 2. Unzip to folder
     /// 3. Copy license file "stardog-license-key.bin" to stardog folder
@@ -45,23 +46,23 @@ namespace Semiodesk.Trinity.Test.Stardog
     /// 6. Open another commandline in bin directory
     /// 7. Run 
     /// \> stardog-admin user passwd
+    /// 
     /// 8. Set password to admin when promted
     /// 9. Run 
     /// \>stardog-admin db create -n test
-    /// 
     /// </summary>
-
     [TestFixture]
     class StardogStoreTest
     {
-        IStore Store;
-        Uri testModel = new Uri("ex:Test");
+        protected IStore Store;
+
+        protected Uri ModelUri = new Uri("ex:Test");
 
         [SetUp]
         public void SetUp()
         {
             Store = StoreFactory.CreateStore("provider=stardog;host=http://localhost:5820;uid=admin;pw=admin;sid=test");
-            Store.RemoveModel(testModel);
+            Store.RemoveModel(ModelUri);
         }
 
         [TearDown]
@@ -74,39 +75,37 @@ namespace Semiodesk.Trinity.Test.Stardog
         [Test]
         public void LoadOntologiesTest()
         {
-            
-
             Store.InitializeFromConfiguration();
 
-            Assert.AreEqual(7, Store.ListModels().Count());
+            Assert.AreEqual(8, Store.ListModels().Count());
         }
 
         [Test]
         public void LoadOntologiesFromFileTest()
         {
             Assert.Inconclusive("How to make sure we have an empty store");
+
             /*
             string configFile = Path.Combine(Environment.CurrentDirectory, "custom.config");
             Store.InitializeFromConfiguration(configFile);
 
             Assert.AreEqual(4, Store.ListModels().Count());
             */
-
         }
 
         [Test]
         public void ListModelsTest()
         {
+            IModel m = Store.CreateModel(ModelUri);
 
-            var l = Store.ListModels().ToList();
-
+            Assert.IsNotNull(m);
+            Assert.Greater(Store.ListModels().Count(), 0);
         }
 
         [Test]
-        public void AddModelTest()
+        public void CreateModelTest()
         {
-
-            IModel m = Store.CreateModel(testModel);
+            IModel m = Store.CreateModel(ModelUri);
 
             Assert.IsNotNull(m);
         }
@@ -115,11 +114,11 @@ namespace Semiodesk.Trinity.Test.Stardog
         [Test]
         public void ContainsModelTest()
         {
-            Store.RemoveModel(testModel);
+            Store.RemoveModel(ModelUri);
 
-            Assert.IsFalse(Store.ContainsModel(testModel));
+            Assert.IsFalse(Store.ContainsModel(ModelUri));
 
-            IModel m1 = Store.CreateModel(testModel);
+            IModel m1 = Store.CreateModel(ModelUri);
 
             IResource r = m1.CreateResource(new Uri("ex:test:resource"));
             
@@ -127,7 +126,7 @@ namespace Semiodesk.Trinity.Test.Stardog
             r.Commit();
 
 
-            Assert.IsTrue(Store.ContainsModel(testModel));
+            Assert.IsTrue(Store.ContainsModel(ModelUri));
 
             Assert.IsFalse(Store.ContainsModel(new Uri("ex:NoTest")));
         }
@@ -136,40 +135,37 @@ namespace Semiodesk.Trinity.Test.Stardog
         [Test]
         public void GetModelTest()
         {
-
-            IModel m1 = Store.CreateModel(testModel);
+            IModel m1 = Store.CreateModel(ModelUri);
             Assert.IsTrue(m1.IsEmpty);
-
 
             IResource r = m1.CreateResource(new Uri("ex:test:resource"));
             r.AddProperty(new Property(new Uri("ex:test:property")), "var");
             r.Commit();
 
-            IModel m2 = Store.GetModel(testModel);
+            IModel m2 = Store.GetModel(ModelUri);
 
-            Assert.AreEqual(testModel, m2.Uri);
+            Assert.AreEqual(ModelUri, m2.Uri);
             Assert.IsTrue(m2.ContainsResource(r));
         }
 
         [Test]
         public void RemoveModelTest()
         {
+            Store.RemoveModel(ModelUri);
 
-            Store.RemoveModel(testModel);
-
-            IModel m1 = Store.CreateModel(testModel);
+            IModel m1 = Store.CreateModel(ModelUri);
 
             IResource r = m1.CreateResource(new Uri("ex:test:resource"));
             r.AddProperty(new Property(new Uri("ex:test:property")), "var");
             r.Commit();
 
-            IModel m2 = Store.GetModel(testModel);
+            IModel m2 = Store.GetModel(ModelUri);
 
-            Assert.AreEqual(testModel, m2.Uri);
+            Assert.AreEqual(ModelUri, m2.Uri);
 
-            Store.RemoveModel(testModel);
+            Store.RemoveModel(ModelUri);
 
-            m2 = Store.GetModel(testModel);
+            m2 = Store.GetModel(ModelUri);
 
             Assert.IsTrue(m2.IsEmpty);
         }

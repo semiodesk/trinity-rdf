@@ -26,18 +26,13 @@
 // Copyright (c) Semiodesk GmbH 2015-2019
 
 using NUnit.Framework;
-using Semiodesk.Trinity;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using Semiodesk.Trinity.Test;
 
 namespace Semiodesk.Trinity.Test.Stardog
 {
-
-
     [TestFixture]
     class StardogModelTest
     {
@@ -48,7 +43,9 @@ namespace Semiodesk.Trinity.Test.Stardog
         public void SetUp()
         {
             Store = StoreFactory.CreateStore("provider=stardog;host=http://localhost:5820;uid=admin;pw=admin;sid=test");
+
             Uri testModel = new Uri("ex:Test");
+
             Model = Store.CreateModel(testModel);
             Model.Clear();
         }
@@ -72,6 +69,7 @@ namespace Semiodesk.Trinity.Test.Stardog
 
             IResource result = Model.GetResource(resourceUri);
             Assert.AreEqual(resourceUri, result.Uri);
+
             List<Property> properties = result.ListProperties().ToList();
             Assert.AreEqual(1, properties.Count);
             Assert.AreEqual(property, properties[0]);
@@ -89,7 +87,7 @@ namespace Semiodesk.Trinity.Test.Stardog
             res.Commit();
 
             IResource result = Model.GetResource(resourceUri);
-            
+
             result.RemoveProperty(property, literal);
             literal = "var2";
             result.AddProperty(property, literal);
@@ -102,7 +100,6 @@ namespace Semiodesk.Trinity.Test.Stardog
             Assert.AreEqual(1, properties.Count);
             Assert.AreEqual(property, properties[0]);
             Assert.AreEqual(literal, result.GetValue(property));
-
         }
 
         [Test]
@@ -120,7 +117,6 @@ namespace Semiodesk.Trinity.Test.Stardog
             Model.DeleteResource(result);
 
             Assert.IsFalse(Model.ContainsResource(result));
-
         }
 
         [Test]
@@ -146,31 +142,35 @@ namespace Semiodesk.Trinity.Test.Stardog
         {
             Property property = new Property(new Uri("http://example.org/MyProperty"));
             Uri resourceUri = new Uri("http://example.org/MyResource");
-            IResource resource = Model.CreateResource(resourceUri);
-            resource.AddProperty(property, 123);
-            resource.AddProperty(property, "in the jungle");
-            resource.Commit();
+
+            IResource r1 = Model.CreateResource(resourceUri);
+            r1.AddProperty(property, 123);
+            r1.AddProperty(property, "in the jungle");
+            r1.Commit();
 
             // Try to update resource with different properties then persisted
             Resource r2 = new Resource(resourceUri);
-            r2.AddProperty(property, "in the jengle");
-
             r2.Model = Model;
+            r2.AddProperty(property, "in the jengle");
             r2.Commit();
+
             var actual = Model.GetResource<Resource>(resourceUri);
             Assert.AreEqual(r2, actual);
 
+            try
+            {
+                // Try to update resource without properties
+                Resource r3 = new Resource(resourceUri);
+                r3.Model = Model;
+                r3.Commit();
 
-            // Try to update resource without properties
-            Resource r3 = new Resource(resourceUri);
-
-            r3.Model = Model;
-            r3.Commit();
-            actual = Model.GetResource<Resource>(resourceUri);
-            Assert.AreEqual(r3, actual);
+                Assert.Fail();
+            }
+            catch
+            {
+                // We're OK.
+            }
         }
-
-
 
         [Test]
         public void ContainsResourceTest()
@@ -201,12 +201,6 @@ namespace Semiodesk.Trinity.Test.Stardog
         }
 
         [Test]
-        public void SparqlQueryTest()
-        {
-
-        }
-
-        [Test]
         public void ReadFromStringTest()
         {
             string turtle = @"@base <http://example.org/> .
@@ -219,12 +213,13 @@ namespace Semiodesk.Trinity.Test.Stardog
     rel:enemyOf <#spiderman> ;
     a foaf:Person ;    # in the context of the Marvel universe
     foaf:name ""Green Goblin"" .
+
 <#spiderman>
     rel:enemyOf <#green-goblin> ;
     a foaf:Person ;
     foaf:name ""Spiderman"", ""Человек-паук""@ru .";
 
-            using( Stream s = GenerateStreamFromString(turtle))
+            using (Stream s = GenerateStreamFromString(turtle))
             {
                 Assert.IsTrue(Model.Read(s, RdfSerializationFormat.Turtle, false));
             }
@@ -237,7 +232,6 @@ namespace Semiodesk.Trinity.Test.Stardog
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 
-
 <#green-goblin> foaf:age ""27""^^xsd:int .";
 
             using (Stream s = GenerateStreamFromString(turtle2))
@@ -246,7 +240,7 @@ namespace Semiodesk.Trinity.Test.Stardog
             }
 
             r = Model.GetResource(new Uri("http://example.org/#green-goblin"));
-            int age = (int) r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/age")));
+            int age = (int)r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/age")));
             Assert.AreEqual(27, age);
 
             turtle = @"@base <http://example.org/> .
@@ -277,14 +271,16 @@ namespace Semiodesk.Trinity.Test.Stardog
         [Test]
         public void ReadLocalizedFromStringTest()
         {
-            string turtle = @"@base <http://example.org/> .
+            string turtle = @"
+@base <http://example.org/> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 
 
 <#spiderman> a foaf:Person ;
-    foaf:name ""Spiderman"", ""Человек-паук""@ru .";
+    foaf:name ""Spiderman"", ""Человек-паук""@ru .
+";
 
             using (Stream s = GenerateStreamFromString(turtle))
             {
@@ -292,9 +288,14 @@ namespace Semiodesk.Trinity.Test.Stardog
             }
 
             IResource r = Model.GetResource(new Uri("http://example.org/#spiderman"));
-            string name = r.GetValue(new Property(new Uri("http://xmlns.com/foaf/0.1/name"))) as string;
 
-          
+            List<object> values = r.ListValues(new Property(new Uri("http://xmlns.com/foaf/0.1/name"))).ToList();
+
+            var b = values.Any();
+
+            Assert.AreEqual(2, values.Count);
+            Assert.IsTrue(values.Contains("Spiderman"));
+            Assert.IsTrue(values.OfType<Tuple<string, string>>().Any(t => t.Item1 == "Человек-паук" && t.Item2 == "ru"));
         }
 
         public Stream GenerateStreamFromString(string s)

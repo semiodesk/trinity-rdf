@@ -37,29 +37,77 @@ namespace Semiodesk.Trinity.Store.Stardog
     {
         #region Types
 
-        class TripleSet
+        /// <summary>
+        /// An RDF triple.
+        /// </summary>
+        public class TripleSet
         {
+            #region Members
+
+            /// <summary>
+            /// Get or set the subject of the triple.
+            /// </summary>
             public ParsedNode Subject { get; set; }
 
+            /// <summary>
+            /// Get or set the predicate of the triple.
+            /// </summary>
             public ParsedNode Predicate { get; set; }
 
+            /// <summary>
+            /// Get or set the object of the triple.
+            /// </summary>
             public ParsedNode Object { get; set; }
 
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Gets a SPARQL compliant string representation of the triple.
+            /// </summary>
+            /// <returns>A string.</returns>
             public override string ToString() => $"<{Subject}> <{Predicate}> <{Object}>";
+
+            #endregion
         }
 
-        class ParsedNode
+        /// <summary>
+        /// An RDF node.
+        /// </summary>
+        public class ParsedNode
         {
+            #region Members
+
+            /// <summary>
+            /// Get or set the literal node.
+            /// </summary>
             public string Value { get; set; }
 
+            /// <summary>
+            /// Get or set the literal data type URI.
+            /// </summary>
             public string LiteralType { get; set; }
 
+            /// <summary>
+            /// Indicates if the node is a literal.
+            /// </summary>
             public bool IsLiteralNode { get; internal set; }
 
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Get a SPARQL compliant string representation of the node.
+            /// </summary>
+            /// <returns></returns>
             public override string ToString() => Value;
+
+            #endregion
         }
 
-        class PeakedNode
+        private class PeakedNode
         {
             public bool NodePresent { get; set; }
 
@@ -104,7 +152,7 @@ namespace Semiodesk.Trinity.Store.Stardog
         /// <summary>
         /// Parsed TripleSet instances which constitute the Additions
         /// </summary>
-        private List<TripleSet> _updateTriples { get; set; }
+        public IList<TripleSet> UpdateTriples { get; set; }
 
         #endregion
 
@@ -138,9 +186,9 @@ namespace Semiodesk.Trinity.Store.Stardog
             ExtractGraphNameAndUriFromQuery(sparqlQuery);
 
             var insertPortion = sparqlQuery.Between("INSERT { ", " . } WHERE ");
-            _updateTriples = ParseQueryIntoTripleSets(insertPortion);
+            UpdateTriples = ParseQueryIntoTripleSets(insertPortion);
             var nf = new NodeFactory();
-            var additions = _updateTriples.Select(x => CreateTriple(x, nf)).ToList();
+            var additions = UpdateTriples.Select(x => CreateTriple(x, nf)).ToList();
 
             // Either a pure insert (which we already have info for) or we're not connected to a store so there's nothing we can query for anyway
             if (string.IsNullOrEmpty(PrimaryUri) || _store == null)
