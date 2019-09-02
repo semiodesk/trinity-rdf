@@ -7,11 +7,19 @@ using VDS.RDF;
 
 namespace Semiodesk.Trinity.Test.Stardog
 {
+    [TestFixture]
     public class StardogUpdateSparqlConverterTest
     {
+        #region region Members
+
         private const string Namespace = "http://www.foo.com/";
+
         IStore Store;
         IModel Model;
+
+        #endregion
+
+        #region Methods
 
         [SetUp]
         public void SetUp()
@@ -30,9 +38,8 @@ namespace Semiodesk.Trinity.Test.Stardog
             Store = null;
         }
 
-        #region Can_parse_update
         [Test, Category("UnitTest")]
-        public void Can_parse_update()
+        public void CanParseUpdate()
         {
             const string query = @"WITH <http://www.foo.com/> DELETE { <http://www.foo.com/bd1e4760-2b8b-48de-9eef-939b7242e8b4> ?p ?o . } INSERT { <http://www.foo.com/bd1e4760-2b8b-48de-9eef-939b7242e8b4> <http://www.foo.com/hasName> '2A4DC1FF0C40405996B5F882B5A127D9' ; <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.foo.com/Country> . } WHERE { OPTIONAL { <http://www.foo.com/bd1e4760-2b8b-48de-9eef-939b7242e8b4> ?p ?o . } }";
 
@@ -54,10 +61,9 @@ namespace Semiodesk.Trinity.Test.Stardog
                 Assert.IsFalse(parserAddition.Predicate is LiteralNode);
             }
         }
-        #endregion
-        #region Can_parse_pure_insert
+
         [Test, Category("UnitTest")]
-        public void Can_parse_pure_insert()
+        public void CanParsePureInsert()
         {
             const string query = @"WITH <http://www.foo.com/> INSERT { <http://www.foo.com/0ec76664-547f-4cf3-b65d-0f152e4bb0a6> <http://www.foo.com/hasReferenceId> '20623344' ; <http://www.foo.com/hasSourcedFrom> <http://www.foo.com/vendorNumberOne> ; <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.foo.com/ExternalReference> . } WHERE { }";
 
@@ -81,10 +87,9 @@ namespace Semiodesk.Trinity.Test.Stardog
 
             Assert.IsNull(parser.Removals);
         }
-        #endregion
-        #region Can_parse_literal_with_escape_characters
+
         [Test, Category("UnitTest")]
-        public void Can_parse_literal_with_escape_characters()
+        public void CanParseLiteralWithEscapeCharacters()
         {
             const string query = @"WITH <http://www.foo.com/> INSERT { <http://www.foo.com/63e71ee4-0094-4196-88c6-3e827436f2ee> <http://www.foo.com/hasLocatedOnFloor> <http://www.foo.com/833ef375-82cf-4266-a0d3-980787e59bc7> ; <http://www.foo.com/hasLocatedInBuilding> <http://www.foo.com/d112ceeb-f879-4607-8e3d-07cb2a62a55d> ; <http://www.foo.com/hasLocatedInSite> <http://www.foo.com/5c4f2724-4d13-4e72-806d-91d3c29b0320> ; <http://www.foo.com/hasArea> '27.91580998197316' ^^<http://www.w3.org/2001/XMLSchema#decimal> ; <http://www.foo.com/hasInternalAddress> '' ; <http://www.foo.com/hasReferencedInSystem> <http://www.foo.com/55b7eed3-3245-40a5-8ef2-c336542d805b> ; <http://www.foo.com/hasName> 'Women\'s Bathroom' ; <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.foo.com/Bathroom> . } WHERE { }";
 
@@ -108,10 +113,9 @@ namespace Semiodesk.Trinity.Test.Stardog
 
             Assert.IsNull(parser.Removals);
         }
-        #endregion
-        #region Can_parse_query_into_triple_sets
+
         [Test, Category("UnitTest")]
-        public void Can_parse_query_into_triple_sets()
+        public void CanParseQueryIntoTripleSets()
         {
             const string query = @"WITH <http://www.foo.com/> DELETE { <http://www.foo.com/1f9847db-0b7d-448b-be6c-66f369a4b1dd> ?p ?o . } INSERT { <http://www.foo.com/1f9847db-0b7d-448b-be6c-66f369a4b1dd> <http://www.foo.com/hasLocatedInCity> <http://www.foo.com/918da383-e72a-47ec-99fc-63a4ddb683cf> ; <http://www.foo.com/hasPostalCode> 'Something' ; <http://www.foo.com/hasReferencedInSystem> <http://www.foo.com/deee39e2-731d-4166-b38a-0b4a37df868a> ; <http://www.foo.com/hasName> 'New Name' ; <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.foo.com/Site> . } WHERE { OPTIONAL { <http://www.foo.com/1f9847db-0b7d-448b-be6c-66f369a4b1dd> ?p ?o . } }";
 
@@ -135,10 +139,9 @@ namespace Semiodesk.Trinity.Test.Stardog
 
             Assert.IsNull(parser.Removals);
         }
-        #endregion
-        #region Can_parse_decimal_primitive
+
         [Test, Category("UnitTest")]
-        public void Can_parse_decimal_primitive()
+        public void CanParseDecimalPrimitive()
         {
             const string query = @"WITH <http://www.foo.com/> DELETE { <http://www.foo.com/8843ce65-ac95-471b-9d12-ea270d04445b> ?p ?o . } INSERT { <http://www.foo.com/8843ce65-ac95-471b-9d12-ea270d04445b> <http://www.foo.com/hasMainFloor> 'true' ^^<http://www.w3.org/2001/XMLSchema#boolean> ; <http://www.foo.com/hasShortName> '1' ; <http://www.foo.com/hasTypeOfFloor> 'indoor' ; <http://www.foo.com/hasLocatedInBuilding> <http://www.foo.com/e1be9b7e-5c4b-4631-b7ce-459005a025b5> ; <http://www.foo.com/hasLocatedInSite> <http://www.foo.com/086ab86c-7d45-4b81-a160-7be39b5955c2> ; <http://www.foo.com/hasArea> '7240.969097518792' ^^<http://www.w3.org/2001/XMLSchema#decimal> ; <http://www.foo.com/hasReferencedInSystem> <http://www.foo.com/c1fdc91e-fd6d-48f4-b36b-23c9b4a24e3d> ; <http://www.foo.com/hasName> 'Floor 1' ; <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.foo.com/Floor> . } WHERE { OPTIONAL { <http://www.foo.com/8843ce65-ac95-471b-9d12-ea270d04445b> ?p ?o . } }";
 
@@ -162,11 +165,9 @@ namespace Semiodesk.Trinity.Test.Stardog
 
             Assert.IsNull(parser.Removals);
         }
-        #endregion
 
-        #region Can_parse_prop_with_list_property_insert
         [Test, Category("UnitTest")]
-        public void Can_parse_prop_with_list_property_insert()
+        public void CanParsePropertyWithListPropertyInsert()
         {
             var query = @"WITH <http://www.foo.com/> INSERT { <http://www.foo.com/1e0499d7-c07c-46db-812c-6da89a262f83> <http://www.foo.com/hasDefaultSubType> 'Medium' ; <http://www.foo.com/hasName> 'Room' ; <http://www.foo.com/hasOntologyTypeNameList> '''Namespace.Sub.Model.Auditorium
 Namespace.Sub.Model.ChatRoom
@@ -198,11 +199,9 @@ Namespace.Sub.Model.VideoConferenceRoom''' ; <http://www.foo.com/hasRegisteredAp
 
             Assert.IsNull(parser.Removals);
         }
-        #endregion
 
-        #region Can_parse_pure_delete
         [Test, Category("IntegrationTest")]
-        public void Can_parse_delete()
+        public void CanParseDelete()
         {
             // Commit any entity to the RDF
             var resourceUri = new Uri($"{Namespace}myResource");
@@ -226,6 +225,7 @@ Namespace.Sub.Model.VideoConferenceRoom''' ; <http://www.foo.com/hasRegisteredAp
             Assert.AreEqual(0, parser.Additions.Count);
             Assert.AreEqual(1, parser.Removals.Count);
         }
+
         #endregion
     }
 }

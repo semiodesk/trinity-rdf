@@ -34,6 +34,8 @@ using Semiodesk.Trinity.Stores.Stardog;
 using VDS.RDF;
 using VDS.RDF.Storage;
 using VDS.RDF.Writing;
+using VDS.RDF.Parsing;
+using System.Net;
 
 namespace Semiodesk.Trinity.Store.Stardog
 {
@@ -44,9 +46,9 @@ namespace Semiodesk.Trinity.Store.Stardog
     {
         #region Members
 
-        private StardogConnector _connector;
+        private readonly StardogConnector _connector;
 
-        private StardogRdfHandler _rdfHandler;
+        private readonly StardogRdfHandler _rdfHandler;
 
         private StardogTransaction _stardogTransaction;
 
@@ -196,7 +198,6 @@ namespace Semiodesk.Trinity.Store.Stardog
         public override IEnumerable<IModel> ListModels()
         {
             ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } }");
-
             ISparqlQueryResult result = ExecuteQuery(query);
 
             foreach (BindingSet b in result.GetBindings())
@@ -225,13 +226,95 @@ namespace Semiodesk.Trinity.Store.Stardog
         /// Loads a serialized graph from the given stream into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
         /// </summary>
         /// <param name="stream">Stream containing a serialized graph</param>
-        /// <param name="graphUri">Uri of the graph in this store</param>
+        /// <param name="modelUri">Uri of the graph in this store</param>
         /// <param name="format">Allowed formats</param>
         /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
         /// <returns></returns>
-        public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
+        public override Uri Read(Stream stream, Uri modelUri, RdfSerializationFormat format, bool update)
         {
-            throw new NotImplementedException();
+            if(!update)
+            {
+                // Clear the graph.
+                RemoveModel(modelUri);
+            }
+
+            // Number of triples to write simultanously.
+            const uint bulkSize = 100;
+
+            // Collect the triples that have been read.
+            List<Triple> triples = new List<Triple>();
+
+            // A handler which will fill the triples up to the bulk size.
+            StardogRdfHandler handler = new StardogRdfHandler()
+            {
+                OnReadTriple = (e, t) =>
+                {
+                    if (triples.Count < bulkSize)
+                    {
+                        triples.Add(t);
+                    }
+                    else
+                    {
+                        _connector.UpdateGraph(modelUri, triples, null);
+
+                        triples.Clear();
+                    }
+                },
+                OnReadEnded = (e, ok) =>
+                {
+                    if (triples.Count > 0)
+                    {
+                        _connector.UpdateGraph(modelUri, triples, null);
+                    }
+                }
+            };
+
+            using(var reader = new StreamReader(stream))
+            {
+                switch (format)
+                {
+                    case RdfSerializationFormat.N3:
+                        new Notation3Parser().Load(handler, reader);
+                        break;
+
+                    case RdfSerializationFormat.NTriples:
+                        new NTriplesParser().Load(handler, reader);
+                        break;
+
+                    case RdfSerializationFormat.Trig:
+                        new TriGParser().Load(handler, reader);
+                        break;
+
+#if !NET35
+                    case RdfSerializationFormat.NQuads:
+                        new NQuadsParser().Load(handler, reader);
+                        break;
+#endif
+
+                    case RdfSerializationFormat.Turtle:
+                        new TurtleParser().Load(handler, reader);
+                        break;
+
+                    case RdfSerializationFormat.Json:
+                        new RdfJsonParser().Load(handler, reader);
+                        break;
+
+#if !NET35
+                    case RdfSerializationFormat.JsonLd:
+                        new JsonLdParser().Load(handler, reader);
+                        break;
+#endif
+
+                    case RdfSerializationFormat.RdfXml:
+                        new RdfXmlParser().Load(handler, reader);
+                        break;
+
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(format), format, null);
+                }
+            }
+
+            return modelUri;
         }
 
         /// <summary>
@@ -244,7 +327,30 @@ namespace Semiodesk.Trinity.Store.Stardog
         /// <returns></returns>
         public override Uri Read(Uri modelUri, Uri url, RdfSerializationFormat format, bool update)
         {
-            throw new NotImplementedException();
+            Stream stream;
+
+            switch(url.Scheme)
+            {
+                case "file":
+                {
+                    stream = File.OpenRead(url.LocalPath);
+                    break;
+                }
+                case "http":
+                case "https":
+                {
+                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+                    HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                    stream = response.GetResponseStream();
+                    break;
+                }
+                default:
+                {
+                    throw new NotSupportedException($"Unsupported URI schema {url.Scheme}");
+                }
+            }
+
+            return Read(stream, modelUri, format, update);
         }
 
         /// <summary>

@@ -487,9 +487,14 @@ namespace Semiodesk.Trinity
         /// <returns>The value in its correct type.</returns>
         public static object DeserializeString(string str, Uri typeUri)
         {
-            if( Deserializers.ContainsKey(typeUri.AbsoluteUri) )
+            if (Deserializers.ContainsKey(typeUri.AbsoluteUri))
+            {
                 return Deserializers[typeUri.AbsoluteUri](str);
-            return str;
+            }
+            else
+            {
+                return str;
+            }
         }
 
         /// <summary>
@@ -499,7 +504,7 @@ namespace Semiodesk.Trinity
         /// <returns>An int16</returns>
         public static object DeserializeInt16(string str)
         {
-            return (object)XmlConvert.ToInt16(str);
+            return XmlConvert.ToInt16(str);
         }
 
         /// <summary>
@@ -509,7 +514,7 @@ namespace Semiodesk.Trinity
         /// <returns>a int32 value</returns>
         public static object DeserializeInt32(string str)
         {
-            return (object)XmlConvert.ToInt32(str);
+            return XmlConvert.ToInt32(str);
         }
 
         /// <summary>
@@ -519,7 +524,7 @@ namespace Semiodesk.Trinity
         /// <returns>A int64 value</returns>
         public static object DeserializeInt64(string str)
         {
-            return (object)XmlConvert.ToInt64(str);
+            return XmlConvert.ToInt64(str);
         }
 
         /// <summary>
@@ -529,7 +534,7 @@ namespace Semiodesk.Trinity
         /// <returns>A uint16 value</returns>
         public static object DeserializeUInt16(string str)
         {
-            return (object)XmlConvert.ToUInt16(str);
+            return XmlConvert.ToUInt16(str);
         }
 
         /// <summary>
@@ -539,7 +544,7 @@ namespace Semiodesk.Trinity
         /// <returns>A int32 value</returns>
         public static object DeserializeUInt32(string str)
         {
-            return (object)XmlConvert.ToUInt32(str);
+            return XmlConvert.ToUInt32(str);
         }
 
         /// <summary>
@@ -549,7 +554,7 @@ namespace Semiodesk.Trinity
         /// <returns>A uint64 value</returns>
         public static object DeserializeUInt64(string str)
         {
-            return (object)XmlConvert.ToUInt64(str);
+            return XmlConvert.ToUInt64(str);
         }
 
         /// <summary>

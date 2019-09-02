@@ -38,29 +38,77 @@ namespace Semiodesk.Trinity.Stores.Stardog
     {
         #region Types
 
+        /// <summary>
+        /// An RDF triple.
+        /// </summary>
         public class TripleSet
         {
+            #region Members
+
+            /// <summary>
+            /// Get or set the subject of the triple.
+            /// </summary>
             public ParsedNode Subject { get; set; }
 
+            /// <summary>
+            /// Get or set the predicate of the triple.
+            /// </summary>
             public ParsedNode Predicate { get; set; }
 
+            /// <summary>
+            /// Get or set the object of the triple.
+            /// </summary>
             public ParsedNode Object { get; set; }
 
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Gets a SPARQL compliant string representation of the triple.
+            /// </summary>
+            /// <returns>A string.</returns>
             public override string ToString() => $"<{Subject}> <{Predicate}> <{Object}>";
+
+            #endregion
         }
 
+        /// <summary>
+        /// An RDF node.
+        /// </summary>
         public class ParsedNode
         {
+            #region Members
+
+            /// <summary>
+            /// Get or set the literal node.
+            /// </summary>
             public string Value { get; set; }
 
+            /// <summary>
+            /// Get or set the literal data type URI.
+            /// </summary>
             public string LiteralType { get; set; }
 
+            /// <summary>
+            /// Indicates if the node is a literal.
+            /// </summary>
             public bool IsLiteralNode { get; internal set; }
 
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Get a SPARQL compliant string representation of the node.
+            /// </summary>
+            /// <returns></returns>
             public override string ToString() => Value;
+
+            #endregion
         }
 
-        class PeakedNode
+        private class PeakedNode
         {
             public bool NodePresent { get; set; }
 
@@ -105,7 +153,7 @@ namespace Semiodesk.Trinity.Stores.Stardog
         /// <summary>
         /// Parsed TripleSet instances which constitute the Additions
         /// </summary>
-        public List<TripleSet> UpdateTriples { get; set; }
+        public IList<TripleSet> UpdateTriples { get; set; }
 
         #endregion
 

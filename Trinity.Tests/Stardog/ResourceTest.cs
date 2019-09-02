@@ -26,13 +26,9 @@
 // Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using Semiodesk.Trinity;
-using NUnit.Framework;
 using System.Globalization;
+using System.Linq;
+using NUnit.Framework;
 
 namespace Semiodesk.Trinity.Test.Stardog
 {
@@ -102,17 +98,18 @@ namespace Semiodesk.Trinity.Test.Stardog
         {
             Uri resourceUri = new Uri("ex:myResource");
             Property myProperty = new Property(new Uri("ex:myProperty"));
+
             Resource r1 = Model.CreateResource<Resource>(resourceUri);
             Int16 val = 124;
             r1.AddProperty(myProperty, val);
             r1.Commit();
+
             r1 = Model.GetResource<Resource>(resourceUri);
 
             object res = r1.ListValues(myProperty).First();
 
             Assert.AreEqual(typeof(Int16), res.GetType());
             Assert.AreEqual(val, res);
-
         }
 
         [Test]
@@ -341,7 +338,6 @@ namespace Semiodesk.Trinity.Test.Stardog
             Assert.AreEqual(val, res);
 
         }
-
 
         #endregion
 
