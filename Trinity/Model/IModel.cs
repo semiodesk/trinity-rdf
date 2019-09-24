@@ -52,6 +52,12 @@ namespace Semiodesk.Trinity
         [JsonIgnore]
         bool IsEmpty { get; }
 
+        /// <summary>
+        /// All unampped properties will be ignored for update and thus deleted. 
+        /// This reduces the amount of data thats get sent to the database but also might remove important data.
+        /// Setting this to true essentialy disables the triple API.
+        /// </summary>
+        bool IgnoreUnmappedProperties { get; set; }
         #endregion
 
         #region Methods

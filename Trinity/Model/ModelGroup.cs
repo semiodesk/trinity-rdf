@@ -53,6 +53,13 @@ namespace Semiodesk.Trinity
 
         private string _datasetClause = null;
 
+        /// <summary>
+        /// All unampped properties will be ignored for update and thus deleted. 
+        /// This reduces the amount of data thats get sent to the database but also might remove important data.
+        /// Setting this to true essentialy disables the triple API.
+        /// </summary>
+        public bool IgnoreUnmappedProperties { get; set; } = false;
+
         internal string DatasetClause
         {
             get

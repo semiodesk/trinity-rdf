@@ -167,10 +167,11 @@ namespace Semiodesk.Trinity
         /// Serializes a resource.
         /// </summary>
         /// <param name="resource">A resource.</param>
+        /// <param name="ignoreUnmappedProperties">Ignores all unmapped properties for serialization.</param>
         /// <returns></returns>
-        public static string SerializeResource(IResource resource)
+        public static string SerializeResource(IResource resource, bool ignoreUnmappedProperties=false)
         {
-            var valueList = resource.ListValues();
+            var valueList = resource.ListValues(ignoreUnmappedProperties);
 
             if (!valueList.Any())
             {

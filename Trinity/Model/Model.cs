@@ -70,6 +70,13 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// All unampped properties will be ignored for update and thus deleted. 
+        /// This reduces the amount of data thats get sent to the database but also might remove important data.
+        /// Setting this to true essentialy disables the triple API.
+        /// </summary>
+        public bool IgnoreUnmappedProperties { get; set; } = false;
+
         #endregion
 
         #region Constructors
@@ -302,14 +309,14 @@ namespace Semiodesk.Trinity
             {
                 updateString = string.Format(@"WITH {0} INSERT {{ {1} }} WHERE {{}}",
                     SparqlSerializer.SerializeUri(Uri),
-                    SparqlSerializer.SerializeResource(resource));
+                    SparqlSerializer.SerializeResource(resource, IgnoreUnmappedProperties));
             }
             else
             {
                 updateString = string.Format(@"WITH {0} DELETE {{ {1} ?p ?o. }} INSERT {{ {2} }} WHERE {{ OPTIONAL {{ {1} ?p ?o. }} }}",
                     SparqlSerializer.SerializeUri(Uri),
                     SparqlSerializer.SerializeUri(resource.Uri),
-                    SparqlSerializer.SerializeResource(resource));
+                    SparqlSerializer.SerializeResource(resource, IgnoreUnmappedProperties));
             }
 
             SparqlUpdate update = new SparqlUpdate(updateString)

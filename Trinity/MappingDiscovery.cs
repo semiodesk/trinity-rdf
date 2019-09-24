@@ -248,7 +248,10 @@ namespace Semiodesk.Trinity
         /// <param name="asm"></param>
         public static void RegisterAssembly(Assembly asm)
         {
-            RegisteredAssemblies.Add(asm.GetName().FullName);
+            var name = asm.GetName().FullName;
+            if (RegisteredAssemblies.Contains(name))
+                return;
+            RegisteredAssemblies.Add(name);
 
             IList<Type> l = GetMappingClasses(asm);
 
