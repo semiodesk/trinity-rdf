@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <Title>Trinity.Test.Stardog</Title>
+    <Copyright>Copyright © Semiodesk GmbH 2019</Copyright>
+    <Description></Description>
+    <Company>Semiodesk GmbH</Company>
+    <Version>1.0.0.8</Version>
+    <AssemblyVersion>1.0.0.8</AssemblyVersion>
+    <FileVersion>1.0.0.8</FileVersion>
+    <AssemblyName>Semiodesk.Trinity.Tests.Stardog</AssemblyName>
+    <RootNamespace>Semiodesk.Trinity.Tests.Stardog</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <StartupObject></StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NUnit" Version="3.12.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Trinity.Tests\Trinity.Tests.csproj" />
+    <ProjectReference Include="..\..\Trinity\Trinity.csproj" />
+  </ItemGroup>
+
+</Project>

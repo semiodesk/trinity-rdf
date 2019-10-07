@@ -30,7 +30,7 @@ using NUnit.Framework;
 namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
-    class StoreFactoryTest
+    class StoreFactoryTest : SetupClass
     {
         [Test]
         public void TestConnectionStringTest()

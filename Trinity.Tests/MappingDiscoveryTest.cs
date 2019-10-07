@@ -68,8 +68,11 @@ namespace Semiodesk.Trinity.Test
         }
     }
 
+    /// <summary>
+    /// This class should test more, if we don't derive from SetupClass we can compare before and after discovery also.
+    /// </summary>
     [TestFixture]
-    public class MappingDiscoveryTest
+    public class MappingDiscoveryTest : SetupClass
     {
         [SetUp]
         public void SetUp()

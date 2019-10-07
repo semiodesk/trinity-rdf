@@ -30,6 +30,9 @@ using System.Reflection;
 
 namespace Semiodesk.Trinity.Test
 {
+    /// <summary>
+    /// This test needs A LOT work!
+    /// </summary>
     [TestFixture]
     public class OntologyTest
     {

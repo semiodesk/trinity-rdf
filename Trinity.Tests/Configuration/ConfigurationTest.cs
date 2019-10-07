@@ -33,7 +33,7 @@ using System.Linq;
 namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
-    class ConfigurationTest
+    class ConfigurationTest : SetupClass
     {
         [Test]
         public void TestAppConfig()

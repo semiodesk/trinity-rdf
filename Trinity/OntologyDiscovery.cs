@@ -176,6 +176,11 @@ namespace Semiodesk.Trinity
             return Properties.ContainsKey(u) ? Properties[u] : new Property(new UriRef(u));
         }
 
+        public static void AddAssembly(Type type)
+        {
+            throw new NotImplementedException();
+        }
+
         #endregion
     }
 }

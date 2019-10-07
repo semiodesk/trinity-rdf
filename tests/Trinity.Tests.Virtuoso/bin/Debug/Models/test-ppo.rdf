@@ -1,0 +1,102 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+  xmlns:ppo="http://semiodesk.com/ontologies/2012/ppo#"
+  xmlns:dc="http://www.semanticdesktop.org/ontologies/2007/01/19/nie#Date"
+  xmlns:nfo="http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#">
+ 
+  <!-- Ergebis: file://D:/Documents/2009/091108-RecognizeTreesQuiteLongWayAway -->
+  <ppo:UriSchema rdf:about="urn:uuid:92651160-b6f7-11e1-afa6-0800200c9a66" ppo:baseUri="file://D:/">
+    <ppo:hasPath>
+      <ppo:Directory rdf:about="urn:uuid:92653870-b6f7-11e1-afa6-0800200c9a66" ppo:isOptional="true">
+        <ppo:hasNamePart>
+          <ppo:LiteralPart rdf:about="urn:uuid:30cfd940-b6fb-11e1-afa6-0800200c9a66" ppo:order="0">
+            <ppo:value>Documents</ppo:value>
+          </ppo:LiteralPart>
+        </ppo:hasNamePart>
+        <ppo:hasChild>
+          <ppo:Directory rdf:about="urn:uuid:92653871-b6f7-11e1-afa6-0800200c9a66">
+            <ppo:hasNamePart>
+              <ppo:PropertyPart rdf:about="urn:uuid:4672a2f0-b6fb-11e1-afa6-0800200c9a66" ppo:order="0">
+                <ppo:valueOf rdf:resource="http://www.semanticdesktop.org/ontologies/2007/01/19/nie#date"/>
+                <ppo:serialization>
+                  <ppo:DateTimeSerialization rdf:about="urn:uuid:c7e903b0-b94e-11e1-afa6-0800200c9a66" ppo:formatString="yyyy"/>
+                </ppo:serialization>
+              </ppo:PropertyPart>
+            </ppo:hasNamePart>
+            <ppo:hasChild>
+              <ppo:File rdf:about="urn:uuid:92653872-b6f7-11e1-afa6-0800200c9a66">
+                <ppo:mappedType rdf:resource="http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#Document"/>
+                <ppo:hasNamePart>
+                  <ppo:PropertyPart rdf:about="urn:uuid:1e6666a0-b711-11e1-afa6-0800200c9a66" ppo:order="0">
+                    <ppo:valueOf rdf:resource="http://www.semanticdesktop.org/ontologies/2007/01/19/nie#contentCreated"/>
+                    <ppo:serialization>
+                      <ppo:DateTimeSerialization rdf:about="urn:uuid:c7e903b1-b94e-11e1-afa6-0800200c9a66" ppo:formatString="yyMMdd"/>
+                    </ppo:serialization>
+                    <ppo:textTransform>
+                      <ppo:LowerCaseTransform rdf:about="urn:uuid:c7e903b2-b94e-11e1-afa6-0800200c9a66"/>
+                    </ppo:textTransform>
+                    <ppo:textTransform>
+                      <ppo:ReplaceTransform rdf:about="urn:uuid:c7e903b3-b94e-11e1-afa6-0800200c9a66" ppo:replaceExpression=" " ppo:replaceBy=""/>
+                    </ppo:textTransform>
+                  </ppo:PropertyPart>
+                </ppo:hasNamePart>
+                <ppo:hasNamePart>
+                  <ppo:LiteralPart rdf:about="urn:uuid:1e6666a1-b711-11e1-afa6-0800200c9a66" ppo:order="1" ppo:value="-"/>
+                </ppo:hasNamePart>
+                <ppo:hasNamePart>
+                  <ppo:PropertyPart rdf:about="urn:uuid:1e6666a2-b711-11e1-afa6-0800200c9a66" ppo:order="2">
+                    <ppo:valueOf rdf:resource="http://www.semanticdesktop.org/ontologies/2007/01/19/nie#title"/>
+                    <ppo:textTransform>
+                      <ppo:RemoveStopWordsTransform rdf:about="urn:uuid:c7e903b4-b94e-11e1-afa6-0800200c9a66"/>
+                    </ppo:textTransform>
+                    <ppo:textTransform>
+                      <ppo:CamelCaseTransform rdf:about="urn:uuid:c7e903b5-b94e-11e1-afa6-0800200c9a66"/>
+                    </ppo:textTransform>
+                  </ppo:PropertyPart>
+                </ppo:hasNamePart>
+              </ppo:File>
+            </ppo:hasChild>
+          </ppo:Directory>
+        </ppo:hasChild>
+      </ppo:Directory>
+    </ppo:hasPath>
+  </ppo:UriSchema>
+
+  <rdfs:Class rdf:about="http://semiodesk.com/ontologies/2012/ppo#TextTransform" rdfs:subClassOf="http://www.w3.org/2000/01/rdf-schema#Class"/>
+  <rdfs:Class rdf:about="http://semiodesk.com/ontologies/2012/ppo#SentenceTransform" rdfs:subClassOf="http://semiodesk.com/ontologies/2012/ppo#TextTransform"/>
+  <rdfs:Class rdf:about="http://semiodesk.com/ontologies/2012/ppo#WordTransform" rdfs:subClassOf="http://semiodesk.com/ontologies/2012/ppo#TextTransform"/>
+  
+  <ppo:WordTransform rdf:about="http://semiodesk.com/ontologies/2012/ppo#UpperCaseTransform"/>
+  <ppo:WordTransform rdf:about="http://semiodesk.com/ontologies/2012/ppo#LowerCaseTransform"/>
+  <ppo:WordTransform rdf:about="http://semiodesk.com/ontologies/2012/ppo#CapitalizeTransform"/>
+  <ppo:WordTransform rdf:about="http://semiodesk.com/ontologies/2012/ppo#StripStopWordsTransform"/>
+  
+  <ppo:SentenceTransform rdf:about="http://semiodesk.com/ontologies/2012/ppo#CamelCaseTransform"/>
+  <ppo:SentenceTransform rdf:about="http://semiodesk.com/ontologies/2012/ppo#ReplaceStringTransform"/>
+  <ppo:SentenceTransform rdf:about="http://semiodesk.com/ontologies/2012/ppo#StripWhitespaceTransform"/>
+  
+  <rdfs:Class rdf:about="http://semiodesk.com/ontologies/2012/ppo#Serialization" rdfs:subClassOf="http://www.w3.org/2000/01/rdf-schema#Class"/>
+  
+  <ppo:Serialization rdf:about="http://semiodesk.com/ontologies/2012/ppo#DateSerialization">
+    <ppo:dataType rdf:resource="http://www.w3.org/2001/XMLSchema#dateTime"/>
+    <ppo:dataType rdf:resource="http://www.w3.org/2001/XMLSchema#date"/>
+    <ppo:formatString xml:lang="de">ddMMYYYY</ppo:formatString>
+    <ppo:formatString xml:lang="en">MMddYYYY</ppo:formatString>
+  </ppo:Serialization>
+
+  <ppo:Serialization rdf:about="http://semiodesk.com/ontologies/2012/ppo#TimeSerialization">
+    <ppo:dataType rdf:resource="http://www.w3.org/2001/XMLSchema#time"/>
+    <ppo:dataType rdf:resource="http://www.w3.org/2001/XMLSchema#duration"/>
+    <ppo:formatString>hhmmss</ppo:formatString>
+  </ppo:Serialization>
+  
+  <ppo:Serialization rdf:about="http://semiodesk.com/ontologies/2012/ppo#BooleanSerialization">
+    <ppo:dataType rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
+    <ppo:formatString xml:lang="de">{Wahr,Falsch}</ppo:formatString>
+    <ppo:formatString xml:lang="en">{True,False}</ppo:formatString>
+  </ppo:Serialization>
+  
+</rdf:RDF>

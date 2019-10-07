@@ -27,16 +27,14 @@
 
 
 using System.Collections.Generic;
-#if !NET35
 using System.ComponentModel.Composition;
-#endif
 
 
 namespace Semiodesk.Trinity.Store.Virtuoso
 {
-#if !NET35
+
     [Export(typeof(StoreProvider))]
-#endif
+
     public class VirtuosoStoreProvider : StoreProvider
     {
 
@@ -86,7 +84,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                 inferenceRule = configurationDictionary[ruleKey];
             }
 
-            
+
             VirtuosoStore store = new VirtuosoStore(host, port, user, password, inferenceRule);
             return store;
         }

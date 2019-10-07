@@ -38,7 +38,7 @@ using Semiodesk.Trinity.Utility;
 namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
-    public class CilgResourceMappingTest
+    public class CilgResourceMappingTest : SetupClass
     {
         public static bool RegisteredOntology = false;
 

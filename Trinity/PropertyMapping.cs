@@ -300,6 +300,13 @@ namespace Semiodesk.Trinity
 
                         return;
                     }
+                    else if (_genericType == typeof(Uri) && typeof(Resource).IsAssignableFrom(t))
+                    {
+                        list.Add((value as Resource).Uri);
+                        _isUnsetValue = false;
+
+                        return;
+                    }
                 }
             }
             else
@@ -316,6 +323,13 @@ namespace Semiodesk.Trinity
                 else if(t.IsValueType && ((IPropertyMapping)this).IsTypeCompatible(t))
                 {
                     _value = (T)Convert.ChangeType(value, _dataType);
+                    _isUnsetValue = false;
+
+                    return;
+                }
+                else if (_dataType == typeof(Uri) && typeof(Resource).IsAssignableFrom(t))
+                {
+                    _value = (T) (object)(value as Resource).Uri;
                     _isUnsetValue = false;
 
                     return;
@@ -437,7 +451,7 @@ namespace Semiodesk.Trinity
             }
             else
             {
-                return (mappingType.IsAssignableFrom(type) || typeof(Resource).IsAssignableFrom(mappingType) && typeof(Resource).IsAssignableFrom(type));
+                return (mappingType.IsAssignableFrom(type) || typeof(Resource).IsAssignableFrom(mappingType) && typeof(Resource).IsAssignableFrom(type) || (typeof(Uri).IsAssignableFrom(mappingType) && typeof(Resource).IsAssignableFrom(type)) );
             }
         }
 

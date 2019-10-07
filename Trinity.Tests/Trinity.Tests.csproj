@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net40</TargetFramework>
+    <TargetFramework>net472</TargetFramework>
     <Title>Trinity.Test</Title>
     <Copyright>Copyright © Semiodesk GmbH 2018</Copyright>
     <Description></Description>
@@ -11,12 +11,14 @@
     <FileVersion>1.0.0.0</FileVersion>
     <AssemblyName>Semiodesk.Trinity.Tests</AssemblyName>
     <RootNamespace>Semiodesk.Trinity.Tests</RootNamespace>
-    <OutputType>Library</OutputType>
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <PropertyGroup>
     <OutputPath>..\Build\$(Configuration)\test</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <ApplicationIcon />
+    <StartupObject />
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,7 +31,6 @@
 
 
   <ItemGroup>
-    <ProjectReference Include="..\Trinity.Virtuoso\Trinity.Virtuoso.csproj" />
     <ProjectReference Include="..\Trinity\Trinity.csproj" />
   </ItemGroup>
 
@@ -62,6 +63,9 @@
     <None Update="ontologies-test.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="ontologies.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Ontologies\dces.ttl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -84,30 +88,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Ontologies\space test ontology.ttl">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="TinyVirtuoso\database\virtuoso.ini">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="TinyVirtuoso\virtuoso\win\CtrlCSender.exe">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="TinyVirtuoso\virtuoso\win\isql.exe">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="TinyVirtuoso\virtuoso\win\libeay32.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="TinyVirtuoso\virtuoso\win\libexpat.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="TinyVirtuoso\virtuoso\win\libwbxml2.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="TinyVirtuoso\virtuoso\win\ssleay32.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="TinyVirtuoso\virtuoso\win\virtuoso-t.exe">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="without_store.config">

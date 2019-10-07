@@ -364,7 +364,7 @@ namespace Semiodesk.Trinity
             if (propertyMapping != null)
             {
                 // yes, so we try to set or add it
-                if (fromModel && value is IResource)
+                if (fromModel && value is IResource && propertyMapping.DataType != typeof(Uri) && propertyMapping.GenericType != typeof(Uri) )
                 {
                     // we generate the resource from the model, so we cache all mapped resources
                     ResourceCache.CacheValue(propertyMapping, (value as IResource).Uri);

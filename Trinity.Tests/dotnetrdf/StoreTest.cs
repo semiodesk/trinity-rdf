@@ -35,7 +35,7 @@ using System.Linq;
 namespace dotNetRDFStore.Test
 {
     [TestFixture]
-    class StoreTest
+    class StoreTest : SetupClass
     {
         IStore Store;
 

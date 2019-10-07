@@ -247,7 +247,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             return new VirtuosoSparqlQueryResult(query.Model, query, this, transaction);
         }
 
-        internal string CreateQuery(ISparqlQuery query)
+        public string CreateQuery(ISparqlQuery query)
         {
             StringBuilder queryBuilder = new StringBuilder();
 
@@ -469,7 +469,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
         private Uri ReadQuadFormat(TextReader reader, Uri graph, RdfSerializationFormat format, bool update)
         {
-            using (VDS.RDF.Storage.VirtuosoManager manager = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
+            using (VirtuosoManager manager = new VirtuosoManager(CreateConnectionString()))
             {
                 using (VDS.RDF.ThreadSafeTripleStore store = new VDS.RDF.ThreadSafeTripleStore())
                 {
@@ -496,7 +496,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
         private Uri ReadTripleFormat(TextReader reader, Uri graphUri, RdfSerializationFormat format, bool update)
         {
-            using (VDS.RDF.Storage.VirtuosoManager manager = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
+            using (VirtuosoManager manager = new VirtuosoManager(CreateConnectionString()))
             {
                 using (VDS.RDF.Graph graph = new VDS.RDF.Graph())
                 {
@@ -520,7 +520,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
         private Uri ReadRemoteTripleFormat(Uri graph, Uri location, RdfSerializationFormat format)
         {
-            using (VDS.RDF.Storage.VirtuosoManager manager = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
+            using (VirtuosoManager manager = new VirtuosoManager(CreateConnectionString()))
             {
                 using (VDS.RDF.Graph g = new VDS.RDF.Graph())
                 {
@@ -535,9 +535,10 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             return graph;
         }
 
+
         public override void Write(Stream fs, Uri graph, RdfSerializationFormat format)
         {
-            using (VDS.RDF.Storage.VirtuosoManager manager = new VDS.RDF.Storage.VirtuosoManager(CreateConnectionString()))
+            using (VirtuosoManager manager = new VirtuosoManager(CreateConnectionString()))
             {
                 using (VDS.RDF.Graph g = new VDS.RDF.Graph())
                 {

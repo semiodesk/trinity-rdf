@@ -35,7 +35,7 @@ using System.Text.RegularExpressions;
 namespace Semiodesk.Trinity.Test.Linq
 {
     [TestFixture]
-    public abstract class LinqTestBase
+    public abstract class LinqTestBase : SetupClass
     {
         protected IStore Store;
 

@@ -32,7 +32,7 @@ using Semiodesk.Trinity.Configuration;
 namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
-    class LegacyConfigurationTest
+    class LegacyConfigurationTest : SetupClass
     {
         [Test]
         public void TestAppConfig()
@@ -48,15 +48,6 @@ namespace Semiodesk.Trinity.Test
             var x = config.ListStoreConfigurations().ToList();
 
             Assert.IsNotNull(x.First().Data);
-        }
-
-        [Test]
-        public void TestInitialize()
-        {
-            string connectionString = SetupClass.ConnectionString;
-
-            var store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
-            store.InitializeFromConfiguration();
         }
     }
 }
