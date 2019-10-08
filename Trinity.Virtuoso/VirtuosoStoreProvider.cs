@@ -27,7 +27,7 @@
 
 
 using System.Collections.Generic;
-using System.ComponentModel.Composition;
+using System.Composition;
 
 
 namespace Semiodesk.Trinity.Store.Virtuoso

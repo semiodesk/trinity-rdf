@@ -23,7 +23,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         {
             Directory.SetCurrentDirectory(TestContext.CurrentContext.TestDirectory);
 
-            StoreFactory.LoadProvider(Assembly.GetAssembly(typeof(VirtuosoStoreProvider)));
+            StoreFactory.LoadProvider<VirtuosoStoreProvider>();
             OntologyDiscovery.AddAssembly(Assembly.GetExecutingAssembly());
             MappingDiscovery.RegisterAssembly(Assembly.GetExecutingAssembly());
             OntologyDiscovery.AddAssembly(typeof(AbstractMappingClass).Assembly);

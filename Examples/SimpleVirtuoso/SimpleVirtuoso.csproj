@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Semiodesk.Trinity" Version="1.0.0-rc009" />
+    <PackageReference Include="Semiodesk.Trinity.Virtuoso" Version="1.0.0-rc009" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="ontologies.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Ontologies\owl.n3">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Ontologies\rdf.ttl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Ontologies\rdfs.ttl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Ontologies\schema.ttl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <Import Project="Semiodesk.Trinity.1.0.0-rc006\build\Semiodesk.Trinity.targets" Condition="Exists('Semiodesk.Trinity.1.0.0-rc006\build\Semiodesk.Trinity.targets')" />
+</Project>

@@ -6,9 +6,9 @@
     <Copyright>Copyright © Semiodesk GmbH 2015-2019</Copyright>
     <Description>This library allows Semiodesk.Trinity to use the OpenLink Virtuoso store directly through the ODBC interface.</Description>
     <Company>Semiodesk GmbH</Company>
-    <Version>1.0.0-rc008</Version>
-    <AssemblyVersion>1.0.0.8</AssemblyVersion>
-    <FileVersion>1.0.0.8</FileVersion>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.10</AssemblyVersion>
+    <FileVersion>1.0.0.10</FileVersion>
     <AssemblyName>Semiodesk.Trinity.Virtuoso</AssemblyName>
     <RootNamespace>Semiodesk.Trinity.Store.Virtuoso</RootNamespace>
   </PropertyGroup>
@@ -27,7 +27,7 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <None Include="..\assets\trinity-logo.png" Pack="true" PackagePath="\"/>
+    <None Include="..\assets\trinity-logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <!-- ONLY NET4.0 -->
@@ -35,7 +35,6 @@
     <Reference Include="System.ComponentModel.Composition" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="System.ComponentModel.Composition" Version="4.6.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.6.0" />
     <PackageReference Include="System.Data.Common" Version="4.3.0" />
     <PackageReference Include="System.Security.Permissions" Version="4.6.0" />

@@ -162,88 +162,45 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Tries to load a store provider from the given assembly.
+        /// Loads a store provider.
         /// </summary>
-        /// <param name="assemblyPath"></param>
+        /// <param name="provider"></param>
         /// <returns></returns>
-        public static bool LoadProvider(string assemblyPath)
+        public static bool LoadProvider(StoreProvider provider)
         {
             bool result = false;
 
-            try
+            if (!_storeConfigurations.ContainsKey(provider.Name))
             {
-#if NETSTANDARD2_0
-                ContainerConfiguration config = new ContainerConfiguration().WithAssembly(Assembly.LoadFrom(assemblyPath));
-
-                var container = config.CreateContainer();
-
-                foreach (StoreProvider provider in container.GetExports<StoreProvider>())
-                {
-                    if (!_storeConfigurations.ContainsKey(provider.Name))
-                    {
-                        _storeConfigurations.Add(provider.Name, provider);
-                        result = true;
-                    }
-                }
-#elif NET35
-                Assembly assembly = Assembly.LoadFrom(assemblyPath);
-
-                var types = assembly.GetTypes().Where(x => x.IsSubclassOf(typeof(StoreProvider)));
-
-                foreach (var item in types)
-                {
-                    StoreProvider provider = (StoreProvider)Activator.CreateInstance(item);
-
-                    if (!_storeConfigurations.ContainsKey(provider.Name))
-                    {
-                        _storeConfigurations.Add(provider.Name, provider);
-                        result = true;
-                    }
-                }
-#else
-                AssemblyCatalog catalog = new AssemblyCatalog(assemblyPath);
-
-                var container = new CompositionContainer(catalog);
-
-                foreach (var item in container.GetExports<StoreProvider>())
-                {
-                    StoreProvider provider = item.Value;
-
-                    if (!_storeConfigurations.ContainsKey(provider.Name))
-                    {
-                        _storeConfigurations.Add(provider.Name, provider);
-                        result = true;
-                    }
-                }
-#endif
+                _storeConfigurations.Add(provider.Name, provider);
+                result = true;
             }
-            catch (Exception)
-            {
-                return false;
-            }
+
 
             return result;
         }
 
         /// <summary>
-        /// Tries to load a store provider from the given assembly file.
+        /// Loads a store provider
         /// </summary>
-        /// <param name="assemblyFile">A assembly file info object.</param>
+        /// <typeparam name="T">A store provider type</typeparam>
         /// <returns></returns>
-        public static bool LoadProvider(FileInfo assemblyFile)
+        public static bool LoadProvider<T>() where T : StoreProvider, new()
         {
-            return LoadProvider(assemblyFile.FullName);
+            var provider = new T();
+            bool result = false;
+
+            if (!_storeConfigurations.ContainsKey(provider.Name))
+            {
+                _storeConfigurations.Add(provider.Name, provider);
+                result = true;
+            }
+
+
+            return result;
         }
 
-        /// <summary>
-        /// Tries to load a store provider from the given assembly.
-        /// </summary>
-        /// <param name="assembly">An assembly.</param>
-        /// <returns></returns>
-        public static bool LoadProvider(Assembly assembly)
-        {
-            return LoadProvider(assembly.Location);
-        }
+
 
         #endregion
     }

@@ -536,7 +536,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         [Test]
         public void TestAddMultipleResources()
         {
-            //Assert.Inconclusive("This test should work, it just takes too long.");
+            Assert.Inconclusive("This test should work, it just takes too long.");
             Model.Clear();
             for (int j = 1; j < 7; j++)
             {

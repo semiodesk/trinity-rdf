@@ -25,6 +25,7 @@ syntax: glob
 *.rej
 */UpgradeLog.htm
 bin/*
+**/bin/*
 Build/*
 packages/*
 api/*
@@ -37,3 +38,4 @@ tests/nuget-integration/work/*
 tests/nuget-integration/blueprint/net35/packages.config
 _site/**
 Documentation/log.txt
+*.zip
