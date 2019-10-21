@@ -20,7 +20,7 @@ namespace Semiodesk.Trinity.Store.Stardog
 #if !NET35
             Connector.Begin(true);
 #else
-            _connector.Begin();
+            Connector.Begin();
 #endif
             IsActive = true;
         }
