@@ -32,6 +32,7 @@ using System.Text;
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
 using System.IO;
+using System.Globalization;
 
 namespace Semiodesk.Trinity.Test.Virtuoso
 {
@@ -330,6 +331,24 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             object o = r.GetValue(property);
             Assert.AreEqual(typeof(string), o.GetType());
             Assert.AreEqual("\"in the jungle\"", o);
+        }
+
+        [Test]
+        public void LiteralWithLangTagTest()
+        {
+            Model.Clear();
+
+            Property property = new Property(new Uri("http://example.org/MyProperty"));
+
+            IResource model2_resource2 = Model.CreateResource(new Uri("ex:Resource"));
+            model2_resource2.AddProperty(property, "in the jungle", "EN");
+            model2_resource2.Commit();
+
+            IResource r = Model.GetResource(new Uri("ex:Resource"));
+            object o = r.GetValue(property);
+            Assert.AreEqual(typeof(Tuple<string, CultureInfo>), o.GetType());
+            var val = o as Tuple<string, CultureInfo>;
+            Assert.AreEqual("in the jungle", val.Item1);
         }
 
         [Test]

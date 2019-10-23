@@ -89,10 +89,8 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         /// <returns>A reference to the marshalled data object.</returns>
         private object ParseCellValue(object cellValue)
         {
-            if (cellValue is SqlExtendedString)
+            if (cellValue is SqlExtendedString extendedString)
             {
-                SqlExtendedString extendedString = cellValue as SqlExtendedString;
-
                 if (extendedString.IsResource())
                 {
                     // NOTE: We create an UriRef for correct equality comparision with fragment identifiers.
@@ -103,10 +101,8 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                     return extendedString.ToString();
                 }
             }
-            else if (cellValue is SqlRdfBox)
+            else if (cellValue is SqlRdfBox box)
             {
-                SqlRdfBox box = cellValue as SqlRdfBox;
-
                 if (box.StrType != null)
                 {
                     try
@@ -120,7 +116,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                         return box.Value.ToString();
                     }
                 }
-                else if (box.Value is SqlExtendedString && box.StrLang != null)
+                else if ( box.StrLang != null)
                 {
                     return new Tuple<string, CultureInfo>(box.Value.ToString(), new CultureInfo(box.StrLang));
                 }
@@ -134,15 +130,15 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                 // TODO: We need a different approach to store and read booleans.
                 return cellValue;
             }
-            else if (cellValue is DateTime)
+            else if (cellValue is VirtuosoDateTime dt)
             {
                 // Virtuoso delivers the time not as UTC but as "unspecified"
                 // we convert it to local time
-                return ((DateTime)cellValue).ToLocalTime();
+                return dt.ToUniversalTime();
             }
-            else if (cellValue is VirtuosoDateTimeOffset)
+            else if (cellValue is VirtuosoDateTimeOffset dto)
             {
-                return ((VirtuosoDateTimeOffset)cellValue).Value.UtcDateTime.ToUniversalTime();
+                return dto.Value.UtcDateTime.ToUniversalTime();
             }
             
             return cellValue;
