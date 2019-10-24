@@ -9,15 +9,18 @@ namespace Semiodesk.Trinity.Store.Stardog
     /// </summary>
     public class StardogTransaction : ITransaction
     {
-        private readonly StardogConnector _connector;
+        /// <summary>
+        /// StardogConnector instance associated with this transaction
+        /// </summary>
+        public StardogConnector Connector { get; }
         /// <inheritdoc cref="ITransaction"/>
         public StardogTransaction(StardogConnector connector)
         {
-            _connector = connector;
+            Connector = connector;
 #if !NET35
-            _connector.Begin(true);
+            Connector.Begin(true);
 #else
-            _connector.Begin();
+            Connector.Begin();
 #endif
             IsActive = true;
         }
@@ -44,7 +47,7 @@ namespace Semiodesk.Trinity.Store.Stardog
         public void Commit()
         {
             // We'll let the underlying connector throw here which it will if Commit is called on a non-active transaction.
-            _connector.Commit();
+            Connector.Commit();
             OnFinishedTransaction?.Invoke(this, new TransactionEventArgs(true));
             IsActive = false;
         }
@@ -53,7 +56,7 @@ namespace Semiodesk.Trinity.Store.Stardog
         public void Rollback()
         {
             if (!IsActive) return;
-            _connector.Rollback();
+            Connector.Rollback();
             AddTripleCount = 0;
             RemoveTripleCount = 0;
             OnFinishedTransaction?.Invoke(this, new TransactionEventArgs(false));
