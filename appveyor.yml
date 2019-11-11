@@ -1,0 +1,15 @@
+version: 1.0.{build}
+branches:
+  only:
+  - develop
+  - master
+build:
+  verbosity: minimal
+
+image: Visual Studio 2019
+cache:
+  - '%LocalAppData%\NuGet\v3-cache'
+configuration: Release
+
+build:
+  project: Semiodesk.Trinity.sln
