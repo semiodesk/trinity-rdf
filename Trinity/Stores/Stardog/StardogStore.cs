@@ -35,6 +35,7 @@ using VDS.RDF.Storage;
 using VDS.RDF.Writing;
 using VDS.RDF.Parsing;
 using System.Net;
+using Semiodesk.Trinity.Extensions;
 
 namespace Semiodesk.Trinity.Store.Stardog
 {
@@ -358,8 +359,9 @@ namespace Semiodesk.Trinity.Store.Stardog
         /// <param name="stream">Stream to which the content should be written.</param>
         /// <param name="graphUri">Uri fo the graph in this store</param>
         /// <param name="format">Allowed formats</param>
+        /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
         /// <returns></returns>
-        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format)
+        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null)
         {
             var query = $"SELECT * {{ GRAPH <{graphUri.AbsoluteUri}> {{ ?s ?p ?o . }} }}";
 
@@ -375,6 +377,11 @@ namespace Semiodesk.Trinity.Store.Stardog
                     using (var graph = new Graph(triples))
                     {
                         graph.BaseUri = graphUri;
+
+                        if (namespaces != null)
+                        {
+                            graph.NamespaceMap.ImportNamespaces(namespaces);
+                        }
 
                         switch (format)
                         {

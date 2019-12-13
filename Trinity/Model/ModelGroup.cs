@@ -564,8 +564,9 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="fs">The file stream to write to.</param>
         /// <param name="format">The serialization format.</param>
+        /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
         /// <returns>A serialization of the models contents.</returns>
-        public void Write(Stream fs, RdfSerializationFormat format)
+        public void Write(Stream fs, RdfSerializationFormat format, INamespaceMap namespaces = null)
         {
             throw new NotSupportedException();
         }
