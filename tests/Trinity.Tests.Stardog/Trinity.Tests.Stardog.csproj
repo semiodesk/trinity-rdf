@@ -13,6 +13,7 @@
     <RootNamespace>Semiodesk.Trinity.Tests.Stardog</RootNamespace>
     <OutputType>Exe</OutputType>
     <StartupObject></StartupObject>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

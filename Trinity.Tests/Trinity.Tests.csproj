@@ -12,6 +12,7 @@
     <AssemblyName>Semiodesk.Trinity.Tests</AssemblyName>
     <RootNamespace>Semiodesk.Trinity.Tests</RootNamespace>
     <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <PropertyGroup>
