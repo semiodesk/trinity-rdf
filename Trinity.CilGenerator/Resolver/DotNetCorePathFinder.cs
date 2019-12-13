@@ -77,7 +77,8 @@ namespace ICSharpCode.Decompiler.Metadata
 				foreach (var pk in packages) {
 					foreach (var item in pk.Value.RuntimeComponents) {
 						var itemPath = Path.GetDirectoryName(item);
-						var fullPath = Path.Combine(path, pk.Value.Name, pk.Value.Version, itemPath).ToLowerInvariant();
+                        // Support for case sensitive file systems
+						var fullPath = Path.Combine(path, Path.Combine(pk.Value.Name, pk.Value.Version, itemPath).ToLowerInvariant());
 						if (Directory.Exists(fullPath))
 							packageBasePaths.Add(fullPath);
 					}

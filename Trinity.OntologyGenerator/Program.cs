@@ -81,6 +81,9 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 }
                 else
                 {
+                    LoadLegacyConfigFile();
+                    if (_configuration == null)
+                        LoadConfigFile();
                     Run();
                 }
             }
@@ -110,15 +113,12 @@ namespace Semiodesk.Trinity.OntologyGenerator
         static int Main(string[] args)
         {
             Program p = new Program(args, new ConsoleLogger());
-
+      
             return 0;
         }
 
         public int Run()
         {
-            LoadLegacyConfigFile();
-            if (_configuration == null)
-                LoadConfigFile();
 
             if (_configuration == null)
             {
@@ -210,7 +210,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
         /// This method loads the legacy configuration from app.config/web.config
         /// </summary>
         /// <returns></returns>
-        private bool LoadLegacyConfigFile()
+        public bool LoadLegacyConfigFile()
         {
             if (_configFile.Exists)
             {

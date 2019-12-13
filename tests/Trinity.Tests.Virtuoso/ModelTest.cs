@@ -349,6 +349,9 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             Assert.AreEqual(typeof(Tuple<string, CultureInfo>), o.GetType());
             var val = o as Tuple<string, CultureInfo>;
             Assert.AreEqual("in the jungle", val.Item1);
+
+            var x = r.ListValues(property);
+
         }
 
         [Test]

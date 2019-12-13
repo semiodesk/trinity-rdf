@@ -38,7 +38,7 @@ namespace ICSharpCode.Decompiler.Metadata
 		}
 
 		public AssemblyResolutionException(IAssemblyReference reference, Exception innerException)
-			: base($"Failed to resolve assembly: '{reference}'", innerException)
+			: base($"Failed to resolve assembly: '{reference.FullName}'", innerException)
 		{
 			this.Reference = reference;
 		}

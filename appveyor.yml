@@ -11,5 +11,7 @@ cache:
   - '%LocalAppData%\NuGet\v3-cache'
 configuration: Release
 
+before_build:
+  - nuget restore
 build:
   project: Semiodesk.Trinity.sln

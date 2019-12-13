@@ -6,3 +6,5 @@ Build/**
 packages/**
 Documentation/log.txt
 *.zip
+*.user
+**/.vs/**

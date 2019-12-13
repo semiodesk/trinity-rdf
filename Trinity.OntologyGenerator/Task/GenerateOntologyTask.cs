@@ -42,8 +42,8 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 IEnumerable<string> allFiles = Directory.GetFiles(projectFile.DirectoryName);
 #else
                 IEnumerable<string> allFiles = Directory.EnumerateFiles(projectFile.DirectoryName);
- #endif
-
+#endif
+                bool legacy = false;
                 foreach (string file in allFiles)
                 {
                     string filename = file.ToLowerInvariant();
@@ -54,6 +54,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
                         if (contents.Contains("TrinitySettings namespace=\"Semiodesk.Trinity.Test\")"))
                         {
                             configFile = new FileInfo(file);
+                            legacy = true;
                             break;
                         }
                     }
@@ -68,7 +69,10 @@ namespace Semiodesk.Trinity.OntologyGenerator
                 {
                     Program program = new Program(logger);
                     program.SetConfig(configFile);
-                    program.LoadConfigFile();
+                    if (!legacy)
+                        program.LoadConfigFile();
+                    else
+                        program.LoadLegacyConfigFile();
 
                     // TODO: Make ontologies folder configurable in Trinity settings.
                     if (string.IsNullOrEmpty(IntermediatePath))
