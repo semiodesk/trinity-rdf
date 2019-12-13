@@ -25,6 +25,7 @@
 //
 // Copyright (c) Semiodesk GmbH 2015-2019
 
+using Semiodesk.Trinity.Extensions;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -375,12 +376,18 @@ namespace Semiodesk.Trinity.Store
         /// <param name="stream">Stream to which the content should be written.</param>
         /// <param name="graphUri">Uri fo the graph in this store</param>
         /// <param name="format">Allowed formats</param>
+        /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
         /// <returns></returns>
-        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format)
+        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null)
         {
             if (_store.HasGraph(graphUri))
             {
                 IGraph graph = _store.Graphs[graphUri];
+
+                if (namespaces != null)
+                {
+                    graph.NamespaceMap.ImportNamespaces(namespaces);
+                }
 
                 using (StreamWriter writer = new StreamWriter(stream))
                 {

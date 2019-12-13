@@ -166,8 +166,9 @@ namespace Semiodesk.Trinity
         /// <param name="fs">Stream to which the content should be written.</param>
         /// <param name="graphUri">Uri fo the graph in this store</param>
         /// <param name="format">Allowed formats</param>
+        /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
         /// <returns></returns>
-        void Write(Stream fs, Uri graphUri, RdfSerializationFormat format);
+        void Write(Stream fs, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null);
 
         /// <summary>
         /// Initializes the store from the configuration. It uses either the provided file or attempts to load from "ontologies.config" located next to the executing assembly.

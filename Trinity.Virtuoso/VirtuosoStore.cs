@@ -36,6 +36,7 @@ using System.ComponentModel;
 using OpenLink.Data.Virtuoso;
 using VDS.RDF.Parsing;
 using VDS.RDF;
+using Semiodesk.Trinity.Extensions;
 
 namespace Semiodesk.Trinity.Store.Virtuoso
 {
@@ -536,12 +537,17 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         }
 
 
-        public override void Write(Stream fs, Uri graph, RdfSerializationFormat format)
+        public override void Write(Stream fs, Uri graph, RdfSerializationFormat format, INamespaceMap namespaces)
         {
             using (VirtuosoManager manager = new VirtuosoManager(CreateConnectionString()))
             {
                 using (VDS.RDF.Graph g = new VDS.RDF.Graph())
                 {
+                    if (namespaces != null)
+                    {
+                        g.NamespaceMap.ImportNamespaces(namespaces);
+                    }
+
                     manager.LoadGraph(g, graph);
 
                     StreamWriter streamWriter = new StreamWriter(fs, Encoding.UTF8);

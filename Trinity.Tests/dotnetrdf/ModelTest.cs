@@ -305,5 +305,29 @@ namespace dotNetRDFStore.Test
             stream.Position = 0;
             return stream;
         }
+
+        [Test]
+        public void WriteTest()
+        {
+            Model.Clear();
+
+            INamespaceMap namespaces = new NamespaceMap()
+            {
+                { "ex2", new Uri("http://example.org") }
+            };
+
+            Property property = new Property(new Uri("http://example.org/MyProperty"));
+
+            IResource model2_resource2 = Model.CreateResource(new Uri("ex:Resource"));
+            model2_resource2.AddProperty(property, "in the\n jungle");
+            model2_resource2.Commit();
+
+            using (MemoryStream wr = new MemoryStream())
+            {
+                Model.Write(wr, RdfSerializationFormat.RdfXml, namespaces);
+
+                var result = Encoding.UTF8.GetString(wr.ToArray());
+            }
+        }
     }
 }
