@@ -123,7 +123,8 @@ namespace Semiodesk.Trinity.CilGenerator.Tasks
 
         protected virtual void LoadTrinityTypes()
         {
-            ClassType = ILGenerator.RdfClass;
+            LoadType("Semiodesk.Trinity.Class", out ClassType);
+            //ClassType = ILGenerator.RdfClass;
             ClassArrayType= new ArrayType(ClassType);
 
             PropertyMappingType = ILGenerator.PropertyMapping;

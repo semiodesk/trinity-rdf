@@ -66,7 +66,7 @@ namespace Semiodesk.Trinity.CilGenerator
         public bool WriteSymbols { get; set; }
 
         public static TypeDefinition PropertyMapping;
-        public static TypeDefinition RdfClass;
+        //public static TypeDefinition RdfClass;
 
         #endregion
 
@@ -115,7 +115,7 @@ namespace Semiodesk.Trinity.CilGenerator
                     var trinity = resolver.Resolve(trinityRef);
 
                     PropertyMapping = trinity.MainModule.Types.Where(b => b.FullName == "Semiodesk.Trinity.PropertyMapping`1").FirstOrDefault();
-                    RdfClass = trinity.MainModule.Types.Where(b => b.FullName == "Semiodesk.Trinity.Class").FirstOrDefault();
+                    //RdfClass = trinity.MainModule.Types.Where(b => b.FullName == "Semiodesk.Trinity.Class").FirstOrDefault();
 
                     Log.LogMessage("------ Begin Task: ImplementRdfMapping [{0}]", Assembly.Name);
 
