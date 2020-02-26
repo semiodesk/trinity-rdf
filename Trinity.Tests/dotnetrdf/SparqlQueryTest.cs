@@ -448,5 +448,27 @@ namespace Semiodesk.Trinity.Test
 
             Assert.IsFalse(string.IsNullOrEmpty(query.GetRootOrderByClause()));
         }
+
+        [Test]
+        public void TestFromGraphBehaviour()
+        {
+            SparqlQuery query = new SparqlQuery(@"
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            PREFIX music: <http://stardog.com/tutorial/>
+            SELECT ?member ?member_name
+            WHERE {
+                            GRAPH <http://example.org/TestModel> {
+                ?band rdf:type music:Band;
+                        music:name ?name;
+                        music:member ?member .
+                ?member music:name ?member_name .
+                FILTER(REGEX( ?name, '^the beatles', 'i'))
+                }
+            }");
+
+            //var x = Model.ExecuteQuery(query);
+            var y = Store.ExecuteQuery(query);
+            //var res = x.GetResources().ToList();
+        }
     }
 }

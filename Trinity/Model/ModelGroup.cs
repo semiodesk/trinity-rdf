@@ -266,6 +266,28 @@ namespace Semiodesk.Trinity
             throw new NotSupportedException();
         }
 
+
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <param name="resources"></param>
+        /// <param name="transaction"></param>
+        public void UpdateResources(IEnumerable<Resource> resources, ITransaction transaction = null)
+        {
+            throw new NotSupportedException();
+        }
+
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <param name="resources"></param>
+        /// <param name="transaction"></param>
+        public void UpdateResources(ITransaction transaction = null, params Resource[] resources)
+        {
+            throw new NotSupportedException();
+        }
+
+
         /// <summary>
         /// Not supported. ModelGroups are read-only.
         /// </summary>

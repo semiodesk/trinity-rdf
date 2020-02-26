@@ -130,8 +130,9 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
                 return true;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Logger.LogMessage($"Error loading ontology from {ontologyFile.FullName}. Reason: \n"+e.Message);
                 return false;
             }
         }

@@ -1249,6 +1249,16 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
+        public void CanSelectResources()
+        {
+            var actual = (from user in Model.AsQueryable<Person>(true) from person in user.KnownPeople where user.FirstName == "Alice" && person.FirstName == "Bob" select person).ToList();
+
+            Assert.AreEqual(1, actual.Count);
+            Assert.AreEqual("Alice", actual.First().FirstName);
+            CollectionAssert.AllItemsAreInstancesOfType(actual, typeof(Agent));
+        }
+
+        [Test]
         public void CanExecuteCollectionWithInferencingEnabled()
         {
             // Check if inferencing works on resource queries.

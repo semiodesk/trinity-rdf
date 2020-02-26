@@ -169,7 +169,49 @@ namespace dotNetRDFStore.Test
             Assert.AreEqual(r3, actual);
         }
 
+        [Test]
+        public void UpdateResourcesTest()
+        {
+            Property intProperty = new Property(new Uri("http://example.org/int"));
+            Property stringProperty = new Property(new Uri("http://example.org/string"));
+            Uri r1Uri = new Uri("http://example.org/r1");
+            Resource r1 = Model.CreateResource<Resource>(r1Uri);
+            r1.AddProperty(intProperty, 123);
+            r1.AddProperty(stringProperty, "in the jungle");
+            Uri r2Uri = new Uri("http://example.org/r2");
+            Resource r2 = Model.CreateResource<Resource>(r2Uri);
+            r2.AddProperty(intProperty, 111);
+            r2.AddProperty(stringProperty, "in the jingle");
 
+            Uri r3Uri = new Uri("http://example.org/r3");
+            Resource r3 = Model.CreateResource<Resource>(r3Uri);
+            r3.AddProperty(intProperty, 333);
+            r3.AddProperty(stringProperty, "in the jongle");
+
+            Model.UpdateResources(null, r1, r2, r3);
+
+            var actual = Model.GetResources<Resource>().ToList();
+            Assert.Contains(r1, actual);
+            Assert.Contains(r2, actual);
+            Assert.Contains(r3, actual);
+
+            r1.RemoveProperty(intProperty, 123);
+            r1.AddProperty(intProperty, 154);
+
+            r2.RemoveProperty(stringProperty, "in the jingle");
+            r2.AddProperty(stringProperty, "boo");
+
+            r3.AddProperty(stringProperty, "hooo");
+            Model.UpdateResources(null, r1, r2, r3);
+
+            actual = Model.GetResources<Resource>().ToList();
+            Assert.Contains(r1, actual);
+            Assert.Contains(r2, actual);
+            Assert.Contains(r3, actual);
+
+
+
+        }
 
         [Test]
         public void ContainsResourceTest()

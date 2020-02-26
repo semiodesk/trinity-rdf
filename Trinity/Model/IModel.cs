@@ -305,6 +305,20 @@ namespace Semiodesk.Trinity
         void UpdateResource(Resource resource, ITransaction transaction = null);
 
         /// <summary>
+        /// Updates the properties resources in the backing RDF store.
+        /// </summary>
+        /// <param name="resources">Resources that is to be updated in the backing store.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+       void UpdateResources(IEnumerable<Resource> resources, ITransaction transaction = null);
+
+        /// <summary>
+        /// Updates the properties of resources in the backing RDF store.
+        /// </summary>
+        /// <param name="resources">Resources that is to be updated in the backing store.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        void UpdateResources(ITransaction transaction = null, params Resource[] resources);
+
+        /// <summary>
         /// Removes all elements from the model.
         /// </summary>
         void Clear();

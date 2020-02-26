@@ -49,11 +49,6 @@ namespace Semiodesk.Trinity
         public IModel Model { get; set; }
 
         /// <summary>
-        /// Get or set the resource being updated.
-        /// </summary>
-        public IResource Resource { get; set; }
-
-        /// <summary>
         /// The SPARQL processor used to determine the prefixes and statement variables in the query.
         /// </summary>
         internal SparqlPreprocessor Preprocessor;

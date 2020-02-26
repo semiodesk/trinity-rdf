@@ -319,15 +319,60 @@ namespace Semiodesk.Trinity
                     SparqlSerializer.SerializeResource(resource, IgnoreUnmappedProperties));
             }
 
-            SparqlUpdate update = new SparqlUpdate(updateString)
-            {
-                Resource = resource
-            };
+            SparqlUpdate update = new SparqlUpdate(updateString);
 
             ExecuteUpdate(update, transaction);
 
             resource.IsNew = false;
             resource.IsSynchronized = true;
+        }
+
+        /// <summary>
+        /// Updates the properties of a resource in the backing RDF store.
+        /// </summary>
+        /// <param name="resources">Resources that is to be updated in the backing store.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        public virtual void UpdateResources(IEnumerable<Resource> resources, ITransaction transaction = null)
+        {
+            string WITH = $"{SparqlSerializer.SerializeUri(Uri)} ";
+            StringBuilder INSERT = new StringBuilder();
+            StringBuilder DELETE = new StringBuilder();
+            StringBuilder OPTIONAL = new StringBuilder();
+
+            foreach( var res in resources)
+            { 
+                if (res.IsNew)
+                {
+                    INSERT.Append(" ");
+                    INSERT.Append(SparqlSerializer.SerializeResource(res, IgnoreUnmappedProperties));
+                }
+                else
+                {
+                    DELETE.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p ?o. ");
+                    OPTIONAL.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p ?o. ");
+                    INSERT.Append($" {SparqlSerializer.SerializeResource(res, IgnoreUnmappedProperties)} ");
+                }
+            }
+            string updateString = $"WITH {WITH} DELETE {{ {DELETE} }} INSERT {{ {INSERT} }} WHERE {{ OPTIONAL {{ {OPTIONAL} }} }}";
+            SparqlUpdate update = new SparqlUpdate(updateString);
+
+            ExecuteUpdate(update, transaction);
+
+            foreach( var resource in resources) 
+            { 
+                resource.IsNew = false;
+                resource.IsSynchronized = true;
+            }
+        }
+
+        /// <summary>
+        /// Updates the properties of a resource in the backing RDF store.
+        /// </summary>
+        /// <param name="resources">Resources that is to be updated in the backing store.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        public virtual void UpdateResources(ITransaction transaction = null, params Resource[] resources)
+        {
+            UpdateResources(resources, transaction);
         }
 
         /// <summary>
