@@ -51,6 +51,8 @@ namespace Semiodesk.Trinity
         // for implementing the GetResource(Uri, Type) method that supports runtime type specification.
         private MethodInfo _getResourceMethod;
 
+        private MethodInfo _getResourcesMethod;
+
         /// <summary>
         /// The Uniform Resource Identifier which provides a name for the model.
         /// </summary>
@@ -567,6 +569,45 @@ namespace Semiodesk.Trinity
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Retrieves resources from the model. Provides resources object of the given type.
+        /// </summary>
+        /// <param name="uris">A List Uniform Resource Identifier.</param>
+        /// <param name="type">The type the resource should have.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <returns>A resource with all asserted properties.</returns>
+        public IEnumerable<object> GetResources(IEnumerable<Uri> uris, Type type, ITransaction transaction = null)
+        {
+            if (typeof(IResource).IsAssignableFrom(type))
+            {
+                StringBuilder queryString = new StringBuilder();
+                queryString.Append("SELECT ?s ?p ?o WHERE { ?s ?p ?o. FILTER ( ");
+                queryString.Append(string.Join("||", from s in uris select $"?s = <{s}>"));
+                queryString.Append(")}");
+                var query = new SparqlQuery(queryString.ToString());
+
+                ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);
+
+                IEnumerable<Resource> resources = result.GetResources();
+
+                foreach (Resource r in resources)
+                {
+                    if( type.IsAssignableFrom(r.GetType()))
+                    r.IsNew = false;
+                    r.IsSynchronized = true;
+                    r.SetModel(this);
+
+                    yield return r;
+                }
+
+            }
+            else
+            {
+                string msg = string.Format("Error: The given type {0} does not implement the IResource interface.", type);
+                throw new ArgumentException(msg);
+            }
         }
 
         /// <summary>

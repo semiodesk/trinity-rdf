@@ -513,6 +513,18 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// Retrieves resources from the model. Provides resources object of the given type.
+        /// </summary>
+        /// <param name="uris">A List Uniform Resource Identifier.</param>
+        /// <param name="type">The type the resource should have.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <returns>A resource with all asserted properties.</returns>
+        public IEnumerable<object> GetResources(IEnumerable<Uri> uris, Type type, ITransaction transaction = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
         /// Executes a SPARQL query and provides an enumeration of matching resources.
         /// </summary>
         /// <param name="query">A SparqlQuery object.</param>
