@@ -51,5 +51,15 @@ namespace Semiodesk.Trinity.Test.Linq
         public static readonly UriRef TheSpiders = new UriRef("http://example.org/test/TheSpiders");
 
         public static readonly UriRef AlicaKeys = new UriRef("http://example.org/test/AlicaKeys");
+
+        public static readonly UriRef JohnLennon = new UriRef("http://example.org/test/JohnLennon");
+
+        public static readonly UriRef PaulMcCartney = new UriRef("http://example.org/test/PaulMcCartney");
+
+        public static readonly UriRef TheBeatles = new UriRef("http://example.org/test/TheBeatles");
+
+        public static readonly UriRef TheBeatlesAlbum = new UriRef("http://example.org/test/TheBeatlesAlbum");
+
+        public static readonly UriRef BackInTheUSSR = new UriRef("http://example.org/test/BackInTheUSSR");
     }
 }
