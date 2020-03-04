@@ -34,6 +34,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace Semiodesk.Trinity
 {
@@ -521,7 +522,38 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IEnumerable<object> GetResources(IEnumerable<Uri> uris, Type type, ITransaction transaction = null)
         {
-            throw new NotImplementedException();
+            if (typeof(IResource).IsAssignableFrom(type))
+            {
+                StringBuilder queryString = new StringBuilder();
+                queryString.Append("SELECT ?s ?p ?o WHERE { ?s ?p ?o. FILTER ( ");
+                queryString.Append(string.Join("||", from s in uris select $"?s = <{s}>"));
+                queryString.Append(")}");
+                var query = new SparqlQuery(queryString.ToString());
+
+                ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);
+
+                IEnumerable<Resource> resources = result.GetResources(type);
+
+                foreach (Resource r in resources)
+                {
+                    // NOTE: This safeguard is required because of a bug in ExecuteQuery where 
+                    // it returns null objects when a rdf:type triple is missing..
+                    if (r == null) continue;
+
+                    r.SetModel(this);
+                    r.IsNew = false;
+                    r.IsSynchronized = true;
+                    r.IsReadOnly = true;
+
+                    yield return r;
+                }
+
+            }
+            else
+            {
+                string msg = string.Format("Error: The given type {0} does not implement the IResource interface.", type);
+                throw new ArgumentException(msg);
+            }
         }
 
         /// <summary>

@@ -864,10 +864,7 @@ namespace dotNetRDFStore.Test
 
             Assert.AreEqual(t2, p1.uniqueResourceTest);
 
-
-
             model.Clear();
-
         }
 
         [Test]

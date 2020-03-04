@@ -168,9 +168,9 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         /// </summary>
         /// <typeparam name="T">The Resource type.</typeparam>
         /// <returns>An enumeration of marshalled objects of the given type.</returns>
-        private IEnumerable<T> GenerateResources<T>(DataTable queryResults) where T : Resource
+        private IEnumerable<Resource> GenerateResources(Type type, DataTable queryResults)
         {
-            List<T> result = new List<T>();
+            List<Resource> result = new List<Resource>();
 
             if (0 < queryResults.Columns.Count)
             {
@@ -181,22 +181,22 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                 bool providesStatements = _query.ProvidesStatements();
 
                 // A dictionary mapping URIs to the generated resource objects.
-                Dictionary<string, IResource> cache = new Dictionary<string, IResource>();
+                Dictionary<string, Resource> cache = new Dictionary<string, Resource>();
 
-                Dictionary<string, T> types = FindResourceTypes<T>(
+                Dictionary<string, Resource> types = FindResourceTypes(type,
                     queryResults,
                     queryResults.Columns[0].ColumnName,
                     queryResults.Columns[1].ColumnName,
                     queryResults.Columns[2].ColumnName,
                     _query.IsInferenceEnabled);
 
-                foreach (KeyValuePair<string, T> resourceType in types)
+                foreach (KeyValuePair<string, Resource> resourceType in types)
                 {
                     cache.Add(resourceType.Key, resourceType.Value);
                 }
 
                 // A handle to the currently built resource which may spare the lookup in the dictionary.
-                T currentResource = null;
+                Resource currentResource = null;
 
                 foreach (DataRow row in queryResults.Rows)
                 {
@@ -231,7 +231,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                     }
                     else if (cache.ContainsKey(s.OriginalString))
                     {
-                        currentResource = cache[s.OriginalString] as T;
+                        currentResource = cache[s.OriginalString];
 
                         // In this case we may have encountered a resource which was 
                         // added to the cache by the object value handler below.
@@ -244,7 +244,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                     {
                         try
                         {
-                            currentResource = (T) Activator.CreateInstance(typeof (T), s);
+                            currentResource = (Resource) Activator.CreateInstance(type, s);
                             currentResource.IsNew = false;
                             currentResource.IsSynchronized = true;
                             currentResource.SetModel(_model);
@@ -297,7 +297,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                 }
             }
 
-            foreach (T r in result)
+            foreach (var r in result)
             {
                 yield return r;
             }
@@ -315,9 +315,9 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         /// <param name="queryResults"></param>
         /// <param name="inferencingEnabled"></param>
         /// <returns></returns>
-        private Dictionary<string, T> FindResourceTypes<T>(DataTable queryResults, string subjectColumn, string preducateColumn, string objectColumn, bool inferencingEnabled = false) where T : Resource
+        private Dictionary<string, Resource> FindResourceTypes(Type type, DataTable queryResults, string subjectColumn, string preducateColumn, string objectColumn, bool inferencingEnabled = false)
         {
-            Dictionary<string, T> result = new Dictionary<string, T>();
+            Dictionary<string, Resource> result = new Dictionary<string, Resource>();
             Dictionary<string, List<Class>> types = new Dictionary<string, List<Class>>();
             string s, p, o;
 
@@ -351,7 +351,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             // Iterate over all types and find the right class and instatiate it.
             foreach (string subject in types.Keys)
             {
-                IList<Type> classType = MappingDiscovery.GetMatchingTypes(types[subject], typeof(T), inferencingEnabled);
+                IList<Type> classType = MappingDiscovery.GetMatchingTypes(types[subject], type, inferencingEnabled);
 
                 if (classType.Count > 0)
                 {
@@ -363,14 +363,14 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                     }
                     #endif
 
-                    T resource = (T)Activator.CreateInstance(classType[0], new UriRef(subject));
+                    Resource resource = (Resource)Activator.CreateInstance(classType[0], new UriRef(subject));
                     resource.SetModel(_model);
                     resource.IsNew = false;
 
                     result[subject] = resource;
                 }
                 #if DEBUG
-                else if (typeof(T) != typeof(Resource))
+                else if (type != typeof(Resource))
                 {
                     string msg = "Info: No assignable type found for <{0}>.";
 
@@ -446,47 +446,51 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
                 using (DataTable queryResults = _store.ExecuteQuery(_store.CreateQuery(query), _transaction))
                 {
-                    foreach (T t in GenerateResources<T>(queryResults))
-                    {
-                        yield return t;
-                    }
+                   
+                  return GenerateResources(typeof(T), queryResults).Where(x => typeof(T).IsAssignableFrom(x.GetType())).Select(x => x as T);
+                    
                 }
             }
             else
             {
-                // TODO: Make resources which are returned from a inferenced query read-only in order to improve query performance.
+                return GetResourcesWithInferencing<T>(offset, limit);
+            }
+        }
 
-                // NOTE: When inferencing is enabled, we are unable to determine which triples were inferred and
-                // which not. Therefore we need to issue a query to get the URIs of all the resources the original
-                // query would return and issue another query to describe those resources withoud inference.
-                List<UriRef> uris = FetchUris(offset, limit).ToList();
+        private IEnumerable<T> GetResourcesWithInferencing<T>(int offset = -1, int limit = -1) where T : Resource
+        {
+            // TODO: Make resources which are returned from a inferenced query read-only in order to improve query performance.
 
-                if (!uris.Count.Equals(0))
+            // NOTE: When inferencing is enabled, we are unable to determine which triples were inferred and
+            // which not. Therefore we need to issue a query to get the URIs of all the resources the original
+            // query would return and issue another query to describe those resources withoud inference.
+            List<UriRef> uris = FetchUris(offset, limit).ToList();
+
+            if (!uris.Count.Equals(0))
+            {
+                StringBuilder queryBuilder = new StringBuilder();
+
+                foreach (Uri uri in uris)
                 {
-                    StringBuilder queryBuilder = new StringBuilder();
+                    queryBuilder.Append(SparqlSerializer.SerializeUri(uri));
+                }
 
-                    foreach (Uri uri in uris)
+                SparqlQuery query = new SparqlQuery(string.Format("DESCRIBE {0}", queryBuilder.ToString()));
+
+                ISparqlQueryResult queryResult = _model.ExecuteQuery(query);
+
+                if (_isOrdered)
+                {
+                    foreach (T t in queryResult.GetResources<T>().OrderBy(o => uris.IndexOf(o.Uri)))
                     {
-                        queryBuilder.Append(SparqlSerializer.SerializeUri(uri));
+                        yield return t;
                     }
-
-                    SparqlQuery query = new SparqlQuery(string.Format("DESCRIBE {0}", queryBuilder.ToString()));
-
-                    ISparqlQueryResult queryResult = _model.ExecuteQuery(query);
-
-                    if (_isOrdered)
+                }
+                else
+                {
+                    foreach (T t in queryResult.GetResources<T>())
                     {
-                        foreach (T t in queryResult.GetResources<T>().OrderBy(o => uris.IndexOf(o.Uri)))
-                        {
-                            yield return t;
-                        }
-                    }
-                    else
-                    {
-                        foreach (T t in queryResult.GetResources<T>())
-                        {
-                            yield return t;
-                        }
+                        yield return t;
                     }
                 }
             }
@@ -502,6 +506,21 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             return GetResources<Resource>();
         }
 
+        public IEnumerable<Resource> GetResources(Type type)
+        {
+            if (_query.ProvidesStatements())
+            {
+                using (DataTable queryResults = _store.ExecuteQuery(_store.CreateQuery(_query), _transaction))
+                {
+                    return GenerateResources(type, queryResults);
+                }
+            }
+            else
+            {
+                throw new ArgumentException("The given query cannot be resolved into statements.");
+            }
+        }
+
         /// <summary>
         /// Returns marshalled instances of the given Resource type which were 
         /// returned from DESCRIBE, CONSTRUCT or interpretable SELECT query forms.
@@ -514,7 +533,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             {
                 using (DataTable queryResults = _store.ExecuteQuery(_store.CreateQuery(_query), _transaction))
                 {
-                    return GenerateResources<T>(queryResults);
+                    return GenerateResources(typeof(T), queryResults).Where(x => typeof(T).IsAssignableFrom(x.GetType())).Select(x => x as T);
                 }
             }
             else

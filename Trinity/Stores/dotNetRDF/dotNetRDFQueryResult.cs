@@ -28,6 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using VDS.RDF;
 using VDS.RDF.Query;
 #if NET35
@@ -137,11 +138,23 @@ namespace Semiodesk.Trinity.Store
             throw new NotImplementedException();
         }
 
+        public IEnumerable<Resource> GetResources(Type type)
+        {
+            if (_query.ProvidesStatements())
+            {
+                return GenerateResources(type);
+            }
+            else
+            {
+                throw new ArgumentException("The given query cannot be resolved into statements.");
+            }
+        }
+
         public IEnumerable<T> GetResources<T>() where T : Resource
         {
             if(_query.ProvidesStatements())
             {
-                return GenerateResources<T>();
+                return GenerateResources(typeof(T)).Where(x => typeof(T).IsAssignableFrom(x.GetType())).Select(x => x as T);
             }
             else
             {
@@ -154,25 +167,26 @@ namespace Semiodesk.Trinity.Store
             throw new NotImplementedException();
         }
 
-        private IEnumerable<T> GenerateResources<T>() where T : Resource
+        private IEnumerable<Resource> GenerateResources(Type type)
         {
-            List<T> result = new List<T>();
+            List<Resource> result = new List<Resource>();
 
             if (0 < _tripleProvider.Count)
             {
                 // A dictionary mapping URIs to the generated resource objects.
-                Dictionary<string, IResource> cache = new Dictionary<string, IResource>();
-                Dictionary<string, T> types = FindResourceTypes<T>(_query.IsInferenceEnabled);
+                Dictionary<string, Resource> cache = new Dictionary<string, Resource>();
+                Dictionary<string, object> types = FindResourceTypes(_query.IsInferenceEnabled, type);
 
                 _tripleProvider.Reset();
 
-                foreach (KeyValuePair<string, T> resourceType in types)
+                foreach (KeyValuePair<string, object> resourceType in types)
                 {
-                    cache.Add(resourceType.Key, resourceType.Value);
+                    if( resourceType.Value is Resource res)
+                        cache.Add(resourceType.Key, res);
                 }
 
                 // A handle to the currently built resource which may spare the lookup in the dictionary.
-                T currentResource = null;
+                Resource currentResource = null;
 
                 while (_tripleProvider.HasNext)
                 {
@@ -192,7 +206,7 @@ namespace Semiodesk.Trinity.Store
                         }
                         else if (cache.ContainsKey(subjectUri.OriginalString))
                         {
-                            currentResource = cache[subjectUri.OriginalString] as T;
+                            currentResource = cache[subjectUri.OriginalString];
 
                             // In this case we may have encountered a resource which was 
                             // added to the cache by the object value handler below.
@@ -205,7 +219,7 @@ namespace Semiodesk.Trinity.Store
                         {
                             try
                             {
-                                currentResource = (T)Activator.CreateInstance(typeof(T), subjectUri);
+                                currentResource = (Resource)Activator.CreateInstance(type, subjectUri);
                                 currentResource.IsNew = false;
                                 currentResource.IsSynchronized = true;
                                 currentResource.Model = _model;
@@ -267,7 +281,7 @@ namespace Semiodesk.Trinity.Store
                 }
             }
 
-            foreach (T r in result)
+            foreach (var r in result)
             {
                 yield return r;
             }
@@ -301,9 +315,9 @@ namespace Semiodesk.Trinity.Store
             return null;
         }
 
-        private Dictionary<string, T> FindResourceTypes<T>(bool inferencingEnabled) where T : Resource
+        private Dictionary<string, object> FindResourceTypes(bool inferencingEnabled, Type type) 
         {
-            Dictionary<string, T> result = new Dictionary<string, T>();
+            Dictionary<string, object> result = new Dictionary<string, object>();
             Dictionary<string, List<Class>> types = new Dictionary<string, List<Class>>();
 
             INode s;
@@ -349,7 +363,7 @@ namespace Semiodesk.Trinity.Store
             // Iterate over all types and find the right class and instatiate it.
             foreach (string subject in types.Keys)
             {
-                IList<Type> classType = MappingDiscovery.GetMatchingTypes(types[subject], typeof(T), inferencingEnabled);
+                IList<Type> classType = MappingDiscovery.GetMatchingTypes(types[subject], type, inferencingEnabled);
 
                 if (classType.Count > 0)
                 {
@@ -361,13 +375,17 @@ namespace Semiodesk.Trinity.Store
                     }
 #endif
 
-                    T resource = (T)Activator.CreateInstance(classType[0], new Uri(subject));
-                    resource.Model = _model;
-                    resource.IsNew = false;
+                    object resource = Activator.CreateInstance(classType[0], new Uri(subject));
+                    if (resource is Resource res)
+                    {
+                        res.Model = _model;
+                        res.IsNew = false;
+                    }
                     result[subject] = resource;
+                    
                 }
 #if DEBUG
-                else if (typeof(T) != typeof(Resource))
+                else if (type != typeof(Resource))
                 {
                     string msg = "Info: No assignable type found for <{0}>.";
 

@@ -1249,9 +1249,9 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
-        public void CanSelectResources()
+        public void SelectAdditionalFrom()
         {
-            var actual = (from user in Model.AsQueryable<Person>(true) from person in user.KnownPeople where user.FirstName == "Alice" && person.FirstName == "Bob" select person).ToList();
+            var actual = (from user in Model.AsQueryable<Person>(true) from person in user.KnownPeople where user.FirstName == "Alice" && person.FirstName == "Bob" select user).ToList();
 
             Assert.AreEqual(1, actual.Count);
             Assert.AreEqual("Alice", actual.First().FirstName);

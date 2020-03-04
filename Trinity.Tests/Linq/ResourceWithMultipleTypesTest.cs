@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using NUnit.Framework;
 
@@ -16,6 +17,8 @@ namespace Semiodesk.Trinity.Test.Linq
         [SetUp]
         public void SetUp()
         {
+            Directory.SetCurrentDirectory(TestContext.CurrentContext.TestDirectory);
+
             // DotNetRdf memory store.
             string connectionString = "provider=dotnetrdf";
 
@@ -85,7 +88,7 @@ namespace Semiodesk.Trinity.Test.Linq
 
             Assert.AreEqual(ex.TheBeatles, b.Uri, "The Beatles are the band");
             Assert.AreEqual(1, b.Members.Count, "band member count");
-            Assert.AreEqual(ex.JohnLennon, b.Members[0], "john lennon is the band member");
+            Assert.AreEqual(ex.JohnLennon, b.Members[0].Uri, "john lennon is the band member");
 
             var albums = (from album in Model.AsQueryable<Album>() where album.Artist.Uri == ex.TheBeatles select album).ToList();
             Assert.AreEqual(1, albums.Count, "album count");

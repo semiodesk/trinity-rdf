@@ -590,7 +590,7 @@ namespace Semiodesk.Trinity
 
                 ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);
 
-                IEnumerable<Resource> resources = result.GetResources();
+                IEnumerable<Resource> resources = result.GetResources(type);
 
                 foreach (Resource r in resources)
                 {

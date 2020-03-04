@@ -74,6 +74,14 @@ namespace Semiodesk.Trinity
         IEnumerable<Resource> GetResources();
 
         /// <summary>
+        /// Returns marshalled Resource objects returned from DESCRIBE, CONSTRUCT 
+        /// or interpretable SELECT query forms.
+        /// </summary>
+        /// <param name="type">The type that is required.</param>
+        /// <returns>An enumeration of Resource objects.</returns>
+        IEnumerable<Resource> GetResources(Type type);
+
+        /// <summary>
         /// Returns marshalled instances of the given Resource type which were 
         /// returned from DESCRIBE, CONSTRUCT or interpretable SELECT query forms.
         /// </summary>

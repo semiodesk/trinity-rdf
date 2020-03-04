@@ -71,7 +71,11 @@ namespace Semiodesk.Trinity.Query
 
         public override void VisitAdditionalFromClause(AdditionalFromClause fromClause, QueryModel queryModel, int index)
         {
-            throw new NotSupportedException();
+            ISparqlQueryGenerator currentGenerator = QueryGeneratorTree.CurrentGenerator;
+
+            currentGenerator.OnBeforeFromClauseVisited(fromClause.FromExpression);
+
+            ExpressionVisitor.VisitFromExpression(fromClause.FromExpression, fromClause.ItemName, fromClause.ItemType);
         }
 
         public override void VisitGroupJoinClause(GroupJoinClause groupJoinClause, QueryModel queryModel, int index)
