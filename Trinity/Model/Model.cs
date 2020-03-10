@@ -583,9 +583,15 @@ namespace Semiodesk.Trinity
             if (typeof(IResource).IsAssignableFrom(type))
             {
                 StringBuilder queryString = new StringBuilder();
-                queryString.Append("SELECT ?s ?p ?o WHERE { ?s ?p ?o. FILTER ( ");
-                queryString.Append(string.Join("||", from s in uris select $"?s = <{s}>"));
-                queryString.Append(")}");
+                queryString.Append("SELECT ?s ?p ?o WHERE { ?s ?p ?o. ");
+                if( uris != null &&  uris.Count() > 0 )
+                {
+                    queryString.Append("FILTER(");
+                    queryString.Append(")");
+                    queryString.Append(string.Join("||", from s in uris select $"?s = <{s}>"));
+                }
+                
+                queryString.Append("}");
                 var query = new SparqlQuery(queryString.ToString());
 
                 ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);

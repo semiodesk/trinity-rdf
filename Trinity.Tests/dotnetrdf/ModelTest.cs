@@ -174,6 +174,39 @@ namespace dotNetRDFStore.Test
         }
 
         [Test]
+        public void GetResourcesEmptyTest()
+        {
+            var resourceUri1 = new Uri("ex:test:resource1");
+            var property = new Property(new Uri("ex:test:property"));
+            var res = Model.CreateResource(resourceUri1);
+            res.AddProperty(property, "lit1");
+            res.Commit();
+
+            var resourceUri2 = new Uri("ex:test:resource2");
+            res = Model.CreateResource(resourceUri2);
+            res.AddProperty(property, "lit2");
+            res.Commit();
+
+            var result = Model.GetResources(new Uri[] {}, typeof(Resource)).ToList();
+            Assert.AreEqual(2, result.Count);
+
+            IResource res1 = result[0] as IResource;
+            Assert.AreEqual(resourceUri1, res1.Uri);
+            List<Property> properties = res1.ListProperties().ToList();
+            Assert.AreEqual(1, properties.Count);
+            Assert.AreEqual(property, properties[0]);
+            Assert.AreEqual("lit1", res1.GetValue(property));
+
+            IResource res2 = result[1] as IResource;
+            Assert.AreEqual(resourceUri2, res2.Uri);
+            properties = res2.ListProperties().ToList();
+            Assert.AreEqual(1, properties.Count);
+            Assert.AreEqual(property, properties[0]);
+            Assert.AreEqual("lit2", res2.GetValue(property));
+
+        }
+
+        [Test]
         public void UpdateResourceTest()
         {
             Property property = new Property(new Uri("http://example.org/MyProperty"));
