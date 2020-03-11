@@ -174,6 +174,28 @@ namespace dotNetRDFStore.Test
         }
 
         [Test]
+        public void GetResourceFromJsonLD()
+        {
+            var str = "{\"http://www.w3.org/1999/02/22-rdf-syntax-ns#type\":[{\"@id\":\"http://schema.org/Organization\"},{}],\"http://www.w3.org/2000/01/rdf-schema#label\":\"\",\"http://schema.org/name\":[{\"@value\":\"My Project\",\"@language\":\"en\"}],\"http://schema.org/alternateName\":[],\"http://schema.org/description\":[{\"@value\":\"Hello\",\"@language\":\"en\"}],\"http://schema.org/image\":[],\"http://schema.org/thumbnail\":[],\"http://schema.org/sameAs\":[],\"http://www.w3.org/ns/prov#\":[],\"http://schema.org/identifier\":\"my-new-project\"}\"";
+            
+            
+            using (var stream = new MemoryStream())
+            {
+                var writer = new StreamWriter(stream);
+                writer.Write(str);
+                writer.Flush();
+                stream.Position = 0;
+                IStore store = StoreFactory.CreateMemoryStore();
+                var modelUri = new Uri("urn:modom:default");
+                store.Read(stream, modelUri, RdfSerializationFormat.JsonLd, true);
+
+                var model = store.GetModel(modelUri);
+                var res = model.GetResources(new Uri[] { }, typeof(Resource)).ToList();
+
+            }
+        }
+
+        [Test]
         public void GetResourcesEmptyTest()
         {
             var resourceUri1 = new Uri("ex:test:resource1");

@@ -587,8 +587,8 @@ namespace Semiodesk.Trinity
                 if( uris != null &&  uris.Count() > 0 )
                 {
                     queryString.Append("FILTER(");
-                    queryString.Append(")");
                     queryString.Append(string.Join("||", from s in uris select $"?s = <{s}>"));
+                    queryString.Append(")");
                 }
                 
                 queryString.Append("}");
