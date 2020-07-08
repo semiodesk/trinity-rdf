@@ -196,9 +196,13 @@ namespace Semiodesk.Trinity.Store
 
                     _tripleProvider.SetNext();
 
-                    if (s is IUriNode)
+                    if (s is IUriNode || s is BlankNode)
                     {
-                        Uri subjectUri = (s as IUriNode).Uri;
+                        Uri subjectUri = null;
+                        if ( s is IUriNode uriNode)
+                            subjectUri = uriNode.Uri;
+                        else if (s is BlankNode blankNode)
+                            subjectUri = new Uri("_:"+blankNode.InternalID);
 
                         if (currentResource != null && currentResource.Uri.OriginalString == subjectUri.OriginalString)
                         {
@@ -220,6 +224,7 @@ namespace Semiodesk.Trinity.Store
                             try
                             {
                                 currentResource = (Resource)Activator.CreateInstance(type, subjectUri);
+                                currentResource.IsBlank = s is BlankNode;
                                 currentResource.IsNew = false;
                                 currentResource.IsSynchronized = true;
                                 currentResource.Model = _model;
@@ -238,14 +243,15 @@ namespace Semiodesk.Trinity.Store
                             }
                         }
                     }
-                    else if(s is BlankNode)
-                    {
-                        // TODO: Implement blank node support.
-                    }
+                   
 
-                    if (o is IUriNode)
+                    if (o is IUriNode || o is BlankNode)
                     {
-                        Uri uri = (o as IUriNode).Uri;
+                        Uri uri = null;
+                        if (o is IUriNode uriNode)
+                            uri = uriNode.Uri;
+                        else if (o is BlankNode blankNode)
+                            uri = new Uri("_:" + blankNode.InternalID);
 
                         if (currentResource.HasPropertyMapping(p, uri.GetType()))
                         {
@@ -257,6 +263,7 @@ namespace Semiodesk.Trinity.Store
                             currentResource.IsNew = false;
                             currentResource.IsSynchronized = false;
                             currentResource.Model = _model;
+                            currentResource.IsBlank = o is BlankNode;
                         }
                         else
                         {
@@ -268,11 +275,8 @@ namespace Semiodesk.Trinity.Store
                             currentResource.IsNew = false;
                             currentResource.IsSynchronized = false;
                             currentResource.Model = _model;
+                            currentResource.IsBlank = o is BlankNode;
                         }
-                    }
-                    else if(o is BlankNode)
-                    {
-                        // TODO: Implement blank node support.
                     }
                     else
                     {

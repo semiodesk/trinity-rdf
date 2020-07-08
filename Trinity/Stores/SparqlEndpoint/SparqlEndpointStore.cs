@@ -211,6 +211,16 @@ namespace Semiodesk.Trinity.Store
             return;
         }
 
+        public void UpdateResource(Resource resource, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
+        {
+            throw new NotSupportedException();
+        }
+
+        public void UpdateResources(IEnumerable<Resource> resources, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
+        {
+            throw new NotSupportedException();
+        }
+
         #endregion
     }
 }

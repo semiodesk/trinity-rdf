@@ -184,13 +184,22 @@ namespace Semiodesk.Trinity
                 _genericType = null;
             }
 
-            #if DEBUG
+#if DEBUG
 
             // Test if the given type is valid
-            HashSet<Type> allowed = new HashSet<Type>{ typeof(string), typeof(bool), typeof(float), typeof(double), typeof(decimal),
-                                                 typeof(Int16), typeof(Int32), typeof(Int64), 
-                                                 typeof(UInt16),typeof(UInt32), typeof(UInt64), 
-                                                 typeof(DateTime), typeof(System.Uri)};
+            HashSet<Type> allowed = new HashSet<Type>{ typeof(string), 
+                                                 typeof(bool),typeof(bool?), 
+                                                 typeof(float), typeof(float?), 
+                                                 typeof(double), typeof(double?),
+                                                 typeof(decimal), typeof(decimal?),
+                                                 typeof(Int16), typeof(Int16?),
+                                                 typeof(Int32), typeof(Int32?),
+                                                 typeof(Int64), typeof(Int64?),
+                                                 typeof(UInt16), typeof(UInt16?),
+                                                 typeof(UInt32), typeof(UInt32?),
+                                                 typeof(UInt64), typeof(UInt64?),
+                                                 typeof(DateTime), typeof(DateTime?), 
+                                                 typeof(System.Uri), typeof(Tuple<string, string>)};
 
             if (!allowed.Contains(_dataType) && _dataType.GetInterface("IResource") == null && !typeof(Resource).IsAssignableFrom(_dataType))
             {
@@ -207,7 +216,7 @@ namespace Semiodesk.Trinity
                 throw new Exception(string.Format("The property '{0}' with type {1} mapped on RDF property '<{2}>' is not compatible.", propertyName, _dataType, property));
             }
 
-            #endif
+#endif
         }
 
         /// <summary>

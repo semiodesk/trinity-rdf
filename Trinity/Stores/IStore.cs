@@ -189,6 +189,19 @@ namespace Semiodesk.Trinity
         [Obsolete("This method will be removed in the future. Use InitializeFromConfiguration() instead.")]
         void LoadOntologySettings(string configPath = null, string sourceDir = null);
 
+        /// <summary>
+        /// Updates the properties of a resource in the backing RDF store.
+        /// </summary>
+        /// <param name="resource">Resource that is to be updated in the backing store.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        void UpdateResource(Resource resource, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false);
+
+        /// <summary>
+        /// Updates the properties of a resource in the backing RDF store.
+        /// </summary>
+        /// <param name="resources">Resources that is to be updated in the backing store.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        void UpdateResources(IEnumerable<Resource> resources, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false);
         #endregion
     }
 }

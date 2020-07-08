@@ -1259,6 +1259,16 @@ namespace Semiodesk.Trinity.Test.Linq
         }
 
         [Test]
+        public void ProjectionTest()
+        {
+            var actual = (from person in Model.AsQueryable<Person>() where person.FirstName == "Alice" select new { person.FirstName, person.Birthday }).ToList();
+
+            Assert.AreEqual(1, actual.Count);
+            Assert.AreEqual("Alice", actual.First().FirstName);
+        }
+
+
+        [Test]
         public void CanExecuteCollectionWithInferencingEnabled()
         {
             // Check if inferencing works on resource queries.

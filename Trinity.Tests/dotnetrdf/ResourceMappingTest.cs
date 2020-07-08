@@ -867,6 +867,62 @@ namespace dotNetRDFStore.Test
             model.Clear();
         }
 
+
+        [Test]
+        public void IterateOverEmptyModel()
+        {
+            IStore store = StoreFactory.CreateMemoryStore();
+            var modelUri = new Uri("urn:modom:default");
+
+            var model = store.GetModel(modelUri);
+            var res = model.GetResources<MappingTestClass>().FirstOrDefault();
+            Assert.IsNull(res);
+        }
+
+        [Test]
+        public void IterateOverJsonLdModel()
+        {
+
+            var s = "{ \"@type\": \"semio:test:TestClass\", \"@id\": \"urn:ex:test\", \"http://schema.modom.io/path\": \"test\" }";
+
+            using (var stream = new MemoryStream())
+            {
+                var writer = new StreamWriter(stream);
+                writer.Write(s);
+                writer.Flush();
+                stream.Position = 0;
+                IStore store = StoreFactory.CreateMemoryStore();
+                var modelUri = new Uri("urn:modom:default");
+                store.Read(stream, modelUri, RdfSerializationFormat.JsonLd, true);
+
+                var model = store.GetModel(modelUri);
+                var res = model.GetResources<MappingTestClass>().FirstOrDefault();
+
+            }
+        }
+
+        [Test]
+        public void IterateOverFaultyJsonLdModel()
+        {
+
+            var s = "{ \"@type\": \"semio:test:TestClass\", \"@i\": \"urn:ex:test\", \"http://schema.modom.io/path\": \"test\" }";
+
+            using (var stream = new MemoryStream())
+            {
+                var writer = new StreamWriter(stream);
+                writer.Write(s);
+                writer.Flush();
+                stream.Position = 0;
+                IStore store = StoreFactory.CreateMemoryStore();
+                var modelUri = new Uri("urn:modom:default");
+                store.Read(stream, modelUri, RdfSerializationFormat.JsonLd, true);
+
+                var model = store.GetModel(modelUri);
+                var res = model.GetResources<MappingTestClass>().FirstOrDefault();
+
+            }
+        }
+
         [Test]
         public void MappingTypeTest()
         {

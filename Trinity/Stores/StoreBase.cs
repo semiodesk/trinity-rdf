@@ -29,6 +29,7 @@ using Semiodesk.Trinity.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 namespace Semiodesk.Trinity
 {
@@ -273,6 +274,49 @@ namespace Semiodesk.Trinity
             }
 
             return new ModelGroup(this, result);
+        }
+
+        public virtual void UpdateResource(Resource resource, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
+        {
+            string updateString;
+
+            updateString = string.Format(@"WITH {0} DELETE {{ {1} ?p ?o. }} INSERT {{ {2} }} WHERE {{ OPTIONAL {{ {1} ?p ?o. }} }}",
+                SparqlSerializer.SerializeUri(modelUri),
+                SparqlSerializer.SerializeUri(resource.Uri),
+                SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
+
+
+            SparqlUpdate update = new SparqlUpdate(updateString);
+
+            ExecuteNonQuery(update, transaction);
+
+            resource.IsNew = false;
+            resource.IsSynchronized = true;
+        }
+
+        public virtual void UpdateResources(IEnumerable<Resource> resources, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
+        {
+            string WITH = $"{SparqlSerializer.SerializeUri(modelUri)} ";
+            StringBuilder INSERT = new StringBuilder();
+            StringBuilder DELETE = new StringBuilder();
+            StringBuilder OPTIONAL = new StringBuilder();
+
+            foreach (var res in resources)
+            {
+                DELETE.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p ?o. ");
+                OPTIONAL.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p ?o. ");
+                INSERT.Append($" {SparqlSerializer.SerializeResource(res, ignoreUnmappedProperties)} ");
+            }
+            string updateString = $"WITH {WITH} DELETE {{ {DELETE} }} INSERT {{ {INSERT} }} WHERE {{ OPTIONAL {{ {OPTIONAL} }} }}";
+            SparqlUpdate update = new SparqlUpdate(updateString);
+
+            ExecuteNonQuery(update, transaction);
+
+            foreach (var resource in resources)
+            {
+                resource.IsNew = false;
+                resource.IsSynchronized = true;
+            }
         }
 
         #endregion

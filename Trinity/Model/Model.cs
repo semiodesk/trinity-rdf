@@ -305,28 +305,7 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         public virtual void UpdateResource(Resource resource, ITransaction transaction = null)
         {
-            string updateString;
-
-            if (resource.IsNew)
-            {
-                updateString = string.Format(@"WITH {0} INSERT {{ {1} }} WHERE {{}}",
-                    SparqlSerializer.SerializeUri(Uri),
-                    SparqlSerializer.SerializeResource(resource, IgnoreUnmappedProperties));
-            }
-            else
-            {
-                updateString = string.Format(@"WITH {0} DELETE {{ {1} ?p ?o. }} INSERT {{ {2} }} WHERE {{ OPTIONAL {{ {1} ?p ?o. }} }}",
-                    SparqlSerializer.SerializeUri(Uri),
-                    SparqlSerializer.SerializeUri(resource.Uri),
-                    SparqlSerializer.SerializeResource(resource, IgnoreUnmappedProperties));
-            }
-
-            SparqlUpdate update = new SparqlUpdate(updateString);
-
-            ExecuteUpdate(update, transaction);
-
-            resource.IsNew = false;
-            resource.IsSynchronized = true;
+            _store.UpdateResource(resource, Uri, transaction, IgnoreUnmappedProperties);
         }
 
         /// <summary>
@@ -336,35 +315,7 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         public virtual void UpdateResources(IEnumerable<Resource> resources, ITransaction transaction = null)
         {
-            string WITH = $"{SparqlSerializer.SerializeUri(Uri)} ";
-            StringBuilder INSERT = new StringBuilder();
-            StringBuilder DELETE = new StringBuilder();
-            StringBuilder OPTIONAL = new StringBuilder();
-
-            foreach( var res in resources)
-            { 
-                if (res.IsNew)
-                {
-                    INSERT.Append(" ");
-                    INSERT.Append(SparqlSerializer.SerializeResource(res, IgnoreUnmappedProperties));
-                }
-                else
-                {
-                    DELETE.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p ?o. ");
-                    OPTIONAL.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p ?o. ");
-                    INSERT.Append($" {SparqlSerializer.SerializeResource(res, IgnoreUnmappedProperties)} ");
-                }
-            }
-            string updateString = $"WITH {WITH} DELETE {{ {DELETE} }} INSERT {{ {INSERT} }} WHERE {{ OPTIONAL {{ {OPTIONAL} }} }}";
-            SparqlUpdate update = new SparqlUpdate(updateString);
-
-            ExecuteUpdate(update, transaction);
-
-            foreach( var resource in resources) 
-            { 
-                resource.IsNew = false;
-                resource.IsSynchronized = true;
-            }
+            _store.UpdateResources(resources, Uri, transaction, IgnoreUnmappedProperties);
         }
 
         /// <summary>

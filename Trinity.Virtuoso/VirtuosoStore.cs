@@ -140,7 +140,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
         private string CreateConnectionString()
         {
-            return "Server=" + Hostname + ":" + Port + ";uid=" + Username + ";pwd=" + Password + ";Charset=utf-8";
+            return "Server=" + Hostname + ":" + Port + ";uid=" + Username + ";pwd=" + Password + ";Charset=utf-8;CONNECTIONLIFETIME=30";
         }
 
         [Obsolete("It is not necessary to create models explicitly. Use GetModel() instead, if the model does not exist, it will be created implicitly.")]
@@ -593,6 +593,68 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                 s.Update(this);
             }
         }
+
+        /// <summary>
+        /// Creates a model group which allows for queries to be made on multiple models at once.
+        /// </summary>
+        /// <param name="models">The list of model handles that should be grouped together.</param>
+        /// <returns></returns>
+        public virtual IModelGroup CreateModelGroup(params IModel[] models)
+        {
+            List<IModel> result = new List<IModel>();
+
+            foreach (var model in models)
+            {
+                result.Add(GetModel(model.Uri));
+            }
+
+            return new ModelGroup(this, result);
+        }
+
+  
+        public override void UpdateResource(Resource resource, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
+        {
+            string updateString;
+
+            updateString = string.Format(@"WITH {0} DELETE {{ {1} ?p ?o. }} WHERE {{ OPTIONAL {{ {1} ?p ?o. }} }} INSERT {{ {2} }} ",
+                SparqlSerializer.SerializeUri(modelUri),
+                SparqlSerializer.SerializeUri(resource.Uri),
+                SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
+
+
+            SparqlUpdate update = new SparqlUpdate(updateString);
+
+            ExecuteNonQuery(update, transaction);
+
+            resource.IsNew = false;
+            resource.IsSynchronized = true;
+        }
+
+        public override void UpdateResources(IEnumerable<Resource> resources, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
+        {
+            string WITH = $"{SparqlSerializer.SerializeUri(modelUri)} ";
+            StringBuilder INSERT = new StringBuilder();
+            StringBuilder DELETE = new StringBuilder();
+            StringBuilder OPTIONAL = new StringBuilder();
+
+            foreach (var res in resources)
+            {
+                DELETE.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p ?o. ");
+                OPTIONAL.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p ?o. ");
+                INSERT.Append($" {SparqlSerializer.SerializeResource(res, ignoreUnmappedProperties)} ");
+            }
+            string updateString = $"WITH {WITH} DELETE {{ {DELETE} }}  WHERE {{ OPTIONAL {{ {OPTIONAL} }} }} INSERT {{ {INSERT} }}";
+            SparqlUpdate update = new SparqlUpdate(updateString);
+
+            ExecuteNonQuery(update, transaction);
+
+            foreach (var resource in resources)
+            {
+                resource.IsNew = false;
+                resource.IsSynchronized = true;
+            }
+        }
+
 
         #endregion
 

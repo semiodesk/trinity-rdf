@@ -7,8 +7,8 @@
 	<Description>Enterprise ready object mapper for developing RDF knowledge graph applications with .NET</Description>
 	<Company>Semiodesk GmbH</Company>
 	<Version>1.0.3</Version>
-	<AssemblyVersion>1.0.2.10</AssemblyVersion>
-	<FileVersion>1.0.2.10</FileVersion>
+	<AssemblyVersion>1.0.3.30</AssemblyVersion>
+	<FileVersion>1.0.3.30</FileVersion>
 	<AssemblyName>Semiodesk.Trinity</AssemblyName>
 	<RootNamespace>Semiodesk.Trinity</RootNamespace>
     <IsPackable>true</IsPackable>

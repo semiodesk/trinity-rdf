@@ -34,6 +34,7 @@ using System.Reflection;
 using System.Linq;
 using System.Collections;
 using Newtonsoft.Json;
+using System.Runtime.Serialization;
 #if NET35
 using Semiodesk.Trinity.Utility;
 #endif
@@ -100,6 +101,12 @@ namespace Semiodesk.Trinity
         public bool IsNew { get; set; }
 
         /// <summary>
+        /// Indicates that this resource is a blank node.
+        /// </summary>
+        [JsonIgnore]
+        public bool IsBlank { get; set; }
+
+        /// <summary>
         /// Indicates if the resources has been disposed.
         /// </summary>
         [JsonIgnore]
@@ -108,7 +115,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// True if the properties of the resources has been committed to the model.
         /// </summary>
-        [Browsable(false), JsonIgnore]
+        [Browsable(false), JsonIgnore, IgnoreDataMember]
         public bool IsSynchronized { get; set; }
 
         /// <summary>
