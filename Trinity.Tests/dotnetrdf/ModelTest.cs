@@ -59,6 +59,88 @@ namespace dotNetRDFStore.Test
             Store = null;
         }
 
+
+        [Test]
+        public void DeleteResourceTest()
+        {
+            Uri uri0 = new Uri("http://example.org/MyResource");
+            Uri uri1 = new Uri("http://example.org/MyResource1");
+            Property p0 = new Property(new Uri("http://example.org/MyProperty"));
+            Property p1 = new Property(new Uri("http://example.org/MyProperty1"));
+
+            IResource model_resource = Model.CreateResource(uri0);
+
+            model_resource.AddProperty(p0, "in the jungle");
+            model_resource.AddProperty(p0, 123);
+            model_resource.AddProperty(p0, DateTime.Now);
+            model_resource.Commit();
+
+            Assert.IsTrue(Model.ContainsResource(uri0));
+
+            Model.DeleteResource(uri0);
+
+            Assert.IsFalse(Model.ContainsResource(uri0));
+
+
+            IResource r0 = Model.CreateResource(uri0);
+            r0.AddProperty(p0, "in the jungle");
+            r0.AddProperty(p0, 123);
+            r0.Commit();
+
+            IResource r1 = Model.CreateResource(uri1);
+            r1.AddProperty(p0, 123);
+            r1.AddProperty(p1, r0);
+            r1.Commit();
+
+            Assert.IsTrue(Model.ContainsResource(r0));
+            Assert.IsTrue(Model.ContainsResource(r1));
+
+            Model.DeleteResource(r0);
+
+            Assert.IsFalse(Model.ContainsResource(r0));
+            Assert.IsTrue(Model.ContainsResource(r1));
+
+            // Update the resource from the model.
+            r1 = Model.GetResource(uri1);
+
+            Assert.IsTrue(r1.HasProperty(p0, 123));
+            Assert.IsFalse(r1.HasProperty(p1, r0));
+        }
+
+        [Test]
+        public void DeleteResourcesTest()
+        {
+            Uri uri0 = new Uri("http://example.org/MyResource");
+            Uri uri1 = new Uri("http://example.org/MyResource1");
+            Property p0 = new Property(new Uri("http://example.org/MyProperty"));
+            Property p1 = new Property(new Uri("http://example.org/MyProperty1"));
+
+
+            IResource model_resource = Model.CreateResource(uri0);
+
+            model_resource.AddProperty(p0, "in the jungle");
+            model_resource.AddProperty(p0, 123);
+            model_resource.AddProperty(p0, DateTime.Now);
+            model_resource.Commit();
+
+            IResource r1 = Model.CreateResource(uri1);
+            r1.AddProperty(p0, 123);
+            r1.AddProperty(p1, new Resource(uri0));
+            r1.Commit();
+
+            Assert.IsTrue(Model.ContainsResource(uri0));
+            Assert.IsTrue(Model.ContainsResource(uri1));
+
+            r1 = Model.GetResource(uri1);
+            var r0 = Model.GetResource(uri0);
+
+            Model.DeleteResources(null, r0, r1);
+
+            Assert.IsFalse(Model.ContainsResource(uri0));
+            Assert.IsFalse(Model.ContainsResource(uri1));
+        }
+
+
         [Test]
         public void CreateResourceTest()
         {
@@ -190,10 +272,11 @@ namespace dotNetRDFStore.Test
                 store.Read(stream, modelUri, RdfSerializationFormat.JsonLd, true);
 
                 var model = store.GetModel(modelUri);
-                var res = model.GetResources(new Uri[] { }, typeof(Resource)).ToList();
+                var res = model.GetResources<Resource>().ToList();
 
             }
         }
+
 
         [Test]
         public void GetResourcesEmptyTest()

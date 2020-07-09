@@ -207,14 +207,14 @@ namespace Semiodesk.Trinity.Test
                     ?x nco:fullname ?name .
                 }");
 
-            var c1 = Model.GetResources(query);
+            var c1 = Model.GetResources(query).ToList();
 
-            Assert.AreEqual(c0.Count(), c1.Count());
+            Assert.AreEqual(2, c1.Count());
 
-            foreach(var c in c1)
-            {
-                Assert.IsTrue(c.HasProperty(vcard.givenName));
-            }
+            
+           Assert.IsTrue(c1[0].HasProperty(vcard.N));
+            Assert.IsTrue(c1[1].HasProperty(vcard.givenName));
+
         }
 
         [Test]

@@ -655,6 +655,52 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             }
         }
 
+        public override void DeleteResource(Uri modelUri, Uri resourceUri, ITransaction transaction = null)
+        {
+
+            SparqlUpdate delete = new SparqlUpdate(@"WITH @graph DELETE WHERE { ?s ?p ?o. FILTER( ?s = @subject || ?o = @object ) }");
+            delete.Bind("@graph", modelUri);
+            delete.Bind("@subject", resourceUri);
+            delete.Bind("@object", resourceUri);
+
+            ExecuteNonQuery(delete, transaction);
+        }
+
+        public override void DeleteResource(IResource resource, ITransaction transaction = null)
+        {
+
+            DeleteResource(resource.Model.Uri, resource.Uri, transaction);
+        }
+
+        public override void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null)
+        {
+            IModel model = resources.First().Model;
+            if( resources.Any(x => x.IsBlank || x.Model.Uri != model.Uri))
+                throw new NotSupportedException();
+
+            var template = "WITH @graph DELETE WHERE { ?s ?p ?o. FILTER( _filter_ )}";
+            List<string> filters = new List<string>();
+            int counter = 0;
+            foreach ( var x in resources)
+            {
+                filters.Add($"?s = @subject{counter} || ?o = @object{counter}");
+                counter++;
+            }
+            
+            SparqlUpdate c = new SparqlUpdate(template.Replace("_filter_", string.Join(" || ", filters)));
+            c.Bind("@graph", model.Uri);
+            
+            counter = 0;
+            foreach (var x in resources)
+            {
+                c.Bind("@subject"+counter, x.Uri);
+                c.Bind("@object" + counter, x.Uri);
+                counter++;
+            }
+
+            ExecuteNonQuery(c, transaction);
+        }
+       
 
         #endregion
 

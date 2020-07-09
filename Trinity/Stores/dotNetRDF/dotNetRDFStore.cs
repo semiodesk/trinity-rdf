@@ -158,15 +158,7 @@ namespace Semiodesk.Trinity.Store
         /// <returns></returns>
         public override ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
-            if (query.IsInferenceEnabled && _reasoner != null)
-            {
-                _store.AddInferenceEngine(_reasoner);
-            }
-            else
-            {
-                _store.ClearInferenceEngines();
-            }
-
+            
             string q = query.ToString();
 
             object results = ExecuteQuery(q);

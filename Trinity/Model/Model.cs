@@ -128,6 +128,9 @@ namespace Semiodesk.Trinity
         /// <returns>The resource which is now connected to the current model.</returns>
         public virtual IResource AddResource(IResource resource, ITransaction transaction = null)
         {
+            if (resource.IsBlank)
+                throw new ResourceBlankException();
+
             Resource result = CreateResource<Resource>(resource.Uri, transaction);
 
             foreach (var v in resource.ListValues())
@@ -148,6 +151,9 @@ namespace Semiodesk.Trinity
         /// <returns>The resource which is now connected to the current model.</returns>
         public virtual T AddResource<T>(T resource, ITransaction transaction = null) where T : Resource
         {
+            if (resource.IsBlank)
+                throw new ResourceBlankException();
+
             T result = CreateResource<T>(resource.Uri, transaction);
 
             foreach (var v in resource.ListValues())
@@ -270,21 +276,7 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         public virtual void DeleteResource(Uri uri, ITransaction transaction = null)
         {
-            // NOTE: Regrettably, dotNetRDF does not support the full SPARQL 1.1 update syntax. To be precise,
-            // it does not support FILTERs or OPTIONAL in Modify clauses. This requires us to formulate the
-            // deletion of the resource in subject and object of any triples in two statements.
-
-            SparqlUpdate deleteSubject = new SparqlUpdate(@"DELETE WHERE { GRAPH @graph { @subject ?p ?o . } }");
-            deleteSubject.Bind("@graph", Uri);
-            deleteSubject.Bind("@subject", uri);
-
-            _store.ExecuteNonQuery(deleteSubject, transaction);
-
-            SparqlUpdate deleteObject = new SparqlUpdate(@"DELETE WHERE { GRAPH @graph { ?s ?p @object . } }");
-            deleteObject.Bind("@graph", Uri);
-            deleteObject.Bind("@object", uri);
-
-            _store.ExecuteNonQuery(deleteObject, transaction);
+            _store.DeleteResource(Uri, uri, transaction);
         }
 
         /// <summary>
@@ -295,8 +287,26 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         public virtual void DeleteResource(IResource resource, ITransaction transaction = null)
         {
+            if (resource.IsBlank)
+                throw new ResourceBlankException();
             DeleteResource(resource.Uri);
         }
+
+
+        public virtual void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null)
+        {
+           if( resources.Any( x => x.IsBlank))
+                throw new ResourceBlankException();
+            _store.DeleteResources(resources, transaction);
+        }
+
+        public virtual void DeleteResources(ITransaction transaction = null, params IResource[] resources)
+        {
+            if (resources.Any(x => x.IsBlank))
+                throw new ResourceBlankException();
+            _store.DeleteResources(resources, transaction);
+        }
+
 
         /// <summary>
         /// Updates the properties of a resource in the backing RDF store.
@@ -305,6 +315,8 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         public virtual void UpdateResource(Resource resource, ITransaction transaction = null)
         {
+            if (resource.IsBlank)
+                throw new ResourceBlankException();
             _store.UpdateResource(resource, Uri, transaction, IgnoreUnmappedProperties);
         }
 
@@ -315,6 +327,8 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         public virtual void UpdateResources(IEnumerable<Resource> resources, ITransaction transaction = null)
         {
+            if (resources.Any( x => x.IsBlank) )
+                throw new ResourceBlankException();
             _store.UpdateResources(resources, Uri, transaction, IgnoreUnmappedProperties);
         }
 
@@ -351,6 +365,8 @@ namespace Semiodesk.Trinity
         /// <returns>True if the resource is part of the model, False if not.</returns>
         public bool ContainsResource(IResource resource, ITransaction transaction = null)
         {
+            if (resource.IsBlank)
+                return false;
             return ContainsResource(resource.Uri, transaction);
         }
 
@@ -419,6 +435,8 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(IResource resource, ITransaction transaction = null)
         {
+            if (resource.IsBlank)
+                throw new Exception("Blank resources are not supported yet.");
             return GetResource(resource.Uri, transaction);
         }
 

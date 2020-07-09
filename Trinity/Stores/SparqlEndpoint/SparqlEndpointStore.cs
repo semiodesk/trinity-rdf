@@ -221,6 +221,21 @@ namespace Semiodesk.Trinity.Store
             throw new NotSupportedException();
         }
 
+        public void DeleteResource(Uri modelUri, Uri resourceUri, ITransaction transaction = null)
+        {
+            throw new NotSupportedException();
+        }
+
+        public void DeleteResource(IResource resource, ITransaction transaction = null)
+        {
+            throw new NotSupportedException();
+        }
+
+        public void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null)
+        {
+            throw new NotSupportedException();
+        }
+
         #endregion
     }
 }

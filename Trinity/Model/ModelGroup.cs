@@ -842,6 +842,16 @@ namespace Semiodesk.Trinity
             return _set.GetEnumerator();
         }
 
+        public void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null)
+        {
+            throw new NotSupportedException();
+        }
+
+        public void DeleteResources(ITransaction transaction = null, params IResource[] resources)
+        {
+            throw new NotSupportedException();
+        }
+
         #endregion
     }
 }

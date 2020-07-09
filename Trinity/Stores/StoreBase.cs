@@ -319,6 +319,32 @@ namespace Semiodesk.Trinity
             }
         }
 
+        public virtual void DeleteResource(Uri modelUri, Uri resourceUri, ITransaction transaction = null)
+        {
+            // NOTE: Regrettably, dotNetRDF does not support the full SPARQL 1.1 update syntax. To be precise,
+            // it does not support FILTERs or OPTIONAL in Modify clauses.
+
+            SparqlUpdate delete = new SparqlUpdate(@"
+                DELETE WHERE { GRAPH @graph { @subject ?p ?o . } }; 
+                DELETE WHERE { GRAPH @graph { ?s ?p @object . } }");
+            delete.Bind("@graph", modelUri);
+            delete.Bind("@subject", resourceUri);
+            delete.Bind("@object", resourceUri);
+
+            ExecuteNonQuery(delete, transaction);
+        }
+
+        public virtual void DeleteResource(IResource resource, ITransaction transaction = null)
+        {
+            DeleteResource(resource.Model.Uri, resource.Uri, transaction);
+        }
+
+        public virtual void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null)
+        {
+            foreach (var resource in resources)
+                DeleteResource(resource, transaction);
+        }
+
         #endregion
     }
 }

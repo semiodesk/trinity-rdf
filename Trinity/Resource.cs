@@ -94,6 +94,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public UriRef Uri { get; set; }
 
+
         /// <summary>
         /// New resource which have never been committed need to be treated differently.
         /// </summary>
@@ -104,7 +105,7 @@ namespace Semiodesk.Trinity
         /// Indicates that this resource is a blank node.
         /// </summary>
         [JsonIgnore]
-        public bool IsBlank { get; set; }
+        public bool IsBlank { get; set; } = false;
 
         /// <summary>
         /// Indicates if the resources has been disposed.

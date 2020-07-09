@@ -154,6 +154,10 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         void DeleteResource(IResource resource, ITransaction transaction = null);
 
+        void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null);
+
+        void DeleteResources(ITransaction transaction = null, params IResource[] resources);
+
         /// <summary>
         /// Indicates wheter a given resource is part of the model.
         /// </summary>

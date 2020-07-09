@@ -202,6 +202,12 @@ namespace Semiodesk.Trinity
         /// <param name="resources">Resources that is to be updated in the backing store.</param>
         /// <param name="transaction">Transaction associated with this action.</param>
         void UpdateResources(IEnumerable<Resource> resources, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false);
+
+        void DeleteResource(Uri modelUri, Uri resourceUri, ITransaction transaction = null);
+
+        void DeleteResource(IResource resource, ITransaction transaction = null);
+
+        void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null);
         #endregion
     }
 }

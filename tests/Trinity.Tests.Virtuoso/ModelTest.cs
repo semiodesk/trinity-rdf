@@ -224,6 +224,32 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         }
 
         [Test]
+        public void DeleteResourcesTest()
+        {
+            Uri uri0 = new Uri("http://example.org/MyResource");
+            Uri uri1 = new Uri("http://example.org/MyResource1");
+            Property p0 = new Property(new Uri("http://example.org/MyProperty"));
+            Property p1 = new Property(new Uri("http://example.org/MyProperty1"));
+
+
+            IResource r1 = Model.CreateResource(uri1);
+            r1.AddProperty(p0, 123);
+            r1.AddProperty(p1, new Resource(uri0));
+            r1.Commit();
+
+            Assert.IsTrue(Model.ContainsResource(uri0));
+            Assert.IsTrue(Model.ContainsResource(uri1));
+
+            r1 = Model.GetResource(uri1);
+            var r0 = Model.GetResource(uri0);
+
+            Model.DeleteResources(null, r0, r1);
+
+            Assert.IsFalse(Model.ContainsResource(uri0));
+            Assert.IsFalse(Model.ContainsResource(uri1));
+        }
+
+        [Test]
         public void GetResourceTest()
         {
             IResource hans = Model.GetResource(new Uri("http://example.org/MyResource"));

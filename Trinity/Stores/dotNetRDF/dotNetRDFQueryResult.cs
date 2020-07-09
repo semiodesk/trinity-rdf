@@ -202,7 +202,7 @@ namespace Semiodesk.Trinity.Store
                         if ( s is IUriNode uriNode)
                             subjectUri = uriNode.Uri;
                         else if (s is BlankNode blankNode)
-                            subjectUri = new Uri("_:"+blankNode.InternalID);
+                            subjectUri = new UriRef("blank:"+blankNode.InternalID);
 
                         if (currentResource != null && currentResource.Uri.OriginalString == subjectUri.OriginalString)
                         {
@@ -251,7 +251,9 @@ namespace Semiodesk.Trinity.Store
                         if (o is IUriNode uriNode)
                             uri = uriNode.Uri;
                         else if (o is BlankNode blankNode)
-                            uri = new Uri("_:" + blankNode.InternalID);
+                        {
+                            uri = new UriRef("blank:" + blankNode.InternalID);
+                        }
 
                         if (currentResource.HasPropertyMapping(p, uri.GetType()))
                         {
