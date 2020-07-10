@@ -391,7 +391,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
         public override void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
         {
-            string queryString = string.Format("SPARQL {0}", query.ToString());
+            string queryString = string.Format("SPARQL {{ {0} }}", query.ToString());
 
             ExecuteDirectQuery(queryString, transaction);
         }

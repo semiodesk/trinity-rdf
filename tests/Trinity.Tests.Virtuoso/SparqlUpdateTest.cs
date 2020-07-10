@@ -104,6 +104,27 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         }
 
         [Test]
+        public void TestMultipleModify()
+        {
+            SparqlUpdate update = new SparqlUpdate(@"
+                INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title' . };
+                INSERT DATA INTO <ex:TestModel> { ex:book2 dc:title 'This is an example title2' . }");
+
+            _model.ExecuteUpdate(update);
+
+            SparqlQuery query = new SparqlQuery(@"
+                ASK WHERE { ?s dc:title 'This is an example title' . }");
+
+            Assert.AreEqual(false, _model.ExecuteQuery(query).GetAnwser());
+
+            query = new SparqlQuery(@"
+                ASK WHERE { ?s dc:title 'This is an example title2' . }");
+
+            Assert.AreEqual(true, _model.ExecuteQuery(query).GetAnwser());
+        }
+
+
+        [Test]
         public void TestDelete()
         {
             SparqlUpdate update = new SparqlUpdate(@"
