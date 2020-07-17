@@ -292,6 +292,11 @@ namespace Semiodesk.Trinity
             DeleteResource(resource.Uri);
         }
 
+        public virtual void DeleteResources(IEnumerable<Uri> resources, ITransaction transaction = null)
+        {
+            _store.DeleteResources(Uri, resources, transaction);
+        }
+
 
         public virtual void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null)
         {
@@ -716,6 +721,23 @@ namespace Semiodesk.Trinity
             }
 
             return (_store.Read(stream, Uri, format, update) != null);
+        }
+
+        /// <summary>
+        /// Reads model contents from a stream. The method supports importing files and other models stored in the local RDF store.
+        /// </summary>
+        /// <param name="content">A stream.</param>
+        /// <param name="format">Serialization format <see cref="RdfSerializationFormat"/></param>
+        /// <param name="update">Pass false if you want to overwrite existing data. True if you want to keep the data and add the new entries.</param>
+        /// <returns>True if the contents of the model were imported, False if not.</returns>
+        public bool Read(string content, RdfSerializationFormat format, bool update)
+        {
+            if (format == RdfSerializationFormat.Trig)
+            {
+                throw new ArgumentException("Quadruple serialization formats are not supported by this method. Use IStore.Read() instead.");
+            }
+
+            return (_store.Read(content, Uri, format, update) != null);
         }
 
         /// <summary>

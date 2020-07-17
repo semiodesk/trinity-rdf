@@ -230,6 +230,101 @@ namespace Semiodesk.Trinity.Store.Stardog
         /// <param name="format">Allowed formats</param>
         /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
         /// <returns></returns>
+        public override Uri Read(string content, Uri modelUri, RdfSerializationFormat format, bool update)
+        {
+            if (!update)
+            {
+                // Clear the graph.
+                RemoveModel(modelUri);
+            }
+
+            // Number of triples to write simultanously.
+            const uint bulkSize = 100;
+
+            // Collect the triples that have been read.
+            List<Triple> triples = new List<Triple>();
+
+            // A handler which will fill the triples up to the bulk size.
+            StardogRdfHandler handler = new StardogRdfHandler()
+            {
+                OnReadTriple = (e, t) =>
+                {
+                    if (triples.Count < bulkSize)
+                    {
+                        triples.Add(t);
+                    }
+                    else
+                    {
+                        _connector.UpdateGraph(modelUri, triples, null);
+
+                        triples.Clear();
+                    }
+                },
+                OnReadEnded = (e, ok) =>
+                {
+                    if (triples.Count > 0)
+                    {
+                        _connector.UpdateGraph(modelUri, triples, null);
+                    }
+                }
+            };
+
+        
+            switch (format)
+            {
+                case RdfSerializationFormat.N3:
+                    new Notation3Parser().Load(handler, content);
+                    break;
+
+                case RdfSerializationFormat.NTriples:
+                    new NTriplesParser().Load(handler, content);
+                    break;
+
+                case RdfSerializationFormat.Trig:
+                    new TriGParser().Load(handler, content);
+                    break;
+
+#if !NET35
+                case RdfSerializationFormat.NQuads:
+                    new NQuadsParser().Load(handler, content);
+                    break;
+#endif
+
+                case RdfSerializationFormat.Turtle:
+                    new TurtleParser().Load(handler, content);
+                    break;
+
+                case RdfSerializationFormat.Json:
+                    new RdfJsonParser().Load(handler, content);
+                    break;
+
+#if !NET35
+                case RdfSerializationFormat.JsonLd:
+                    new JsonLdParser().Load(handler, content);
+                    break;
+#endif
+
+                case RdfSerializationFormat.RdfXml:
+                    new RdfXmlParser().Load(handler, content);
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(format), format, null);
+                
+            }
+
+            return modelUri;
+        }
+
+
+        /// <summary>
+        /// Loads a serialized graph from the given stream into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="stream">Stream containing a serialized graph</param>
+        /// <param name="modelUri">Uri of the graph in this store</param>
+        /// <param name="format">Allowed formats</param>
+        /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
+        /// <returns></returns>
         public override Uri Read(Stream stream, Uri modelUri, RdfSerializationFormat format, bool update)
         {
             if(!update)

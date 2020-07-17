@@ -37,27 +37,47 @@ namespace Semiodesk.Trinity
         /// </summary>
         RdfXml,
         /// <summary>
+        /// RDF/XML <see href="http://www.w3.org/TR/REC-rdf-syntax/">http://www.w3.org/TR/REC-rdf-syntax/</see>
+        /// </summary>
+        GZippedRdfXml,
+        /// <summary>
         /// N3 <see href="http://www.w3.org/TeamSubmission/n3/">http://www.w3.org/TeamSubmission/n3/</see>
         /// </summary>
         N3,
+        /// <summary>
+        /// GZiped N3 <see href="http://www.w3.org/TeamSubmission/n3/">http://www.w3.org/TeamSubmission/n3/</see>
+        /// </summary>
+        GZippedN3,
         /// <summary>
         /// NTriples <see href="http://www.w3.org/2001/sw/RDFCore/ntriples/">http://www.w3.org/2001/sw/RDFCore/ntriples/</see>
         /// </summary>
         NTriples,
 #if !NET35
         /// <summary>
-        /// NTriples <see href="https://www.w3.org/TR/2014/REC-n-quads-20140225/">https://www.w3.org/TR/2014/REC-n-quads-20140225/</see>
+        /// NQuads <see href="https://www.w3.org/TR/2014/REC-n-quads-20140225/">https://www.w3.org/TR/2014/REC-n-quads-20140225/</see>
         /// </summary>
         NQuads,
+        /// <summary>
+        /// NQuads <see href="https://www.w3.org/TR/2014/REC-n-quads-20140225/">https://www.w3.org/TR/2014/REC-n-quads-20140225/</see>
+        /// </summary>
+        GZippedNQuads,
 #endif
         /// <summary>
         /// TriG <see href="http://www.w3.org/TR/trig/">http://www.w3.org/TR/trig/</see>
         /// </summary>
         Trig,
         /// <summary>
+        /// TriG <see href="http://www.w3.org/TR/trig/">http://www.w3.org/TR/trig/</see>
+        /// </summary>
+        GZippedTrig,
+        /// <summary>
         /// Turtle <see href="http://www.w3.org/TR/turtle/">http://www.w3.org/TR/turtle/</see>
         /// </summary>
         Turtle,
+        /// <summary>
+        /// Turtle <see href="http://www.w3.org/TR/turtle/">http://www.w3.org/TR/turtle/</see>
+        /// </summary>
+        GZippedTurtle,
         /// <summary>
         /// JSON
         /// </summary>
@@ -66,7 +86,12 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// JSON-LD <see href="https://www.w3.org/TR/json-ld/">https://www.w3.org/TR/json-ld/</see>
         /// </summary>
-        JsonLd
+        JsonLd,
+        /// <summary>
+        /// JSON-LD <see href="https://www.w3.org/TR/json-ld/">https://www.w3.org/TR/json-ld/</see>
+        /// </summary>
+        GZippedJsonLd
+
 #endif
     };
 }

@@ -110,7 +110,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Starts analyzing the SPARQL query.
         /// </summary>
-        /// <param name="declarePrefixes">Trz to add prefix definitions for the namespaces used but not declared in the query.</param>
+        /// <param name="declarePrefixes">Try to add prefix definitions for the namespaces used but not declared in the query.</param>
         public void Process(bool declarePrefixes)
         {
             IToken token;
@@ -218,7 +218,7 @@ namespace Semiodesk.Trinity
                 next = Peek();
             }
 
-            if(next == '@' && LastTokenType != Token.LITERAL)
+            if(next == '@' && LastTokenType != Token.LITERAL && LastTokenType != Token.LONGLITERAL)
             {
                 StartNewToken();
 

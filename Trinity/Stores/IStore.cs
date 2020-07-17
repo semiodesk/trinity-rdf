@@ -161,6 +161,17 @@ namespace Semiodesk.Trinity
         Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update);
 
         /// <summary>
+        /// Loads a serialized graph from the given string into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="string">Stream containing a serialized graph</param>
+        /// <param name="graphUri">Uri of the graph in this store</param>
+        /// <param name="format">Allowed formats</param>
+        /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
+        /// <returns></returns>
+        Uri Read(string content, Uri graphUri, RdfSerializationFormat format, bool update);
+
+
+        /// <summary>
         /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.
         /// </summary>
         /// <param name="fs">Stream to which the content should be written.</param>
@@ -206,6 +217,8 @@ namespace Semiodesk.Trinity
         void DeleteResource(Uri modelUri, Uri resourceUri, ITransaction transaction = null);
 
         void DeleteResource(IResource resource, ITransaction transaction = null);
+
+        void DeleteResources(Uri modelUri, IEnumerable<Uri> resources, ITransaction transaction = null);
 
         void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null);
         #endregion

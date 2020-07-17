@@ -468,17 +468,103 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             }
         }
 
+        public override Uri Read(string content, Uri graph, RdfSerializationFormat format, bool update)
+        {
+            
+#if !NET35
+                if (format == RdfSerializationFormat.Trig || format == RdfSerializationFormat.NQuads || format == RdfSerializationFormat.JsonLd)
+#else
+                if (format == RdfSerializationFormat.Trig)
+#endif
+                {
+                    return ReadQuadFormat(content, graph, format, update);
+                }
+                else
+                {
+                    return ReadTripleFormat(content, graph, format, update);
+                }
+            
+        }
+
+        private IStoreReader GetStoreReader(RdfSerializationFormat format)
+        {
+            if (format == RdfSerializationFormat.JsonLd)
+                return new JsonLdParser();
+            if (format == RdfSerializationFormat.GZippedJsonLd)
+                return new GZippedJsonLdParser();
+            if (format == RdfSerializationFormat.NQuads)
+                return new NQuadsParser();
+            if (format == RdfSerializationFormat.GZippedNQuads)
+                return new GZippedNQuadsParser();
+            if (format == RdfSerializationFormat.Trig)
+                return new TriGParser();
+            if (format == RdfSerializationFormat.GZippedTrig)
+                return new GZippedTriGParser();
+
+            return null;
+        }
+
+        private IRdfReader GetParser(RdfSerializationFormat format)
+        {
+            if (format == RdfSerializationFormat.Turtle)
+                return new TurtleParser();
+            if (format == RdfSerializationFormat.GZippedTurtle)
+                return new GZippedTurtleParser();
+            if (format == RdfSerializationFormat.N3)
+                return new Notation3Parser();
+            if (format == RdfSerializationFormat.GZippedN3)
+                return new GZippedNotation3Parser();
+            if (format == RdfSerializationFormat.GZippedRdfXml)
+                return new GZippedRdfXmlParser();
+            if (format == RdfSerializationFormat.RdfXml)
+                return new RdfXmlParser();
+            return null;
+        }
+
         private Uri ReadQuadFormat(TextReader reader, Uri graph, RdfSerializationFormat format, bool update)
         {
             using (VirtuosoManager manager = new VirtuosoManager(CreateConnectionString()))
             {
-                using (VDS.RDF.ThreadSafeTripleStore store = new VDS.RDF.ThreadSafeTripleStore())
+                using (ThreadSafeTripleStore store = new VDS.RDF.ThreadSafeTripleStore())
                 {
-                    VDS.RDF.Parsing.TriGParser parser = new TriGParser();
+                    IStoreReader parser = GetStoreReader(format);
+                    if (parser == null)
+                        throw new NotSupportedException();
 
                     parser.Load(store, reader);
 
                     foreach (var g in store.Graphs)
+                    {
+                        if (update)
+                        {
+                            manager.UpdateGraph(g.BaseUri, g.Triples, new Triple[] { });
+                        }
+                        else
+                        {
+                            manager.SaveGraph(g);
+                        }
+                    }
+                }
+            }
+
+            return graph;
+        }
+
+        private Uri ReadQuadFormat(string content, Uri graph, RdfSerializationFormat format, bool update)
+        {
+            using (VirtuosoManager manager = new VirtuosoManager(CreateConnectionString()))
+            {
+                using (ThreadSafeTripleStore store = new VDS.RDF.ThreadSafeTripleStore())
+                {
+                    IStoreReader parser = GetStoreReader(format);
+                    if (parser == null)
+                        throw new NotSupportedException();
+
+                    parser.Load(store, content);
+
+                    var g = store.Graphs.Where(x => x.BaseUri == graph).FirstOrDefault();
+
+                    if( g != null )
                     {
                         if (update)
                         {
@@ -502,6 +588,34 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                 using (VDS.RDF.Graph graph = new VDS.RDF.Graph())
                 {
                     dotNetRDFStore.TryParse(reader, graph, format);
+
+                    graph.BaseUri = graphUri;
+
+                    if (update)
+                    {
+                        manager.UpdateGraph(graphUri, graph.Triples, new Triple[] { });
+                    }
+                    else
+                    {
+                        manager.SaveGraph(graph);
+                    }
+                }
+            }
+
+            return graphUri;
+        }
+
+        private Uri ReadTripleFormat(string content, Uri graphUri, RdfSerializationFormat format, bool update)
+        {
+            using (VirtuosoManager manager = new VirtuosoManager(CreateConnectionString()))
+            {
+                using (VDS.RDF.Graph graph = new VDS.RDF.Graph())
+                {
+                    var parser = GetParser(format);
+                    if (parser == null)
+                        throw new NotSupportedException();
+
+                    graph.LoadFromString(content, parser);
 
                     graph.BaseUri = graphUri;
 
@@ -670,6 +784,32 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         {
 
             DeleteResource(resource.Model.Uri, resource.Uri, transaction);
+        }
+
+        public override void DeleteResources(Uri modelUri, IEnumerable<Uri> resources, ITransaction transaction = null)
+        {
+
+            var template = "WITH @graph DELETE WHERE { ?s ?p ?o. FILTER( _filter_ )}";
+            List<string> filters = new List<string>();
+            int counter = 0;
+            foreach (var x in resources)
+            {
+                filters.Add($"?s = @subject{counter} || ?o = @object{counter}");
+                counter++;
+            }
+
+            SparqlUpdate c = new SparqlUpdate(template.Replace("_filter_", string.Join(" || ", filters)));
+            c.Bind("@graph", modelUri);
+
+            counter = 0;
+            foreach (var x in resources)
+            {
+                c.Bind("@subject" + counter, x);
+                c.Bind("@object" + counter, x);
+                counter++;
+            }
+
+            ExecuteNonQuery(c, transaction);
         }
 
         public override void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null)

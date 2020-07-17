@@ -1160,7 +1160,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         IModel GetModel()
         {
             _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString));
-
+            _store.InitializeFromConfiguration();
             return _store.GetModel(new Uri("http://example.org/TestModel"));
         }
 

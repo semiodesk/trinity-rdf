@@ -29,7 +29,7 @@ using System;
 using System.Linq;
 using NUnit.Framework;
 
-namespace Semiodesk.Trinity.Test.Virtuoso
+namespace Semiodesk.Trinity.Test
 {
     [TestFixture]
     public class SparqlUpdateTest : SetupClass
@@ -41,10 +41,8 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         [SetUp]
         public void SetUp()
         {
-            string connectionString = SetupClass.ConnectionString;
-
-            _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
-            _model = _store.GetModel(new Uri("ex:TestModel"));
+            _store = StoreFactory.CreateStore("provider=dotnetrdf");
+            _model = _store.GetModel(new Uri("http://example.org/TestModel"));
 
             if (!_model.IsEmpty)
             {
@@ -65,9 +63,32 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         }
 
         [Test]
+        public void TestLanguageTagsVariableIssue()
+        {
+            string str = @"
+            WITH <ex:test>
+            DELETE { <http://www.w3.org/2006/time> ?p ?o. }
+            WHERE { OPTIONAL { <http://www.w3.org/2006/time> ?p ?o. } }
+            INSERT { 
+                <http://www.w3.org/2006/time> <http://schema.org/name> 'OWL-Time'@en; 
+                <http://www.w3.org/2004/02/skos/core#changeNote> '2017-04-06 - hasTime, hasXSDDuration added; Number removed; all duration elements changed to xsd:decimal'; 
+                <http://www.w3.org/2004/02/skos/core#historyNote> 
+                '''Update of OWL-Time ontology, extended to support general temporal reference systems. 
+                    Ontology engineering by Simon J D Cox'''@en.
+                }
+            ";
+            SparqlUpdate update = new SparqlUpdate(str);
+            Assert.DoesNotThrow(() =>
+           {
+               update.ToString();
+           });
+ 
+        }
+
+        [Test]
         public void TestInsert()
         {
-            SparqlUpdate update = new SparqlUpdate(@"INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title' . }");
+            SparqlUpdate update = new SparqlUpdate(@"INSERT DATA { GRAPH <http://example.org/TestModel> {ex:book dc:title 'This is an example title' .} }");
 
             _model.ExecuteUpdate(update);
 
@@ -79,8 +100,8 @@ namespace Semiodesk.Trinity.Test.Virtuoso
 
             /// TEST WITH LANGUAGE TAG
             /// 
-            update = new SparqlUpdate(@"INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title'@en . }");
-
+            update = new SparqlUpdate(@"INSERT DATA { GRAPH @graph {ex:book dc:title 'This is an example title'@en . }}");
+            update.Bind("@graph", new Uri("http://example.org/TestModel"));
             _model.ExecuteUpdate(update);
 
             query = new SparqlQuery(@"ASK WHERE { ?s dc:title 'This is an example title'@en . }");
@@ -94,13 +115,16 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         public void TestModify()
         {
             SparqlUpdate update = new SparqlUpdate(@"
-                INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title' . }");
+               INSERT DATA { GRAPH <http://example.org/TestModel> { ex:book dc:title 'This is an example title' . } }");
 
             _model.ExecuteUpdate(update);
 
             update = new SparqlUpdate(@"
-                DELETE DATA FROM <ex:TestModel> { ex:book dc:title 'This is an example title' . }
-                INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title too' . }");
+                WITH <http://example.org/TestModel>   
+                DELETE  { ex:book dc:title 'This is an example title' . }      
+                INSERT { ex:book dc:title 'This is an example title too' . }
+                WHERE { ex:book dc:title 'This is an example title' . }"
+);
 
             _model.ExecuteUpdate(update);
 
@@ -119,8 +143,8 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         public void TestMultipleModify()
         {
             SparqlUpdate update = new SparqlUpdate(@"
-                INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title' . };
-                INSERT DATA INTO <ex:TestModel> { ex:book2 dc:title 'This is an example title2' . }");
+                INSERT DATA { GRAPH <http://example.org/TestModel> { ex:book dc:title 'This is an example title' . } };
+                INSERT DATA {  GRAPH <http://example.org/TestModel> { ex:book2 dc:title 'This is an example title2' . } }");
 
             _model.ExecuteUpdate(update);
 
@@ -140,12 +164,12 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         public void TestDelete()
         {
             SparqlUpdate update = new SparqlUpdate(@"
-                INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title' . }");
+                INSERT DATA { GRAPH <http://example.org/TestModel>  { ex:book dc:title 'This is an example title' . } }");
 
             _model.ExecuteUpdate(update);
 
             update = new SparqlUpdate(@"
-                DELETE DATA FROM <ex:TestModel> { ex:book dc:title 'This is an example title' . }");
+                DELETE DATA  { GRAPH <http://example.org/TestModel> { ex:book dc:title 'This is an example title' . } }");
 
             _model.ExecuteUpdate(update);
 
@@ -159,7 +183,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         public void TestLoad()
         {
             Assert.Inconclusive();
-            SparqlUpdate update = new SparqlUpdate(@"LOAD <http://eurostat.linked-statistics.org/sparql> INTO <ex:TestModel>");
+            SparqlUpdate update = new SparqlUpdate(@"LOAD <http://eurostat.linked-statistics.org/sparql> INTO <http://example.org/TestModel>");
 
             _model.ExecuteUpdate(update);
 
@@ -171,11 +195,11 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         [Test]
         public void TestClear()
         {
-            SparqlUpdate update = new SparqlUpdate(@"INSERT DATA INTO <ex:TestModel> { ex:book dc:title 'This is an example title' . }");
+            SparqlUpdate update = new SparqlUpdate(@"INSERT DATA { GRAPH <ex:TestModel> { ex:book dc:title 'This is an example title' . }}");
 
             _model.ExecuteUpdate(update);
 
-            update = new SparqlUpdate(@"CLEAR GRAPH <ex:TestModel>");
+            update = new SparqlUpdate(@"CLEAR GRAPH <http://example.org/TestModel>");
 
             _model.ExecuteUpdate(update);
 

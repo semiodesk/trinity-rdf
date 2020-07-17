@@ -260,6 +260,33 @@ namespace Semiodesk.Trinity.Store
         }
 
         /// <summary>
+        /// Loads a serialized graph from the given String into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="content">String containing a serialized graph</param>
+        /// <param name="graphUri">Uri of the graph in this store</param>
+        /// <param name="format">Allowed formats</param>
+        /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
+        /// <returns></returns>
+        public override Uri Read(string content, Uri graphUri, RdfSerializationFormat format, bool update)
+        {
+           
+            IGraph graph = new Graph();
+
+            graph.LoadFromString(content);
+            graph.BaseUri = graphUri;
+
+            if (!update)
+            {
+                _store.Remove(graphUri);
+            }
+
+            _store.Add(graph, update);
+
+            return graphUri;
+            
+        }
+
+        /// <summary>
         /// Loads a serialized graph from the given stream into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
         /// </summary>
         /// <param name="stream">Stream containing a serialized graph</param>

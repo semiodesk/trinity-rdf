@@ -247,6 +247,7 @@ namespace Semiodesk.Trinity
             throw new NotSupportedException();
         }
 
+
         /// <summary>
         /// Not supported. ModelGroups are read-only.
         /// </summary>
@@ -267,6 +268,36 @@ namespace Semiodesk.Trinity
             throw new NotSupportedException();
         }
 
+
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <param name="resources"></param>
+        /// <param name="transaction"></param>
+        public void DeleteResources(IEnumerable<Uri> resources, ITransaction transaction = null)
+        {
+            throw new NotSupportedException();
+        }
+
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <param name="resources"></param>
+        /// <param name="transaction"></param>
+        public void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null)
+        {
+            throw new NotSupportedException();
+        }
+
+        /// <summary>
+        /// Not supported. ModelGroups are read-only.
+        /// </summary>
+        /// <param name="resources"></param>
+        /// <param name="transaction"></param>
+        public void DeleteResources(ITransaction transaction = null, params IResource[] resources)
+        {
+            throw new NotSupportedException();
+        }
 
         /// <summary>
         /// Not supported. ModelGroups are read-only.
@@ -638,13 +669,25 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Imports the contents of a graph serialized in the stream to this model.
+        /// Not supported with Model Groups
         /// </summary>
         /// <param name="stream">The stream containing the serialization</param>
         /// <param name="format">Format of the serialization</param>
         /// <param name="update">True to update the model, false to replace the data.</param>
         /// <returns>True if the contents of the model were imported, False if not.</returns>
         public bool Read(Stream stream, RdfSerializationFormat format, bool update)
+        {
+            throw new NotSupportedException();
+        }
+
+        /// <summary>
+        /// Not supported with Model Groups
+        /// </summary>
+        /// <param name="content">The string containing the serialization</param>
+        /// <param name="format">Format of the serialization</param>
+        /// <param name="update">True to update the model, false to replace the data.</param>
+        /// <returns>True if the contents of the model were imported, False if not.</returns>
+        public bool Read(string content, RdfSerializationFormat format, bool update)
         {
             throw new NotSupportedException();
         }
@@ -842,15 +885,6 @@ namespace Semiodesk.Trinity
             return _set.GetEnumerator();
         }
 
-        public void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null)
-        {
-            throw new NotSupportedException();
-        }
-
-        public void DeleteResources(ITransaction transaction = null, params IResource[] resources)
-        {
-            throw new NotSupportedException();
-        }
 
         #endregion
     }

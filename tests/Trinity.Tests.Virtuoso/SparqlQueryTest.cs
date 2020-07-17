@@ -324,11 +324,10 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             Assert.AreEqual(3, bindings.Count);
 
             DateTime? d0 = null;
-            DateTime? d1 = null;
 
             foreach (BindingSet b in bindings)
             {
-                d1 = (DateTime)b["date"];
+                var d1 = (DateTime)b["date"];
 
                 if (d0 != null)
                 {

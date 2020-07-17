@@ -190,6 +190,10 @@ namespace Semiodesk.Trinity.Store
         {
             return;
         }
+        public Uri Read(string content, Uri url, RdfSerializationFormat format, bool update)
+        {
+            throw new NotSupportedException();
+        }
 
         public Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update)
         {
@@ -227,6 +231,11 @@ namespace Semiodesk.Trinity.Store
         }
 
         public void DeleteResource(IResource resource, ITransaction transaction = null)
+        {
+            throw new NotSupportedException();
+        }
+
+        public void DeleteResources(Uri modelUri, IEnumerable<Uri> resources, ITransaction transaction = null)
         {
             throw new NotSupportedException();
         }

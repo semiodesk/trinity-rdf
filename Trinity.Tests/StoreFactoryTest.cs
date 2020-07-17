@@ -35,7 +35,6 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestConnectionStringTest()
         {
-            Assert.IsTrue(StoreFactory.TestConnectionString("provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba"));
             Assert.IsTrue(StoreFactory.TestConnectionString("provider=dotnetrdf;schema=Models/rdf-schema.rdf,Models/rdf-syntax.rdf"));
             Assert.IsTrue(StoreFactory.TestConnectionString("provider=sparqlendpoint;endpoint=http://live.dbpedia.org/sparql"));
             Assert.IsFalse(StoreFactory.TestConnectionString("data source=.\\SQLEXPRESS;Integrated Security=SSPI;AttachDBFilename=|DataDirectory|aspnetdb.mdf;User Instance=true"));

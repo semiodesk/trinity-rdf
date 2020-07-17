@@ -139,8 +139,7 @@ namespace Semiodesk.Trinity
         object CreateResource(Uri uri, Type t, ITransaction transaction = null);
 
         /// <summary>
-        /// Removes the given resource from the model and its backing RDF store. Note that there is no verification
-        /// that the given resource and its stored represenation have identical properties.
+        /// Removes the given resource from the model and its backing RDF store.
         /// </summary>
         /// <param name="uri">A Uniform Resource Identifier.</param>
         /// <param name="transaction">The transaction associated with this action.</param>
@@ -154,8 +153,29 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         void DeleteResource(IResource resource, ITransaction transaction = null);
 
+        /// <summary>
+        /// Removes the given resources from the model and its backing RDF store.
+        /// </summary>
+        /// <param name="uris">Resource that is to be removed from the model.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        void DeleteResources(IEnumerable<Uri> uris, ITransaction transaction = null);
+
+
+        /// <summary>
+        /// Removes the given resources from the model and its backing RDF store. Note that there is no verification
+        /// that the given resource and its stored represenation have identical properties.
+        /// </summary>
+        /// <param name="resources">Resources that are to be removed from the model.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null);
 
+
+        /// <summary>
+        /// Removes the given resources from the model and its backing RDF store. Note that there is no verification
+        /// that the given resource and its stored represenation have identical properties.
+        /// </summary>
+        /// <param name="resources">Resources that are to be removed from the model.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         void DeleteResources(ITransaction transaction = null, params IResource[] resources);
 
         /// <summary>
@@ -300,6 +320,16 @@ namespace Semiodesk.Trinity
         /// <param name="update">True to update the model, false to replace the data.</param>
         /// <returns>True if the contents of the model were imported, False if not.</returns>
         bool Read(Stream stream, RdfSerializationFormat format, bool update);
+
+        /// <summary>
+        /// Imports the contents of a graph serialized in the stream to this model.
+        /// </summary>
+        /// <param name="content">The string containing the serialization</param>
+        /// <param name="format">Format of the serialization</param>
+        /// <param name="update">True to update the model, false to replace the data.</param>
+        /// <returns>True if the contents of the model were imported, False if not.</returns>
+        bool Read(string content, RdfSerializationFormat format, bool update);
+
 
         /// <summary>
         /// Serializes the contents of the model and provides a memory stream.

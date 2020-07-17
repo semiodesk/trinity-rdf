@@ -249,6 +249,30 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             Assert.IsFalse(Model.ContainsResource(uri1));
         }
 
+
+        [Test]
+        public void DeleteResourcesByUrisTest()
+        {
+            Uri uri0 = new Uri("http://example.org/MyResource");
+            Uri uri1 = new Uri("http://example.org/MyResource1");
+            Property p0 = new Property(new Uri("http://example.org/MyProperty"));
+            Property p1 = new Property(new Uri("http://example.org/MyProperty1"));
+
+
+            IResource r1 = Model.CreateResource(uri1);
+            r1.AddProperty(p0, 123);
+            r1.AddProperty(p1, new Resource(uri0));
+            r1.Commit();
+
+            Assert.IsTrue(Model.ContainsResource(uri0));
+            Assert.IsTrue(Model.ContainsResource(uri1));
+
+            Model.DeleteResources(new Uri[] { uri0, uri1 });
+
+            Assert.IsFalse(Model.ContainsResource(uri0));
+            Assert.IsFalse(Model.ContainsResource(uri1));
+        }
+
         [Test]
         public void GetResourceTest()
         {
@@ -507,7 +531,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
 
             Assert.IsTrue(Model.IsEmpty);
             Assert.Throws(typeof(ArgumentException), () => { Model.Read(fileUri, RdfSerializationFormat.Trig, false); });
-            
+
         }
 
         [Test]
