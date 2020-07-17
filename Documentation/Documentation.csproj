@@ -68,8 +68,6 @@
     <None Include="toc.yml" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include=".gitignore" />
-    <Content Include="api\.gitignore" />
     <Content Include="images\examples\musicBrowser\2022201284-MusicBrowser.png" />
     <Content Include="images\examples\musicBrowser\225525627-ClassDiagram.png" />
     <Content Include="images\examples\webApp\1927643689-result.png" />
@@ -84,11 +82,11 @@
     <Folder Include="images\examples\firststeps\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\packages\docfx.console.2.44.0\build\docfx.console.targets" Condition="Exists('..\packages\docfx.console.2.44.0\build\docfx.console.targets')" />
+  <Import Project="..\packages\docfx.console.2.56.1\build\docfx.console.targets" Condition="Exists('..\packages\docfx.console.2.56.1\build\docfx.console.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\docfx.console.2.44.0\build\docfx.console.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\docfx.console.2.44.0\build\docfx.console.targets'))" />
+    <Error Condition="!Exists('..\packages\docfx.console.2.56.1\build\docfx.console.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\docfx.console.2.56.1\build\docfx.console.targets'))" />
   </Target>
 </Project>
