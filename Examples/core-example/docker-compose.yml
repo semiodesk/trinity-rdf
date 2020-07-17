@@ -1,0 +1,22 @@
+version: '3.4'
+
+services:
+  modom-io:
+    image: "core-example:latest"
+    ports:
+        - "8000:80"
+        - "8443:443"
+    depends_on:
+        - store
+    entrypoint: ["./wait-for-it.sh", "store:1111", "--", "dotnet", "core-example.dll"]
+
+  store:
+      image: "tenforce/virtuoso:virtuoso7.2.5"
+      ports:
+        - "8890:8890"
+      environment:
+          DBA_PASSWORD: "dba" # Change to something more secure if you want.
+          SPARQL_UPDATE: "true"
+          DEFAULT_GRAPH: "http://example.com/"
+      volumes:
+        - .\core-example-store-data:/data

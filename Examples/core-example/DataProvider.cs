@@ -15,7 +15,11 @@ namespace Asp.Net_Core_Example
 
         public IStore Store { get { return StoreFactory.CreateStore(_connectionString); } }
 
-        private string _connectionString = "provider=virtuoso;host=127.0.0.1;port=1111;uid=dba;pw=dba;rule=urn:example/ruleset";
+#if RELEASE
+        private string _connectionString = "provider=virtuoso;host=store;port=1111;uid=dba;pw=dba;rule=urn:example/ruleset";
+#else
+        private string _connectionString = "provider=virtuoso;host=store;port=1111;uid=dba;pw=dba;rule=urn:example/ruleset";
+#endif
         public  IModel DefaultModel { get { return Store.GetModel(_defaultModelUri); } }
 
         Uri _defaultModelUri = new Uri("http://my-default-model/");
