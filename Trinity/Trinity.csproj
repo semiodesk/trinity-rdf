@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net40</TargetFrameworks>
 	<Title>Semiodesk.Trinity</Title>
-	<Copyright>Copyright © Semiodesk GmbH 2015-2019</Copyright>
+	<Copyright>Copyright © Semiodesk GmbH 2015-2020</Copyright>
 	<Description>Enterprise ready object mapper for developing RDF knowledge graph applications with .NET</Description>
 	<Company>Semiodesk GmbH</Company>
 	<Version>1.0.3</Version>

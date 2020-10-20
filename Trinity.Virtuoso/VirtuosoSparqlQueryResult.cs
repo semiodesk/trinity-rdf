@@ -118,7 +118,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                 }
                 else if ( box.StrLang != null)
                 {
-                    return new Tuple<string, CultureInfo>(box.Value.ToString(), new CultureInfo(box.StrLang));
+                    return new Tuple<string, string>(box.Value.ToString(), box.StrLang);
                 }
                 else if(box.Value != null)
                 {
