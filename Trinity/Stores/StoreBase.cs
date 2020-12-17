@@ -30,6 +30,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using VDS.RDF;
+using VDS.RDF.Writing;
 
 namespace Semiodesk.Trinity
 {
@@ -134,7 +136,7 @@ namespace Semiodesk.Trinity
         /// <param name="format">Allowed formats</param>
         /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
         /// <returns></returns>
-        public abstract Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update);
+        public abstract Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update, bool leaveOpen=false);
 
         /// <summary>
         /// Loads a serialized graph from the given string into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
@@ -154,7 +156,7 @@ namespace Semiodesk.Trinity
         /// <param name="format">Allowed formats</param>
         /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
         /// <returns></returns>
-        public abstract void Write(Stream fs, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null);
+        public abstract void Write(Stream fs, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, bool leaveOpen = false);
 
         /// <summary>
         /// Initializes the store from the configuration. It uses either the provided file or attempts to load from "ontologies.config" located next to the executing assembly.
@@ -327,6 +329,118 @@ namespace Semiodesk.Trinity
                 resource.IsNew = false;
                 resource.IsSynchronized = true;
             }
+        }
+
+        public void Write(Stream stream, IGraph graph, RdfSerializationFormat format, bool leaveOpen)
+        {
+            StreamWriter writer = new StreamWriter(stream);
+            
+            switch (format)
+            {
+                case RdfSerializationFormat.GZippedJsonLd:
+                    {
+                        var w = new GZippedJsonLdWriter();
+                        var sgWriter = new SingleGraphWriter(w);
+                        sgWriter.Save(graph, writer, leaveOpen);
+                        break;
+                    }
+                case RdfSerializationFormat.GZippedN3:
+                    {
+                        var w = new GZippedNotation3Writer();
+                        w.Save(graph, writer, leaveOpen);
+                        break;
+                    }
+                case RdfSerializationFormat.GZippedNQuads:
+                    {
+                        var w = new GZippedNQuadsWriter();
+                        var sgWriter = new SingleGraphWriter(w);
+                        sgWriter.Save(graph, writer, leaveOpen);
+                        break;
+                    }
+                case RdfSerializationFormat.GZippedRdfXml:
+                    {
+                        var w = new GZippedRdfXmlWriter();
+                        w.Save(graph, writer, leaveOpen);
+                        break;
+                    }
+                case RdfSerializationFormat.GZippedTrig:
+                    {
+                        var w = new GZippedTriGWriter();
+                        var sgWriter = new SingleGraphWriter(w);
+                        sgWriter.Save(graph, writer, leaveOpen);
+                        break;
+                    }
+                case RdfSerializationFormat.GZippedTurtle:
+                    {
+                        var w = new GZippedTurtleWriter();
+                        w.Save(graph, writer, leaveOpen);
+                        break;
+                    }
+                case RdfSerializationFormat.Json:
+                    {
+                        var w = new RdfJsonWriter();
+                        w.Save(graph, writer, leaveOpen);
+                        break;
+                    }
+
+#if !NET35
+                case RdfSerializationFormat.JsonLd:
+                    {
+                        var w = new JsonLdWriter();
+                        var sgWriter = new SingleGraphWriter(w);
+                        sgWriter.Save(graph, writer, leaveOpen);
+                        break;
+                    }
+#endif
+                case RdfSerializationFormat.N3:
+                    {
+                        var w = new Notation3Writer();
+                        w.Save(graph, writer, leaveOpen);
+                        break;
+                    }
+
+#if !NET35
+                case RdfSerializationFormat.NQuads:
+                    {
+                        var w = new NQuadsWriter();
+                        var sgWriter = new SingleGraphWriter(w);
+                        sgWriter.Save(graph, writer, leaveOpen);
+                        break;
+                    }
+#endif
+                case RdfSerializationFormat.NTriples:
+                    {
+                        var w = new NTriplesWriter();
+                        w.Save(graph, writer, leaveOpen);
+                        break;
+                    }
+
+                
+                case RdfSerializationFormat.RdfXml:
+                    {
+                        var w = new RdfXmlWriter();
+                        w.Save(graph, writer, leaveOpen);
+                        break;
+                    }
+                case RdfSerializationFormat.Trig:
+                    {
+                        var w = new TriGWriter();
+                        var sgWriter = new SingleGraphWriter(w);
+                        sgWriter.Save(graph, writer, leaveOpen);
+                        break;
+                    }
+                default:
+                case RdfSerializationFormat.Turtle:
+                    {
+                        var w = new CompressingTurtleWriter();
+                        w.Save(graph, writer, leaveOpen);
+                        break;
+                    }
+
+
+
+            }
+            writer.Flush();
         }
 
         public virtual void DeleteResource(Uri modelUri, Uri resourceUri, ITransaction transaction = null)

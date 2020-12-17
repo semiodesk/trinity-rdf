@@ -535,7 +535,7 @@ namespace dotNetRDFStore.Test
 
             using (MemoryStream wr = new MemoryStream())
             {
-                Model.Write(wr, RdfSerializationFormat.RdfXml, namespaces);
+                Model.Write(wr, RdfSerializationFormat.RdfXml, namespaces, true);
 
                 var result = Encoding.UTF8.GetString(wr.ToArray());
             }

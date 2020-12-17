@@ -606,6 +606,27 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         }
 
         [Test]
+        public void WriteToStringTest()
+        {
+            Model.Clear();
+
+            
+            IResource r = Model.CreateResource(new Uri("http://example.org/test"));
+            r.AddProperty(new Property(new Uri("http://xmlns.com/foaf/0.1/name")), "test");
+            r.Commit();
+            MemoryStream stream = new MemoryStream();
+
+            Model.Write(stream, RdfSerializationFormat.Turtle, null, true);
+
+            stream.Seek(0, SeekOrigin.Begin);
+            var res = Encoding.UTF8.GetString(stream.ToArray());
+
+            Assert.IsFalse(string.IsNullOrEmpty(res));
+
+        }
+
+
+        [Test]
         public void TestAddMultipleResources()
         {
             Assert.Inconclusive("This test should work, it just takes too long.");

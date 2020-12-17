@@ -200,12 +200,12 @@ namespace Semiodesk.Trinity.Store
             throw new NotSupportedException();
         }
 
-        public Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
+        public Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update, bool leaveOpen = false)
         {
             throw new NotSupportedException();
         }
 
-        public void Write(Stream fs, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null)
+        public void Write(Stream fs, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, bool leaveOpen = false)
         {
             throw new NotSupportedException();
         }

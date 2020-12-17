@@ -99,7 +99,7 @@
 
   <!-- ALL TARGETS NEWER THAN NET35  -->
   <ItemGroup Condition="'$(TargetFramework)'!='net35'">
-    <PackageReference Include="dotNetRDF" Version="2.5.1" />
+    <PackageReference Include="dotNetRDF" Version="2.6.1" />
   </ItemGroup>
 
   <!-- ONLY NETSTANDARD2.0 -->

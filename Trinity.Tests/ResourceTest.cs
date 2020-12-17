@@ -79,8 +79,21 @@ namespace Semiodesk.Trinity.Test
 
         public const string stringTestString = "semio:test:stringTest";
         public static readonly Property stringTest = new Property(new Uri(stringTestString));
+
         public const  string uniqueStringTestString = "semio:test:uniqueStringTest";
         public static readonly Property uniqueStringTest = new Property(new Uri(uniqueStringTestString));
+
+        public const string localizedStringTestString = "semio:test:localizedStringTest";
+        public static readonly Property localizedStringTest = new Property(new Uri(localizedStringTestString));
+
+        public const string uniqueLocalizedStringTestString = "semio:test:uniqueLocalizedStringTest";
+        public static readonly Property uniqueLocalizedStringTest = new Property(new Uri(uniqueLocalizedStringTestString));
+
+        public const string localizedStringCultureTestString = "semio:test:localizedStringCultureTest";
+        public static readonly Property localizedStringCultureTest = new Property(new Uri(localizedStringCultureTestString));
+
+        public const string uniqueLocalizedStringCultureTestString = "semio:test:uniqueLocalizedStringCultureTest";
+        public static readonly Property uniqueLocalizedStringCultureTest = new Property(new Uri(uniqueLocalizedStringCultureTestString));
 
         public static readonly Property floatTest = new Property(new Uri("semio:test:floatTest"));
         public static readonly Property uniqueFloatTest = new Property(new Uri("semio:test:uniqueFloatTest"));

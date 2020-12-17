@@ -294,7 +294,7 @@ namespace Semiodesk.Trinity.Store
         /// <param name="format">Allowed formats</param>
         /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
         /// <returns></returns>
-        public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update)
+        public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update, bool leaveOpen = false)
         {
             using (TextReader reader = new StreamReader(stream))
             {
@@ -311,8 +311,12 @@ namespace Semiodesk.Trinity.Store
 
                 _store.Add(graph, update);
 
+                if (!leaveOpen)
+                    stream.Close();
+
                 return graphUri;
             }
+            
         }
 
         /// <summary>
@@ -397,7 +401,7 @@ namespace Semiodesk.Trinity.Store
         /// <param name="format">Allowed formats</param>
         /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
         /// <returns></returns>
-        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null)
+        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, bool leaveOpen = false)
         {
             if (_store.HasGraph(graphUri))
             {
@@ -408,37 +412,7 @@ namespace Semiodesk.Trinity.Store
                     graph.NamespaceMap.ImportNamespaces(namespaces);
                 }
 
-                using (StreamWriter writer = new StreamWriter(stream))
-                {
-                    switch (format)
-                    {
-                        case RdfSerializationFormat.N3:
-                            graph.SaveToStream(writer, new Notation3Writer()); break;
-
-                        case RdfSerializationFormat.NTriples:
-                            graph.SaveToStream(writer, new NTriplesWriter()); break;
-
-#if !NET35
-                        case RdfSerializationFormat.NQuads:
-                            graph.SaveToStream(writer, new NQuadsWriter()); break;
-#endif
-
-                        case RdfSerializationFormat.Turtle:
-                            graph.SaveToStream(writer, new CompressingTurtleWriter()); break;
-
-                        case RdfSerializationFormat.Json:
-                            graph.SaveToStream(writer, new RdfJsonWriter()); break;
-
-#if !NET35
-                        case RdfSerializationFormat.JsonLd:
-                            graph.SaveToStream(writer, new JsonLdWriter()); break;
-#endif
-
-                        default:
-                        case RdfSerializationFormat.RdfXml:
-                            graph.SaveToStream(writer, new RdfXmlWriter()); break;
-                    }
-                }
+                Write(stream, graph, format, leaveOpen);
             }
         }
 

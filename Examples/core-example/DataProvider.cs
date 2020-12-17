@@ -18,7 +18,7 @@ namespace Asp.Net_Core_Example
 #if RELEASE
         private string _connectionString = "provider=virtuoso;host=store;port=1111;uid=dba;pw=dba;rule=urn:example/ruleset";
 #else
-        private string _connectionString = "provider=virtuoso;host=store;port=1111;uid=dba;pw=dba;rule=urn:example/ruleset";
+        private string _connectionString = "provider=virtuoso;host=localhost;port=1111;uid=dba;pw=dba;rule=urn:example/ruleset";
 #endif
         public  IModel DefaultModel { get { return Store.GetModel(_defaultModelUri); } }
 

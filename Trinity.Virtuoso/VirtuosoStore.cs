@@ -449,7 +449,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             }
         }
 
-        public override Uri Read(Stream stream, Uri graph, RdfSerializationFormat format, bool update)
+        public override Uri Read(Stream stream, Uri graph, RdfSerializationFormat format, bool update, bool leaveOpen = false)
         {
             using (TextReader reader = new StreamReader(stream))
             {
@@ -651,7 +651,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         }
 
 
-        public override void Write(Stream fs, Uri graph, RdfSerializationFormat format, INamespaceMap namespaces)
+        public override void Write(Stream fs, Uri graph, RdfSerializationFormat format, INamespaceMap namespaces, bool leaveOpen = false)
         {
             using (VirtuosoManager manager = new VirtuosoManager(CreateConnectionString()))
             {
@@ -664,19 +664,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
                     manager.LoadGraph(g, graph);
 
-                    StreamWriter streamWriter = new StreamWriter(fs, Encoding.UTF8);
-
-                    switch (format)
-                    {
-                        case RdfSerializationFormat.RdfXml:
-                            {
-                                VDS.RDF.Writing.RdfXmlWriter xmlWriter = new VDS.RDF.Writing.RdfXmlWriter();
-
-                                xmlWriter.Save(g, streamWriter);
-
-                                break;
-                            }
-                    }
+                    Write(fs, g, format, leaveOpen);
                 }
             }
         }

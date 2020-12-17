@@ -682,9 +682,9 @@ namespace Semiodesk.Trinity
         /// <param name="format">The serialization format. <see cref="RdfSerializationFormat"/></param>
         /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
         /// <returns>A serialization of the models contents.</returns>
-        public void Write(Stream fs, RdfSerializationFormat format, INamespaceMap namespaces = null)
+        public void Write(Stream fs, RdfSerializationFormat format, INamespaceMap namespaces = null, bool leaveOpen = false)
         {
-            _store.Write(fs, Uri, format, namespaces);
+            _store.Write(fs, Uri, format, namespaces, leaveOpen);
         }
 
         /// <summary>

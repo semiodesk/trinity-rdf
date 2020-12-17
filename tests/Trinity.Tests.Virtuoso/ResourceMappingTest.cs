@@ -1105,6 +1105,27 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             Resource r3 = m.GetResource<Resource>(t3Uri);
             Assert.AreEqual(t3, r3);
 
+            r2 = m.GetResource<MappingTestClass2>(t2Uri);
+            Assert.AreEqual(t2, r2);
+
+        }
+
+        [Test]
+        public void MappingTypeCollectionTest()
+        {
+            IModel m = GetModel();
+            m.Clear();
+
+            Uri t2Uri = new Uri("semio:test:testInstance2");
+            PersonContact t2 = m.CreateResource<PersonContact>(t2Uri);
+            t2.NameFamily = "Doe";
+            t2.Commit();
+
+
+            var list = m.GetResources<Contact>(true).ToList() ;
+            Assert.AreEqual(1, list);
+            
+
         }
 
         [Test]
@@ -1391,6 +1412,8 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             Assert.AreEqual(8, p.ListValues(TestOntology.stringTest).Count());
 
             p.RemoveProperty(TestOntology.stringTest, "Hello interanational World" + 1);
+
+
         }
 
         [Test]

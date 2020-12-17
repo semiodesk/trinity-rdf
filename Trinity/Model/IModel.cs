@@ -337,8 +337,9 @@ namespace Semiodesk.Trinity
         /// <param name="fs">The file stream to write to.</param>
         /// <param name="format">The serialization format.</param>
         /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
+        /// <param name="leaveOpen">Should the stream be closed.</param>
         /// <returns>A serialization of the models contents.</returns>
-        void Write(Stream fs, RdfSerializationFormat format, INamespaceMap namespaces = null);
+        void Write(Stream fs, RdfSerializationFormat format, INamespaceMap namespaces = null, bool leaveOpen = false);
 
         /// <summary>
         /// Updates a resource with it's current state in the model.

@@ -325,7 +325,7 @@ namespace Semiodesk.Trinity.Store.Stardog
         /// <param name="format">Allowed formats</param>
         /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
         /// <returns></returns>
-        public override Uri Read(Stream stream, Uri modelUri, RdfSerializationFormat format, bool update)
+        public override Uri Read(Stream stream, Uri modelUri, RdfSerializationFormat format, bool update, bool leaveOpen = false)
         {
             if(!update)
             {
@@ -456,7 +456,7 @@ namespace Semiodesk.Trinity.Store.Stardog
         /// <param name="format">Allowed formats</param>
         /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
         /// <returns></returns>
-        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null)
+        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, bool leaveOpen = false)
         {
             var query = $"SELECT * {{ GRAPH <{graphUri.AbsoluteUri}> {{ ?s ?p ?o . }} }}";
 
