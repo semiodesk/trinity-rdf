@@ -535,9 +535,31 @@ namespace dotNetRDFStore.Test
 
             using (MemoryStream wr = new MemoryStream())
             {
-                Model.Write(wr, RdfSerializationFormat.RdfXml, namespaces, true);
+                Model.Write(wr, RdfSerializationFormat.RdfXml, namespaces, null, true);
 
                 var result = Encoding.UTF8.GetString(wr.ToArray());
+            }
+        }
+
+        [Test]
+        public void WriteWithBaseUriTest()
+        {
+            Model.Clear();
+
+            IResource r = Model.CreateResource(new Uri("http://example.org/test"));
+            r.AddProperty(new Property(new Uri("http://example.org/name")), "test");
+            r.Commit();
+
+            using (MemoryStream stream = new MemoryStream())
+            {
+                Model.Write(stream, RdfSerializationFormat.Turtle, null, new Uri("http://example.org/"), true);
+
+                stream.Seek(0, SeekOrigin.Begin);
+
+                var result = Encoding.UTF8.GetString(stream.ToArray());
+
+                Assert.IsFalse(string.IsNullOrEmpty(result));
+                Assert.IsTrue(result.StartsWith("@base <http://example.org/>"));
             }
         }
     }

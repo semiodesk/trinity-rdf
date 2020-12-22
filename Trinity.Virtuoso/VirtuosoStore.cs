@@ -651,7 +651,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         }
 
 
-        public override void Write(Stream fs, Uri graph, RdfSerializationFormat format, INamespaceMap namespaces, bool leaveOpen = false)
+        public override void Write(Stream fs, Uri graph, RdfSerializationFormat format, INamespaceMap namespaces, Uri baseUri, bool leaveOpen = false)
         {
             using (VirtuosoManager manager = new VirtuosoManager(CreateConnectionString()))
             {
@@ -663,6 +663,11 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                     }
 
                     manager.LoadGraph(g, graph);
+
+                    if (baseUri != null)
+                    {
+                        g.BaseUri = baseUri;
+                    }
 
                     Write(fs, g, format, leaveOpen);
                 }

@@ -400,8 +400,9 @@ namespace Semiodesk.Trinity.Store
         /// <param name="graphUri">Uri fo the graph in this store</param>
         /// <param name="format">Allowed formats</param>
         /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
+        /// <param name="baseUri">Base URI for shortening URIs in formats that support it.</param>
         /// <returns></returns>
-        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, bool leaveOpen = false)
+        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false)
         {
             if (_store.HasGraph(graphUri))
             {
@@ -410,6 +411,11 @@ namespace Semiodesk.Trinity.Store
                 if (namespaces != null)
                 {
                     graph.NamespaceMap.ImportNamespaces(namespaces);
+                }
+
+                if (baseUri != null)
+                {
+                    graph.BaseUri = baseUri;
                 }
 
                 Write(stream, graph, format, leaveOpen);

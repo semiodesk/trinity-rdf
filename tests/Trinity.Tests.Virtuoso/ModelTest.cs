@@ -507,6 +507,28 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         }
 
         [Test]
+        public void WriteWithBaseUriTest()
+        {
+            Model.Clear();
+
+            IResource r = Model.CreateResource(new Uri("http://example.org/test"));
+            r.AddProperty(new Property(new Uri("http://example.org/name")), "test");
+            r.Commit();
+
+            using (MemoryStream stream = new MemoryStream())
+            {
+                Model.Write(stream, RdfSerializationFormat.Turtle, null, new Uri("http://example.org/"), true);
+
+                stream.Seek(0, SeekOrigin.Begin);
+
+                var result = Encoding.UTF8.GetString(stream.ToArray());
+
+                Assert.IsFalse(string.IsNullOrEmpty(result));
+                Assert.IsTrue(result.StartsWith("@base <http://example.org/>"));
+            }
+        }
+
+        [Test]
         public void ReadTest()
         {
             Model.Clear();
@@ -616,7 +638,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             r.Commit();
             MemoryStream stream = new MemoryStream();
 
-            Model.Write(stream, RdfSerializationFormat.Turtle, null, true);
+            Model.Write(stream, RdfSerializationFormat.Turtle, null, null, true);
 
             stream.Seek(0, SeekOrigin.Begin);
             var res = Encoding.UTF8.GetString(stream.ToArray());

@@ -205,7 +205,7 @@ namespace Semiodesk.Trinity.Store
             throw new NotSupportedException();
         }
 
-        public void Write(Stream fs, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, bool leaveOpen = false)
+        public void Write(Stream fs, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false)
         {
             throw new NotSupportedException();
         }

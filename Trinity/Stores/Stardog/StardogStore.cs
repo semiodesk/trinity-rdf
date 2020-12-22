@@ -455,8 +455,9 @@ namespace Semiodesk.Trinity.Store.Stardog
         /// <param name="graphUri">Uri fo the graph in this store</param>
         /// <param name="format">Allowed formats</param>
         /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
+        /// <param name="baseUri">Base URI for shortening URIs in formats that support it.</param>
         /// <returns></returns>
-        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, bool leaveOpen = false)
+        public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false)
         {
             var query = $"SELECT * {{ GRAPH <{graphUri.AbsoluteUri}> {{ ?s ?p ?o . }} }}";
 
@@ -471,7 +472,7 @@ namespace Semiodesk.Trinity.Store.Stardog
 
                     using (var graph = new Graph(triples))
                     {
-                        graph.BaseUri = graphUri;
+                        graph.BaseUri = baseUri != null ? baseUri : graphUri;
 
                         if (namespaces != null)
                         {
