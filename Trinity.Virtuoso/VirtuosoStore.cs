@@ -650,8 +650,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             return graph;
         }
 
-
-        public override void Write(Stream fs, Uri graph, RdfSerializationFormat format, INamespaceMap namespaces, Uri baseUri, bool leaveOpen = false)
+        public override void Write(Stream stream, Uri graph, RdfSerializationFormat format, INamespaceMap namespaces, Uri baseUri, bool leaveOpen = false)
         {
             using (VirtuosoManager manager = new VirtuosoManager(CreateConnectionString()))
             {
@@ -669,7 +668,20 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                         g.BaseUri = baseUri;
                     }
 
-                    Write(fs, g, format, leaveOpen);
+                    Write(stream, g, format, leaveOpen);
+                }
+            }
+        }
+
+        public override void Write(Stream stream, Uri graph, IRdfWriter formatWriter, bool leaveOpen = false)
+        {
+            using (VirtuosoManager manager = new VirtuosoManager(CreateConnectionString()))
+            {
+                using (VDS.RDF.Graph g = new VDS.RDF.Graph())
+                {
+                    manager.LoadGraph(g, graph);
+
+                    Write(stream, g, formatWriter, leaveOpen);
                 }
             }
         }
@@ -718,7 +730,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             return new ModelGroup(this, result);
         }
 
-  
         public override void UpdateResource(Resource resource, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
         {
             string updateString;

@@ -397,10 +397,11 @@ namespace Semiodesk.Trinity.Store
         /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.
         /// </summary>
         /// <param name="stream">Stream to which the content should be written.</param>
-        /// <param name="graphUri">Uri fo the graph in this store</param>
-        /// <param name="format">Allowed formats</param>
+        /// <param name="graphUri">Uri fo the graph in this store.</param>
+        /// <param name="format">Allowed formats.</param>
         /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
         /// <param name="baseUri">Base URI for shortening URIs in formats that support it.</param>
+        /// <param name="leaveOpen">Indicates if the stream should be left open after writing completes.</param>
         /// <returns></returns>
         public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false)
         {
@@ -419,6 +420,24 @@ namespace Semiodesk.Trinity.Store
                 }
 
                 Write(stream, graph, format, leaveOpen);
+            }
+        }
+
+        /// <summary>
+        /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="stream">Stream to which the content should be written.</param>
+        /// <param name="graphUri">Uri fo the graph in this store</param>
+        /// <param name="formatWriter">A RDF format writer.</param>
+        /// <param name="leaveOpen">Indicates if the stream should be left open after writing completes.</param>
+        /// <returns></returns>
+        public override void Write(Stream stream, Uri graphUri, IRdfWriter formatWriter, bool leaveOpen = false)
+        {
+            if (_store.HasGraph(graphUri))
+            {
+                IGraph graph = _store.Graphs[graphUri];
+
+                Write(stream, graph, formatWriter, leaveOpen);
             }
         }
 

@@ -316,7 +316,6 @@ namespace Semiodesk.Trinity.Store.Stardog
             return modelUri;
         }
 
-
         /// <summary>
         /// Loads a serialized graph from the given stream into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
         /// </summary>
@@ -519,6 +518,38 @@ namespace Semiodesk.Trinity.Store.Stardog
                 }
             }
         }
+
+        /// <summary>
+        /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="stream">Stream to which the content should be written.</param>
+        /// <param name="graphUri">Uri fo the graph in this store</param>
+        /// <param name="format">Allowed formats</param>
+        /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
+        /// <param name="baseUri">Base URI for shortening URIs in formats that support it.</param>
+        /// <param name="leaveOpen">Indicates if the stream should be left open after writing completes.</param>
+        /// <returns></returns>
+        public override void Write(Stream stream, Uri graphUri, IRdfWriter writer, bool leaveOpen = false)
+        {
+            var query = $"SELECT * {{ GRAPH <{graphUri.AbsoluteUri}> {{ ?s ?p ?o . }} }}";
+
+            var result = ExecuteQuery(query);
+
+            if (result.SparqlResultSet.Result)
+            {
+                using (var graphEmpty = new Graph())
+                using (var streamWriter = new StreamWriter(stream))
+                {
+                    var triples = result.SparqlResultSet.ToTripleCollection(graphEmpty);
+
+                    using (var graph = new Graph(triples))
+                    {
+                        graph.SaveToStream(streamWriter, writer);
+                    }
+                }
+            }
+        }
+
 
         /// <summary>
         /// Removes model from the store.

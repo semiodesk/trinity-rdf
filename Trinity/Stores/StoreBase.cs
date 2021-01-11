@@ -156,8 +156,19 @@ namespace Semiodesk.Trinity
         /// <param name="format">Allowed formats</param>
         /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
         /// <param name="baseUri">Base URI for shortening URIs in formats that support it.</param>
+        /// <param name="leaveOpen">Indicates if the stream should be left open after the writing finished.</param>
         /// <returns></returns>
         public abstract void Write(Stream fs, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false);
+
+        /// <summary>
+        /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="fs">Stream to which the content should be written.</param>
+        /// <param name="graphUri">Uri fo the graph in this store</param>
+        /// <param name="writer">A RDF writer.</param>
+        /// <param name="leaveOpen">Indicates if the stream should be left open after the writing finished.</param>
+        /// <returns></returns>
+        public abstract void Write(Stream fs, Uri graphUri, IRdfWriter writer, bool leaveOpen = false);
 
         /// <summary>
         /// Initializes the store from the configuration. It uses either the provided file or attempts to load from "ontologies.config" located next to the executing assembly.
@@ -437,11 +448,24 @@ namespace Semiodesk.Trinity
                         w.Save(graph, writer, leaveOpen);
                         break;
                     }
-
-
-
             }
-            writer.Flush();
+
+            if(leaveOpen)
+            {
+                writer.Flush();
+            }
+        }
+
+        public void Write(Stream stream, IGraph graph, IRdfWriter formatWriter, bool leaveOpen)
+        {
+            StreamWriter streamWriter = new StreamWriter(stream);
+
+            formatWriter.Save(graph, streamWriter, leaveOpen);
+
+            if(leaveOpen)
+            {
+                streamWriter.Flush();
+            }
         }
 
         public virtual void DeleteResource(Uri modelUri, Uri resourceUri, ITransaction transaction = null)
@@ -469,7 +493,6 @@ namespace Semiodesk.Trinity
             foreach (var resource in resources)
                 DeleteResource(modelUri, resource, transaction);
         }
-
 
         public virtual void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null)
         {

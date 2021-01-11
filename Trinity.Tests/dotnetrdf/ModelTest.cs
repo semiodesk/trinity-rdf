@@ -33,6 +33,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Semiodesk.Trinity.Test;
+using Semiodesk.Trinity.Tests.dotnetrdf;
 
 namespace dotNetRDFStore.Test
 {
@@ -538,6 +539,49 @@ namespace dotNetRDFStore.Test
                 Model.Write(wr, RdfSerializationFormat.RdfXml, namespaces, null, true);
 
                 var result = Encoding.UTF8.GetString(wr.ToArray());
+            }
+        }
+
+        [Test]
+        public void WriteWithWriterTest()
+        {
+            Model.Clear();
+
+            Property p0 = new Property(new Uri("http://example.org/property"));
+
+            IResource r0 = Model.CreateResource(new Uri("http://example.org/r0"));
+            r0.AddProperty(p0, 0);
+            r0.AddProperty(p0, 1);
+            r0.AddProperty(p0, 2);
+            r0.Commit();
+
+            using (MemoryStream stream = new MemoryStream())
+            {
+                TestFormatWriter writer = new TestFormatWriter();
+
+                Model.Write(stream, writer, true);
+
+                stream.Position = 0;
+
+                var n = 0;
+
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    string line;
+
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        string[] triple = line.Split(' ');
+
+                        Assert.AreEqual(r0.Uri.AbsoluteUri, triple[0]);
+                        Assert.AreEqual(p0.Uri.AbsoluteUri, triple[1]);
+                        Assert.IsTrue(triple[2].StartsWith(n.ToString()));
+
+                        n++;
+                    }
+                }
+
+                Assert.AreEqual(3, n);
             }
         }
 

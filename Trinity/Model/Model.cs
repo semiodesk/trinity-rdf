@@ -34,6 +34,7 @@ using System.Text;
 using Newtonsoft.Json;
 using Semiodesk.Trinity.Query;
 using Remotion.Linq.Parsing.Structure;
+using VDS.RDF;
 
 namespace Semiodesk.Trinity
 {
@@ -682,10 +683,23 @@ namespace Semiodesk.Trinity
         /// <param name="format">The serialization format. <see cref="RdfSerializationFormat"/></param>
         /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
         /// <param name="baseUri">Base URI for shortening URIs in formats that support it.</param>
+        /// <param name="leaveOpen">Indicates if the stream should be left open after writing completes.</param>
         /// <returns>A serialization of the models contents.</returns>
         public void Write(Stream fs, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false)
         {
             _store.Write(fs, Uri, format, namespaces, baseUri, leaveOpen);
+        }
+
+        /// <summary>
+        /// Serializes the contents of the model and provides a memory stream.
+        /// </summary>
+        /// <param name="fs">The file stream to write to.</param>
+        /// <param name="formatWriter">A RDF writer.</param>
+        /// <param name="leaveOpen">Indicates if the stream should be left open after writing completes.</param>
+        /// <returns>A serialization of the models contents.</returns>
+        public void Write(Stream fs, IRdfWriter formatWriter, bool leaveOpen = false)
+        {
+            _store.Write(fs, Uri, formatWriter, leaveOpen);
         }
 
         /// <summary>

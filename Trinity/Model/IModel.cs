@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using VDS.RDF;
 
 namespace Semiodesk.Trinity
 {
@@ -334,13 +335,22 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Serializes the contents of the model and provides a memory stream.
         /// </summary>
-        /// <param name="fs">The file stream to write to.</param>
+        /// <param name="stream">The file stream to write to.</param>
         /// <param name="format">The serialization format.</param>
         /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
         /// <param name="baseUri">Base URI for shortening URIs in formats that support it.</param>
-        /// <param name="leaveOpen">Should the stream be closed.</param>
+        /// <param name="leaveOpen">Indicates if the stream should be left open after writing completes.</param>
         /// <returns>A serialization of the models contents.</returns>
-        void Write(Stream fs, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false);
+        void Write(Stream stream, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false);
+
+        /// <summary>
+        /// Serializes the contents of the model and provides a memory stream.
+        /// </summary>
+        /// <param name="stream">The file stream to write to.</param>
+        /// <param name="formatWriter">A RDF writer.</param>
+        /// <param name="leaveOpen">Indicates if the stream should be left open after writing completes.</param>
+        /// <returns>A serialization of the models contents.</returns>
+        void Write(Stream stream, IRdfWriter formatWriter, bool leaveOpen = false);
 
         /// <summary>
         /// Updates a resource with it's current state in the model.

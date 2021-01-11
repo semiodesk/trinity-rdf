@@ -35,6 +35,7 @@ using System.Web;
 using VDS.RDF.Query;
 using System.IO;
 using VDS.RDF.Parsing;
+using VDS.RDF;
 
 namespace Semiodesk.Trinity.Store
 {
@@ -205,7 +206,12 @@ namespace Semiodesk.Trinity.Store
             throw new NotSupportedException();
         }
 
-        public void Write(Stream fs, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false)
+        public void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false)
+        {
+            throw new NotSupportedException();
+        }
+
+        public void Write(Stream stream, Uri graphUri, IRdfWriter formatWriter, bool leaveOpen = false)
         {
             throw new NotSupportedException();
         }

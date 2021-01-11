@@ -29,6 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using VDS.RDF;
 
 namespace Semiodesk.Trinity
 {
@@ -171,18 +172,28 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         Uri Read(string content, Uri graphUri, RdfSerializationFormat format, bool update);
 
+        /// <summary>
+        /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="fs">Stream to which the content should be written.</param>
+        /// <param name="graphUri">Uri fo the graph in this store.</param>
+        /// <param name="format">Allowed formats.</param>
+        /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
+        /// <param name="baseUri">Base URI for shortening URIs in formats that support it.</param>
+        /// <param name="leaveOpen">Indicates if the stream should be left open after writing completes.</param>
+        /// <returns></returns>
+        void Write(Stream fs, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false);
 
         /// <summary>
         /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.
         /// </summary>
         /// <param name="fs">Stream to which the content should be written.</param>
-        /// <param name="graphUri">Uri fo the graph in this store</param>
-        /// <param name="format">Allowed formats</param>
-        /// <param name="namespaces">Defines namespace to prefix mappings for the output.</param>
-        /// <param name="baseUri">Base URI for shortening URIs in formats that support it.</param>
-        /// <param name="leaveOpen">Leaves the stream open</param>
+        /// <param name="graphUri">Uri fo the graph in this store.</param>
+        /// <param name="formatWriter">A RDF writer.</param>
+        /// <param name="leaveOpen">Indicates if the stream should be left open after writing completes.</param>
         /// <returns></returns>
-        void Write(Stream fs, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false);
+        void Write(Stream fs, Uri graphUri, IRdfWriter formatWriter, bool leaveOpen = false);
+
 
         /// <summary>
         /// Initializes the store from the configuration. It uses either the provided file or attempts to load from "ontologies.config" located next to the executing assembly.
@@ -250,6 +261,7 @@ namespace Semiodesk.Trinity
         /// <param name="resources"></param>
         /// <param name="transaction"></param>
         void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null);
+
         #endregion
     }
 }
