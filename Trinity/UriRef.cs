@@ -66,10 +66,10 @@ namespace Semiodesk.Trinity
         public UriRef(string uriString, UriKind uriKind) : base(uriString, uriKind) { }
 
         /// <summary>
-        /// Creates an UriRef from a string with a given UriRefKind.
+        /// Creates a UriRef instance for an existing blank node identifier.
         /// </summary>
-        /// <param name="uriString"></param>
-        /// <param name="isBlankId">Indicate if the URI is a triple store specific blank node identifier.</param>
+        /// <param name="uriString">URI string or blank node identifier.</param>
+        /// <param name="isBlankId">Indicate if the URI is a blank node identifier.</param>
         public UriRef(string uriString, bool isBlankId) : base(uriString, UriKind.RelativeOrAbsolute)
         {
             IsBlankId = isBlankId;

@@ -325,10 +325,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                 string msg = string.Format("Error: Caught {0} exception.", ex.GetType());
                 Debug.WriteLine(msg);
             }
-            catch (Exception ex)
-            {
-
-            }
             // This seems to be different in 7.x version of Openlink.Virtuoso.dll
             //catch (VirtuosoException e)
             //{
@@ -746,60 +742,65 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         public override void UpdateResource(Resource resource, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
         {
             string guid = null;
-
             string updateString;
 
             if (resource.IsNew)
             {
                 if (resource.Uri.IsBlankId)
                 {
+                    // Virtuoso does not support the SPARQL 1.1 BNODE constructor. Therefore,
+                    // we add a special id to the resource upon creation which we later
+                    // use to retrieve the blank node ID the server as assigned to the resource..
                     guid = Guid.NewGuid().ToString();
 
                     resource.AddProperty(_idProperty, guid);
                 }
 
                 updateString = string.Format(@"
-                WITH {0}
-                INSERT {{ {1} }} ",
-                    SparqlSerializer.SerializeUri(modelUri),
+                    SPARQL
+                    WITH <{0}>
+                    INSERT {{ {1} }} ",
+                    modelUri.OriginalString,
                     SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
             }
             else
             {
                 updateString = string.Format(@"
-                    WITH {0}
+                    SPARQL
+                    WITH <{0}>
                     DELETE {{ {1} ?p ?o. }}
                     WHERE {{ OPTIONAL {{ {1} ?p ?o. }} }}
                     INSERT {{ {2} }} ",
-                   SparqlSerializer.SerializeUri(modelUri),
-                   SparqlSerializer.SerializeUri(resource.Uri),
-                   SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
+                    modelUri.OriginalString,
+                    SparqlSerializer.SerializeUri(resource.Uri),
+                    SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
             }
 
-            SparqlUpdate update = new SparqlUpdate(updateString);
-
-            ExecuteNonQuery(update, transaction);
+            ExecuteDirectQuery(updateString, transaction);
 
             resource.IsNew = false;
             resource.IsSynchronized = true;
 
             if (!string.IsNullOrEmpty(guid))
             {
-                string queryString = string.Format(@"SELECT STR(?x) FROM {0} WHERE {{ ?x <http://trinity-rdf.net/id> '{1}' . }}",
-                    SparqlSerializer.SerializeUri(modelUri),
+                // Retrieve the blank node id from the id property value.
+                string queryString = string.Format(@"SPARQL SELECT ?x FROM <{0}> WHERE {{ ?x <http://trinity-rdf.net/id> '{1}' . }}",
+                    modelUri.OriginalString,
                     guid);
 
                 var result = ExecuteQuery(queryString, transaction);
 
                 resource.Uri = new UriRef(result.Rows[0]["x"].ToString(), true);
 
-                updateString = string.Format(@"DELETE FROM {0} {{ {1} <http://trinity-rdf.net/id> '{1}'. }}",
-                    SparqlSerializer.SerializeUri(modelUri),
+                // Remove the id property from the resource *and* the model.
+                resource.RemoveProperty(_idProperty, guid);
+
+                updateString = string.Format(@"SPARQL DELETE FROM <{0}> {{ <{1}> <http://trinity-rdf.net/id> '{2}'. }}",
+                    modelUri.OriginalString,
+                    resource.Uri.OriginalString,
                     guid);
 
-                update = new SparqlUpdate(updateString);
-
-                ExecuteNonQuery(update, transaction);
+                ExecuteDirectQuery(updateString, transaction);
             }
         }
 
@@ -907,21 +908,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             }
 
             ExecuteNonQuery(c, transaction);
-        }
-
-        public override string GetUnusedBlankNodeId(Uri modelUri)
-        {
-            var query = new SparqlQuery("SELECT UUID() AS ?id FROM @graph WHERE {}");
-            query.Bind("@graph", modelUri);
-
-            foreach (var b in ExecuteQuery(query).GetBindings())
-            {
-                var uuid = b["id"].ToString();
-
-                return uuid.Split(':')[2];
-            }
-
-            throw new InvalidBlankNodeIdentifierResultException();
         }
 
         #endregion

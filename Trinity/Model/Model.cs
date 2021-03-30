@@ -433,9 +433,7 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
-            ISparqlQuery query = new SparqlQuery("DESCRIBE @subject FROM @model");
-            query.Bind("@model", this.Uri);
-            query.Bind("@subject", uri);
+            ISparqlQuery query = _store.GetDescribeQuery(Uri, uri);
 
             ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);
 

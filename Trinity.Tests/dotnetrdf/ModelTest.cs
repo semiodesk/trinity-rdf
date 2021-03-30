@@ -278,6 +278,25 @@ namespace dotNetRDFStore.Test
             }
         }
 
+        [Test]
+        public void GetResourceWithBlankIdTest()
+        {
+            Model.Clear();
+
+            Property p = new Property(new Uri("http://example.org/MyProperty"));
+
+            IResource x = Model.CreateResource(new BlankId());
+            x.AddProperty(p, 123);
+            x.Commit();
+
+            IResource y = Model.GetResource<Resource>(x.Uri);
+
+            Assert.IsTrue(y.Uri.IsBlankId);
+
+            IResource z = Model.GetResource<Resource>(y.Uri);
+
+            Assert.IsTrue(z.Uri.IsBlankId);
+        }
 
         [Test]
         public void GetResourcesEmptyTest()

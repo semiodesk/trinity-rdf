@@ -280,18 +280,21 @@ namespace Semiodesk.Trinity.Test.Virtuoso
 
             Property p = new Property(new Uri("http://example.org/MyProperty"));
 
-            IResource x = Model.CreateResource(new UriRef("_:", true));
+            IResource x = Model.CreateResource(new BlankId());
             x.AddProperty(p, 123);
             x.Commit();
 
-            IResource y = Model.GetResources<Resource>().First();
+            Assert.IsTrue(x.Uri.IsBlankId);
+            Assert.AreEqual(1, x.ListValues().Count());
+
+            IResource y = Model.GetResource<Resource>(x.Uri);
 
             Assert.IsTrue(y.Uri.IsBlankId);
+            Assert.AreEqual(1, y.ListValues().Count());
 
             IResource z = Model.GetResource<Resource>(y.Uri);
 
             Assert.IsTrue(z.Uri.IsBlankId);
-            Assert.AreEqual(y.Uri, z.Uri);
         }
 
         [Test]
