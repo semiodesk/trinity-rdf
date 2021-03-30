@@ -199,10 +199,15 @@ namespace Semiodesk.Trinity.Store
                     if (s is IUriNode || s is BlankNode)
                     {
                         Uri subjectUri = null;
-                        if ( s is IUriNode uriNode)
+
+                        if (s is IUriNode uriNode)
+                        {
                             subjectUri = uriNode.Uri;
+                        }
                         else if (s is BlankNode blankNode)
-                            subjectUri = new UriRef("blank:"+blankNode.InternalID);
+                        {
+                            subjectUri = new UriRef("blank:" + blankNode.InternalID, true);
+                        }
 
                         if (currentResource != null && currentResource.Uri.OriginalString == subjectUri.OriginalString)
                         {
@@ -224,7 +229,6 @@ namespace Semiodesk.Trinity.Store
                             try
                             {
                                 currentResource = (Resource)Activator.CreateInstance(type, subjectUri);
-                                currentResource.IsBlank = s is BlankNode;
                                 currentResource.IsNew = false;
                                 currentResource.IsSynchronized = true;
                                 currentResource.Model = _model;
@@ -265,7 +269,6 @@ namespace Semiodesk.Trinity.Store
                             currentResource.IsNew = false;
                             currentResource.IsSynchronized = false;
                             currentResource.Model = _model;
-                            currentResource.IsBlank = o is BlankNode;
                         }
                         else
                         {
@@ -277,7 +280,6 @@ namespace Semiodesk.Trinity.Store
                             currentResource.IsNew = false;
                             currentResource.IsSynchronized = false;
                             currentResource.Model = _model;
-                            currentResource.IsBlank = o is BlankNode;
                         }
                     }
                     else

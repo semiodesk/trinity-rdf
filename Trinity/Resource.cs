@@ -85,6 +85,7 @@ namespace Semiodesk.Trinity
             set
             {
                 _model = value;
+
                 ResourceCache.Model = value;
             }
         }
@@ -94,18 +95,11 @@ namespace Semiodesk.Trinity
         /// </summary>
         public UriRef Uri { get; set; }
 
-
         /// <summary>
         /// New resource which have never been committed need to be treated differently.
         /// </summary>
         [JsonIgnore]
         public bool IsNew { get; set; }
-
-        /// <summary>
-        /// Indicates that this resource is a blank node.
-        /// </summary>
-        [JsonIgnore]
-        public bool IsBlank { get; set; } = false;
 
         /// <summary>
         /// Indicates if the resources has been disposed.
@@ -146,9 +140,14 @@ namespace Semiodesk.Trinity
             set
             {
                 if (value != null)
+                {
                     _language = value.ToLower();
+                }
                 else
+                {
                     _language = null;
+                }
+
                 ReloadLocalizedMappings();
             }
         }

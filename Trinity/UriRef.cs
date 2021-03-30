@@ -35,7 +35,17 @@ namespace Semiodesk.Trinity
     /// </summary>
     public class UriRef : Uri
     {
+        #region Members
+
+        /// <summary>
+        /// Indicates if the UriRef is a triple store specific blank node identifier.
+        /// </summary>
+        public bool IsBlankId { get; }
+
+        #endregion
+
         #region Constructors
+
         /// <summary>
         /// Creates an UriRef from an Uri
         /// </summary>
@@ -54,6 +64,16 @@ namespace Semiodesk.Trinity
         /// <param name="uriString"></param>
         /// <param name="uriKind"></param>
         public UriRef(string uriString, UriKind uriKind) : base(uriString, uriKind) { }
+
+        /// <summary>
+        /// Creates an UriRef from a string with a given UriRefKind.
+        /// </summary>
+        /// <param name="uriString"></param>
+        /// <param name="isBlankId">Indicate if the URI is a triple store specific blank node identifier.</param>
+        public UriRef(string uriString, bool isBlankId) : base(uriString, UriKind.RelativeOrAbsolute)
+        {
+            IsBlankId = isBlankId;
+        }
 
         /// <summary>
         /// Creates an UriRef from a base uri and a relative uri as string.

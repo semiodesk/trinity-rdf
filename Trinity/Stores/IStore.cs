@@ -262,6 +262,17 @@ namespace Semiodesk.Trinity
         /// <param name="transaction"></param>
         void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null);
 
+        /// <summary>
+        /// Returns a blank node identifier that is not yet used within a dataset.
+        /// </summary>
+        /// <remarks>
+        /// This is usually provided by the BNODE() constructor function of SPARQL.
+        /// </remarks>
+        /// <returns>
+        /// An unused blank node label.
+        /// </returns>
+        string GetUnusedBlankNodeId(Uri modelUri);
+
         #endregion
     }
 }

@@ -251,6 +251,11 @@ namespace Semiodesk.Trinity.Store
             throw new NotSupportedException();
         }
 
+        public virtual string GetUnusedBlankNodeId(Uri modelUri)
+        {
+            throw new NotSupportedException();
+        }
+
         #endregion
     }
 }

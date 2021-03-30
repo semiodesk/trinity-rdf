@@ -37,7 +37,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
     public class VirtuosoStoreProvider : StoreProvider
     {
-
         public VirtuosoStoreProvider()
         {
             Name = "virtuoso";
@@ -47,13 +46,16 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         {
             string hostKey = "host";
             string host = "127.0.0.1";
-                          
-            if(configurationDictionary.ContainsKey(hostKey))
+
+            if (configurationDictionary.ContainsKey(hostKey))
+            {
                 host = configurationDictionary[hostKey];
+            }
 
 
             string portKey = "port";
             int port;
+
             if (!configurationDictionary.ContainsKey(portKey) ||!int.TryParse(configurationDictionary[portKey], out port))
             {
                 #if !DEBUG 
@@ -65,29 +67,37 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
             string userKey = "uid";
             string user = "dba";
-            if(configurationDictionary.ContainsKey(userKey))
-                 user= configurationDictionary["uid"];
+
+            if (configurationDictionary.ContainsKey(userKey))
+            {
+                user = configurationDictionary["uid"];
+            }
 
 
             string passwordKey = "pw";
             string password = "dba";
+
             if (configurationDictionary.ContainsKey(passwordKey))
+            {
                 password = configurationDictionary[passwordKey];
+            }
 
             if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(user) || string.IsNullOrEmpty(password))
-               return null;
+            {
+                return null;
+            }
 
             string inferenceRule = null;
             string ruleKey = "rule";
+
             if (configurationDictionary.ContainsKey(ruleKey))
             {
                 inferenceRule = configurationDictionary[ruleKey];
             }
 
-
             VirtuosoStore store = new VirtuosoStore(host, port, user, password, inferenceRule);
+
             return store;
         }
-
     }
 }

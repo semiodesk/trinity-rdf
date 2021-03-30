@@ -500,6 +500,19 @@ namespace Semiodesk.Trinity
                 DeleteResource(resource, transaction);
         }
 
+        public virtual string GetUnusedBlankNodeId(Uri modelUri)
+        {
+            var query = new SparqlQuery("SELECT BNODE() AS ?id FROM @graph WHERE {}");
+            query.Bind("@graph", modelUri);
+
+            foreach(var b in ExecuteQuery(query).GetBindings())
+            {
+                return b["id"].ToString();
+            }
+
+            throw new InvalidBlankNodeIdentifierResultException();
+        }
+
         #endregion
     }
 }

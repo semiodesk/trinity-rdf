@@ -30,28 +30,20 @@ using System;
 namespace Semiodesk.Trinity
 {
     /// <summary>
-    /// Extension of Uri class concering UriRef handling.
+    /// Represents errors when a store did not provide a valid blank node identifier.
     /// </summary>
-    public static class UriExtensions
+    public class InvalidBlankNodeIdentifierResultException : Exception
     {
-        /// <summary>
-        /// Create a UriRef from this Uri.
-        /// </summary>
-        /// <param name="uri">A uniform resource identifier (URI)</param>
-        /// <returns>A UriRef instance.</returns>
-        public static UriRef ToUriRef(this Uri uri)
-        {
-            return uri is UriRef ? uri as UriRef : new UriRef(uri);
-        }
+        #region Constructors
 
         /// <summary>
-        /// Indicates if the given URI is a UriRef instance and a blank node identifier.
+        /// Create a new instance of the <c>InvalidBlankNodeIdentifierResultException</c> class.
         /// </summary>
-        /// <param name="uri">A uniform resource identifier (URI)</param>
-        /// <returns><c>true</c> if the Uri is a UriRef and a blank node identifier.</returns>
-        public static bool IsBlankId(this Uri uri)
+        public InvalidBlankNodeIdentifierResultException()
+            : base("Store did not return a valid blank node identifier.")
         {
-            return uri is UriRef && (uri as UriRef).IsBlankId;
         }
+
+        #endregion
     }
 }

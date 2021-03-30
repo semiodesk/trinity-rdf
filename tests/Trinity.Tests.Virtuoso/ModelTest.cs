@@ -274,6 +274,27 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         }
 
         [Test]
+        public void GetResourceWithBlankIdTest()
+        {
+            Model.Clear();
+
+            Property p = new Property(new Uri("http://example.org/MyProperty"));
+
+            IResource x = Model.CreateResource(new UriRef("_:", true));
+            x.AddProperty(p, 123);
+            x.Commit();
+
+            IResource y = Model.GetResources<Resource>().First();
+
+            Assert.IsTrue(y.Uri.IsBlankId);
+
+            IResource z = Model.GetResource<Resource>(y.Uri);
+
+            Assert.IsTrue(z.Uri.IsBlankId);
+            Assert.AreEqual(y.Uri, z.Uri);
+        }
+
+        [Test]
         public void GetResourceTest()
         {
             IResource hans = Model.GetResource(new Uri("http://example.org/MyResource"));

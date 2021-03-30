@@ -129,9 +129,6 @@ namespace Semiodesk.Trinity
         /// <returns>The resource which is now connected to the current model.</returns>
         public virtual IResource AddResource(IResource resource, ITransaction transaction = null)
         {
-            if (resource.IsBlank)
-                throw new ResourceBlankException();
-
             Resource result = CreateResource<Resource>(resource.Uri, transaction);
 
             foreach (var v in resource.ListValues())
@@ -152,9 +149,6 @@ namespace Semiodesk.Trinity
         /// <returns>The resource which is now connected to the current model.</returns>
         public virtual T AddResource<T>(T resource, ITransaction transaction = null) where T : Resource
         {
-            if (resource.IsBlank)
-                throw new ResourceBlankException();
-
             T result = CreateResource<T>(resource.Uri, transaction);
 
             foreach (var v in resource.ListValues())
@@ -197,6 +191,7 @@ namespace Semiodesk.Trinity
             {
                 IsNew = true
             };
+
             resource.SetModel(this);
 
             return resource;
@@ -288,8 +283,6 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         public virtual void DeleteResource(IResource resource, ITransaction transaction = null)
         {
-            if (resource.IsBlank)
-                throw new ResourceBlankException();
             DeleteResource(resource.Uri);
         }
 
@@ -298,21 +291,15 @@ namespace Semiodesk.Trinity
             _store.DeleteResources(Uri, resources, transaction);
         }
 
-
         public virtual void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null)
         {
-           if( resources.Any( x => x.IsBlank))
-                throw new ResourceBlankException();
             _store.DeleteResources(resources, transaction);
         }
 
         public virtual void DeleteResources(ITransaction transaction = null, params IResource[] resources)
         {
-            if (resources.Any(x => x.IsBlank))
-                throw new ResourceBlankException();
             _store.DeleteResources(resources, transaction);
         }
-
 
         /// <summary>
         /// Updates the properties of a resource in the backing RDF store.
@@ -321,8 +308,6 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         public virtual void UpdateResource(Resource resource, ITransaction transaction = null)
         {
-            if (resource.IsBlank)
-                throw new ResourceBlankException();
             _store.UpdateResource(resource, Uri, transaction, IgnoreUnmappedProperties);
         }
 
@@ -333,8 +318,6 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         public virtual void UpdateResources(IEnumerable<Resource> resources, ITransaction transaction = null)
         {
-            if (resources.Any( x => x.IsBlank) )
-                throw new ResourceBlankException();
             _store.UpdateResources(resources, Uri, transaction, IgnoreUnmappedProperties);
         }
 
@@ -371,8 +354,6 @@ namespace Semiodesk.Trinity
         /// <returns>True if the resource is part of the model, False if not.</returns>
         public bool ContainsResource(IResource resource, ITransaction transaction = null)
         {
-            if (resource.IsBlank)
-                return false;
             return ContainsResource(resource.Uri, transaction);
         }
 
@@ -441,8 +422,6 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(IResource resource, ITransaction transaction = null)
         {
-            if (resource.IsBlank)
-                throw new Exception("Blank resources are not supported yet.");
             return GetResource(resource.Uri, transaction);
         }
 
@@ -454,7 +433,7 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
-            ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?s ?p ?o FROM @model WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
+            ISparqlQuery query = new SparqlQuery("DESCRIBE @subject FROM @model");
             query.Bind("@model", this.Uri);
             query.Bind("@subject", uri);
 

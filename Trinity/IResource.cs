@@ -67,8 +67,6 @@ namespace Semiodesk.Trinity
         /// </summary>
         bool IsDisposed { get; set; }
 
-        bool IsBlank { get; set; }
-
         #endregion
 
         #region Methods

@@ -73,7 +73,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         /// </summary>
         private string Password { get; set; }
 
-
         /// <summary>
         /// 
         /// </summary>
@@ -88,6 +87,16 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         private string _defaultInferenceRule = "urn:semiodesk/ruleset";
 
         private bool _isDisposed = false;
+
+        /// <summary>
+        /// This property is being used to identify newly created resources 
+        /// that have a blank node instead of a URI.
+        /// </summary>
+        /// <remarks>
+        /// Virtuoso has no support for SPARQL BNODE().
+        /// </remarks>
+        private readonly Property _idProperty = new Property(new UriRef("http://trinity-rdf.net/id", UriKind.RelativeOrAbsolute));
+
         #endregion
 
         #region Constructors
@@ -315,6 +324,10 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             {
                 string msg = string.Format("Error: Caught {0} exception.", ex.GetType());
                 Debug.WriteLine(msg);
+            }
+            catch (Exception ex)
+            {
+
             }
             // This seems to be different in 7.x version of Openlink.Virtuoso.dll
             //catch (VirtuosoException e)
@@ -732,13 +745,36 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
         public override void UpdateResource(Resource resource, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
         {
+            string guid = null;
+
             string updateString;
 
-            updateString = string.Format(@"WITH {0} DELETE {{ {1} ?p ?o. }} WHERE {{ OPTIONAL {{ {1} ?p ?o. }} }} INSERT {{ {2} }} ",
-                SparqlSerializer.SerializeUri(modelUri),
-                SparqlSerializer.SerializeUri(resource.Uri),
-                SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
+            if (resource.IsNew)
+            {
+                if (resource.Uri.IsBlankId)
+                {
+                    guid = Guid.NewGuid().ToString();
 
+                    resource.AddProperty(_idProperty, guid);
+                }
+
+                updateString = string.Format(@"
+                WITH {0}
+                INSERT {{ {1} }} ",
+                    SparqlSerializer.SerializeUri(modelUri),
+                    SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
+            }
+            else
+            {
+                updateString = string.Format(@"
+                    WITH {0}
+                    DELETE {{ {1} ?p ?o. }}
+                    WHERE {{ OPTIONAL {{ {1} ?p ?o. }} }}
+                    INSERT {{ {2} }} ",
+                   SparqlSerializer.SerializeUri(modelUri),
+                   SparqlSerializer.SerializeUri(resource.Uri),
+                   SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
+            }
 
             SparqlUpdate update = new SparqlUpdate(updateString);
 
@@ -746,6 +782,25 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
             resource.IsNew = false;
             resource.IsSynchronized = true;
+
+            if (!string.IsNullOrEmpty(guid))
+            {
+                string queryString = string.Format(@"SELECT STR(?x) FROM {0} WHERE {{ ?x <http://trinity-rdf.net/id> '{1}' . }}",
+                    SparqlSerializer.SerializeUri(modelUri),
+                    guid);
+
+                var result = ExecuteQuery(queryString, transaction);
+
+                resource.Uri = new UriRef(result.Rows[0]["x"].ToString(), true);
+
+                updateString = string.Format(@"DELETE FROM {0} {{ {1} <http://trinity-rdf.net/id> '{1}'. }}",
+                    SparqlSerializer.SerializeUri(modelUri),
+                    guid);
+
+                update = new SparqlUpdate(updateString);
+
+                ExecuteNonQuery(update, transaction);
+            }
         }
 
         public override void UpdateResources(IEnumerable<Resource> resources, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
@@ -775,7 +830,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
         public override void DeleteResource(Uri modelUri, Uri resourceUri, ITransaction transaction = null)
         {
-
             SparqlUpdate delete = new SparqlUpdate(@"WITH @graph DELETE WHERE { ?s ?p ?o. FILTER( ?s = @subject || ?o = @object ) }");
             delete.Bind("@graph", modelUri);
             delete.Bind("@subject", resourceUri);
@@ -786,7 +840,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
         public override void DeleteResource(IResource resource, ITransaction transaction = null)
         {
-
             DeleteResource(resource.Model.Uri, resource.Uri, transaction);
         }
 
@@ -794,23 +847,27 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         {
 
             var template = "WITH @graph DELETE WHERE { ?s ?p ?o. FILTER( _filter_ )}";
+
             List<string> filters = new List<string>();
-            int counter = 0;
+
+            int n = 0;
+
             foreach (var x in resources)
             {
-                filters.Add($"?s = @subject{counter} || ?o = @object{counter}");
-                counter++;
+                filters.Add($"?s = @subject{n} || ?o = @object{n}");
+                n++;
             }
 
             SparqlUpdate c = new SparqlUpdate(template.Replace("_filter_", string.Join(" || ", filters)));
             c.Bind("@graph", modelUri);
 
-            counter = 0;
+            n = 0;
+
             foreach (var x in resources)
             {
-                c.Bind("@subject" + counter, x);
-                c.Bind("@object" + counter, x);
-                counter++;
+                c.Bind("@subject" + n, x);
+                c.Bind("@object" + n, x);
+                n++;
             }
 
             ExecuteNonQuery(c, transaction);
@@ -819,32 +876,53 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         public override void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null)
         {
             IModel model = resources.First().Model;
-            if( resources.Any(x => x.IsBlank || x.Model.Uri != model.Uri))
+
+            if (resources.Any(x => x.Model.Uri != model.Uri))
+            {
                 throw new NotSupportedException();
+            }
 
             var template = "WITH @graph DELETE WHERE { ?s ?p ?o. FILTER( _filter_ )}";
+
             List<string> filters = new List<string>();
-            int counter = 0;
+
+            int n = 0;
+
             foreach ( var x in resources)
             {
-                filters.Add($"?s = @subject{counter} || ?o = @object{counter}");
-                counter++;
+                filters.Add($"?s = @subject{n} || ?o = @object{n}");
+                n++;
             }
             
             SparqlUpdate c = new SparqlUpdate(template.Replace("_filter_", string.Join(" || ", filters)));
             c.Bind("@graph", model.Uri);
             
-            counter = 0;
+            n = 0;
+
             foreach (var x in resources)
             {
-                c.Bind("@subject"+counter, x.Uri);
-                c.Bind("@object" + counter, x.Uri);
-                counter++;
+                c.Bind("@subject" + n, x.Uri);
+                c.Bind("@object" + n, x.Uri);
+                n++;
             }
 
             ExecuteNonQuery(c, transaction);
         }
-       
+
+        public override string GetUnusedBlankNodeId(Uri modelUri)
+        {
+            var query = new SparqlQuery("SELECT UUID() AS ?id FROM @graph WHERE {}");
+            query.Bind("@graph", modelUri);
+
+            foreach (var b in ExecuteQuery(query).GetBindings())
+            {
+                var uuid = b["id"].ToString();
+
+                return uuid.Split(':')[2];
+            }
+
+            throw new InvalidBlankNodeIdentifierResultException();
+        }
 
         #endregion
 

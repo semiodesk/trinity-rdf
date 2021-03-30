@@ -91,12 +91,14 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         {
             if (cellValue is SqlExtendedString extendedString)
             {
-                if (extendedString.IsResource())
+                bool isBlankId = extendedString.IsBlankId();
+
+                if (extendedString.IsResource() || isBlankId)
                 {
                     // NOTE: We create an UriRef for correct equality comparision with fragment identifiers.
-                    return new UriRef(extendedString.ToString(), UriKind.RelativeOrAbsolute);
+                    return new UriRef(extendedString.ToString(), isBlankId);
                 }
-                else if (extendedString.IsString() || extendedString.IsBlankId())
+                else if (extendedString.IsString())
                 {
                     return extendedString.ToString();
                 }
@@ -200,7 +202,20 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
                 foreach (DataRow row in queryResults.Rows)
                 {
-                    // NOTE: We create an UriRef for correct equality comparision with fragment identifiers.
+                    bool subjectBlank = false;
+                    bool objectBlank = false;
+
+                    if (row[0] is SqlExtendedString x)
+                    {
+                        subjectBlank = x.IsBlankId();
+                    }
+
+                    if (row[2] is SqlExtendedString y)
+                    {
+                        objectBlank = y.IsBlankId();
+                    }
+
+                    // Note: We create an UriRef for correct equality comparision with fragment identifiers.
                     UriRef s, predUri;
                     Property p;
                     object o;
@@ -208,13 +223,13 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                     if (_query.QueryType == SparqlQueryType.Describe ||
                         _query.QueryType == SparqlQueryType.Construct)
                     {
-                        s = new UriRef(row[0].ToString());
+                        s = new UriRef(row[0].ToString(), subjectBlank);
                         predUri = new UriRef(row[1].ToString());
                         o = ParseCellValue(row[2]);
                     }
                     else if (_query.QueryType == SparqlQueryType.Select && providesStatements)
                     {
-                        s = new UriRef(row[vars[0]].ToString());
+                        s = new UriRef(row[vars[0]].ToString(), subjectBlank);
                         predUri = new UriRef(row[vars[1]].ToString());
                         o = ParseCellValue(row[vars[2]]);
                     }
@@ -250,20 +265,23 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                             currentResource.SetModel(_model);
 
                             cache.Add(s.OriginalString, currentResource);
+
                             result.Add(currentResource);
                         }
                         catch
                         {
 #if DEBUG
-                            Debug.WriteLine("[SparqlQueryResult] Info: Could not create resource " +
-                                            s.OriginalString);
+                            Debug.WriteLine("[SparqlQueryResult] Info: Could not create resource " + s.OriginalString);
 #endif
 
                             continue;
                         }
                     }
 
-                    if (currentResource == null) continue;
+                    if (currentResource == null)
+                    {
+                        continue;
+                    }
 
                     if (o is UriRef)
                     {
@@ -284,6 +302,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                             };
 
                             cache.Add(uri.OriginalString, r);
+
                             currentResource.AddPropertyToMapping(p, r, true);
                             currentResource.IsNew = false;
                             currentResource.IsSynchronized = false;
@@ -301,7 +320,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             {
                 yield return r;
             }
-
         }
 
         /// <summary>
