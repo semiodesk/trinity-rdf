@@ -187,10 +187,11 @@ namespace Semiodesk.Trinity.Store
             return result;
         }
 
-        public void ExecuteNonQuery(SparqlUpdate queryString, ITransaction transaction = null)
+        public void ExecuteNonQuery(ISparqlUpdate update, ITransaction transaction = null)
         {
-            return;
+            throw new NotSupportedException();
         }
+
         public Uri Read(string content, Uri url, RdfSerializationFormat format, bool update)
         {
             throw new NotSupportedException();

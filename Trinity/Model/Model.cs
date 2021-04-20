@@ -381,7 +381,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="update">A SparqlUpdate object.</param>
         /// <param name="transaction">Transaction associated with this action.</param>
-        public void ExecuteUpdate(SparqlUpdate update, ITransaction transaction = null)
+        public void ExecuteUpdate(ISparqlUpdate update, ITransaction transaction = null)
         {
             _store.ExecuteNonQuery(update, transaction);
         }

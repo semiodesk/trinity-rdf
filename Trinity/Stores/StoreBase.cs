@@ -110,7 +110,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="update">SPARQL Update to be executed.</param>
         /// <param name="transaction">An optional transaction.</param>
-        public abstract void ExecuteNonQuery(SparqlUpdate update, ITransaction transaction = null);
+        public abstract void ExecuteNonQuery(ISparqlUpdate update, ITransaction transaction = null);
 
         /// <summary>
         /// Starts a transaction. The resulting transaction handle can be used to chain operations together.

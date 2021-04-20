@@ -114,7 +114,7 @@ namespace Semiodesk.Trinity.Store.Stardog
         /// </summary>
         /// <param name="update">SPARQL Update to be executed.</param>
         /// <param name="transaction">An optional transaction.</param>
-        public override void ExecuteNonQuery(SparqlUpdate update, ITransaction transaction = null)
+        public override void ExecuteNonQuery(ISparqlUpdate update, ITransaction transaction = null)
         {
             if (!_connector.UpdateSupported)
             {

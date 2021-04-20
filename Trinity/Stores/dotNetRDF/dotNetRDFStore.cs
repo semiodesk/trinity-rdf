@@ -139,7 +139,7 @@ namespace Semiodesk.Trinity.Store
         /// </summary>
         /// <param name="query">The update query</param>
         /// <param name="transaction">An associated transaction</param>
-        public override void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
+        public override void ExecuteNonQuery(ISparqlUpdate query, ITransaction transaction = null)
         {
             string q = query.ToString();
 
