@@ -158,7 +158,6 @@ namespace Semiodesk.Trinity.Store
         /// <returns></returns>
         public override ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
-            
             string q = query.ToString();
 
             object results = ExecuteQuery(q);

@@ -37,20 +37,18 @@ using Semiodesk.Trinity.Tests.dotnetrdf;
 
 namespace dotNetRDFStore.Test
 {
-
-
     [TestFixture]
     class ModelTest
     {
         IStore Store;
+
         IModel Model;
 
         [SetUp]
         public void SetUp()
         {
-            Store = StoreFactory.CreateStore("provider=dotnetrdf");
-            Uri testModel = new Uri("ex:Test");
-            Model = Store.CreateModel(testModel);
+            Store = StoreFactory.CreateMemoryStore();
+            Model = Store.CreateModel(new Uri("ex:Test"));
         }
 
         [TearDown]
@@ -59,7 +57,6 @@ namespace dotNetRDFStore.Test
             Store.Dispose();
             Store = null;
         }
-
 
         [Test]
         public void DeleteResourceTest()
@@ -141,7 +138,6 @@ namespace dotNetRDFStore.Test
             Assert.IsFalse(Model.ContainsResource(uri1));
         }
 
-
         [Test]
         public void CreateResourceTest()
         {
@@ -158,6 +154,24 @@ namespace dotNetRDFStore.Test
             Assert.AreEqual(1, properties.Count);
             Assert.AreEqual(property, properties[0]);
             Assert.AreEqual(literal, result.GetValue(property));
+        }
+
+        [Test]
+        public void CreateResourceWithBlankIdTest()
+        {
+            var label = new Property(new UriRef("ex:label"));
+
+            var r0 = Model.CreateResource(new UriRef("_:0", true));
+            r0.AddProperty(label, "0");
+            r0.Commit();
+
+            var r1 = Model.CreateResource(new UriRef("_:1", true));
+            r1.AddProperty(label, "1");
+            r1.Commit();
+
+            Assert.IsFalse(Model.IsEmpty);
+            Assert.IsTrue(Model.ContainsResource(r0.Uri));
+            Assert.IsTrue(Model.ContainsResource(r1.Uri));
         }
 
         [Test]

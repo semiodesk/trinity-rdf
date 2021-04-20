@@ -182,7 +182,9 @@ namespace Semiodesk.Trinity
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
         public virtual IResource CreateResource(Uri uri, ITransaction transaction = null)
         {
-            if (ContainsResource(uri, transaction))
+            UriRef uriref = uri as UriRef;
+
+            if ((uriref == null || !uriref.IsBlankId) && ContainsResource(uri, transaction))
             {
                 throw new ArgumentException("A resource with the given URI already exists.");
             }
@@ -340,7 +342,7 @@ namespace Semiodesk.Trinity
         public bool ContainsResource(Uri uri, ITransaction transaction = null)
         {
             ISparqlQuery query = new SparqlQuery("ASK FROM @graph { @subject ?p ?o . }");
-            query.Bind("@graph", this.Uri);
+            query.Bind("@graph", Uri);
             query.Bind("@subject", uri);
 
             return ExecuteQuery(query, transaction: transaction).GetAnwser();
