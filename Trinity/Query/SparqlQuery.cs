@@ -151,7 +151,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="parameter">The parameter name including the '@'.</param>
         /// <param name="value">The paramter value.</param>
-        public void Bind(string parameter, object value)
+        public ISparqlQuery Bind(string parameter, object value)
         {
             if(_preprocessor == null)
             {
@@ -161,6 +161,8 @@ namespace Semiodesk.Trinity
             _preprocessor.Bind(parameter, value);
 
             _isModified = true;
+
+            return this;
         }
 
         /// <summary>

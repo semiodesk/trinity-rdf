@@ -1267,7 +1267,6 @@ namespace Semiodesk.Trinity.Test.Linq
             Assert.AreEqual("Alice", actual.First().FirstName);
         }
 
-
         [Test]
         public void CanExecuteCollectionWithInferencingEnabled()
         {

@@ -372,7 +372,7 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestIsOrdered()
         {
-            SparqlQuery query = new SparqlQuery(@"
+            ISparqlQuery query = new SparqlQuery(@"
                 SELECT ?s0 ?p0 ?o0
                 WHERE
                 {
@@ -397,10 +397,9 @@ namespace Semiodesk.Trinity.Test
                         ORDER BY ?o
                     }
                 }
-            ");
-
-            query.Bind("@type", rdf.type);
-            query.Bind("@class", tmo.Task);
+            ")
+                .Bind("@type", rdf.type)
+                .Bind("@class", tmo.Task);
 
             Assert.IsTrue(string.IsNullOrEmpty(query.GetRootOrderByClause()));
 
@@ -428,10 +427,9 @@ namespace Semiodesk.Trinity.Test
                         }
                     }
                 }
-            ");
-
-            query.Bind("@type", rdf.type);
-            query.Bind("@class", tmo.Task);
+            ")
+                .Bind("@type", rdf.type)
+                .Bind("@class", tmo.Task);
 
             Assert.IsTrue(string.IsNullOrEmpty(query.GetRootOrderByClause()));
 

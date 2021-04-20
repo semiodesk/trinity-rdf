@@ -23,7 +23,7 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015-2019
+// Copyright (c) Semiodesk GmbH 2015-2021
 
 using System;
 using System.Collections.Generic;
@@ -39,7 +39,7 @@ namespace Semiodesk.Trinity
     /// query strings by automatically setting PREFIX declarations from a given
     /// namespace manager.
     /// </summary>
-    public class SparqlUpdate
+    public class SparqlUpdate : ISparqlUpdate
     {
         #region Properties
 
@@ -85,7 +85,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="parameter">The parameter name including the '@'.</param>
         /// <param name="value">The paramter value.</param>
-        public void Bind(string parameter, object value)
+        public ISparqlUpdate Bind(string parameter, object value)
         {
             if (Preprocessor == null)
             {
@@ -93,6 +93,8 @@ namespace Semiodesk.Trinity
             }
 
             Preprocessor.Bind(parameter, value);
+
+            return this;
         }
 
         /// <summary>

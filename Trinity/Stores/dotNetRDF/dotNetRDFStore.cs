@@ -269,21 +269,23 @@ namespace Semiodesk.Trinity.Store
         /// <returns></returns>
         public override Uri Read(string content, Uri graphUri, RdfSerializationFormat format, bool update)
         {
-           
-            IGraph graph = new Graph();
-
-            graph.LoadFromString(content);
-            graph.BaseUri = graphUri;
-
-            if (!update)
+            using (StringReader reader = new StringReader(content))
             {
-                _store.Remove(graphUri);
+                IGraph graph = new Graph();
+
+                TryParse(reader, graph, format);
+
+                graph.BaseUri = graphUri;
+
+                if (!update)
+                {
+                    _store.Remove(graphUri);
+                }
+
+                _store.Add(graph, update);
+
+                return graphUri;
             }
-
-            _store.Add(graph, update);
-
-            return graphUri;
-            
         }
 
         /// <summary>

@@ -60,7 +60,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="parameter"></param>
         /// <param name="value"></param>
-        void Bind(string parameter, object value);
+        ISparqlQuery Bind(string parameter, object value);
 
         /// <summary>
         /// Returns all prefixes that were specified by the query.

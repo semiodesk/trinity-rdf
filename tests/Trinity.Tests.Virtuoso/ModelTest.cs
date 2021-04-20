@@ -116,6 +116,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
 
             protected PropertyMapping<string> FullnameProperty =
                    new PropertyMapping<string>("Fullname", nco.fullname);
+
             public string Fullname
             {
                 get { return GetValue(FullnameProperty); }
@@ -130,9 +131,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
                 set { SetValue(BirthdayProperty, value); }
             }
 
-
             public Contact(Uri uri) : base(uri) { }
-
         }
 
         [Test]
@@ -140,11 +139,14 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         {
             Uri modelUri = new Uri("http://www.example.com");
             Uri modelUri2 = new Uri("http://www.example.com/");
+
             IModel m1 = Store.GetModel(modelUri);
             m1.Clear();
-            IModel m2 = Store.GetModel(modelUri2);
 
             Assert.IsTrue(m1.IsEmpty);
+
+            IModel m2 = Store.GetModel(modelUri2);
+
             Assert.IsTrue(m2.IsEmpty);
             
             PersonContact c = m1.CreateResource<PersonContact>(new Uri("http://www.example.com/testResource"));
