@@ -26,10 +26,7 @@
 // Copyright (c) Semiodesk GmbH 2015-2021
 
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using VDS.RDF.Parsing;
 
 namespace Semiodesk.Trinity

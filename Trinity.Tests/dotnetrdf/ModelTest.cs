@@ -170,8 +170,8 @@ namespace dotNetRDFStore.Test
             r1.Commit();
 
             Assert.IsFalse(Model.IsEmpty);
-            Assert.IsTrue(Model.ContainsResource(r0.Uri));
-            Assert.IsTrue(Model.ContainsResource(r1.Uri));
+            Assert.Throws<ArgumentException>(() => Model.ContainsResource(r1.Uri));
+            Assert.Throws<ArgumentException>(() => Model.GetResource(r1));
         }
 
         [Test]
@@ -303,13 +303,43 @@ namespace dotNetRDFStore.Test
             x.AddProperty(p, 123);
             x.Commit();
 
-            IResource y = Model.GetResource<Resource>(x.Uri);
+            Assert.Throws<ArgumentException>(() => Model.GetResource<Resource>(x.Uri));
+        }
 
-            Assert.IsTrue(y.Uri.IsBlankId);
+        [Test]
+        public void GetResourceWithBlankIdPropertyTest()
+        {
+            Model.Clear();
 
-            IResource z = Model.GetResource<Resource>(y.Uri);
+            var label = new Property(new UriRef("ex:label"));
+            var related = new Property(new UriRef("ex:related"));
 
-            Assert.IsTrue(z.Uri.IsBlankId);
+            var r0 = Model.CreateResource(new UriRef("_:0", true));
+            r0.AddProperty(label, "0");
+            r0.Commit();
+
+            var r1 = Model.CreateResource(new UriRef("_:1", true));
+            r0.AddProperty(label, "1");
+            r1.AddProperty(related, r0);
+            r1.Commit();
+
+            Assert.Throws<ArgumentException>(() => Model.ContainsResource(r1.Uri));
+            Assert.Throws<ArgumentException>(() => Model.GetResource(r1.Uri));
+            Assert.Throws<ArgumentException>(() => Model.GetResource(r1));
+
+            var resources = Model.GetResources<Resource>().ToArray();
+
+            Assert.AreEqual(2, resources.Length);
+
+            foreach (var r in resources)
+            {
+                Assert.IsTrue(r.Uri.IsBlankId);
+
+                foreach(var x in r.ListValues(related).OfType<Resource>())
+                {
+                    Assert.IsTrue(x.Uri.IsBlankId);
+                }
+            }
         }
 
         [Test]

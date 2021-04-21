@@ -137,6 +137,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         [Test]
         public void ModelNameTest()
         {
+            // In OpenLink Virtuoso these are two different graphs:
             Uri modelUri = new Uri("http://www.example.com");
             Uri modelUri2 = new Uri("http://www.example.com/");
 
@@ -146,6 +147,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             Assert.IsTrue(m1.IsEmpty);
 
             IModel m2 = Store.GetModel(modelUri2);
+            m2.Clear();
 
             Assert.IsTrue(m2.IsEmpty);
             
@@ -154,7 +156,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             c.Commit();
 
             Assert.IsFalse(m1.IsEmpty);
-            Assert.IsFalse(m2.IsEmpty);
+            Assert.IsTrue(m2.IsEmpty);
 
             m1.Clear();
 
@@ -286,17 +288,43 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             x.AddProperty(p, 123);
             x.Commit();
 
-            Assert.IsTrue(x.Uri.IsBlankId);
-            Assert.AreEqual(1, x.ListValues().Count());
+            Assert.Throws<ArgumentException>(() => Model.GetResource<Resource>(x.Uri));
+        }
 
-            IResource y = Model.GetResource<Resource>(x.Uri);
+        [Test]
+        public void GetResourceWithBlankIdPropertyTest()
+        {
+            Model.Clear();
 
-            Assert.IsTrue(y.Uri.IsBlankId);
-            Assert.AreEqual(1, y.ListValues().Count());
+            var label = new Property(new UriRef("ex:label"));
+            var related = new Property(new UriRef("ex:related"));
 
-            IResource z = Model.GetResource<Resource>(y.Uri);
+            var r0 = Model.CreateResource(new UriRef("_:0", true));
+            r0.AddProperty(label, "0");
+            r0.Commit();
 
-            Assert.IsTrue(z.Uri.IsBlankId);
+            var r1 = Model.CreateResource(new UriRef("_:1", true));
+            r0.AddProperty(label, "1");
+            r1.AddProperty(related, r0);
+            r1.Commit();
+
+            Assert.Throws<ArgumentException>(() => Model.ContainsResource(r1.Uri));
+            Assert.Throws<ArgumentException>(() => Model.GetResource(r1.Uri));
+            Assert.Throws<ArgumentException>(() => Model.GetResource(r1));
+
+            var resources = Model.GetResources<Resource>().ToArray();
+
+            Assert.AreEqual(2, resources.Length);
+
+            foreach (var r in resources)
+            {
+                Assert.IsTrue(r.Uri.IsBlankId);
+
+                foreach (var x in r.ListValues(related).OfType<Resource>())
+                {
+                    Assert.IsTrue(x.Uri.IsBlankId);
+                }
+            }
         }
 
         [Test]

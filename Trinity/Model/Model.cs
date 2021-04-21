@@ -341,6 +341,13 @@ namespace Semiodesk.Trinity
         /// <returns>True if the resource is part of the model, False if not.</returns>
         public bool ContainsResource(Uri uri, ITransaction transaction = null)
         {
+            UriRef uriref = uri as UriRef;
+
+            if(uriref != null && uriref.IsBlankId)
+            {
+                throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
+            }
+
             ISparqlQuery query = new SparqlQuery("ASK FROM @graph { @subject ?p ?o . }");
             query.Bind("@graph", Uri);
             query.Bind("@subject", uri);
@@ -396,8 +403,15 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(Uri uri, ITransaction transaction = null)
         {
+            UriRef uriref = uri as UriRef;
+
+            if (uriref != null && uriref.IsBlankId)
+            {
+                throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
+            }
+
             ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?s ?p ?o FROM @model WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
-            query.Bind("@model", this.Uri);
+            query.Bind("@model", Uri);
             query.Bind("@subject", uri);
 
             ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);
@@ -435,6 +449,13 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
+            UriRef uriref = uri as UriRef;
+
+            if (uriref != null && uriref.IsBlankId)
+            {
+                throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
+            }
+
             ISparqlQuery query = _store.GetDescribeQuery(Uri, uri);
 
             ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);

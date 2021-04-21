@@ -254,11 +254,14 @@ namespace Semiodesk.Trinity.Store
                     if (o is IUriNode || o is BlankNode)
                     {
                         Uri uri = null;
+
                         if (o is IUriNode uriNode)
+                        {
                             uri = uriNode.Uri;
+                        }
                         else if (o is BlankNode blankNode)
                         {
-                            uri = new UriRef("blank:" + blankNode.InternalID);
+                            uri = new UriRef("_:" + blankNode.InternalID, true);
                         }
 
                         if (currentResource.HasPropertyMapping(p, uri.GetType()))
