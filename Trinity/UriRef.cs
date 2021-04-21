@@ -93,9 +93,18 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public override bool Equals(object comparand)
         {
-            if (comparand is Uri)
+            if (comparand is UriRef uriref)
             {
-                return GetHashCode() == comparand.GetHashCode();
+                if(uriref.IsBlankId)
+                {
+                    return string.Equals(OriginalString, uriref.OriginalString);
+                }
+
+                return base.Equals(comparand) && Fragment.Equals(uriref.Fragment);
+            }
+            else if(comparand is Uri uri)
+            {
+                return base.Equals(comparand) && Fragment.Equals(uri.Fragment);
             }
             else
             {
