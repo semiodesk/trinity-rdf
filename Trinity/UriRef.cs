@@ -95,7 +95,7 @@ namespace Semiodesk.Trinity
         {
             if (comparand is Uri)
             {
-                return base.Equals(comparand) && Fragment.Equals((comparand as Uri).Fragment);
+                return GetHashCode() == comparand.GetHashCode();
             }
             else
             {
@@ -109,7 +109,14 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public override int GetHashCode()
         {
-            return base.GetHashCode() & Fragment.GetHashCode();
+            if(IsBlankId)
+            {
+                return OriginalString.GetHashCode();
+            }
+            else
+            {
+                return base.GetHashCode() & Fragment.GetHashCode();
+            }
         }
 
         /// <summary>

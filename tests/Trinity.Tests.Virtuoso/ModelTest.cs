@@ -137,7 +137,6 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         [Test]
         public void ModelNameTest()
         {
-            // In OpenLink Virtuoso these are two different graphs:
             Uri modelUri = new Uri("http://www.example.com");
             Uri modelUri2 = new Uri("http://www.example.com/");
 
@@ -147,7 +146,6 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             Assert.IsTrue(m1.IsEmpty);
 
             IModel m2 = Store.GetModel(modelUri2);
-            m2.Clear();
 
             Assert.IsTrue(m2.IsEmpty);
             
@@ -156,7 +154,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             c.Commit();
 
             Assert.IsFalse(m1.IsEmpty);
-            Assert.IsTrue(m2.IsEmpty);
+            Assert.IsFalse(m2.IsEmpty);
 
             m1.Clear();
 
@@ -320,7 +318,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             {
                 Assert.IsTrue(r.Uri.IsBlankId);
 
-                foreach (var x in r.ListValues(related).OfType<Resource>())
+                foreach(var x in r.ListValues(related).OfType<Resource>())
                 {
                     Assert.IsTrue(x.Uri.IsBlankId);
                 }
@@ -450,12 +448,12 @@ namespace Semiodesk.Trinity.Test.Virtuoso
 
             IResource r = Model.GetResource(new Uri("ex:Resource"));
             object o = r.GetValue(property);
+
             Assert.AreEqual(typeof(Tuple<string, CultureInfo>), o.GetType());
+
             var val = o as Tuple<string, CultureInfo>;
+
             Assert.AreEqual("in the jungle", val.Item1);
-
-            var x = r.ListValues(property);
-
         }
 
         [Test]
