@@ -118,7 +118,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="update"></param>
         /// <param name="transaction"></param>
-        void ExecuteNonQuery(SparqlUpdate update, ITransaction transaction = null);
+        void ExecuteNonQuery(ISparqlUpdate update, ITransaction transaction = null);
 
         /// <summary>
         /// Starts a transaction. The resulting transaction handle can be used to chain operations together.
@@ -263,15 +263,13 @@ namespace Semiodesk.Trinity
         void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null);
 
         /// <summary>
-        /// Returns a blank node identifier that is not yet used within a dataset.
+        /// Gets a SPARQL query which is used to retrieve all triples about a subject that is
+        /// either referenced using a URI or blank node.
         /// </summary>
-        /// <remarks>
-        /// This is usually provided by the BNODE() constructor function of SPARQL.
-        /// </remarks>
-        /// <returns>
-        /// An unused blank node label.
-        /// </returns>
-        string GetUnusedBlankNodeId(Uri modelUri);
+        /// <param name="modelUri">The graph to be queried.</param>
+        /// <param name="subjectUri">The subject to be described.</param>
+        /// <returns>An instance of <c>ISparqlQuery</c></returns>
+        ISparqlQuery GetDescribeQuery(Uri modelUri, Uri subjectUri);
 
         #endregion
     }

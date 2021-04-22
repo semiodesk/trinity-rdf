@@ -182,7 +182,9 @@ namespace Semiodesk.Trinity
         /// <exception cref="ArgumentException">Throws ArgumentException if a resource with the given URI already exists in the model.</exception>
         public virtual IResource CreateResource(Uri uri, ITransaction transaction = null)
         {
-            if (ContainsResource(uri, transaction))
+            UriRef uriref = uri as UriRef;
+
+            if ((uriref == null || !uriref.IsBlankId) && ContainsResource(uri, transaction))
             {
                 throw new ArgumentException("A resource with the given URI already exists.");
             }
@@ -339,8 +341,15 @@ namespace Semiodesk.Trinity
         /// <returns>True if the resource is part of the model, False if not.</returns>
         public bool ContainsResource(Uri uri, ITransaction transaction = null)
         {
+            UriRef uriref = uri as UriRef;
+
+            if(uriref != null && uriref.IsBlankId)
+            {
+                throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
+            }
+
             ISparqlQuery query = new SparqlQuery("ASK FROM @graph { @subject ?p ?o . }");
-            query.Bind("@graph", this.Uri);
+            query.Bind("@graph", Uri);
             query.Bind("@subject", uri);
 
             return ExecuteQuery(query, transaction: transaction).GetAnwser();
@@ -381,7 +390,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="update">A SparqlUpdate object.</param>
         /// <param name="transaction">Transaction associated with this action.</param>
-        public void ExecuteUpdate(SparqlUpdate update, ITransaction transaction = null)
+        public void ExecuteUpdate(ISparqlUpdate update, ITransaction transaction = null)
         {
             _store.ExecuteNonQuery(update, transaction);
         }
@@ -394,8 +403,15 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(Uri uri, ITransaction transaction = null)
         {
+            UriRef uriref = uri as UriRef;
+
+            if (uriref != null && uriref.IsBlankId)
+            {
+                throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
+            }
+
             ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?s ?p ?o FROM @model WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
-            query.Bind("@model", this.Uri);
+            query.Bind("@model", Uri);
             query.Bind("@subject", uri);
 
             ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);
@@ -433,9 +449,14 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
-            ISparqlQuery query = new SparqlQuery("DESCRIBE @subject FROM @model");
-            query.Bind("@model", this.Uri);
-            query.Bind("@subject", uri);
+            UriRef uriref = uri as UriRef;
+
+            if (uriref != null && uriref.IsBlankId)
+            {
+                throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
+            }
+
+            ISparqlQuery query = _store.GetDescribeQuery(Uri, uri);
 
             ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);
 

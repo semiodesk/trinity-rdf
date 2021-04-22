@@ -181,8 +181,10 @@ namespace Semiodesk.Trinity.Store
 
                 foreach (KeyValuePair<string, object> resourceType in types)
                 {
-                    if( resourceType.Value is Resource res)
+                    if (resourceType.Value is Resource res)
+                    {
                         cache.Add(resourceType.Key, res);
+                    }
                 }
 
                 // A handle to the currently built resource which may spare the lookup in the dictionary.
@@ -206,7 +208,7 @@ namespace Semiodesk.Trinity.Store
                         }
                         else if (s is BlankNode blankNode)
                         {
-                            subjectUri = new UriRef("blank:" + blankNode.InternalID, true);
+                            subjectUri = new UriRef(blankNode.ToString(), true);
                         }
 
                         if (currentResource != null && currentResource.Uri.OriginalString == subjectUri.OriginalString)
@@ -252,11 +254,14 @@ namespace Semiodesk.Trinity.Store
                     if (o is IUriNode || o is BlankNode)
                     {
                         Uri uri = null;
+
                         if (o is IUriNode uriNode)
+                        {
                             uri = uriNode.Uri;
+                        }
                         else if (o is BlankNode blankNode)
                         {
-                            uri = new UriRef("blank:" + blankNode.InternalID);
+                            uri = new UriRef("_:" + blankNode.InternalID, true);
                         }
 
                         if (currentResource.HasPropertyMapping(p, uri.GetType()))
@@ -299,7 +304,9 @@ namespace Semiodesk.Trinity.Store
         {
             if (p.NodeType == NodeType.Uri)
             {
-                return (p as IUriNode).Uri;
+                IUriNode uriNode = p as IUriNode;
+
+                return uriNode.Uri;
             }
             else if (p.NodeType == NodeType.Literal)
             {
@@ -318,6 +325,12 @@ namespace Semiodesk.Trinity.Store
                 }
 
                 return XsdTypeMapper.DeserializeString(literalNode.Value, literalNode.DataType);
+            }
+            else if(p.NodeType == NodeType.Blank)
+            {
+                IBlankNode blankNode = p as IBlankNode;
+
+                return new UriRef(blankNode.ToString(), true);
             }
 
             return null;

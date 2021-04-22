@@ -209,7 +209,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="update">A sparql update object.</param>
         /// <param name="transaction">Transaction associated with this action.</param>
-        void ExecuteUpdate(SparqlUpdate update, ITransaction transaction = null);
+        void ExecuteUpdate(ISparqlUpdate update, ITransaction transaction = null);
 
         /// <summary>
         /// Retrieves a resource from the model.

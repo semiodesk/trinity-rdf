@@ -923,7 +923,9 @@ namespace Semiodesk.Trinity
             if (_properties.ContainsKey(property))
             {
                 foreach (var value in _properties[property])
+                {
                     yield return value;
+                }
             }
 
             if (property.Uri.OriginalString == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
@@ -933,7 +935,9 @@ namespace Semiodesk.Trinity
                     yield return type;
 #else
                 foreach (object type in GetTypes())
+                {
                     yield return type;
+                }
 #endif
 
                 // We do not need to add mapped values for the RDF type property.
@@ -948,15 +952,20 @@ namespace Semiodesk.Trinity
                     if (propertyMapping.IsList)
                     {
                         IList value = (IList)propertyMapping.GetValueObject();
+
                         if (!string.IsNullOrEmpty(Language) && !propertyMapping.LanguageInvariant && propertyMapping.GenericType == typeof(string))
                         {
                             foreach (var x in value)
+                            {
                                 yield return new Tuple<string, string>(x as string, Language);
+                            }
                         }
                         else
                         {
                             foreach (object v in value.Cast<object>())
+                            {
                                 yield return v;
+                            }
                         }
                     }
                     else

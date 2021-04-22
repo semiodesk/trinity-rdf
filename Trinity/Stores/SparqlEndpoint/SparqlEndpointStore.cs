@@ -187,10 +187,11 @@ namespace Semiodesk.Trinity.Store
             return result;
         }
 
-        public void ExecuteNonQuery(SparqlUpdate queryString, ITransaction transaction = null)
+        public void ExecuteNonQuery(ISparqlUpdate update, ITransaction transaction = null)
         {
-            return;
+            throw new NotSupportedException();
         }
+
         public Uri Read(string content, Uri url, RdfSerializationFormat format, bool update)
         {
             throw new NotSupportedException();
@@ -251,9 +252,20 @@ namespace Semiodesk.Trinity.Store
             throw new NotSupportedException();
         }
 
-        public virtual string GetUnusedBlankNodeId(Uri modelUri)
+        /// <summary>
+        /// Gets a SPARQL query which is used to retrieve all triples about a subject that is
+        /// either referenced using a URI or blank node.
+        /// </summary>
+        /// <param name="modelUri">The graph to be queried.</param>
+        /// <param name="subjectUri">The subject to be described.</param>
+        /// <returns>An instance of <c>ISparqlQuery</c></returns>
+        public ISparqlQuery GetDescribeQuery(Uri modelUri, Uri subjectUri)
         {
-            throw new NotSupportedException();
+            ISparqlQuery query = new SparqlQuery("DESCRIBE @subject FROM @model");
+            query.Bind("@model", modelUri);
+            query.Bind("@subject", subjectUri);
+
+            return query;
         }
 
         #endregion

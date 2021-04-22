@@ -344,7 +344,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="update"></param>
         /// <param name="transaction"></param>
-        public void ExecuteUpdate(SparqlUpdate update, ITransaction transaction = null)
+        public void ExecuteUpdate(ISparqlUpdate update, ITransaction transaction = null)
         {
             throw new NotSupportedException();
         }

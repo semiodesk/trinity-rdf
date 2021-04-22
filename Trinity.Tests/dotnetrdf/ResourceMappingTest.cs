@@ -561,6 +561,7 @@ namespace dotNetRDFStore.Test
             // Remove value from mapped list
             t1.boolTest.Remove(value);
             t1.Commit();
+
             t_actual = m.GetResource<MappingTestClass>(t1Uri);
 
             // Test if removed

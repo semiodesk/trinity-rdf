@@ -139,7 +139,7 @@ namespace Semiodesk.Trinity.Store
         /// </summary>
         /// <param name="query">The update query</param>
         /// <param name="transaction">An associated transaction</param>
-        public override void ExecuteNonQuery(SparqlUpdate query, ITransaction transaction = null)
+        public override void ExecuteNonQuery(ISparqlUpdate query, ITransaction transaction = null)
         {
             string q = query.ToString();
 
@@ -158,7 +158,6 @@ namespace Semiodesk.Trinity.Store
         /// <returns></returns>
         public override ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
-            
             string q = query.ToString();
 
             object results = ExecuteQuery(q);
@@ -269,21 +268,23 @@ namespace Semiodesk.Trinity.Store
         /// <returns></returns>
         public override Uri Read(string content, Uri graphUri, RdfSerializationFormat format, bool update)
         {
-           
-            IGraph graph = new Graph();
-
-            graph.LoadFromString(content);
-            graph.BaseUri = graphUri;
-
-            if (!update)
+            using (StringReader reader = new StringReader(content))
             {
-                _store.Remove(graphUri);
+                IGraph graph = new Graph();
+
+                TryParse(reader, graph, format);
+
+                graph.BaseUri = graphUri;
+
+                if (!update)
+                {
+                    _store.Remove(graphUri);
+                }
+
+                _store.Add(graph, update);
+
+                return graphUri;
             }
-
-            _store.Add(graph, update);
-
-            return graphUri;
-            
         }
 
         /// <summary>
@@ -496,6 +497,22 @@ namespace Semiodesk.Trinity.Store
             _store.Dispose();
         }
 
-#endregion
+        /// <summary>
+        /// Gets a SPARQL query which is used to retrieve all triples about a subject that is
+        /// either referenced using a URI or blank node.
+        /// </summary>
+        /// <param name="modelUri">The graph to be queried.</param>
+        /// <param name="subjectUri">The subject to be described.</param>
+        /// <returns>An instance of <c>ISparqlQuery</c></returns>
+        public override ISparqlQuery GetDescribeQuery(Uri modelUri, Uri subjectUri)
+        {
+            ISparqlQuery query = new SparqlQuery("DESCRIBE ?s FROM @model WHERE { ?s ?p ?o . VALUES ?s { @subject } }");
+            query.Bind("@model", modelUri);
+            query.Bind("@subject", subjectUri);
+
+            return query;
+        }
+
+        #endregion
     }
 }

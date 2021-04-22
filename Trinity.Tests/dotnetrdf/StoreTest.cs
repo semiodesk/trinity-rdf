@@ -27,6 +27,7 @@
 
 using NUnit.Framework;
 using Semiodesk.Trinity;
+using Semiodesk.Trinity.Ontologies;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -156,6 +157,42 @@ namespace dotNetRDFStore.Test
             model1 = Store.GetModel(testModel);
 
             Assert.IsTrue(model1.IsEmpty);
+        }
+
+        [Test]
+        public void ReadJsonLdContentTest()
+        {
+            Uri modelUri = new Uri("http://trinty-rdf.net/models/test/jsonld");
+
+            IModel model = Store.GetModel(modelUri);
+
+            Assert.IsTrue(model.IsEmpty);
+
+            string content = @"
+            [
+              {
+                '@type': ['http://www.w3.org/2002/07/owl#Class'],
+                '@id': 'https://ontologies.semanticarts.com/gist/Message',
+                'http://www.w3.org/2000/01/rdf-schema#label': 'Message',
+                'http://schema.org/name': [{ '@value': 'Message', '@language': 'en' }],
+                'http://schema.org/description': [
+                  {
+                    '@value': 'A specific instance of content sent from an Organization, Person, or Application to at least one other Organization, Person, or Application.',
+                    '@language': 'en'
+                  }
+                ]
+              }
+            ]
+            ";
+
+            Store.Read(content, modelUri, RdfSerializationFormat.JsonLd, false);
+
+            Assert.IsFalse(model.IsEmpty);
+
+            var r = model.GetResource(new Uri("https://ontologies.semanticarts.com/gist/Message"));
+
+            Assert.IsNotNull(r);
+            Assert.AreEqual(r.GetValue(rdfs.label), "Message");
         }
     }
 }

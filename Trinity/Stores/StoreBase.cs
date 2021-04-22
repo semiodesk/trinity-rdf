@@ -29,6 +29,7 @@ using Semiodesk.Trinity.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using VDS.RDF;
 using VDS.RDF.Writing;
@@ -109,7 +110,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="update">SPARQL Update to be executed.</param>
         /// <param name="transaction">An optional transaction.</param>
-        public abstract void ExecuteNonQuery(SparqlUpdate update, ITransaction transaction = null);
+        public abstract void ExecuteNonQuery(ISparqlUpdate update, ITransaction transaction = null);
 
         /// <summary>
         /// Starts a transaction. The resulting transaction handle can be used to chain operations together.
@@ -304,15 +305,38 @@ namespace Semiodesk.Trinity
         {
             string updateString;
 
-            updateString = string.Format(@"WITH {0} DELETE {{ {1} ?p ?o. }} INSERT {{ {2} }} WHERE {{ OPTIONAL {{ {1} ?p ?o. }} }}",
-                SparqlSerializer.SerializeUri(modelUri),
+            if (resource.IsNew)
+            {
+                if (resource.Uri.IsBlankId)
+                {
+                    string queryString = string.Format(@"SELECT BNODE() AS ?x FROM <{0}> WHERE {{}}", modelUri.OriginalString);
+
+                    var result = ExecuteQuery(new SparqlQuery(queryString), transaction);
+                    var id = result.GetBindings().First()["x"] as UriRef;
+
+                    resource.Uri = id;
+                }
+
+                updateString = string.Format(@"
+                    WITH <{0}>
+                    INSERT {{ {1} }} 
+                    WHERE {{}}",
+                modelUri.OriginalString,
+                SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
+            }
+            else
+            {
+                updateString = string.Format(@"
+                    WITH <{0}>
+                    DELETE {{ {1} ?p ?o. }}
+                    INSERT {{ {2} }}
+                    WHERE {{ OPTIONAL {{ {1} ?p ?o. }} }} ",
+                modelUri.OriginalString,
                 SparqlSerializer.SerializeUri(resource.Uri),
                 SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
+            }
 
-
-            SparqlUpdate update = new SparqlUpdate(updateString);
-
-            ExecuteNonQuery(update, transaction);
+            ExecuteNonQuery(new SparqlUpdate(updateString), transaction);
 
             resource.IsNew = false;
             resource.IsSynchronized = true;
@@ -502,17 +526,20 @@ namespace Semiodesk.Trinity
                 DeleteResource(resource, transaction);
         }
 
-        public virtual string GetUnusedBlankNodeId(Uri modelUri)
+        /// <summary>
+        /// Gets a SPARQL query which is used to retrieve all triples about a subject that is
+        /// either referenced using a URI or blank node.
+        /// </summary>
+        /// <param name="modelUri">The graph to be queried.</param>
+        /// <param name="subjectUri">The subject to be described.</param>
+        /// <returns>An instance of <c>ISparqlQuery</c></returns>
+        public virtual ISparqlQuery GetDescribeQuery(Uri modelUri, Uri subjectUri)
         {
-            var query = new SparqlQuery("SELECT BNODE() AS ?id FROM @graph WHERE {}");
-            query.Bind("@graph", modelUri);
+            ISparqlQuery query = new SparqlQuery("DESCRIBE @subject FROM @model");
+            query.Bind("@model", modelUri);
+            query.Bind("@subject", subjectUri);
 
-            foreach(var b in ExecuteQuery(query).GetBindings())
-            {
-                return b["id"].ToString();
-            }
-
-            throw new InvalidBlankNodeIdentifierResultException();
+            return query;
         }
 
         #endregion

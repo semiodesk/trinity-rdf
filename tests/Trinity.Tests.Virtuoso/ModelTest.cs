@@ -116,6 +116,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
 
             protected PropertyMapping<string> FullnameProperty =
                    new PropertyMapping<string>("Fullname", nco.fullname);
+
             public string Fullname
             {
                 get { return GetValue(FullnameProperty); }
@@ -130,9 +131,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
                 set { SetValue(BirthdayProperty, value); }
             }
 
-
             public Contact(Uri uri) : base(uri) { }
-
         }
 
         [Test]
@@ -140,11 +139,14 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         {
             Uri modelUri = new Uri("http://www.example.com");
             Uri modelUri2 = new Uri("http://www.example.com/");
+
             IModel m1 = Store.GetModel(modelUri);
             m1.Clear();
-            IModel m2 = Store.GetModel(modelUri2);
 
             Assert.IsTrue(m1.IsEmpty);
+
+            IModel m2 = Store.GetModel(modelUri2);
+
             Assert.IsTrue(m2.IsEmpty);
             
             PersonContact c = m1.CreateResource<PersonContact>(new Uri("http://www.example.com/testResource"));
@@ -280,18 +282,47 @@ namespace Semiodesk.Trinity.Test.Virtuoso
 
             Property p = new Property(new Uri("http://example.org/MyProperty"));
 
-            IResource x = Model.CreateResource(new UriRef("_:", true));
+            IResource x = Model.CreateResource(new BlankId());
             x.AddProperty(p, 123);
             x.Commit();
 
-            IResource y = Model.GetResources<Resource>().First();
+            Assert.Throws<ArgumentException>(() => Model.GetResource<Resource>(x.Uri));
+        }
 
-            Assert.IsTrue(y.Uri.IsBlankId);
+        [Test]
+        public void GetResourceWithBlankIdPropertyTest()
+        {
+            Model.Clear();
 
-            IResource z = Model.GetResource<Resource>(y.Uri);
+            var label = new Property(new UriRef("ex:label"));
+            var related = new Property(new UriRef("ex:related"));
 
-            Assert.IsTrue(z.Uri.IsBlankId);
-            Assert.AreEqual(y.Uri, z.Uri);
+            var r0 = Model.CreateResource(new UriRef("_:0", true));
+            r0.AddProperty(label, "0");
+            r0.Commit();
+
+            var r1 = Model.CreateResource(new UriRef("_:1", true));
+            r0.AddProperty(label, "1");
+            r1.AddProperty(related, r0);
+            r1.Commit();
+
+            Assert.Throws<ArgumentException>(() => Model.ContainsResource(r1.Uri));
+            Assert.Throws<ArgumentException>(() => Model.GetResource(r1.Uri));
+            Assert.Throws<ArgumentException>(() => Model.GetResource(r1));
+
+            var resources = Model.GetResources<Resource>().ToArray();
+
+            Assert.AreEqual(2, resources.Length);
+
+            foreach (var r in resources)
+            {
+                Assert.IsTrue(r.Uri.IsBlankId);
+
+                foreach(var x in r.ListValues(related).OfType<Resource>())
+                {
+                    Assert.IsTrue(x.Uri.IsBlankId);
+                }
+            }
         }
 
         [Test]
@@ -417,12 +448,12 @@ namespace Semiodesk.Trinity.Test.Virtuoso
 
             IResource r = Model.GetResource(new Uri("ex:Resource"));
             object o = r.GetValue(property);
+
             Assert.AreEqual(typeof(Tuple<string, CultureInfo>), o.GetType());
+
             var val = o as Tuple<string, CultureInfo>;
+
             Assert.AreEqual("in the jungle", val.Item1);
-
-            var x = r.ListValues(property);
-
         }
 
         [Test]

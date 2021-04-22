@@ -1121,11 +1121,8 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             t2.NameFamily = "Doe";
             t2.Commit();
 
-
             var list = m.GetResources<Contact>(true).ToList() ;
             Assert.AreEqual(1, list);
-            
-
         }
 
         [Test]
@@ -1212,11 +1209,9 @@ namespace Semiodesk.Trinity.Test.Virtuoso
 
             t1.Rollback();
 
-
             Assert.AreEqual(2, t1.stringTest.Count);
             Assert.IsTrue(t1.stringTest.Contains("Hi"));
             Assert.IsTrue(t1.stringTest.Contains("Blub"));
-
 
             Uri t2Uri = new Uri("semio:test:testInstance2");
             MappingTestClass2 p = model.CreateResource<MappingTestClass2>(t2Uri);
@@ -1228,7 +1223,6 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             newRef.Commit();
 
             t1.Rollback();
-
 
             Assert.IsTrue(t1.resourceTest.Count == 1);
             Assert.IsTrue(t1.resourceTest.Contains(p));

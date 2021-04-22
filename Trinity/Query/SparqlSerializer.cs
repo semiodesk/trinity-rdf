@@ -160,7 +160,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string SerializeUri(Uri uri)
         {
-            return string.Format(@"<{0}>", uri.OriginalString);
+            return uri.OriginalString.StartsWith("_") ? uri.OriginalString : $"<{uri.OriginalString}>";
         }
 
         /// <summary>
@@ -178,9 +178,9 @@ namespace Semiodesk.Trinity
                 return string.Empty;
             }
 
-            string s = resource.Uri.IsBlankId ? "[]" : SerializeUri(resource.Uri);
+            string subject = SerializeUri(resource.Uri);
 
-            StringBuilder result = new StringBuilder(s);
+            StringBuilder result = new StringBuilder(subject);
             result.Append(' ');
 
             foreach (var value in valueList)
