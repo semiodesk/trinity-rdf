@@ -93,13 +93,13 @@
 
   <!-- ALL TARGETS -->
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
 	 <PackageReference Include="Remotion.Linq" Version="2.2.0" />
   </ItemGroup>
 
   <!-- ALL TARGETS NEWER THAN NET35  -->
   <ItemGroup Condition="'$(TargetFramework)'!='net35'">
-    <PackageReference Include="dotNetRDF" Version="2.6.1" />
+    <PackageReference Include="dotNetRDF" Version="2.7.0" />
   </ItemGroup>
 
   <!-- ONLY NETSTANDARD2.0 -->
