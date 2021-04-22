@@ -366,6 +366,9 @@ namespace dotNetRDFStore.Test
             Assert.Contains(r1, actual);
             Assert.Contains(r2, actual);
             Assert.Contains(r3, actual);
+            var r3Actual = actual.Where(x => x.Uri == r3Uri).FirstOrDefault();
+            int r3ActualIntProp = (int)r3Actual.GetValue(intProperty);
+            Assert.AreEqual(333, r3ActualIntProp);
 
             r1.RemoveProperty(intProperty, 123);
             r1.AddProperty(intProperty, 154);
@@ -380,6 +383,9 @@ namespace dotNetRDFStore.Test
             Assert.Contains(r1, actual);
             Assert.Contains(r2, actual);
             Assert.Contains(r3, actual);
+            var r1Actual = actual.Where(x => x.Uri == r1Uri).FirstOrDefault();
+            int r1ActualIntProp = (int)r1Actual.GetValue(intProperty);
+            Assert.AreEqual(154, r1ActualIntProp);
 
         }
 

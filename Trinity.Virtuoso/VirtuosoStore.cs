@@ -810,11 +810,13 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             StringBuilder DELETE = new StringBuilder();
             StringBuilder OPTIONAL = new StringBuilder();
 
+            int count = 0;
             foreach (var res in resources)
             {
-                DELETE.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p ?o. ");
-                OPTIONAL.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p ?o. ");
+                DELETE.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p{count} ?o{count}. ");
+                OPTIONAL.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p{count} ?o{count}. ");
                 INSERT.Append($" {SparqlSerializer.SerializeResource(res, ignoreUnmappedProperties)} ");
+                count++;
             }
             string updateString = $"WITH {WITH} DELETE {{ {DELETE} }}  WHERE {{ OPTIONAL {{ {OPTIONAL} }} }} INSERT {{ {INSERT} }}";
             SparqlUpdate update = new SparqlUpdate(updateString);
