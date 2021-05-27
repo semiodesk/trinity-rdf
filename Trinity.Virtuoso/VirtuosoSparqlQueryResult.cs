@@ -136,7 +136,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             {
                 // Virtuoso delivers the time not as UTC but as "unspecified"
                 // we convert it to local time
-                return dt.ToUniversalTime();
+                return  dt.Value.ToUniversalTime();
             }
             else if (cellValue is VirtuosoDateTimeOffset dto)
             {
