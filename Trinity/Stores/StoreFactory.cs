@@ -50,8 +50,7 @@ namespace Semiodesk.Trinity
         private static readonly Dictionary<string, StoreProvider> _storeConfigurations = new Dictionary<string, StoreProvider>()
         {
             {"dotnetrdf", new dotNetRDFStoreProvider()},
-            {"sparqlendpoint", new SparqlEndpointStoreProvider()},
-            {"stardog", new StardogStoreProvider()}
+            {"sparqlendpoint", new SparqlEndpointStoreProvider()}
         };
 
         #region Factory Methods
