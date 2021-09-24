@@ -192,7 +192,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
             if(ontologies.Length > 0)
             {
                 string template = Properties.Resources.FileTemplate;
-                string content = string.Format(template, DateTime.Now, ontologies.ToString(), _namespace);
+                string content = string.Format(template, ontologies.ToString(), _namespace);
 
                 if (string.IsNullOrEmpty(content))
                 {

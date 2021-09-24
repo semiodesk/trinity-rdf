@@ -119,7 +119,6 @@
   </resheader>
   <data name="FileTemplate" xml:space="preserve">
     <value>// Attention: This file is generated. Any modifications will eventually be overwritten.
-// Date: {0}
 
 using System;
 using System.Collections.Generic;
