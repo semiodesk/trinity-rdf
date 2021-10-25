@@ -11,7 +11,7 @@ Since dotNetRDF is low-level and primarliy focused on directly manipulating trip
 Therefore, our primary goal was to allow developers to use proven enterprise development patterns such as MVC or MVVM to build Linked Data applications that integrate well into existing application eco-systems.
 
 The software is supported by `Semiodesk`_, for more information have a look at the `product page`_.
-If you have any questions, suggestions or just want to tell us in which projects you are using the library, don't hesitate to `contact us`_.
+We are available for consulting and projects, don't hesitate to `contact us`_.
 
 Installation
 ============
@@ -22,6 +22,14 @@ The easiest way to start using the Trinity API is to add it to your project trou
 Getting Started
 ===============
 After the installation our `First Steps`_ guide should help you getting started.
+
+Examples
+========
+We have a list of `examples`_ to show how easy it is to set up a project.
+
+Documentation
+=============
+For more details have a look at the `API documentation`_.
 
 Features
 ========
@@ -97,6 +105,8 @@ If you need help or want priority support, contact us under `hello@semiodesk.com
 .. _`dotNetRDF`: http://dotnetrdf.org/
 .. _`OpenLink.Data.Virtuoso`: https://github.com/openlink/virtuoso-opensource
 .. _`First Steps`: https://trinity-rdf.net/doc/tutorials/firstSteps.html
+.. _`API documentation`: https://trinity-rdf.net/doc/api/
+.. _`examples`: https://github.com/semiodesk/trinity-rdf-examples
 .. _`RDF metadata standard`: https://w3.org/rdf
 .. _`Newtonsoft JSON`: https://www.newtonsoft.com/json
 .. _`Remotion LINQ`: https://github.com/re-motion/Relinq
