@@ -273,6 +273,23 @@ namespace Semiodesk.Trinity.Test
             set { SetValue(dateTimeTestMapping, value); }
         }
 
+        protected PropertyMapping<TimeSpan> uniqueTimeSpanTestMapping =
+            new PropertyMapping<TimeSpan>("uniqueTimeSpanTest", TestOntology.uniqueTimespanTest);
+
+        public TimeSpan uniqueTimeSpanTest
+        {
+            get { return GetValue(uniqueTimeSpanTestMapping); }
+            set { SetValue(uniqueTimeSpanTestMapping, value); }
+        }
+
+        protected PropertyMapping<ObservableCollection<TimeSpan>> timeSpanTestMapping =
+            new PropertyMapping<ObservableCollection<TimeSpan>>("timeSpanTest", TestOntology.timespanTest, new ObservableCollection<TimeSpan>());
+
+        public ObservableCollection<TimeSpan> timeSpanTest
+        {
+            get { return GetValue(timeSpanTestMapping); }
+            set { SetValue(timeSpanTestMapping, value); }
+        }
 
         protected PropertyMapping<ObservableCollection<MappingTestClass2>> resourceTestMapping =
             new PropertyMapping<ObservableCollection<MappingTestClass2>>("resourceTest", TestOntology.resourceTest, new ObservableCollection<MappingTestClass2>());

@@ -727,7 +727,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         /// </summary>
         /// <param name="models">The list of model handles that should be grouped together.</param>
         /// <returns></returns>
-        public virtual IModelGroup CreateModelGroup(params IModel[] models)
+        public override IModelGroup CreateModelGroup(params IModel[] models)
         {
             List<IModel> result = new List<IModel>();
 

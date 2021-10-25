@@ -301,6 +301,14 @@ namespace Semiodesk.Trinity
             return new ModelGroup(this, result);
         }
 
+
+        /// <summary>
+        /// Updates the properties of a resource in the backing RDF store.
+        /// </summary>
+        /// <param name="resource">Resource that is to be updated in the backing store.</param>
+        /// <param name="modelUri">Uri of the model where the resource will be updated</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <param name="ignoreUnmappedProperties">Set this to true to update only mapped properties.</param>
         public virtual void UpdateResource(Resource resource, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
         {
             string updateString;
@@ -342,6 +350,13 @@ namespace Semiodesk.Trinity
             resource.IsSynchronized = true;
         }
 
+        /// <summary>
+        /// Updates the properties of multiple resources in the backing RDF store.
+        /// </summary>
+        /// <param name="resources">Resources that are to be updated in the backing store.</param>
+        /// <param name="modelUri">Uri of the model where the resource will be updated</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <param name="ignoreUnmappedProperties">Set this to true to update only mapped properties.</param>
         public virtual void UpdateResources(IEnumerable<Resource> resources, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
         {
             string WITH = $"{SparqlSerializer.SerializeUri(modelUri)} ";

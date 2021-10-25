@@ -68,11 +68,12 @@ namespace Semiodesk.Trinity.Store
 
         #region Constructor
 
-        public SparqlEndpointStore(Uri endpointUri, IWebProxy proxy = null, ICredentials credentials = null)
+        public SparqlEndpointStore(Uri endpointUri, IWebProxy proxy = null, NetworkCredential credential = null)
         {
             _endpoint = new SparqlRemoteEndpoint(endpointUri);
             
-            //_endpoint.Proxy = proxy;
+            _endpoint.Proxy = proxy;
+            _endpoint.Credentials = credential;
         }
 
         #endregion

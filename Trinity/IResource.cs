@@ -182,6 +182,13 @@ namespace Semiodesk.Trinity
         /// Adds a new property with the given value to the resource.
         /// </summary>
         /// <param name="property">Property the value should be associated with.</param>
+        /// <param name="value">A timespan value.</param>
+        void AddProperty(Property property, TimeSpan value);
+
+        /// <summary>
+        /// Adds a new property with the given value to the resource.
+        /// </summary>
+        /// <param name="property">Property the value should be associated with.</param>
         /// <param name="value">Arbitrary data in form of a byte array.</param>
         void AddProperty(Property property, byte[] value);
 

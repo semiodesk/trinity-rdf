@@ -110,6 +110,9 @@ namespace Semiodesk.Trinity.Test
         public static readonly Property datetimeTest = new Property(new Uri("semio:test:datetimeTest"));
         public static readonly Property uniqueDatetimeTest = new Property(new Uri("semio:test:uniqueDatetimeTest"));
 
+        public static readonly Property timespanTest = new Property(new Uri("semio:test:timespanTest"));
+        public static readonly Property uniqueTimespanTest = new Property(new Uri("semio:test:uniqueTimespanTest"));
+
         public static readonly Property resourceTest = new Property(new Uri("semio:test:resourceTest"));
         public static readonly Property uniqueResourceTest = new Property(new Uri("semio:test:uniqueResourceTest"));
 

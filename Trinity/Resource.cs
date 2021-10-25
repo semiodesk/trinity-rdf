@@ -538,6 +538,15 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// Add a property with a Timespan as value.
+        /// If this property is mapped with a compatible type, it will be filled with the given value.
+        /// </summary>
+        public void AddProperty(Property property, TimeSpan value)
+        {
+            AddPropertyToMapping(property, value, false);
+        }
+
+        /// <summary>
         /// Add a property with a byte array as value.
         /// If this property is mapped with a compatible type, it will be filled with the given value.
         /// </summary>
@@ -714,6 +723,15 @@ namespace Semiodesk.Trinity
         /// If this property is mapped with a compatible type, the given value will be removed.
         /// </summary>
         public void RemoveProperty(Property property, DateTime value)
+        {
+            RemovePropertyFromMapping(property, value);
+        }
+
+        /// <summary>
+        /// Removes a property with a Timespan value.
+        /// If this property is mapped with a compatible type, the given value will be removed.
+        /// </summary>
+        public void RemoveProperty(Property property, TimeSpan value)
         {
             RemovePropertyFromMapping(property, value);
         }

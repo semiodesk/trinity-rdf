@@ -701,6 +701,109 @@ namespace dotNetRDFStore.Test
             Assert.AreEqual(0, t_actual.ListValues(TestOntology.datetimeTest).Count());
         }
 
+        /// <summary>
+        /// Note: 
+        /// Datetime precision in Virtuoso is not as high as native .net datetime precision.
+        /// </summary>
+        [Test]
+        public void AddRemoveTimeSpanTest()
+        {
+            IModel m = GetModel();
+            m.Clear();
+            Uri t1Uri = new Uri("semio:test:testInstance1");
+            MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
+
+
+            // Add value using the mapping interface
+            TimeSpan Value = TimeSpan.FromSeconds(200);
+            t1.uniqueTimeSpanTest = Value;
+            t1.Commit();
+
+            MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
+
+            // Test if value was stored
+            Assert.AreEqual(Value.TotalSeconds, t_actual.uniqueTimeSpanTest.TotalSeconds);
+
+
+            // Test if property is present
+            var l = t_actual.ListProperties();
+            Assert.True(l.Contains(TestOntology.uniqueTimespanTest));
+            Assert.AreEqual(2, l.Count());
+
+            // Test if ListValues works
+            Assert.AreEqual(typeof(TimeSpan), t_actual.ListValues(TestOntology.uniqueTimespanTest).First().GetType());
+            TimeSpan time = (TimeSpan)t_actual.ListValues(TestOntology.uniqueTimespanTest).First();
+            Assert.AreEqual(Value.TotalSeconds, time.TotalSeconds);
+
+            // Remove with RemoveProperty
+            t1.RemoveProperty(TestOntology.uniqueTimespanTest, Value);
+            t1.Commit();
+
+            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+
+            // Test if ListProperties works
+            l = t_actual.ListProperties();
+            Assert.False(l.Contains(TestOntology.uniqueBoolTest));
+
+            // Test if ListValues works
+            Assert.AreEqual(0, t_actual.ListValues(TestOntology.uniqueTimespanTest).Count());
+
+
+            t1.uniqueTimeSpanTest = TimeSpan.FromSeconds(200);
+            t1.Commit();
+
+            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+            Assert.AreEqual(t1.uniqueTimeSpanTest.TotalSeconds, t_actual.uniqueTimeSpanTest.TotalSeconds);
+
+            m.Clear();
+        }
+        [Test]
+        public void AddRemoveTimeSpanListTest()
+        {
+            IModel m = GetModel();
+            m.Clear();
+            Uri t1Uri = new Uri("semio:test:testInstance1");
+            MappingTestClass t1 = m.CreateResource<MappingTestClass>(t1Uri);
+
+
+            // Add value using the mapping interface
+            TimeSpan value = TimeSpan.FromSeconds(100);
+            t1.timeSpanTest.Add(value);
+            t1.Commit();
+            MappingTestClass t_actual = m.GetResource<MappingTestClass>(t1Uri);
+
+            // Test if value was stored
+            Assert.AreEqual(1, t1.timeSpanTest.Count());
+            Assert.AreEqual(value, t1.timeSpanTest[0]);
+
+
+            // Test if property is present
+            var l = t1.ListProperties();
+            Assert.True(l.Contains(TestOntology.timespanTest));
+            Assert.AreEqual(2, l.Count());
+
+            // Test if ListValues works
+            Assert.AreEqual(typeof(TimeSpan), t_actual.ListValues(TestOntology.timespanTest).First().GetType());
+            TimeSpan time = (TimeSpan)t_actual.ListValues(TestOntology.timespanTest).First();
+            Assert.AreEqual(value.TotalSeconds, time.TotalSeconds);
+
+            // Remove value from mapped list
+            t1.timeSpanTest.Remove(value);
+            t1.Commit();
+
+            t_actual = m.GetResource<MappingTestClass>(t1Uri);
+
+            // Test if removed
+            Assert.AreEqual(0, t_actual.timeSpanTest.Count());
+
+            // Test if ListProperties works
+            l = t_actual.ListProperties();
+            Assert.False(l.Contains(TestOntology.timespanTest));
+
+            // Test if ListValues works
+            Assert.AreEqual(0, t_actual.ListValues(TestOntology.timespanTest).Count());
+        }
+
         [Test]
         public void AddRemoveResourceTest()
         {

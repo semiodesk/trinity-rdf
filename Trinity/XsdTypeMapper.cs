@@ -56,6 +56,7 @@ namespace Semiodesk.Trinity
             public static Uri ns = new Uri("http://www.w3.org/2001/XMLSchema");
             public static Uri datetime = new Uri(ns, "#dateTime");
             public static Uri date = new Uri(ns, "#date");
+            public static Uri duration = new Uri(ns, "#duration");
             public static Uri base64Binary = new Uri(ns, "#base64Binary");
             public static Uri boolean_ = new Uri(ns, "#boolean_");
             public static Uri boolean = new Uri(ns, "#boolean");
@@ -85,6 +86,7 @@ namespace Semiodesk.Trinity
             {typeof(UInt32), xsd._uint},
             {typeof(UInt64), xsd._ulong},
             {typeof(DateTime), xsd.datetime},
+            {typeof(TimeSpan), xsd.duration},
             {typeof(byte[]), xsd.base64Binary},
             {typeof(bool), xsd.boolean},
             {typeof(decimal), xsd._decimal},
@@ -107,6 +109,7 @@ namespace Semiodesk.Trinity
             {xsd._uint.AbsoluteUri, typeof(UInt32)},
             {xsd._ulong.AbsoluteUri, typeof(UInt64)},
             {xsd.datetime.AbsoluteUri,typeof(DateTime) },
+            {xsd.duration.AbsoluteUri,typeof(TimeSpan) },
             {xsd.boolean.AbsoluteUri, typeof(bool)},
             {xsd.boolean_.AbsoluteUri, typeof(bool)},
             {xsd._decimal.AbsoluteUri, typeof(decimal)},
@@ -128,6 +131,7 @@ namespace Semiodesk.Trinity
             {typeof(UInt32), SerializeUInt32},
             {typeof(UInt64), SerializeUInt64},
             {typeof(DateTime), SerializeDateTime},
+            {typeof(TimeSpan), SerializeTimeSpan},
             {typeof(bool), SerializeBool},
             {typeof(decimal), SerializeDecimal},
             {typeof(double), SerializeDouble},
@@ -156,6 +160,7 @@ namespace Semiodesk.Trinity
             {xsd.integer.AbsoluteUri, DeserializeInt32},
             {xsd.datetime.AbsoluteUri, DeserializeDateTime},
             {xsd.date.AbsoluteUri, DeserializeDateTime},
+            {xsd.duration.AbsoluteUri, DeserializeTimeSpan},
             {xsd.boolean.AbsoluteUri, DeserializeBool},
             {xsd.boolean_.AbsoluteUri, DeserializeBool},
             {xsd._decimal.AbsoluteUri, DeserializeDecimal},
@@ -339,6 +344,17 @@ namespace Semiodesk.Trinity
         {
             return XmlConvert.ToString((DateTime)obj, XmlDateTimeSerializationMode.Utc).ToString();
         }
+
+        /// <summary>
+        /// Serialize a TimeSpan
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public static string SerializeTimeSpan(object obj)
+        {
+            return XmlConvert.ToString((TimeSpan)obj).ToString();
+        }
+
 
         /// <summary>
         /// Serialize a byte array
@@ -605,6 +621,18 @@ namespace Semiodesk.Trinity
         public static object DeserializeDateTime(string str)
         {
             return XmlConvert.ToDateTime(str, XmlDateTimeSerializationMode.Utc);
+        }
+
+
+
+        /// <summary>
+        /// Deserialize a TimeSpan from a string.
+        /// </summary>
+        /// <param name="str">The serialized TimeSpan</param>
+        /// <returns>A TimeSpan value</returns>
+        public static object DeserializeTimeSpan(string str)
+        {
+            return XmlConvert.ToTimeSpan(str);
         }
 
         /// <summary>

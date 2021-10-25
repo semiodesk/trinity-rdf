@@ -198,7 +198,8 @@ namespace Semiodesk.Trinity
                                                  typeof(UInt16), typeof(UInt16?),
                                                  typeof(UInt32), typeof(UInt32?),
                                                  typeof(UInt64), typeof(UInt64?),
-                                                 typeof(DateTime), typeof(DateTime?), 
+                                                 typeof(DateTime), typeof(DateTime?),
+                                                 typeof(TimeSpan), typeof(TimeSpan?),
                                                  typeof(System.Uri), typeof(Tuple<string, string>)};
 
             if (!allowed.Contains(_dataType) && _dataType.GetInterface("IResource") == null && !typeof(Resource).IsAssignableFrom(_dataType))

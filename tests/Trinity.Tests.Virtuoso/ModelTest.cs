@@ -419,6 +419,27 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         }
 
         [Test]
+        public void TimeSpanResourceTest()
+        {
+            Uri resUri = new Uri("http://example.org/DateTimeTest");
+            IResource res = Model.CreateResource(resUri);
+
+            Property property = new Property(new Uri("http://example.org/MyProperty"));
+
+            TimeSpan t = TimeSpan.FromMinutes(5);
+
+            res.AddProperty(property, t);
+            res.Commit();
+
+            IResource actual = Model.GetResource(resUri);
+            object o = actual.GetValue(property);
+            Assert.AreEqual(typeof(TimeSpan), o.GetType());
+            TimeSpan actualDateTime = (TimeSpan)actual.GetValue(property);
+
+            Assert.AreEqual(t.TotalMinutes, actualDateTime.TotalMinutes);
+        }
+
+        [Test]
         public void LiteralWithHyphenTest()
         {
             Model.Clear();
