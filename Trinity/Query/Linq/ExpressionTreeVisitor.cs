@@ -1,4 +1,4 @@
-﻿// LICENSE:
+// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -453,7 +453,7 @@ namespace Semiodesk.Trinity.Query
                         if (methodCall.Method.DeclaringType == typeof(Regex))
                         {
                             Expression o = methodCall.Arguments[0];
-                            string pattern = methodCall.GetArgumentValue<string>(1) + "$";
+                            string pattern = methodCall.GetArgumentValue<string>(1);
                             RegexOptions options = methodCall.GetArgumentValue(2, RegexOptions.None);
 
                             HandleRegexMethodCallExpression(o, pattern, options.HasFlag(RegexOptions.IgnoreCase));

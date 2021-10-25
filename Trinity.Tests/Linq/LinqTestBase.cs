@@ -1,4 +1,4 @@
-﻿// LICENSE:
+// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -468,14 +468,14 @@ namespace Semiodesk.Trinity.Test.Linq
         [Test]
         public void CanSelectStringWithRegexIsMatch()
         {
-            var expected = new [] { "Alice", "Eve" };
+            var expected = new [] { "Alice" };
 
             // Case-sensitive
-            var actual = (from person in Model.AsQueryable<Person>() where Regex.IsMatch(person.FirstName, "e") select person.FirstName).ToList();
+            var actual = (from person in Model.AsQueryable<Person>() where Regex.IsMatch(person.FirstName, "lic") select person.FirstName).ToList();
             CollectionAssert.AreEquivalent(expected, actual);
 
             // Not case-sensitive
-            actual = (from person in Model.AsQueryable<Person>() where Regex.IsMatch(person.FirstName, "E", RegexOptions.IgnoreCase) select person.FirstName).ToList();
+            actual = (from person in Model.AsQueryable<Person>() where Regex.IsMatch(person.FirstName, "LIC", RegexOptions.IgnoreCase) select person.FirstName).ToList();
             CollectionAssert.AreEquivalent(expected, actual);
         }
 
