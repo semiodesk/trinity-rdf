@@ -38,7 +38,7 @@ namespace Semiodesk.Trinity
 {
     /// <summary>
     /// This class encapsulates the functionality of an abstract triple store. Cannot be used directly. 
-    /// Use StoreFactory to get a concret implementation.
+    /// Use StoreFactory to get a concrete implementation.
     /// </summary>
     public abstract class StoreBase : IStore
     {
