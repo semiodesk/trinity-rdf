@@ -137,12 +137,11 @@ namespace Semiodesk.Trinity.Test.Fuseki
         [Test]
         public void ModelNameTest()
         {
-            Uri modelUri = new Uri("http://www.example.com");
-            Uri modelUri2 = new Uri("http://www.example.com/");
+            Uri modelUri = new Uri("http://doesNotExist.example.com");
+            Uri modelUri2 = new Uri("http://doesNotExist.example.com/");
 
             IModel m1 = Store.GetModel(modelUri);
             m1.Clear();
-
             Assert.IsTrue(m1.IsEmpty);
 
             IModel m2 = Store.GetModel(modelUri2);
@@ -154,7 +153,7 @@ namespace Semiodesk.Trinity.Test.Fuseki
             c.Commit();
 
             Assert.IsFalse(m1.IsEmpty);
-            Assert.IsFalse(m2.IsEmpty);
+            Assert.IsTrue(m2.IsEmpty);
 
             m1.Clear();
 
@@ -325,6 +324,43 @@ namespace Semiodesk.Trinity.Test.Fuseki
             }
         }
 
+
+        [Test]
+        public void GetResourceWithDuplicateBlankIdPropertyTest()
+        {
+            Model.Clear();
+
+            var label = new Property(new UriRef("ex:label"));
+            var related = new Property(new UriRef("ex:related"));
+
+            var r0 = Model.CreateResource(new UriRef("_:0", true));
+            r0.AddProperty(label, "0");
+            r0.Commit();
+
+            var r1 = Model.CreateResource(new UriRef("_:0", true));
+            r0.AddProperty(label, "1");
+            r1.AddProperty(related, r0);
+            r1.Commit();
+
+            Assert.Throws<ArgumentException>(() => Model.ContainsResource(r1.Uri));
+            Assert.Throws<ArgumentException>(() => Model.GetResource(r1.Uri));
+            Assert.Throws<ArgumentException>(() => Model.GetResource(r1));
+
+            var resources = Model.GetResources<Resource>().ToArray();
+
+            Assert.AreEqual(2, resources.Length);
+
+            foreach (var r in resources)
+            {
+                Assert.IsTrue(r.Uri.IsBlankId);
+
+                foreach (var x in r.ListValues(related).OfType<Resource>())
+                {
+                    Assert.IsTrue(x.Uri.IsBlankId);
+                }
+            }
+        }
+
         [Test]
         public void GetResourceTest()
         {
@@ -470,9 +506,9 @@ namespace Semiodesk.Trinity.Test.Fuseki
             IResource r = Model.GetResource(new Uri("ex:Resource"));
             object o = r.GetValue(property);
 
-            Assert.AreEqual(typeof(Tuple<string, CultureInfo>), o.GetType());
+            Assert.AreEqual(typeof(Tuple<string, string>), o.GetType());
 
-            var val = o as Tuple<string, CultureInfo>;
+            var val = o as Tuple<string, string>;
 
             Assert.AreEqual("in the jungle", val.Item1);
         }

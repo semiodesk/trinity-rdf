@@ -106,6 +106,16 @@ namespace Semiodesk.Trinity
         public abstract ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null);
 
         /// <summary>
+        /// Executes a string query directly on the store.
+        /// </summary>
+        /// <param name="query">SPARQL query to be executed.</param>
+        /// <returns>A native return value is possible here.</returns>
+        public virtual object ExecuteQuery(string query)
+        {
+            return null;
+        }
+
+        /// <summary>
         /// Executes a query on the store which does not expect a result.
         /// </summary>
         /// <param name="update">SPARQL Update to be executed.</param>

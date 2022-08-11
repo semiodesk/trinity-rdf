@@ -413,7 +413,7 @@ namespace Semiodesk.Trinity.Test.Fuseki
         [Test]
         public void TestSelectCount()
         {
-            SparqlQuery query = new SparqlQuery("SELECT COUNT(?s) AS ?count WHERE { ?s rdf:type nco:PhoneNumber. }");
+            SparqlQuery query = new SparqlQuery("SELECT ( COUNT(?s) AS ?count ) WHERE { ?s rdf:type nco:PhoneNumber. }");
             ISparqlQueryResult result = Model.ExecuteQuery(query);
 
             var bindings = result.GetBindings();

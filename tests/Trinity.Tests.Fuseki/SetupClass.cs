@@ -16,7 +16,7 @@ namespace Semiodesk.Trinity.Test.Fuseki
         #region Methods
 
         [OneTimeSetUp]
-        public void Setup()
+        public void OneTimeSetup()
         {
             Directory.SetCurrentDirectory(TestContext.CurrentContext.TestDirectory);
 
@@ -42,7 +42,7 @@ namespace Semiodesk.Trinity.Test.Fuseki
         }
 
         [OneTimeTearDown]
-        public void TearDown()
+        public void OneTimeTearDown()
         {
           
         }

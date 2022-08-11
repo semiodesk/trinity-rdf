@@ -429,8 +429,7 @@ namespace Semiodesk.Trinity.Store
 
             SparqlQuery query = new SparqlQuery(countQuery);
 
-
-            object result = _store.ExecuteQuery(query);
+            object result = _store.ExecuteQuery(query.ToString());
 
             if (result is SparqlResultSet)
             {

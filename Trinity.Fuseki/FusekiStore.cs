@@ -140,16 +140,6 @@ namespace Semiodesk.Trinity.Store.Fuseki
 
             if (resource.IsNew)
             {
-                if (resource.Uri.IsBlankId)
-                {
-                    string queryString = string.Format(@"SELECT BNODE() AS ?x FROM <{0}> WHERE {{}}", modelUri.OriginalString);
-
-                    var result = ExecuteQuery(new SparqlQuery(queryString), transaction);
-                    var id = result.GetBindings().First()["x"] as UriRef;
-
-                    resource.Uri = id;
-                }
-
                 updateString = string.Format(@"
                     INSERT DATA {{ GRAPH <{0}> {{  {1} }} }} ",
                 modelUri.OriginalString,
@@ -218,12 +208,9 @@ namespace Semiodesk.Trinity.Store.Fuseki
         /// </summary>
         /// <param name="query"></param>
         /// <returns></returns>
-        public object ExecuteQuery(string query)
+        public override object ExecuteQuery(string query)
         {
             Log?.Invoke(query);
-
-            //SparqlQueryParser parser = new SparqlQueryParser();
-
             return Connector.Query(query);
         }
 
