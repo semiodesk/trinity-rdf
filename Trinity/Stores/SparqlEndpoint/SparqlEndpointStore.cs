@@ -43,7 +43,7 @@ namespace Semiodesk.Trinity.Store
     /// 
     /// </summary>
     /// <see ref="http://www.w3.org/TR/rdf-sparql-protocol/#SparqlQuery"/>
-    internal class SparqlEndpointStore : IStore
+    public class SparqlEndpointStore : IStore
     {
         #region Members
 
