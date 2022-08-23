@@ -36,7 +36,7 @@ using Semiodesk.Trinity.Utility;
 
 namespace Semiodesk.Trinity.Store
 {
-    internal class dotNetRDFQueryResult : ISparqlQueryResult
+    public class dotNetRDFQueryResult : ISparqlQueryResult
     {
         #region Members
 

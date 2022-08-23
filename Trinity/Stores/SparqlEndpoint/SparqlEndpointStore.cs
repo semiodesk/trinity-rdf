@@ -78,6 +78,11 @@ namespace Semiodesk.Trinity.Store
 
         #region Methods
 
+        public void SetCredentials(string username, string password)
+        {
+            _endpoint.SetCredentials(username, password);
+        }
+
         public ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
             throw new NotImplementedException();
