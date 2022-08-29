@@ -67,21 +67,16 @@ namespace Semiodesk.Trinity.Store
 
         #region Constructor
 
-        public SparqlEndpointStore(Uri endpointUri, IWebProxy proxy = null, ICredentials credentials = null)
+        internal SparqlEndpointStore(Uri endpointUri, IWebProxy proxy = null, ICredentials credentials = null)
         {
             _endpoint = new SparqlRemoteEndpoint(endpointUri);
-            
+            _endpoint.Credentials = (NetworkCredential)credentials;
             //_endpoint.Proxy = proxy;
         }
 
         #endregion
 
         #region Methods
-
-        public void SetCredentials(string username, string password)
-        {
-            _endpoint.SetCredentials(username, password);
-        }
 
         public ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
