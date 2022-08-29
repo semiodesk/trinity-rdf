@@ -43,7 +43,7 @@ namespace Semiodesk.Trinity.Store
     /// 
     /// </summary>
     /// <see ref="http://www.w3.org/TR/rdf-sparql-protocol/#SparqlQuery"/>
-    public class SparqlEndpointStore : IStore
+    internal class SparqlEndpointStore : IStore
     {
         #region Members
 
@@ -67,7 +67,7 @@ namespace Semiodesk.Trinity.Store
 
         #region Constructor
 
-        internal SparqlEndpointStore(Uri endpointUri, IWebProxy proxy = null, ICredentials credentials = null)
+        public SparqlEndpointStore(Uri endpointUri, IWebProxy proxy = null, ICredentials credentials = null)
         {
             _endpoint = new SparqlRemoteEndpoint(endpointUri);
             _endpoint.Credentials = (NetworkCredential)credentials;
