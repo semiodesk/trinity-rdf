@@ -37,7 +37,7 @@ using VDS.RDF;
 
 namespace Semiodesk.Trinity.Store
 {
-    public class SparqlEndpointQueryResult : dotNetRDFQueryResult
+    class SparqlEndpointQueryResult : dotNetRDFQueryResult
     {
         public SparqlEndpointQueryResult(SparqlResultSet r, ISparqlQuery query) : base(null, query, r)
         {
