@@ -5374,26 +5374,25 @@
             <param name="url">URL of the SPARQL endpoint.</param>
             <returns></returns>
         </member>
-        <member name="M:Semiodesk.Trinity.StoreFactory.CreateSparqlEndpointStore(System.Uri,System.Net.ICredentials)">
+        <member name="M:Semiodesk.Trinity.StoreFactory.LoadProvider(System.String)">
             <summary>
-            Creates a store from the given Uri and crredentials.
+            Tries to load a store provider from the given assembly.
             </summary>
-            <param name="url">URL of the SPARQL endpoint.</param>
-            <param name="credentials">Endpoint credentials</param>
+            <param name="assemblyPath"></param>
             <returns></returns>
         </member>
-        <member name="M:Semiodesk.Trinity.StoreFactory.LoadProvider(Semiodesk.Trinity.StoreProvider)">
+        <member name="M:Semiodesk.Trinity.StoreFactory.LoadProvider(System.IO.FileInfo)">
             <summary>
-            Loads a store provider.
+            Tries to load a store provider from the given assembly file.
             </summary>
-            <param name="provider"></param>
+            <param name="assemblyFile">A assembly file info object.</param>
             <returns></returns>
         </member>
-        <member name="M:Semiodesk.Trinity.StoreFactory.LoadProvider``1">
+        <member name="M:Semiodesk.Trinity.StoreFactory.LoadProvider(System.Reflection.Assembly)">
             <summary>
-            Loads a store provider
+            Tries to load a store provider from the given assembly.
             </summary>
-            <typeparam name="T">A store provider type</typeparam>
+            <param name="assembly">An assembly.</param>
             <returns></returns>
         </member>
         <member name="T:Semiodesk.Trinity.StoreProvider">
