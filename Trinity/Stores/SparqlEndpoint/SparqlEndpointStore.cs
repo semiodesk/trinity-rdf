@@ -70,7 +70,7 @@ namespace Semiodesk.Trinity.Store
         public SparqlEndpointStore(Uri endpointUri, IWebProxy proxy = null, ICredentials credentials = null)
         {
             _endpoint = new SparqlRemoteEndpoint(endpointUri);
-            
+            _endpoint.Credentials = (NetworkCredential)credentials;
             //_endpoint.Proxy = proxy;
         }
 
