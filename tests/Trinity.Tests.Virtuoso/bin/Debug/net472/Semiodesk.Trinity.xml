@@ -5374,7 +5374,7 @@
             <param name="url">URL of the SPARQL endpoint.</param>
             <returns></returns>
         </member>
-        <member name="M:Semiodesk.Trinity.StoreFactory.CreateSparqlEndpointStore(System.Uri,System.Net.ICredentials)">
+        <member name="M:Semiodesk.Trinity.StoreFactory.CreateSparqlEndpointStore(System.Uri,System.Net.NetworkCredential)">
             <summary>
             Creates a store from the given Uri and crredentials.
             </summary>

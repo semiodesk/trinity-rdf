@@ -168,12 +168,11 @@ namespace Semiodesk.Trinity
         /// <param name="url">URL of the SPARQL endpoint.</param>
         /// <param name="credentials">Endpoint credentials</param>
         /// <returns></returns>
-        public static IStore CreateSparqlEndpointStore(Uri url, ICredentials credentials)
+        public static IStore CreateSparqlEndpointStore(Uri url, NetworkCredential credentials)
         {
             try
             {
-                SparqlEndpointStore store = new SparqlEndpointStore(url, null, credentials);
-                return store;
+                return new SparqlEndpointStore(url, null, credentials);
             }
             catch (Exception e)
             {
