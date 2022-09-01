@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net40</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
 	<Title>Semiodesk.Trinity</Title>
 	<Copyright>Copyright © Semiodesk GmbH 2015-2020</Copyright>
 	<Description>Enterprise ready object mapper for developing RDF knowledge graph applications with .NET</Description>
@@ -70,9 +70,7 @@
 
   <ItemGroup>
 	<Compile Remove="Properties\AssemblyVersion.cs" />
-    <Compile Remove="Net35\**" />
     <Compile Remove="Stores\Virtuoso\**" />
-    <EmbeddedResource Remove="Net35\**" />
     <EmbeddedResource Remove="Stores\Virtuoso\**" />
   </ItemGroup>
 
@@ -95,32 +93,10 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
 	 <PackageReference Include="Remotion.Linq" Version="2.2.0" />
-  </ItemGroup>
-
-  <!-- ALL TARGETS NEWER THAN NET35  -->
-  <ItemGroup Condition="'$(TargetFramework)'!='net35'">
     <PackageReference Include="dotNetRDF" Version="2.7.0" />
-  </ItemGroup>
-
-  <!-- ONLY NETSTANDARD2.0 -->
-  <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
 	  <PackageReference Include="System.Composition" Version="1.1.0" />
   </ItemGroup>
 
-  <!-- ONLY NET4.0 -->
-  <ItemGroup Condition="'$(TargetFramework)'=='net40'">
-    <Reference Include="System.ComponentModel.Composition" />
-  </ItemGroup>
-
-  <!-- ONLY NET3.5 -->
-  <ItemGroup Condition="'$(TargetFramework)'=='net35'">
-    <Reference Include="System.Configuration" />
-    <Reference Include="dotNetRDF">
-      <HintPath>..\Dependencies\Net35\dotNetRDF.dll</HintPath>
-    </Reference>
-    <PackageReference Include="HtmlAgilityPack" Version="1.6.5" />
-    <PackageReference Include="VDS.Common" Version="1.8.0" />
-  </ItemGroup>
   
   <ItemGroup>
     <None Update="Targets\Semiodesk.Trinity.targets">
@@ -128,10 +104,5 @@
     </None>
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net40'">
-    <PackageReference Include="System.ValueTuple">
-      <Version>4.5.0</Version>
-    </PackageReference>
-  </ItemGroup>  
 
 </Project>

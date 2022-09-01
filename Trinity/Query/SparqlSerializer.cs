@@ -273,9 +273,9 @@ namespace Semiodesk.Trinity
 
             StringBuilder queryBuilder = new StringBuilder();
 
-            queryBuilder.Append("SELECT COUNT(DISTINCT ");
+            queryBuilder.Append("SELECT ( COUNT(DISTINCT ");
             queryBuilder.Append(variable);
-            queryBuilder.Append(") AS ?count ");
+            queryBuilder.Append(") AS ?count )");
             queryBuilder.Append(from);
             queryBuilder.Append(" WHERE { ");
             queryBuilder.Append(where);
