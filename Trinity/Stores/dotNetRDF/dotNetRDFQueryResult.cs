@@ -37,7 +37,7 @@ using Semiodesk.Trinity.Utility;
 
 namespace Semiodesk.Trinity.Store
 {
-    internal class dotNetRDFQueryResult : ISparqlQueryResult
+    public class dotNetRDFQueryResult : ISparqlQueryResult
     {
         #region Members
 
@@ -49,13 +49,13 @@ namespace Semiodesk.Trinity.Store
 
         private SparqlResultSet _queryResults;
 
-        private dotNetRDFStore _store;
+        private StoreBase _store;
 
         #endregion
 
         #region Constructor
 
-        public dotNetRDFQueryResult(dotNetRDFStore store, ISparqlQuery query, SparqlResultSet resultSet)
+        public dotNetRDFQueryResult(StoreBase store, ISparqlQuery query, SparqlResultSet resultSet)
         {
             string s = null;
             string p = null;
@@ -79,7 +79,7 @@ namespace Semiodesk.Trinity.Store
             _store = store;
         }
 
-        public dotNetRDFQueryResult(dotNetRDFStore store, ISparqlQuery query, IGraph graph)
+        public dotNetRDFQueryResult(StoreBase store, ISparqlQuery query, IGraph graph)
         {
             _query = query;
             _tripleProvider = new GraphTripleProvider(graph);
@@ -428,8 +428,6 @@ namespace Semiodesk.Trinity.Store
             string countQuery = SparqlSerializer.SerializeCount(_model, _query);
 
             SparqlQuery query = new SparqlQuery(countQuery);
-
-            // TODO: Apply inferencing if enabled.
 
             object result = _store.ExecuteQuery(query.ToString());
 

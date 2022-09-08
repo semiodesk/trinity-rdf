@@ -179,7 +179,7 @@ namespace Semiodesk.Trinity.Store
         /// </summary>
         /// <param name="query"></param>
         /// <returns></returns>
-        public object ExecuteQuery(string query)
+        public override object ExecuteQuery(string query)
         {
             Log?.Invoke(query);
 

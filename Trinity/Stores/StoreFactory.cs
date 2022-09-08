@@ -33,7 +33,6 @@ using System.Text.RegularExpressions;
 using Semiodesk.Trinity.Store;
 using System.Configuration;
 using System.Reflection;
-using System.Net;
 #if NETSTANDARD2_0
 using System.Composition.Hosting;
 #elif !NET35
@@ -159,29 +158,6 @@ namespace Semiodesk.Trinity
         public static IStore CreateSparqlEndpointStore(Uri url)
         {
             return CreateStore($"provider=sparqlendpoint;endpoint={url.AbsoluteUri}");
-        }
-
-        /// <summary>
-        /// Creates a SPARQL protocol endpoint store.
-        /// </summary>
-        /// <param name="url">URL of the SPARQL endpoint.</param>
-        /// <param name="credentials">Endpoint credentials</param>
-        /// <returns></returns>
-        public static IStore CreateSparqlEndpointStore(Uri url, NetworkCredential credentials)
-        {
-            return new SparqlEndpointStore(url, null, credentials);
-        }
-
-        /// <summary>
-        /// Creates a SPARQL protocol endpoint store.
-        /// </summary>
-        /// <param name="url">URL of the SPARQL endpoint.</param>
-        /// <param name="proxy">Proxy settings to use for the HTTP connection.</param>
-        /// <param name="credentials">Endpoint credentials</param>
-        /// <returns></returns>
-        public static IStore CreateSparqlEndpointStore(Uri url, IWebProxy proxy, NetworkCredential credentials)
-        {
-            return new SparqlEndpointStore(url, proxy, credentials);
         }
 
         /// <summary>

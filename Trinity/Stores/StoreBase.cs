@@ -38,7 +38,7 @@ namespace Semiodesk.Trinity
 {
     /// <summary>
     /// This class encapsulates the functionality of an abstract triple store. Cannot be used directly. 
-    /// Use StoreFactory to get a concret implementation.
+    /// Use StoreFactory to get a concrete implementation.
     /// </summary>
     public abstract class StoreBase : IStore
     {
@@ -104,6 +104,16 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">An optional transaction.</param>
         /// <returns></returns>
         public abstract ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null);
+
+        /// <summary>
+        /// Executes a string query directly on the store.
+        /// </summary>
+        /// <param name="query">SPARQL query to be executed.</param>
+        /// <returns>A native return value is possible here.</returns>
+        public virtual object ExecuteQuery(string query)
+        {
+            return null;
+        }
 
         /// <summary>
         /// Executes a query on the store which does not expect a result.
