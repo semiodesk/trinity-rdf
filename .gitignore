@@ -8,4 +8,3 @@ Documentation/log.txt
 *.zip
 *.user
 **/.vs/**
-**/.idea/**

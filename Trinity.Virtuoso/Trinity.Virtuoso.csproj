@@ -31,6 +31,10 @@
     <None Include="..\assets\trinity-logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <!-- ONLY NET4.0 -->
+  <ItemGroup Condition="'$(TargetFramework)'=='net40'">
+    <Reference Include="System.ComponentModel.Composition" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="5.0.0" />
     <PackageReference Include="System.Data.Common" Version="4.3.0" />
