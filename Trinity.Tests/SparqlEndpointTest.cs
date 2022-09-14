@@ -37,6 +37,7 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestDBPediaQuery()
         {
+            Assert.Inconclusive("Endpoint doesn't seem to exist anymore.");
             IStore store = StoreFactory.CreateSparqlEndpointStore(new Uri("http://live.dbpedia.org/sparql"));
             IModel model = store.GetModel(new Uri("http://dbpedia.org"));
 
@@ -49,6 +50,7 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void TestDBPediaGetResource()
         {
+            Assert.Inconclusive("Endpoint doesn't seem to exist anymore.");
             IStore store = StoreFactory.CreateSparqlEndpointStore(new Uri("http://live.dbpedia.org/sparql"));
             IModel model = store.GetModel(new Uri("http://dbpedia.org"));
 
