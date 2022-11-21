@@ -41,13 +41,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Trinity\Trinity.csproj" />
   </ItemGroup>
-  
-  <ItemGroup>
-    <Reference Include="OpenLink.Data.Virtuoso">
-      <HintPath>Dependencies\OpenLink.Data.Virtuoso.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
-  </ItemGroup>
 
   <!--  THIS SECTION CONTAINS THE PACKAGING INSTRUCTIONS FOR CILGENERATOR & ONTOLOGYGENERATOR -->
   <PropertyGroup>

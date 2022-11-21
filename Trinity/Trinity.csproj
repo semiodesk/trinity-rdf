@@ -7,8 +7,8 @@
 	<Description>Enterprise ready object mapper for developing RDF knowledge graph applications with .NET</Description>
 	<Company>Semiodesk GmbH</Company>
 	<Version>1.0.3.50</Version>
-	<AssemblyVersion>1.0.3.30</AssemblyVersion>
-	<FileVersion>1.0.3.30</FileVersion>
+	<AssemblyVersion>1.0.3.50</AssemblyVersion>
+	<FileVersion>1.0.3.50</FileVersion>
 	<AssemblyName>Semiodesk.Trinity</AssemblyName>
 	<RootNamespace>Semiodesk.Trinity</RootNamespace>
     <IsPackable>true</IsPackable>
@@ -51,17 +51,13 @@
   <Target Name="CustomContentTarget">
     <ItemGroup>
       <!-- Here is the build folder with the .target files -->
-      <TfmSpecificPackageFile Include="$(OutputPath)\Targets\*" Condition="'$(TargetFramework)'=='net40'">
+      <TfmSpecificPackageFile Include="$(OutputPath)\Targets\*">
         <PackagePath>build</PackagePath>
       </TfmSpecificPackageFile>
 
       <!-- Here is the tools folder -->
-      <TfmSpecificPackageFile Include="$(OutputPath)\../tools\*.exe*;$(OutputPath)\../tools\*.dll" Condition="'$(TargetFramework)'=='net40'">
+      <TfmSpecificPackageFile Include="$(OutputPath)\../tools\*.exe*;$(OutputPath)\../tools\*.dll" >
         <PackagePath>tools</PackagePath>
-      </TfmSpecificPackageFile>
-
-      <TfmSpecificPackageFile Include="$(OutputPath)\dotNetRDF.dll" Condition="'$(TargetFramework)'=='net35'">
-        <PackagePath>lib/net35</PackagePath>
       </TfmSpecificPackageFile>
     </ItemGroup>
   </Target>
