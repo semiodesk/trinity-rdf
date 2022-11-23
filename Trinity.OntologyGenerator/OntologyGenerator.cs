@@ -191,7 +191,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
             if(ontologies.Length > 0)
             {
-                string template = Properties.Resources.FileTemplate;
+                string template = Templates.FileTemplate;
                 string content = string.Format(template, ontologies.ToString(), _namespace);
 
                 if (string.IsNullOrEmpty(content))
@@ -212,7 +212,7 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
             IEnumerable<BindingSet> bindings = model.GetBindings(query, true);
 
-            return bindings.Any() ? bindings.First().ToString() : "";
+            return bindings.Any() ? bindings.First().Values.First().ToString() : "";
         }
 
 
@@ -296,11 +296,11 @@ namespace Semiodesk.Trinity.OntologyGenerator
             {
                 nsPrefix = nsPrefix.ToUpper();
 
-                return string.Format(Properties.Resources.StringOntologyTemplate, nsPrefix, ns, result.ToString(), title, description);
+                return string.Format(Templates.StringOntologyTemplate, nsPrefix, ns, result.ToString(), title, description);
             }
             else
             {
-                return string.Format(Properties.Resources.OntologyTemplate, nsPrefix, ns, result.ToString(), title, description);
+                return string.Format(Templates.OntologyTemplate, nsPrefix, ns, result.ToString(), title, description);
             }
         }
 
@@ -382,11 +382,11 @@ namespace Semiodesk.Trinity.OntologyGenerator
 
             if (stringOnly)
             {
-                return string.Format(Properties.Resources.StringTemplate, type, name, resource.Uri.OriginalString, comment);
+                return string.Format(Templates.StringTemplate, type, name, resource.Uri.OriginalString, comment);
             }
             else
             {
-                return string.Format(Properties.Resources.ResourceTemplate, type, name, resource.Uri.OriginalString, comment);
+                return string.Format(Templates.ResourceTemplate, type, name, resource.Uri.OriginalString, comment);
             }
         }
 
