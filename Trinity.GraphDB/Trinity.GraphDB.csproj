@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <None Include="..\assets\trinity-logo.png">
+        <Pack>true</Pack>
+        <PackagePath>/</PackagePath>
+        <Link>trinity-logo.png</Link>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Trinity\Trinity.csproj" />
+    </ItemGroup>
+
+</Project>
