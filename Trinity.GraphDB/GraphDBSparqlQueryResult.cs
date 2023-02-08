@@ -23,45 +23,40 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015-2019
+// Copyright (c) Semiodesk GmbH 2022
 
-using System;
+using VDS.RDF.Query;
+using VDS.RDF;
 
-namespace Semiodesk.Trinity
+namespace Semiodesk.Trinity.Store.GraphDB
 {
     /// <summary>
-    /// Extension of Uri class concering UriRef handling.
+    /// The results returned from a SPARQL query.
     /// </summary>
-    public static class UriExtensions
+    internal class GraphDBSparqlQueryResult : dotNetRDFQueryResult
     {
+        #region Constructors
+
         /// <summary>
-        /// Create a UriRef from this Uri.
+        /// Internal constructor which parses the results returned from a given query.
         /// </summary>
-        /// <param name="uri">A uniform resource identifier (URI)</param>
-        /// <returns>A UriRef instance.</returns>
-        public static UriRef ToUriRef(this Uri uri)
+        /// <param name="query">The executed query.</param>
+        /// <param name="store"></param>
+        /// <param name="resultSet">the results</param>
+        internal GraphDBSparqlQueryResult(GraphDBStore store, ISparqlQuery query, SparqlResultSet resultSet) : base(store, query, resultSet)
         {
-            return uri is UriRef ? uri as UriRef : new UriRef(uri);
         }
 
         /// <summary>
-        /// Create a new URI from appending a given local name to this URI.
+        /// Internal constructor which parses the results returned from a given query.
         /// </summary>
-        /// <param name="uri">A uniform resource identifier (URI)</param>
-        /// <returns>A new UriRef instance.</returns>
-        public static UriRef GetUriRef(this Uri uri, string localName)
+        /// <param name="query">The executed query.</param>
+        /// <param name="store"></param>
+        /// <param name="graph">the results</param>
+        internal GraphDBSparqlQueryResult(GraphDBStore store, ISparqlQuery query, IGraph graph) : base(store, query, graph)
         {
-            return new UriRef(uri.OriginalString + localName);
         }
-        
-        /// <summary>
-        /// Indicates if the given URI is a UriRef instance and a blank node identifier.
-        /// </summary>
-        /// <param name="uri">A uniform resource identifier (URI)</param>
-        /// <returns><c>true</c> if the Uri is a UriRef and a blank node identifier.</returns>
-        public static bool IsBlankId(this Uri uri)
-        {
-            return uri is UriRef && (uri as UriRef).IsBlankId;
-        }
+
+        #endregion
     }
 }

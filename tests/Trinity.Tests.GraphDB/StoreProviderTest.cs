@@ -23,40 +23,26 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2022
+// Copyright (c) Semiodesk GmbH 2023
 
-using VDS.RDF.Query;
-using VDS.RDF;
+using NUnit.Framework;
+using Semiodesk.Trinity.Store.GraphDB;
 
-namespace Semiodesk.Trinity.Store.Fuseki
+namespace Semiodesk.Trinity.Test.GraphDB
 {
-    /// <summary>
-    /// The results returned from a SPARQL query.
-    /// </summary>
-    internal class FusekiSparqlQueryResult : dotNetRDFQueryResult
+    [TestFixture]
+    public class StoreProviderTest : TestBase
     {
-        #region Constructors
-
-        /// <summary>
-        /// Internal constructor which parses the results returned from a given query.
-        /// </summary>
-        /// <param name="query">The executed query.</param>
-        /// <param name="store"></param>
-        /// <param name="resultSet">the results</param>
-        internal FusekiSparqlQueryResult(FusekiStore store, ISparqlQuery query, SparqlResultSet resultSet) : base(store, query, resultSet)
+        [Test]
+        public void GraphDBConfigurationStringTest()
         {
+            var connectionString = "provider=graphdb;host=http://localhost:7200;repository=trinity-test";
+            var store = StoreFactory.CreateStore(connectionString);
+            
+            Assert.IsNotNull(store);
+            Assert.IsInstanceOf<GraphDBStore>(store);
+            
+            store.Dispose();
         }
-
-        /// <summary>
-        /// Internal constructor which parses the results returned from a given query.
-        /// </summary>
-        /// <param name="query">The executed query.</param>
-        /// <param name="store"></param>
-        /// <param name="graph">the results</param>
-        internal FusekiSparqlQueryResult(FusekiStore store, ISparqlQuery query, IGraph graph) : base(store, query, graph)
-        {
-        }
-
-        #endregion
     }
 }

@@ -23,49 +23,43 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2022
+// Copyright (c) Semiodesk GmbH 2023
 
 using Semiodesk.Trinity.Extensions;
 using System.Collections.Generic;
 using System.IO;
 using System;
+using System.Linq;
 using VDS.RDF.Parsing.Handlers;
 using VDS.RDF.Parsing;
 using VDS.RDF.Query;
 using VDS.RDF.Storage;
 using VDS.RDF;
 
-namespace Semiodesk.Trinity.Store.Fuseki
+namespace Semiodesk.Trinity.Store.GraphDB
 {
     /// <summary>
-    /// This class is the implementation of the IStorage interface for Fuseki.
+    /// This class is the implementation of the IStorage inteface for GraphDB.
     /// </summary>
-    public class FusekiStore : StoreBase
+    public class GraphDBStore : StoreBase
     {
         #region Members
-
-        private SparqlUpdateParser _parser;
         
-        /// <summary>
-        ///  Handle to the Virtuoso connection.
-        /// </summary>
-        protected FusekiConnector Connector;
-
-        /// <summary>
-        /// The host of the storage service.
-        /// </summary>
-        public string Hostname { get; protected set; }
-
-        /// <summary>
-        /// The username used for establishing the connection.
-        /// </summary>
-        private string Dataset { get; set; }
-
         /// <summary>
         /// Indicates if the store is ready to be queried.
         /// </summary>
-        public override bool IsReady { get; protected set; } = true;
-        
+        public override bool IsReady => _connector != null && _connector.IsReady;
+
+        /// <summary>
+        /// Handle to the database connection.
+        /// </summary>
+        private readonly SesameHttpProtocolConnector  _connector;
+
+        /// <summary>
+        /// Get the URL of the GraphDB database service.
+        /// </summary>
+        public string HostUri { get; protected set; }
+
         #endregion
 
         #region Constructors
@@ -73,29 +67,25 @@ namespace Semiodesk.Trinity.Store.Fuseki
         /// <summary>
         /// Creates a new connection to the Virtuoso storage. 
         /// </summary>
-        /// <param name="hostname">The host of the storage service.</param>
-        /// <param name="port">The service port on the storage service host.</param>
+        /// <param name="hostUri">The URL of the GraphDB database service.</param>
         /// <param name="username">Username used to connect to storage.</param>
         /// <param name="password">Password needed to connect to storage.</param>
-        public FusekiStore(string host, string dataset, string username = null, string password = null)
+        public GraphDBStore(string hostUri, string repositoryId, string username = null, string password = null)
         {
-            Hostname = host;
-            Dataset = dataset;
-            Connector = new FusekiConnector($"{Hostname}/{dataset}/data");
+            HostUri = hostUri;
+            
+            _connector = new SesameHttpProtocolConnector(HostUri, repositoryId);
 
-            if (!string.IsNullOrEmpty(username))
+            if (!string.IsNullOrEmpty(username) || !string.IsNullOrEmpty(password))
             {
-                Connector.SetCredentials(username, password ?? "");
+                _connector.SetCredentials(username, password);
             }
-
-            _parser = new SparqlUpdateParser();
         }
 
         #endregion
 
         #region Methods
-
-
+        
         [Obsolete("It is not necessary to create models explicitly. Use GetModel() instead, if the model does not exist, it will be created implicitly.")]
         public override IModel CreateModel(Uri uri)
         {
@@ -104,29 +94,24 @@ namespace Semiodesk.Trinity.Store.Fuseki
 
         public override void RemoveModel(Uri uri)
         {
-            if (!Connector.DeleteSupported)
+            if (!_connector.DeleteSupported)
             {
                 throw new NotSupportedException("This store does not support the deletion of graphs.");
             }
 
-            Connector.DeleteGraph(uri);
+            _connector.DeleteGraph(uri);
         }
 
         [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
         public override bool ContainsModel(Uri uri)
         {
-            if (uri != null)
-            {
-                Connector.HasGraph(uri);
-            }
-
-            return false;
+            return uri != null && _connector.ListGraphs().Contains(uri);
         }
 
         [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
         public override bool ContainsModel(IModel model)
         {
-            return ContainsModel(model.Uri);
+            return model != null && ContainsModel(model.Uri);
         }
 
         /// <summary>
@@ -138,6 +123,9 @@ namespace Semiodesk.Trinity.Store.Fuseki
         /// <param name="ignoreUnmappedProperties">Set this to true to update only mapped properties.</param>
         public override void UpdateResource(Resource resource, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
         {
+            if (resource == null) throw new ArgumentNullException(nameof(resource));
+            if (modelUri == null) throw new ArgumentNullException(nameof(modelUri));
+            
             string updateString;
 
             if (resource.IsNew)
@@ -176,9 +164,7 @@ namespace Semiodesk.Trinity.Store.Fuseki
 
             Log?.Invoke(q);
 
-            //SparqlUpdateCommandSet cmds = _parser.ParseFromString(q);
-
-            Connector.Update(q);
+            _connector.Update(q);
         }
 
         /// <summary>
@@ -189,8 +175,7 @@ namespace Semiodesk.Trinity.Store.Fuseki
         /// <returns></returns>
         public override ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
-            var q = query.ToString();
-            var results = ExecuteQuery(q);
+            var results = ExecuteQuery(query.ToString());
 
             switch (results)
             {
@@ -212,7 +197,7 @@ namespace Semiodesk.Trinity.Store.Fuseki
         {
             Log?.Invoke(query);
             
-            return Connector.Query(query);
+            return _connector.Query(query);
         }
 
         /// <summary>
@@ -231,7 +216,7 @@ namespace Semiodesk.Trinity.Store.Fuseki
         /// <returns>All handles to existing models.</returns>
         public override IEnumerable<IModel> ListModels()
         {
-            foreach (var graph in Connector.ListGraphs())
+            foreach (var graph in _connector.ListGraphs())
             {
                 yield return new Model(this, new UriRef(graph));   
             }
@@ -281,22 +266,22 @@ namespace Semiodesk.Trinity.Store.Fuseki
         /// <returns></returns>
         public override Uri Read(string content, Uri graphUri, RdfSerializationFormat format, bool update)
         {
-            var exists = Connector.HasGraph(graphUri);
+            var exists = _connector.ListGraphs().Contains(graphUri);
             
-            using (StringReader reader = new StringReader(content))
+            using (var reader = new StringReader(content))
             {
-                IGraph graph = new Graph();
+                var graph = new Graph();
 
                 TryParse(reader, graph, format);
 
                 graph.BaseUri = graphUri;
 
-                if (!update && exists)
+                if (exists && !update)
                 {
-                    Connector.DeleteGraph(graphUri);
+                    _connector.DeleteGraph(graphUri);
                 }
 
-                Connector.SaveGraph(graph);
+                _connector.SaveGraph(graph);
 
                 return graphUri;
             }
@@ -312,22 +297,22 @@ namespace Semiodesk.Trinity.Store.Fuseki
         /// <returns></returns>
         public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update, bool leaveOpen = false)
         {
-            var exists = Connector.HasGraph(graphUri);
+            var exists = _connector.ListGraphs().Contains(graphUri);
             
             using (TextReader reader = new StreamReader(stream))
             {
-                IGraph graph = new Graph();
+                var graph = new Graph();
 
                 TryParse(reader, graph, format);
 
                 graph.BaseUri = graphUri;
 
-                if (!update && exists)
+                if (exists && !update)
                 {
-                    Connector.DeleteGraph(graphUri);
+                    _connector.DeleteGraph(graphUri);
                 }
 
-                Connector.SaveGraph(graph);
+                _connector.SaveGraph(graph);
 
                 if (!leaveOpen)
                 {
@@ -350,7 +335,7 @@ namespace Semiodesk.Trinity.Store.Fuseki
         {
             IGraph graph = null;
             
-            var exists = Connector.HasGraph(graphUri);
+            var exists = _connector.ListGraphs().Contains(graphUri);
 
             if (url.AbsoluteUri.StartsWith("file:"))
             {
@@ -369,17 +354,17 @@ namespace Semiodesk.Trinity.Store.Fuseki
                 {
                     if (format == RdfSerializationFormat.Trig)
                     {
-                        TripleStore s = new TripleStore();
-                        s.LoadFromFile(path, new TriGParser());
+                        var store = new TripleStore();
+                        store.LoadFromFile(path, new TriGParser());
 
-                        foreach (Graph g in s.Graphs)
+                        foreach (Graph g in store.Graphs)
                         {
                             if (!update && exists)
                             {
-                                Connector.DeleteGraph(graphUri);
+                                _connector.DeleteGraph(graphUri);
                             }
 
-                            Connector.SaveGraph(g);
+                            _connector.SaveGraph(g);
                         }
                     }
                     else
@@ -403,10 +388,10 @@ namespace Semiodesk.Trinity.Store.Fuseki
             {
                 if (!update && exists)
                 {
-                    Connector.DeleteGraph(graphUri);
+                    _connector.DeleteGraph(graphUri);
                 }
 
-                Connector.SaveGraph(graph);
+                _connector.SaveGraph(graph);
 
                 return graphUri;
             }
@@ -426,24 +411,23 @@ namespace Semiodesk.Trinity.Store.Fuseki
         /// <returns></returns>
         public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false)
         {
-            if (Connector.HasGraph(graphUri))
-            {
-                IGraph graph = new Graph();
+            if (!_connector.ListGraphs().Contains(graphUri)) return;
+            
+            var graph = new Graph();
                 
-                Connector.LoadGraph(graph, graphUri);
+            _connector.LoadGraph(graph, graphUri);
 
-                if (namespaces != null)
-                {
-                    graph.NamespaceMap.ImportNamespaces(namespaces);
-                }
-
-                if (baseUri != null)
-                {
-                    graph.BaseUri = baseUri;
-                }
-
-                Write(stream, graph, format, leaveOpen);
+            if (namespaces != null)
+            {
+                graph.NamespaceMap.ImportNamespaces(namespaces);
             }
+
+            if (baseUri != null)
+            {
+                graph.BaseUri = baseUri;
+            }
+
+            Write(stream, graph, format, leaveOpen);
         }
 
         /// <summary>
@@ -456,18 +440,16 @@ namespace Semiodesk.Trinity.Store.Fuseki
         /// <returns></returns>
         public override void Write(Stream stream, Uri graphUri, IRdfWriter formatWriter, bool leaveOpen = false)
         {
-            if (Connector.HasGraph(graphUri))
-            {
-                IGraph graph = new Graph();
-                
-                Connector.LoadGraph(graph, graphUri);
+            if (!_connector.ListGraphs().Contains(graphUri)) return;
+            
+            IGraph graph = new Graph();
+            
+            _connector.LoadGraph(graph, graphUri);
 
-                Write(stream, graph, formatWriter, leaveOpen);
-            }
+            Write(stream, graph, formatWriter, leaveOpen);
         }
 
         /// <summary>
-        /// 
         /// </summary>
         /// <param name="isolationLevel"></param>
         /// <returns></returns>
@@ -483,12 +465,7 @@ namespace Semiodesk.Trinity.Store.Fuseki
         /// <returns></returns>
         public override IModelGroup CreateModelGroup(params Uri[] models)
         {
-            List<IModel> modelList = new List<IModel>();
-
-            foreach (var x in models)
-            {
-                modelList.Add(GetModel(x));
-            }
+            var modelList = models.Select(m => GetModel(m)).ToList();
 
             return new ModelGroup(this, modelList);
         }
@@ -500,13 +477,8 @@ namespace Semiodesk.Trinity.Store.Fuseki
         /// <returns></returns>
         public new IModelGroup CreateModelGroup(params IModel[] models)
         {
-            var modelList = new List<IModel>();
-
             // This approach might seem a bit redundant, but we want to make sure to get the model from the right store.
-            foreach (var x in models)
-            {
-                this.GetModel(x.Uri);
-            }
+            var modelList = models.Select(m => GetModel(m.Uri)).ToList();
 
             return new ModelGroup(this, modelList);
         }
@@ -517,7 +489,8 @@ namespace Semiodesk.Trinity.Store.Fuseki
         public override void Dispose()
         {
             IsReady = false;
-            Connector.Dispose();
+            
+            _connector.Dispose();
         }
 
         /// <summary>
@@ -529,7 +502,7 @@ namespace Semiodesk.Trinity.Store.Fuseki
         /// <returns>An instance of <c>ISparqlQuery</c></returns>
         public override ISparqlQuery GetDescribeQuery(Uri modelUri, Uri subjectUri)
         {
-            ISparqlQuery query = new SparqlQuery("DESCRIBE ?s FROM @model WHERE { ?s ?p ?o . VALUES ?s { @subject } }");
+            var query = new SparqlQuery("DESCRIBE ?s FROM @model WHERE { ?s ?p ?o . VALUES ?s { @subject } }");
             query.Bind("@model", modelUri);
             query.Bind("@subject", subjectUri);
 

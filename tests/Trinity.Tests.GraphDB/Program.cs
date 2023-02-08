@@ -23,40 +23,29 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2022
+// Copyright (c) Semiodesk GmbH 2023
 
-using VDS.RDF.Query;
-using VDS.RDF;
+using System;
+using System.Linq;
+using System.Reflection;
 
-namespace Semiodesk.Trinity.Store.Fuseki
+namespace Semiodesk.Trinity.Test
 {
-    /// <summary>
-    /// The results returned from a SPARQL query.
-    /// </summary>
-    internal class FusekiSparqlQueryResult : dotNetRDFQueryResult
+    class TestRunner
     {
-        #region Constructors
+       [STAThread]
+       static void Main(string[] args)
+       { 
+            var nunitArg = new string[args.Count() + 1];
+            var i = 0;
+            
+            foreach (var arg in args)
+            {
+                nunitArg[i] = arg;
+                i++;
+            }
 
-        /// <summary>
-        /// Internal constructor which parses the results returned from a given query.
-        /// </summary>
-        /// <param name="query">The executed query.</param>
-        /// <param name="store"></param>
-        /// <param name="resultSet">the results</param>
-        internal FusekiSparqlQueryResult(FusekiStore store, ISparqlQuery query, SparqlResultSet resultSet) : base(store, query, resultSet)
-        {
+            nunitArg[i] = Assembly.GetExecutingAssembly().Location;
         }
-
-        /// <summary>
-        /// Internal constructor which parses the results returned from a given query.
-        /// </summary>
-        /// <param name="query">The executed query.</param>
-        /// <param name="store"></param>
-        /// <param name="graph">the results</param>
-        internal FusekiSparqlQueryResult(FusekiStore store, ISparqlQuery query, IGraph graph) : base(store, query, graph)
-        {
-        }
-
-        #endregion
     }
 }

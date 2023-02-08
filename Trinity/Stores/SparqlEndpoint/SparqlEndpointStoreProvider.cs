@@ -60,15 +60,15 @@ namespace Semiodesk.Trinity.Store
         /// <summary>
         /// Create a new triple store with a specified configuration.
         /// </summary>
-        /// <param name="configurationDictionary">Triple store specific configuration variables.</param>
+        /// <param name="config">Triple store specific configuration variables.</param>
         /// <returns></returns>
-        public override IStore GetStore(Dictionary<string, string> configurationDictionary)
+        public override IStore GetStore(Dictionary<string, string> config)
         {
             string endpointKey = "endpoint";
 
-            if (configurationDictionary.ContainsKey(endpointKey))
+            if (config.ContainsKey(endpointKey))
             {
-                Uri endpoint = new Uri(configurationDictionary[endpointKey]);
+                Uri endpoint = new Uri(config[endpointKey]);
 
                 return new SparqlEndpointStore(endpoint);
             }
