@@ -642,49 +642,4 @@ new PropertyMapping<Tuple<string, string>>("uniqueLocalizedStringTest", TestOnto
         }
 
     }
-
-    public class PersonContact : Contact
-    {
-        #region Constructors
-        public PersonContact(Uri uri) : base(uri) { }
-        #endregion
-
-        public override IEnumerable<Class> GetTypes()
-        {
-            return new List<Class> { nco.PersonContact };
-        }
-
-        protected PropertyMapping<string> nameGivenProperty = new PropertyMapping<string>("NameGiven", nco.nameGiven, true);
-
-        public string NameGiven
-        {
-            get { return GetValue(nameGivenProperty); }
-            set { SetValue(nameGivenProperty, value); }
-        }
-
-        protected PropertyMapping<ObservableCollection<string>> nameAdditonalProperty = new PropertyMapping<ObservableCollection<string>>("NameAdditional", nco.nameAdditional, new ObservableCollection<string>(), true);
-
-        public ObservableCollection<string> NameAdditional
-        {
-            get { return GetValue(nameAdditonalProperty); }
-            set { SetValue(nameAdditonalProperty, value); }
-        }
-
-        protected PropertyMapping<string> nameFamilyProperty = new PropertyMapping<string>("NameFamily", nco.nameFamily, true);
-
-        public string NameFamily
-        {
-            get { return GetValue(nameFamilyProperty); }
-            set { SetValue(nameFamilyProperty, value); }
-        }
-
-        private bool _isSelected;
-
-        public bool IsSelected
-        {
-            get { return _isSelected; }
-            set { _isSelected = value; RaisePropertyChanged("IsSelected"); }
-        }
-    }
-
 }

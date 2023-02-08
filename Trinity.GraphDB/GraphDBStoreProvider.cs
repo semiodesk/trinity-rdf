@@ -23,62 +23,39 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2022
+// Copyright (c) Semiodesk GmbH 2023
 
 using System.Collections.Generic;
 using System.Composition;
 
-namespace Semiodesk.Trinity.Store.Fuseki
+namespace Semiodesk.Trinity.Store.GraphDB
 {
     [Export(typeof(StoreProvider))]
-
-    public class FusekiStoreProvider : StoreProvider
+    public class GraphDBStoreProvider : StoreProvider
     {
-        public FusekiStoreProvider()
+        public GraphDBStoreProvider()
         {
-            Name = "fuseki";
+            Name = "graphdb";
         }
 
-        public override IStore GetStore(Dictionary<string, string> config )
+        private string GetValue(Dictionary<string, string> config, string key, string defaultValue = null)
         {
-            string hostKey = "host";
-            string host = "http://localhost:3030/";
+            return config.ContainsKey(key) ? config[key] : defaultValue;
+        }
+        
+        public override IStore GetStore(Dictionary<string, string> config)
+        {
+            var hostUri = GetValue(config, "host", "http://localhost:7200/");
+            var repositoryId = GetValue(config, "repository");
+            var user = GetValue(config, "uid");
+            var password = GetValue(config, "pw");
 
-            if (config.ContainsKey(hostKey))
-            {
-                host = config[hostKey];
-            }
-
-            string datasetKey = "dataset";
-            string dataset = "dataset";
-
-            if (config.ContainsKey(datasetKey))
-            {
-                dataset = config[datasetKey];
-            }
-
-            string userKey = "uid";
-            string user = null;
-
-            if (config.ContainsKey(userKey))
-            {
-                user = config["uid"];
-            }
-            
-            string passwordKey = "pw";
-            string password = null;
-
-            if (config.ContainsKey(passwordKey))
-            {
-                password = config[passwordKey];
-            }
-
-            if (string.IsNullOrEmpty(host))
+            if (string.IsNullOrEmpty(hostUri))
             {
                 return null;
             }
             
-            return new FusekiStore(host, dataset, user, password);
+            return new GraphDBStore(hostUri, repositoryId, user, password);
         }
     }
 }

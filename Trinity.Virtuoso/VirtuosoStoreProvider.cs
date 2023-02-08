@@ -42,21 +42,21 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             Name = "virtuoso";
         }
 
-        public override IStore GetStore(Dictionary<string, string> configurationDictionary )
+        public override IStore GetStore(Dictionary<string, string> config )
         {
             string hostKey = "host";
             string host = "127.0.0.1";
 
-            if (configurationDictionary.ContainsKey(hostKey))
+            if (config.ContainsKey(hostKey))
             {
-                host = configurationDictionary[hostKey];
+                host = config[hostKey];
             }
 
 
             string portKey = "port";
             int port;
 
-            if (!configurationDictionary.ContainsKey(portKey) ||!int.TryParse(configurationDictionary[portKey], out port))
+            if (!config.ContainsKey(portKey) ||!int.TryParse(config[portKey], out port))
             {
                 #if !DEBUG 
                 port = 1112;
@@ -68,18 +68,18 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             string userKey = "uid";
             string user = "dba";
 
-            if (configurationDictionary.ContainsKey(userKey))
+            if (config.ContainsKey(userKey))
             {
-                user = configurationDictionary["uid"];
+                user = config["uid"];
             }
 
 
             string passwordKey = "pw";
             string password = "dba";
 
-            if (configurationDictionary.ContainsKey(passwordKey))
+            if (config.ContainsKey(passwordKey))
             {
-                password = configurationDictionary[passwordKey];
+                password = config[passwordKey];
             }
 
             if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(user) || string.IsNullOrEmpty(password))
@@ -90,9 +90,9 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             string inferenceRule = null;
             string ruleKey = "rule";
 
-            if (configurationDictionary.ContainsKey(ruleKey))
+            if (config.ContainsKey(ruleKey))
             {
-                inferenceRule = configurationDictionary[ruleKey];
+                inferenceRule = config[ruleKey];
             }
 
             VirtuosoStore store = new VirtuosoStore(host, port, user, password, inferenceRule);
