@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Semiodesk.Trinity.Test.GraphDB
+namespace Semiodesk.Trinity.Test
 {
     [RdfClass(NCO.PersonContact)]
     public class PersonContact : Contact

@@ -56,7 +56,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         [TearDown]
-        public void TearDown()
+        public override void TearDown()
         {
             _model.Clear();
             _store.Dispose();

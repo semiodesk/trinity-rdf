@@ -478,7 +478,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.NotNull(query.Model);
             Assert.AreEqual(1, fromClause.Matches(query.ToString()).Count);
 
-            var query2 = new SparqlQuery("ASK FROM <http://localhost/test> WHERE { ?s ?p ?o . }");
+            var query2 = new SparqlQuery($"ASK FROM <{Model1.Uri}> WHERE {{ ?s ?p ?o . }}");
 
             Assert.IsNull(query2.Model);
             Assert.AreEqual(1, fromClause.Matches(query2.ToString()).Count);
@@ -510,11 +510,22 @@ namespace Semiodesk.Trinity.Test.GraphDB
         {
             InitializeModel();
             
-            var query = new SparqlQuery("SELECT ?s WHERE { ?s ?p ?o }");
+            var query = new SparqlQuery(@"
+                SELECT ?s0 ?p0 ?o0 WHERE
+                {
+                   ?s0 ?p0 ?o0 .
+
+                   {
+                      SELECT DISTINCT ?s0 WHERE
+                      {
+                         ?s ?p ?o.
+                      }
+                   }
+                }");
 
             var method = query.GetType().GetMethod("SetLimit", BindingFlags.NonPublic | BindingFlags.Instance);
             method.Invoke(query, new object[] { 3 });
-
+            
             var result = Model1.ExecuteQuery(query);
             var resources = result.GetResources().ToList();
             
@@ -524,6 +535,8 @@ namespace Semiodesk.Trinity.Test.GraphDB
         [Test]
         public void TestModelGroup()
         {
+            InitializeModel();
+            
             var group = Store.CreateModelGroup(Model1, Model2);
             
             var query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o. ?s nco:fullname 'Hans Wurscht'. }");

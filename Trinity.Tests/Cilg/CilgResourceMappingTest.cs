@@ -52,7 +52,7 @@ namespace Semiodesk.Trinity.Test
         }
         
         [TearDown]
-        public void TearDown()
+        public override void TearDown()
         {
             if (_store != null)
             {

@@ -620,7 +620,12 @@ namespace Semiodesk.Trinity
         /// <returns>A DateTime value</returns>
         public static object DeserializeDateTime(string str)
         {
-            return XmlConvert.ToDateTime(str, XmlDateTimeSerializationMode.Utc);
+            if (DateTime.TryParse(str, out var value))
+            {
+                return value;
+            }
+            
+            return XmlConvert.ToDateTime(str, XmlDateTimeSerializationMode.Utc); 
         }
 
 

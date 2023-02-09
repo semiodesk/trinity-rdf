@@ -55,7 +55,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
         #region Methods
 
         [SetUp]
-        public void SetUp()
+        public override void SetUp()
         {
             base.SetUp();
             
@@ -821,9 +821,11 @@ namespace Semiodesk.Trinity.Test.GraphDB
             t1.Commit();
 
             var actual = Model1.GetResource<MappingTestClass>(_r1);
-            var properties = actual.ListProperties().ToList();
 
             Assert.AreEqual(t2, actual.uniqueResourceTest);
+            
+            var properties = actual.ListProperties().ToList();
+            
             Assert.Contains(TestOntology.uniqueResourceTest, properties);
             Assert.AreEqual(2, properties.Count());
 
@@ -877,11 +879,12 @@ namespace Semiodesk.Trinity.Test.GraphDB
             t1.Commit();
 
             var actual = Model1.GetResource<MappingTestClass>(_r1);
-            var properties = actual.ListProperties();
 
             Assert.AreEqual(2, actual.resourceTest.Count);
             Assert.Contains(t2, actual.resourceTest);
             Assert.Contains(t3, actual.resourceTest);
+            
+            var properties = actual.ListProperties();
 
             Assert.AreEqual(2, properties.Count());
             Assert.IsTrue(properties.Contains(TestOntology.resourceTest));
@@ -970,7 +973,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
         }
 
         [Test]
-        public void MappingTypeCollectionTest()
+        public void MappingTypeCollectionWithInferencingTest()
         {
             var t2 = Model1.CreateResource<PersonContact>(_r1);
             t2.NameFamily = "Doe";
@@ -1203,13 +1206,13 @@ namespace Semiodesk.Trinity.Test.GraphDB
             var englishValue = "Hello World";
             
             var r1 = Model1.CreateResource<StringMappingTestClass>(_r1);
-            r1.AddProperty(TestOntology.stringTest, germanValue+1, "DE");
+            r1.AddProperty(TestOntology.stringTest, germanValue+1, "de");
             r1.AddProperty(TestOntology.stringTest, germanValue+2, "de");
-            r1.AddProperty(TestOntology.stringTest, germanValue+3, "DE");
-            r1.AddProperty(TestOntology.stringTest, englishValue+1, "EN");
-            r1.AddProperty(TestOntology.stringTest, englishValue+2, "EN");
-            r1.AddProperty(TestOntology.stringTest, englishValue+3, "EN");
-            r1.AddProperty(TestOntology.stringTest, englishValue+4, "EN");
+            r1.AddProperty(TestOntology.stringTest, germanValue+3, "de");
+            r1.AddProperty(TestOntology.stringTest, englishValue+1, "en");
+            r1.AddProperty(TestOntology.stringTest, englishValue+2, "en");
+            r1.AddProperty(TestOntology.stringTest, englishValue+3, "en");
+            r1.AddProperty(TestOntology.stringTest, englishValue+4, "en");
             
             Assert.AreEqual(0, r1.stringListTest.Count);
             
@@ -1217,31 +1220,32 @@ namespace Semiodesk.Trinity.Test.GraphDB
             
             Assert.AreEqual(7, values.Count());
             
-            r1.AddProperty(TestOntology.stringTest, "Hello interanational World"+1);
-            r1.AddProperty(TestOntology.stringTest, "Hello interanational World"+2);
+            r1.AddProperty(TestOntology.stringTest, "Hello international World"+1);
+            r1.AddProperty(TestOntology.stringTest, "Hello international World"+2);
             
             Assert.AreEqual(2, r1.stringListTest.Count);
             Assert.AreEqual(9, r1.ListValues(TestOntology.stringTest).Count());
             
+            r1.RemoveProperty(TestOntology.stringTest, "Hello international World"+1);
+            
+            Assert.AreEqual(1, r1.stringListTest.Count);
+            Assert.AreEqual(8, r1.ListValues(TestOntology.stringTest).Count());
+            
             r1.Language = "de";
             
             Assert.AreEqual(3, r1.stringListTest.Count);
-            Assert.AreEqual(9, r1.ListValues(TestOntology.stringTest).Count());
+            Assert.AreEqual(8, r1.ListValues(TestOntology.stringTest).Count());
             
             r1.Language = "en";
             
             Assert.AreEqual(4, r1.stringListTest.Count);
-            Assert.AreEqual(9, r1.ListValues(TestOntology.stringTest).Count());
+            Assert.AreEqual(8, r1.ListValues(TestOntology.stringTest).Count());
             
             r1.RemoveProperty(TestOntology.stringTest, germanValue + 1, "de");
             
-            Assert.AreEqual(8, r1.ListValues(TestOntology.stringTest).Count());
+            Assert.AreEqual(7, r1.ListValues(TestOntology.stringTest).Count());
 
             r1.RemoveProperty(TestOntology.stringTest, englishValue + 1, "en");
-            
-            Assert.AreEqual(8, r1.ListValues(TestOntology.stringTest).Count());
-
-            r1.RemoveProperty(TestOntology.stringTest, "Hello interanational World" + 1);
             
             Assert.AreEqual(7, r1.ListValues(TestOntology.stringTest).Count());
         }

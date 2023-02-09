@@ -55,7 +55,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
         #region Methods
         
         [SetUp]
-        public void SetUp()
+        public override void SetUp()
         {
             base.SetUp();
             
@@ -144,7 +144,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
         }
         
         [Test]
-        public void CreateReferencedResourcesTest()
+        public void ContainsResourceReferenceTest()
         {
             Assert.IsFalse(Model1.ContainsResource(_r1));
             Assert.IsFalse(Model1.ContainsResource(_r2));
@@ -154,7 +154,8 @@ namespace Semiodesk.Trinity.Test.GraphDB
             r2.AddProperty(_p2, new Resource(_r1));
             r2.Commit();
 
-            Assert.IsTrue(Model1.ContainsResource(_r1));
+            // r1 is only referenced and not described as a subject.
+            Assert.IsFalse(Model1.ContainsResource(_r1));
             Assert.IsTrue(Model1.ContainsResource(_r2));
         }
 
@@ -484,14 +485,16 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(2, results.Count);
             Assert.IsTrue(results.Contains(r1));
             Assert.IsTrue(results.Contains(r2));
-
-            Model1.Clear();
-
+        }
+        
+        [Test]
+        public void GetTypedResourcesWithInferencingTest()
+        {
             var r3 = Model1.CreateResource<PersonContact>(_r3);
             r3.Fullname = "Peter";
             r3.Commit();
 
-            results = Model1.GetResources<Contact>().ToList();
+            var results = Model1.GetResources<Contact>().ToList();
             
             Assert.AreEqual(0, results.Count);
 
@@ -630,7 +633,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
     foaf:name ""Spiderman"", ""Человек-паук""@ru .
 ";
 
-            using (Stream s3 = GenerateStreamFromString(data))
+            using (Stream s3 = GenerateStreamFromString(data3))
             {
                 Assert.IsTrue(Model1.Read(s3, RdfSerializationFormat.Turtle, false));
             }

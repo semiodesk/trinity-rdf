@@ -53,12 +53,12 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// <summary>
         /// Handle to the database connection.
         /// </summary>
-        private readonly SesameHttpProtocolConnector  _connector;
+        private readonly GraphDBConnector  _connector;
 
         /// <summary>
         /// Get the URL of the GraphDB database service.
         /// </summary>
-        public string HostUri { get; protected set; }
+        public string HostUri { get; }
 
         #endregion
 
@@ -68,13 +68,14 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// Creates a new connection to the Virtuoso storage. 
         /// </summary>
         /// <param name="hostUri">The URL of the GraphDB database service.</param>
+        /// <param name="repositoryName">Name of the GraphDB repository.</param>
         /// <param name="username">Username used to connect to storage.</param>
         /// <param name="password">Password needed to connect to storage.</param>
-        public GraphDBStore(string hostUri, string repositoryId, string username = null, string password = null)
+        public GraphDBStore(string hostUri, string repositoryName, string username = null, string password = null)
         {
             HostUri = hostUri;
             
-            _connector = new SesameHttpProtocolConnector(HostUri, repositoryId);
+            _connector = new GraphDBConnector(HostUri, repositoryName, username, password);
 
             if (!string.IsNullOrEmpty(username) || !string.IsNullOrEmpty(password))
             {
@@ -175,7 +176,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// <returns></returns>
         public override ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
-            var results = ExecuteQuery(query.ToString());
+            var results = ExecuteQuery(query.ToString(), query.IsInferenceEnabled);
 
             switch (results)
             {
@@ -189,15 +190,28 @@ namespace Semiodesk.Trinity.Store.GraphDB
         }
 
         /// <summary>
-        /// This method queries the dotNetRdf store directly.
+        /// This method queries the GraphDB store directly.
         /// </summary>
-        /// <param name="query"></param>
+        /// <param name="query">The SPARQL query to be executed.</param>
         /// <returns></returns>
         public override object ExecuteQuery(string query)
         {
             Log?.Invoke(query);
             
-            return _connector.Query(query);
+            return _connector.Query(query, false, false);
+        }
+        
+        /// <summary>
+        /// This method queries the GraphDB store directly.
+        /// </summary>
+        /// <param name="query">The SPARQL query to be executed.</param>
+        /// <param name="inferenceEnabled">Indicate if the query should be executed with reasoning.</param>
+        /// <returns></returns>
+        public object ExecuteQuery(string query, bool inferenceEnabled)
+        {
+            Log?.Invoke(query);
+            
+            return _connector.Query(query, false, inferenceEnabled);
         }
 
         /// <summary>
@@ -411,7 +425,9 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// <returns></returns>
         public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false)
         {
-            if (!_connector.ListGraphs().Contains(graphUri)) return;
+            var graphs = _connector.ListGraphs();
+            
+            if (!graphs.Contains(graphUri)) return;
             
             var graph = new Graph();
                 

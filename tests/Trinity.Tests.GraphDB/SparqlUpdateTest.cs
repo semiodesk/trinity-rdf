@@ -36,9 +36,9 @@ namespace Semiodesk.Trinity.Test.GraphDB
     public class SparqlUpdateTest : TestBase
     {
         [SetUp]
-        public void SetUp()
+        public override void SetUp()
         {
-            SetUp();
+            base.SetUp();
 
             OntologyDiscovery.AddNamespace("vcard", vcard.Namespace);
             OntologyDiscovery.AddNamespace("foaf", foaf.Namespace);
@@ -49,7 +49,8 @@ namespace Semiodesk.Trinity.Test.GraphDB
         [Test]
         public void TestInsert()
         {
-            var update = new SparqlUpdate(@"INSERT DATA { GRAPH <ex:TestModel> { ex:book dc:title 'This is an example title' . } }");
+            var update = new SparqlUpdate(@"INSERT DATA { GRAPH @graph { ex:book dc:title 'This is an example title' . } }")
+                .Bind("@graph", Model1);
 
             Model1.ExecuteUpdate(update);
 
@@ -60,7 +61,8 @@ namespace Semiodesk.Trinity.Test.GraphDB
 
             Model1.Clear();
             
-            update = new SparqlUpdate(@"INSERT DATA { GRAPH <ex:TestModel> { ex:book dc:title 'This is an example title'@en . } }");
+            update = new SparqlUpdate(@"INSERT DATA { GRAPH @graph { ex:book dc:title 'This is an example title'@en . } }")
+                .Bind("@graph", Model1);
 
             Model1.ExecuteUpdate(update);
 
@@ -74,13 +76,15 @@ namespace Semiodesk.Trinity.Test.GraphDB
         public void TestModify()
         {
             var update = new SparqlUpdate(@"
-                INSERT DATA { GRAPH <ex:TestModel> { ex:book dc:title 'This is an example title' . } }");
+                INSERT DATA { GRAPH @graph { ex:book dc:title 'This is an example title' . } }")
+                .Bind("@graph", Model1);
 
             Model1.ExecuteUpdate(update);
 
             update = new SparqlUpdate(@"
-                DELETE DATA { GRAPH <ex:TestModel> { ex:book dc:title 'This is an example title' . } };
-                INSERT DATA { GRAPH <ex:TestModel> { ex:book dc:title 'This is an example title too' . } }");
+                DELETE DATA { GRAPH @graph { ex:book dc:title 'This is an example title' . } };
+                INSERT DATA { GRAPH @graph { ex:book dc:title 'This is an example title too' . } }")
+                .Bind("@graph", Model1);
 
             Model1.ExecuteUpdate(update);
 
@@ -97,8 +101,9 @@ namespace Semiodesk.Trinity.Test.GraphDB
         public void TestMultipleModify()
         {
             var update = new SparqlUpdate(@"
-                INSERT DATA { GRAPH <ex:TestModel> { ex:book dc:title 'This is an example title' . } };
-                INSERT DATA { GRAPH <ex:TestModel> { ex:book2 dc:title 'This is an example title2' . } }");
+                INSERT DATA { GRAPH @graph { ex:book dc:title 'This is an example title' . } };
+                INSERT DATA { GRAPH @graph { ex:book2 dc:title 'This is an example title2' . } }")
+                .Bind("@graph", Model1);
 
             Model1.ExecuteUpdate(update);
 
@@ -116,12 +121,14 @@ namespace Semiodesk.Trinity.Test.GraphDB
         public void TestDelete()
         {
             var update = new SparqlUpdate(@"
-                INSERT DATA { GRAPH <ex:TestModel> { ex:book dc:title 'This is an example title' . } }");
+                INSERT DATA { GRAPH @graph { ex:book dc:title 'This is an example title' . } }")
+                .Bind("@graph", Model1);
 
             Model1.ExecuteUpdate(update);
 
             update = new SparqlUpdate(@"
-                DELETE DATA { GRAPH <ex:TestModel> { ex:book dc:title 'This is an example title' . } }");
+                DELETE DATA { GRAPH @graph { ex:book dc:title 'This is an example title' . } }")
+                .Bind("@graph", Model1);
 
             Model1.ExecuteUpdate(update);
 
@@ -133,11 +140,12 @@ namespace Semiodesk.Trinity.Test.GraphDB
         [Test]
         public void TestClear()
         {
-            var update = new SparqlUpdate(@"INSERT DATA { GRAPH <ex:TestModel> { ex:book dc:title 'This is an example title' . } }");
+            var update = new SparqlUpdate(@"INSERT DATA { GRAPH @graph { ex:book dc:title 'This is an example title' . } }")
+                .Bind("@graph", Model1);
 
             Model1.ExecuteUpdate(update);
 
-            update = new SparqlUpdate(@"CLEAR GRAPH <ex:TestModel>");
+            update = new SparqlUpdate(@"CLEAR GRAPH @graph").Bind("@graph", Model1);
 
             Model1.ExecuteUpdate(update);
 

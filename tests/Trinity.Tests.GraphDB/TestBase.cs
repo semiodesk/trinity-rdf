@@ -71,9 +71,9 @@ namespace Semiodesk.Trinity.Test.GraphDB
 
             folder.Create();
             
-            ConnectionString = "provider=graphdb;host=http://localhost:7200;repository=trinity-test";
+            ConnectionString = "provider=graphdb;host=http://localhost:7200;uid=trinity;pw=test;repository=trinity-rdf";
             
-            BaseUri = new Uri("http://localhost:7200/repository/trinity-test/");
+            BaseUri = new Uri("http://localhost:7200/repository/trinity-rdf/");
         }
 
         [OneTimeTearDown]
