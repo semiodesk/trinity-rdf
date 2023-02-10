@@ -108,9 +108,9 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Executes a string query directly on the store.
         /// </summary>
-        /// <param name="query">SPARQL query to be executed.</param>
+        /// <param name="queryString">SPARQL query to be executed.</param>
         /// <returns>A native return value is possible here.</returns>
-        public virtual object ExecuteQuery(string query)
+        public virtual object ExecuteQuery(string queryString)
         {
             return null;
         }

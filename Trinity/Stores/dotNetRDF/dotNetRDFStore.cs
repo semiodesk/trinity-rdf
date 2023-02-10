@@ -177,15 +177,15 @@ namespace Semiodesk.Trinity.Store
         /// <summary>
         /// This method queries the dotNetRdf store directly.
         /// </summary>
-        /// <param name="query"></param>
+        /// <param name="queryString"></param>
         /// <returns></returns>
-        public override object ExecuteQuery(string query)
+        public override object ExecuteQuery(string queryString)
         {
-            Log?.Invoke(query);
+            Log?.Invoke(queryString);
 
             SparqlQueryParser parser = new SparqlQueryParser();
 
-            var q = parser.ParseFromString(query);
+            var q = parser.ParseFromString(queryString);
 
             return _queryProcessor.ProcessQuery(q);
         }

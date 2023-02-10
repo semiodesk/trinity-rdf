@@ -30,6 +30,7 @@ using Semiodesk.Trinity.Store.GraphDB;
 using System.IO;
 using System.Reflection;
 using System;
+using System.Threading;
 
 namespace Semiodesk.Trinity.Test.GraphDB
 {
@@ -54,6 +55,10 @@ namespace Semiodesk.Trinity.Test.GraphDB
         [OneTimeSetUp]
         public void OneTimeSetup()
         {
+            // To run these tests create a Docker container of 'ontotext/graphdb' exposing port 7200. Then
+            // create a repository named 'trinity-rdf' and assign it with full privileges to a user 'trinity'
+            // with password 'test'. These tests were created with GraphDB version 10.1.13.
+            
             Directory.SetCurrentDirectory(TestContext.CurrentContext.TestDirectory);
             StoreFactory.LoadProvider<GraphDBStoreProvider>();
             OntologyDiscovery.AddAssembly(Assembly.GetExecutingAssembly());
@@ -71,9 +76,15 @@ namespace Semiodesk.Trinity.Test.GraphDB
 
             folder.Create();
             
-            ConnectionString = "provider=graphdb;host=http://localhost:7200;uid=trinity;pw=test;repository=trinity-rdf";
-            
             BaseUri = new Uri("http://localhost:7200/repository/trinity-rdf/");
+            
+            ConnectionString = "provider=graphdb;host=http://localhost:7200;uid=trinity;pw=test;repository=trinity-rdf";
+
+            Store = StoreFactory.CreateStore(ConnectionString);
+            Store.InitializeFromConfiguration();
+            
+            // Wait until the inference engine has loaded the ontologies..
+            Thread.Sleep(1000);    
         }
 
         [OneTimeTearDown]
@@ -84,8 +95,6 @@ namespace Semiodesk.Trinity.Test.GraphDB
         [SetUp]
         public virtual void SetUp()
         {
-            Store = StoreFactory.CreateStore(ConnectionString);
-            
             Model1 = Store.GetModel(BaseUri.GetUriRef("model1"));
             
             if (!Model1.IsEmpty) Model1.Clear();

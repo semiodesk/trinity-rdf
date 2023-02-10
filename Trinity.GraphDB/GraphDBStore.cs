@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using System.IO;
 using System;
 using System.Linq;
+using System.Text.RegularExpressions;
 using VDS.RDF.Parsing.Handlers;
 using VDS.RDF.Parsing;
 using VDS.RDF.Query;
@@ -44,6 +45,8 @@ namespace Semiodesk.Trinity.Store.GraphDB
     public class GraphDBStore : StoreBase
     {
         #region Members
+
+        private readonly IModel _inplicitModel;
         
         /// <summary>
         /// Indicates if the store is ready to be queried.
@@ -73,6 +76,8 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// <param name="password">Password needed to connect to storage.</param>
         public GraphDBStore(string hostUri, string repositoryName, string username = null, string password = null)
         {
+            _inplicitModel = new Model(this, new UriRef("http://www.ontotext.com/implicit"));
+            
             HostUri = hostUri;
             
             _connector = new GraphDBConnector(HostUri, repositoryName, username, password);
@@ -86,7 +91,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
         #endregion
 
         #region Methods
-        
+
         [Obsolete("It is not necessary to create models explicitly. Use GetModel() instead, if the model does not exist, it will be created implicitly.")]
         public override IModel CreateModel(Uri uri)
         {
@@ -192,26 +197,44 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// <summary>
         /// This method queries the GraphDB store directly.
         /// </summary>
-        /// <param name="query">The SPARQL query to be executed.</param>
+        /// <param name="queryString">The SPARQL query to be executed.</param>
         /// <returns></returns>
-        public override object ExecuteQuery(string query)
+        public override object ExecuteQuery(string queryString)
         {
-            Log?.Invoke(query);
+            Log?.Invoke(queryString);
             
-            return _connector.Query(query, false, false);
+            return _connector.Query(queryString, false, false);
         }
         
         /// <summary>
         /// This method queries the GraphDB store directly.
         /// </summary>
-        /// <param name="query">The SPARQL query to be executed.</param>
+        /// <param name="queryString">The SPARQL query to be executed.</param>
         /// <param name="inferenceEnabled">Indicate if the query should be executed with reasoning.</param>
         /// <returns></returns>
-        public object ExecuteQuery(string query, bool inferenceEnabled)
+        public object ExecuteQuery(string queryString, bool inferenceEnabled)
         {
-            Log?.Invoke(query);
+            Log?.Invoke(queryString);
+
+            if (!inferenceEnabled)
+            {
+                return _connector.Query(queryString, false, false);
+            }
             
-            return _connector.Query(query, false, inferenceEnabled);
+            // To enable inference in GraphDB we need to add a FROM <http://www.ontotext.com/implicit> clause.
+            var query = new SparqlQuery(queryString);
+
+            var group = CreateModelGroup();
+            group.Add(_inplicitModel);
+
+            foreach (var model in query.GetDefaultModels())
+            {
+                group.Add(new Model(this, new UriRef(model)));
+            }
+
+            query.Model = group;
+            
+            return _connector.Query(query.ToString(), false, true);
         }
 
         /// <summary>
@@ -371,7 +394,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
                         var store = new TripleStore();
                         store.LoadFromFile(path, new TriGParser());
 
-                        foreach (Graph g in store.Graphs)
+                        foreach (var g in store.Graphs)
                         {
                             if (!update && exists)
                             {

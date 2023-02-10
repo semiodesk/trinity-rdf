@@ -58,8 +58,6 @@ namespace Semiodesk.Trinity.Test.GraphDB
         public override void SetUp()
         {
             base.SetUp();
-            
-            Store.InitializeFromConfiguration();
 
             _r1 = BaseUri.GetUriRef("r1");
             _r2 = BaseUri.GetUriRef("r2");
@@ -69,7 +67,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
             _p2 = new Property(BaseUri.GetUriRef("p2"));
         }
 
-        protected void InitializeModels()
+        private void InitializeModels()
         {
             var m1_r1 = Model1.CreateResource(_r1);
             m1_r1.AddProperty(_p1, "in the jungle");
@@ -490,9 +488,9 @@ namespace Semiodesk.Trinity.Test.GraphDB
         [Test]
         public void GetTypedResourcesWithInferencingTest()
         {
-            var r3 = Model1.CreateResource<PersonContact>(_r3);
-            r3.Fullname = "Peter";
-            r3.Commit();
+            var r1 = Model1.CreateResource<PersonContact>(_r1);
+            r1.Fullname = "Peter";
+            r1.Commit();
 
             var results = Model1.GetResources<Contact>().ToList();
             

@@ -36,7 +36,8 @@ namespace Semiodesk.Trinity.Test.GraphDB
         [Test]
         public void GraphDBConfigurationStringTest()
         {
-            var connectionString = "provider=graphdb;host=http://localhost:7200;repository=trinity-test";
+            const string connectionString = "provider=graphdb;host=http://localhost:7200;repository=trinity-test";
+            
             var store = StoreFactory.CreateStore(connectionString);
             
             Assert.IsNotNull(store);

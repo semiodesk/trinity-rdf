@@ -12,6 +12,8 @@ namespace Semiodesk.Trinity.Test
 
         public const string PersonContact = "http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact";
 
+        public const string OrganizationContact = "http://www.semanticdesktop.org/ontologies/2007/03/22/nco#OrganizationContact";
+
         public const string PostalAddress = "http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PostalAddress";
 
         public const string EmailAddress = "http://www.semanticdesktop.org/ontologies/2007/03/22/nco#EmailAddress";

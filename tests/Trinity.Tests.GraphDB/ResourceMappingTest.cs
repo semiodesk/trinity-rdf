@@ -58,8 +58,6 @@ namespace Semiodesk.Trinity.Test.GraphDB
         public override void SetUp()
         {
             base.SetUp();
-            
-            Store.InitializeFromConfiguration();
 
             _r1 = BaseUri.GetUriRef("r1");
             _r2 = BaseUri.GetUriRef("r2");
@@ -979,9 +977,9 @@ namespace Semiodesk.Trinity.Test.GraphDB
             t2.NameFamily = "Doe";
             t2.Commit();
 
-            var properties = Model1.GetResources<Contact>(true).ToList() ;
+            var contacts = Model1.GetResources<Contact>(true).ToList() ;
             
-            Assert.AreEqual(1, properties);
+            Assert.AreEqual(1, contacts.Count);
         }
 
         [Test]

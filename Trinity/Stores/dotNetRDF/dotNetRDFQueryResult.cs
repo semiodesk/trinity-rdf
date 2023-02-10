@@ -154,7 +154,7 @@ namespace Semiodesk.Trinity.Store
         {
             if(_query.ProvidesStatements())
             {
-                return GenerateResources(typeof(T)).Where(x => typeof(T).IsAssignableFrom(x.GetType())).Select(x => x as T);
+                return GenerateResources(typeof(T)).OfType<T>();
             }
             else
             {
