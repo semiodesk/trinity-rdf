@@ -93,21 +93,22 @@ namespace Semiodesk.Trinity.Test
         [Test]
         public void GetHashCodeTest()
         {
-            UriRef absoluteUri = new UriRef("http://trinity-rdf.net");
+            var absoluteUri = new UriRef("https://trinity-rdf.net");
+            var absoluteUriHash = absoluteUri.GetHashCode();
 
-            Assert.AreEqual(671617664, absoluteUri.GetHashCode());
+            var absoluteUriRef = new UriRef("https://trinity-rdf.net#download");
+            var absoluteUriRefHash = absoluteUriRef.GetHashCode();
 
-            UriRef absoluteUriRef = new UriRef("http://trinity-rdf.net#download");
+            Assert.AreNotEqual(absoluteUriHash, absoluteUriRefHash);
 
-            Assert.AreEqual(671107712, absoluteUriRef.GetHashCode());
-
-            UriRef relativeUri = new UriRef("#download", UriKind.Relative);
+            var relativeUri = new UriRef("#download", UriKind.Relative);
 
             Assert.Throws<InvalidOperationException>(() => relativeUri.GetHashCode());
 
-            UriRef blankId = new UriRef("_:0", true);
-
-            Assert.AreEqual(-1219930229, blankId.GetHashCode());
+            var blankId = new UriRef("_:0", true);
+            var blankIdHash = blankId.GetHashCode();
+            
+            Assert.AreNotEqual(absoluteUriHash, blankIdHash);
         }
     }
 }

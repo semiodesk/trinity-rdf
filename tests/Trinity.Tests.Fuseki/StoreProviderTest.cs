@@ -6,16 +6,16 @@ namespace Semiodesk.Trinity.Test.Fuseki
     [TestFixture]
     public class StoreProviderTest : SetupClass
     {
-
         [Test]
         public void FusekiConfigurationStringTest()
         {
-
-            string connectionString = string.Format("provider=fuseki;host=http://localhost:3000;dataset=ds");
-            IStore anObject = StoreFactory.CreateStore(connectionString);
-            Assert.IsNotNull(anObject);
-            Assert.IsInstanceOf<FusekiStore>(anObject);
-            anObject.Dispose();
+            var connectionString = "provider=fuseki;host=http://localhost:3000;dataset=ds";
+            var store = StoreFactory.CreateStore(connectionString);
+            
+            Assert.IsNotNull(store);
+            Assert.IsInstanceOf<FusekiStore>(store);
+            
+            store.Dispose();
         }
     }
 }
