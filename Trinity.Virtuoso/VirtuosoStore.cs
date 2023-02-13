@@ -164,10 +164,13 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             {
                 try
                 {
-                    SparqlUpdate clear = new SparqlUpdate(string.Format("CLEAR GRAPH <{0}>", uri.AbsoluteUri));
+                    var delete = new SparqlUpdate("DELETE FROM @graph WHERE { ?s ?p ?o . }").Bind("@graph", uri);
+                    ExecuteNonQuery(delete, transaction);
+                    
+                    var clear = new SparqlUpdate("CLEAR GRAPH @graph").Bind("@graph", uri);
                     ExecuteNonQuery(clear, transaction);
 
-                    SparqlUpdate drop = new SparqlUpdate(string.Format("DROP GRAPH <{0}>", uri.AbsoluteUri));
+                    var drop = new SparqlUpdate("DROP GRAPH @graph").Bind("@graph", uri);
                     ExecuteNonQuery(drop, transaction);
 
                     transaction.Commit();

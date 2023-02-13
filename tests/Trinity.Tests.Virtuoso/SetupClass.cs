@@ -5,7 +5,6 @@ using NUnit.Framework;
 
 namespace Semiodesk.Trinity.Test.Virtuoso
 {
-
     public class SetupClass
     {
         #region Members
@@ -21,6 +20,8 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         [OneTimeSetUp]
         public void Setup()
         {
+            // To run these tests create a Docker container of 'openlink/virtuoso-opensource' exposing port 1111.
+            // Set the environment variable DBA_PASSWORD to 'dba'.
             Directory.SetCurrentDirectory(TestContext.CurrentContext.TestDirectory);
 
             StoreFactory.LoadProvider<VirtuosoStoreProvider>();

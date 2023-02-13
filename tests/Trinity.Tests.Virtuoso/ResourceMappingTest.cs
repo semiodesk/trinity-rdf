@@ -1122,7 +1122,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             t2.Commit();
 
             var list = m.GetResources<Contact>(true).ToList() ;
-            Assert.AreEqual(1, list);
+            Assert.AreEqual(1, list.Count);
         }
 
         [Test]

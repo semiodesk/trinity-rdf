@@ -137,30 +137,31 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         [Test]
         public void ModelNameTest()
         {
-            Uri modelUri = new Uri("http://www.example.com");
-            Uri modelUri2 = new Uri("http://www.example.com/");
+            // Virtuoso does not normalize Graph URIs. So these two are different graphs:
+            var modelUri = new Uri("http://www.example.com");
+            var modelUri2 = new Uri("http://www.example.com/");
 
-            IModel m1 = Store.GetModel(modelUri);
+            var m1 = Store.GetModel(modelUri);
             m1.Clear();
 
             Assert.IsTrue(m1.IsEmpty);
 
-            IModel m2 = Store.GetModel(modelUri2);
-
+            var m2 = Store.GetModel(modelUri2);
+            m2.Clear();
+            
             Assert.IsTrue(m2.IsEmpty);
             
-            PersonContact c = m1.CreateResource<PersonContact>(new Uri("http://www.example.com/testResource"));
+            var c = m1.CreateResource<PersonContact>(new Uri("http://www.example.com/testResource"));
             c.NameFamily = "Doe";
             c.Commit();
 
             Assert.IsFalse(m1.IsEmpty);
-            Assert.IsFalse(m2.IsEmpty);
+            Assert.IsTrue(m2.IsEmpty);
 
             m1.Clear();
 
             Assert.IsTrue(m1.IsEmpty);
             Assert.IsTrue(m2.IsEmpty);
-
         }
 
         [Test]
@@ -421,6 +422,11 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         [Test]
         public void TimeSpanResourceTest()
         {
+            // Virtuoso 7 still has no support xsd:duration 10 years after this was reported as an issue:
+            // https://sourceforge.net/p/virtuoso/mailman/virtuoso-users/thread/CAE94aYXGvk0bZr-sJhOM%2BtDpDaEmpUD-GxhTCrMg9ad0QODdLA%40mail.gmail.com/#msg31757337
+            
+            Assert.Inconclusive("Virtuoso does not support xsd:duration.");
+            
             Uri resUri = new Uri("http://example.org/DateTimeTest");
             IResource res = Model.CreateResource(resUri);
 
@@ -464,15 +470,15 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             Property property = new Property(new Uri("http://example.org/MyProperty"));
 
             IResource model2_resource2 = Model.CreateResource(new Uri("ex:Resource"));
-            model2_resource2.AddProperty(property, "in the jungle", "EN");
+            model2_resource2.AddProperty(property, "in the jungle", "en");
             model2_resource2.Commit();
 
             IResource r = Model.GetResource(new Uri("ex:Resource"));
             object o = r.GetValue(property);
 
-            Assert.AreEqual(typeof(Tuple<string, CultureInfo>), o.GetType());
+            Assert.AreEqual(typeof(Tuple<string, string>), o.GetType());
 
-            var val = o as Tuple<string, CultureInfo>;
+            var val = o as Tuple<string, string>;
 
             Assert.AreEqual("in the jungle", val.Item1);
         }
@@ -719,28 +725,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             Assert.IsFalse(string.IsNullOrEmpty(res));
 
         }
-
-
-        [Test]
-        public void TestAddMultipleResources()
-        {
-            Assert.Inconclusive("This test should work, it just takes too long.");
-            Model.Clear();
-            for (int j = 1; j < 7; j++)
-            {
-                for (int i = 1; i < 1000; i++)
-                {
-                    using (PersonContact pers = Model.CreateResource<PersonContact>())
-                    {
-                        pers.Fullname = string.Format("Name {0}", i * j);
-                        pers.Commit();
-                    }
-                }
-                
-
-            }
-        }
-
+        
         public Stream GenerateStreamFromString(string s)
         {
             MemoryStream stream = new MemoryStream();
@@ -750,9 +735,5 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             stream.Position = 0;
             return stream;
         }
-
-
     }
-
-    
 }

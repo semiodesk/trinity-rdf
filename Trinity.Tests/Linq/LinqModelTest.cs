@@ -71,7 +71,7 @@ namespace Semiodesk.Trinity.Test.Linq
             p1.FirstName = "Alice";
             p1.LastName = "Cooper";
             p1.Age = 69;
-            p1.Birthday = new DateTime(1948, 2, 4);
+            p1.Birthday = new DateTime(1948, 2, 4, 0, 0, 0, DateTimeKind.Utc);
             p1.Group = g1;
             p1.Status = true;
             p1.AccountBalance = 100000f;
@@ -81,14 +81,14 @@ namespace Semiodesk.Trinity.Test.Linq
             p2.FirstName = "Bob";
             p2.LastName = "Dylan";
             p2.Age = 76;
-            p2.Birthday = new DateTime(1941, 5, 24);
+            p2.Birthday = new DateTime(1941, 5, 24, 0, 0, 0, DateTimeKind.Utc);
             p2.AccountBalance = 10000.1f;
             p2.Commit();
 
             Person p3 = Model.CreateResource<Person>(ex.Eve);
             p3.FirstName = "Eve";
             p3.LastName = "Jeffers-Cooper";
-            p3.Birthday = new DateTime(1978, 11, 10);
+            p3.Birthday = new DateTime(1978, 11, 10, 0, 0, 0, DateTimeKind.Utc);
             p3.Age = 38;
             p3.Group = g2;
             p3.AccountBalance = 1000000.1f;
