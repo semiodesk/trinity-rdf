@@ -28,7 +28,7 @@
 using NUnit.Framework;
 using System;
 using Semiodesk.Trinity.Ontologies;
-using Semiodesk.Trinity.Test.Linq;
+using Semiodesk.Trinity.Tests.Linq;
 
 namespace Semiodesk.Trinity.Tests.Store
 {
@@ -172,6 +172,27 @@ namespace Semiodesk.Trinity.Tests.Store
             Model1.ExecuteUpdate(update);
             
             // If no exception is thrown then the SPARQL query was valid.
+        }
+        
+        [Test]
+        public void TestLanguageTagsVariableIssue()
+        {
+            const string updateString = @"
+            WITH <ex:test>
+            DELETE { <http://www.w3.org/2006/time> ?p ?o. }
+            WHERE { OPTIONAL { <http://www.w3.org/2006/time> ?p ?o. } }
+            INSERT { 
+                <http://www.w3.org/2006/time> <http://schema.org/name> 'OWL-Time'@en; 
+                <http://www.w3.org/2004/02/skos/core#changeNote> '2017-04-06 - hasTime, hasXSDDuration added; Number removed; all duration elements changed to xsd:decimal'; 
+                <http://www.w3.org/2004/02/skos/core#historyNote> 
+                '''Update of OWL-Time ontology, extended to support general temporal reference systems. 
+                    Ontology engineering by Simon J D Cox'''@en.
+                }
+            ";
+            
+            var update = new SparqlUpdate(updateString);
+            
+            Assert.DoesNotThrow(() => update.ToString());
         }
     }
 }

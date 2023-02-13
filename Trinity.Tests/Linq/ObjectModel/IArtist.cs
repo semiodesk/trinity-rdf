@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Semiodesk.Trinity.Test.Linq
+namespace Semiodesk.Trinity.Tests.Linq
 {
     public interface IArtist
     {

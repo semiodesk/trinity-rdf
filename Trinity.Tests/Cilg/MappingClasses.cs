@@ -1,11 +1,8 @@
-﻿using Semiodesk.Trinity.Test;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
 
-namespace Semiodesk.Trinity.Test.Cilg
+namespace Semiodesk.Trinity.Tests.Cilg
 {
     [RdfClass(TestOntology.SingleMappingTestClassString)]
     public class SingleMappingTestClass : Resource

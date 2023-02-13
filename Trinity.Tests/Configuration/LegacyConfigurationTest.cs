@@ -29,7 +29,7 @@ using System.Linq;
 using NUnit.Framework;
 using Semiodesk.Trinity.Configuration;
 
-namespace Semiodesk.Trinity.Test
+namespace Semiodesk.Trinity.Tests
 {
     [TestFixture]
     class LegacyConfigurationTest : SetupClass

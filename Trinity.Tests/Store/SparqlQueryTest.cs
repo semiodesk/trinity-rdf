@@ -27,12 +27,11 @@
 
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
-using Semiodesk.Trinity.Test.Linq;
+using Semiodesk.Trinity.Tests.Linq;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System;
-using Semiodesk.Trinity.Test;
 
 namespace Semiodesk.Trinity.Tests.Store
 {
@@ -117,7 +116,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestAsk()
+        public virtual void TestAsk()
         {
             InitializeModels();
             
@@ -134,7 +133,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestSelect()
+        public virtual void TestSelect()
         {
             InitializeModels();
             
@@ -178,7 +177,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestSelectProvidesStatements()
+        public virtual void TestSelectProvidesStatements()
         {
             var query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o . }");
             var vars = query.GetGlobalScopeVariableNames();
@@ -233,7 +232,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestDescribe()
+        public virtual void TestDescribe()
         {
             InitializeModels();
             
@@ -259,7 +258,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestConstruct()
+        public virtual void TestConstruct()
         {
             InitializeModels();
             
@@ -285,7 +284,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestInferencing()
+        public virtual void TestInferencing()
         {
             InitializeModels();
             
@@ -359,7 +358,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestModelApi()
+        public virtual void TestModelApi()
         {
             InitializeModels();
 
@@ -379,7 +378,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestEscaping()
+        public virtual void TestEscaping()
         {
             var query = new SparqlQuery(@"
                 SELECT ?s ?p ?o WHERE
@@ -399,7 +398,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestUriEscaping()
+        public virtual void TestUriEscaping()
         {
             var fileUri = new Uri("file:///F:/test/02%20-%20Take%20Me%20Somewhere%20Nice.mp3");
             
@@ -414,7 +413,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestQueryParameters()
+        public virtual void TestQueryParameters()
         {
             var query = new SparqlQuery(@"SELECT ?s WHERE { ?s ?p ?o . ?s ?p @someValue . }")
                 .Bind("@someValue", "Value");
@@ -435,7 +434,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestSelectCount()
+        public virtual void TestSelectCount()
         {
             InitializeModels();
             
@@ -448,7 +447,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestCount()
+        public virtual void TestCount()
         {
             InitializeModels();
             
@@ -464,7 +463,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestSetModel()
+        public virtual void TestSetModel()
         {
             var fromClause = new Regex(Regex.Escape("FROM"));
 
@@ -506,7 +505,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestSetLimit()
+        public virtual void TestSetLimit()
         {
             InitializeModels();
             
@@ -522,7 +521,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestModelGroup()
+        public virtual void TestModelGroup()
         {
             InitializeModels();
             

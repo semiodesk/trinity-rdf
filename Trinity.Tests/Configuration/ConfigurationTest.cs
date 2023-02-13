@@ -30,7 +30,7 @@ using Semiodesk.Trinity.Configuration;
 using System.IO;
 using System.Linq;
 
-namespace Semiodesk.Trinity.Test
+namespace Semiodesk.Trinity.Tests
 {
     [TestFixture]
     class ConfigurationTest : SetupClass

@@ -27,12 +27,11 @@
 
 using NUnit.Framework;
 using System;
-using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Semiodesk.Trinity.Test.Linq
+namespace Semiodesk.Trinity.Tests.Linq
 {
     [TestFixture]
     public abstract class LinqTestBase : SetupClass

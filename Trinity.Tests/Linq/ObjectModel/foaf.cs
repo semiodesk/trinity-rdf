@@ -27,7 +27,7 @@
 
 using System;
 
-namespace Semiodesk.Trinity.Test.Linq
+namespace Semiodesk.Trinity.Tests.Linq
 {
     ///<summary>
     ///Friend of a Friend (FOAF) vocabulary

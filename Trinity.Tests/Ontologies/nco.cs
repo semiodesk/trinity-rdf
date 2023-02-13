@@ -1,4 +1,4 @@
-namespace Semiodesk.Trinity.Test
+namespace Semiodesk.Trinity.Tests
 {
     public static class NCO
     {

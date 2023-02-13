@@ -27,8 +27,7 @@
 
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
-using Semiodesk.Trinity.Test.Linq;
-using Semiodesk.Trinity.Test;
+using Semiodesk.Trinity.Tests.Linq;
 using System.IO;
 using System.Linq;
 using System.Text;

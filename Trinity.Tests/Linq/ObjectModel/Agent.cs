@@ -28,7 +28,7 @@
 using System;
 using System.Linq;
 
-namespace Semiodesk.Trinity.Test.Linq
+namespace Semiodesk.Trinity.Tests.Linq
 {
     [RdfClass(FOAF.Agent)]
     public class Agent : Resource

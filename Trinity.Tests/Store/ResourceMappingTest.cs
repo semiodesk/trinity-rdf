@@ -29,7 +29,6 @@ using NUnit.Framework;
 using Newtonsoft.Json;
 using Semiodesk.Trinity.Ontologies;
 using Semiodesk.Trinity.Serialization;
-using Semiodesk.Trinity.Test;
 using System.Collections.Generic;
 using System.Linq;
 using System;
@@ -70,7 +69,7 @@ namespace Semiodesk.Trinity.Tests.Store
 
         //[Test]
         // This test does not run, but it needs to.
-        public void AddUnmappedType()
+        public virtual void AddUnmappedType()
         {
             var r2 = Model1.CreateResource(_r2);
             r2.AddProperty(rdf.type, to.TestClass2);
@@ -84,7 +83,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void GetTypesTest()
+        public virtual void GetTypesTest()
         {
             var r1 = new MappingTestClass2(_r1);
             var types1 = r1.GetTypes().ToList();
@@ -100,7 +99,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void AddRemoveIntegerTest()
+        public virtual void AddRemoveIntegerTest()
         {
             // Add value using the mapping interface
             int value = 1;
@@ -138,7 +137,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void AddRemoveIntegerListTest()
+        public virtual void AddRemoveIntegerListTest()
         {
             var value1 = 2;
             var value2 = -18583;
@@ -218,7 +217,7 @@ namespace Semiodesk.Trinity.Tests.Store
         /// To be more specific the xsd type is missing although it is given at the insert.
         /// </summary>
         //[Test]
-        public void AddRemoveUnsignedIntegerTest()
+        public virtual void AddRemoveUnsignedIntegerTest()
         {
             uint value = 1;
             
@@ -256,7 +255,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         //[Test]
-        public void AddRemoveUnsignedIntegerListTest()
+        public virtual void AddRemoveUnsignedIntegerListTest()
         {
             uint value = 2;
             
@@ -298,7 +297,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void AddRemoveStringTest()
+        public virtual void AddRemoveStringTest()
         {
             var value = "Hallo Welt!";
             
@@ -348,7 +347,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void AddRemoveStringListTest()
+        public virtual void AddRemoveStringListTest()
         {
             var value = "（╯°□°）╯︵ ┻━┻";
             
@@ -394,7 +393,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void AddRemoveBoolTest()
+        public virtual void AddRemoveBoolTest()
         {
             var value = true;
             
@@ -432,7 +431,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void AddRemoveBoolListTest()
+        public virtual void AddRemoveBoolListTest()
         {
             var value = true;
             
@@ -474,7 +473,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void AddRemoveFloatTest()
+        public virtual void AddRemoveFloatTest()
         {
             var value = 1.0f;
             
@@ -512,7 +511,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void AddRemoveDoubleTest()
+        public virtual void AddRemoveDoubleTest()
         {
             var value = 1.0;
             
@@ -561,7 +560,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void AddRemoveDecimalTest()
+        public virtual void AddRemoveDecimalTest()
         {
             var value = 1.0m;
             
@@ -603,7 +602,7 @@ namespace Semiodesk.Trinity.Tests.Store
         /// Datetime precision in Virtuoso is not as high as native .net datetime precision.
         /// </summary>
         [Test]
-        public void AddRemoveDateTimeTest()
+        public virtual void AddRemoveDateTimeTest()
         {
             var value = new DateTime(2012, 8, 15, 12, 3, 55, DateTimeKind.Local);
             
@@ -650,7 +649,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void AddRemoveUriTest()
+        public virtual void AddRemoveUriTest()
         {
             // 1. Create a new instance of the test class and commit it to the model.
             var test1 = Model1.CreateResource<MappingTestClass>(_r1);
@@ -675,7 +674,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void AddRemoveUriPropTest()
+        public virtual void AddRemoveUriPropTest()
         {
             var value = _r2;
             
@@ -726,7 +725,7 @@ namespace Semiodesk.Trinity.Tests.Store
             Assert.AreEqual(r1.uriTest.Count, actual.uriTest.Count);
         }
         [Test]
-        public void TimeZoneTest()
+        public virtual void TimeZoneTest()
         {
             Assert.IsTrue(DateTime.TryParse("2013-01-21T16:27:23.000Z", out var value));
 
@@ -743,7 +742,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void AddRemoveDateTimeListTest()
+        public virtual void AddRemoveDateTimeListTest()
         {
             var value = new DateTime(2012, 8, 15, 12, 3, 55, DateTimeKind.Local);
 
@@ -787,7 +786,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void AddRemoveResourceTest()
+        public virtual void AddRemoveResourceTest()
         {
             var t2 = new MappingTestClass2(_r2);
 
@@ -842,7 +841,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void AddRemoveResourceListTest()
+        public virtual void AddRemoveResourceListTest()
         {
             var t2 = new MappingTestClass2(_r2);
             var t3 = new MappingTestClass3(_r3);
@@ -886,7 +885,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void LazyLoadResourceTest()
+        public virtual void LazyLoadResourceTest()
         {
             var r2 = Model1.CreateResource<MappingTestClass2>(_r2);
 
@@ -918,7 +917,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void MappingTypeTest()
+        public virtual void MappingTypeTest()
         {
             var r1 = Model1.CreateResource<MappingTestClass2>(_r1);
             r1.uniqueStringTest = "testing 1";
@@ -948,7 +947,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void MappingTypeCollectionWithInferencingTest()
+        public virtual void MappingTypeCollectionWithInferencingTest()
         {
             var t2 = Model1.CreateResource<PersonContact>(_r1);
             t2.NameFamily = "Doe";
@@ -960,7 +959,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void MultipeTypesMappingTest()
+        public virtual void MultipeTypesMappingTest()
         {
             var r1 = Model1.CreateResource<MappingTestClass5>(_r1);
             r1.uniqueStringTest = "testing 3";
@@ -988,7 +987,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void MappingTypeWithInferencingTest()
+        public virtual void MappingTypeWithInferencingTest()
         {
             var r1 = Model1.CreateResource<PersonContact>(_r1);
             r1.NameGiven = "Hans";
@@ -1001,7 +1000,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void RollbackTest()
+        public virtual void RollbackTest()
         {
             var value = "Hallo Welt!";
             
@@ -1042,7 +1041,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void RollbackMappedResourcesTest()
+        public virtual void RollbackMappedResourcesTest()
         {
             var r1 = Model1.CreateResource<SingleResourceMappingTestClass>(_r1);
             r1.Commit();
@@ -1062,7 +1061,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void ListValuesTest()
+        public virtual void ListValuesTest()
         {
             var value = "Hallo Welt!";
             
@@ -1087,7 +1086,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void KeepListsAfterRollbackTest()
+        public virtual void KeepListsAfterRollbackTest()
         {
             var r1 = Model1.CreateResource<SingleMappingTestClass>(_r1);
             r1.AddProperty(to.uniqueStringTest, "Hello");
@@ -1113,7 +1112,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestEquality()
+        public virtual void TestEquality()
         {
             var r1 = new Resource(ncal.cancelledEventStatus);
             var r2 = new Resource(ncal.cancelledEventStatus);
@@ -1123,7 +1122,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestStringPropertyMapping()
+        public virtual void TestStringPropertyMapping()
         {
             var r1 = new StringMappingTestClass(_r1);
             r1.uniqueStringTest = "Test string";
@@ -1140,7 +1139,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestLocalizedStringPropertyMapping()
+        public virtual void TestLocalizedStringPropertyMapping()
         {
             var germanValue = "Hallo Welt";
             var englishValue = "Hello World";
@@ -1165,7 +1164,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestLocalizedStringInvariancy()
+        public virtual void TestLocalizedStringInvariancy()
         {
             var contact = Model1.CreateResource<PersonContact>(_r1);
             contact.NameGiven = "Peter";
@@ -1175,7 +1174,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
         
         [Test]
-        public void TestLocalizedStringListPropertyMapping()
+        public virtual void TestLocalizedStringListPropertyMapping()
         {
             var germanValue = "Hallo Welt";
             var englishValue = "Hello World";
@@ -1226,7 +1225,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestLocalizedStringListPropertyMapping2()
+        public virtual void TestLocalizedStringListPropertyMapping2()
         {
             var germanValue = "Hallo Welt";
             var englishValue = "Hello World";
@@ -1259,7 +1258,7 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         [Test]
-        public void TestJsonSerialization()
+        public virtual void TestJsonSerialization()
         {
             var expected = Model1.CreateResource<JsonMappingTestClass>();
             expected.stringTest.Add("Hello World!");

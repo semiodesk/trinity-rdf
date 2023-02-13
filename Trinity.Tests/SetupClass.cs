@@ -2,7 +2,7 @@
 using System.IO;
 using NUnit.Framework;
 
-namespace Semiodesk.Trinity.Test
+namespace Semiodesk.Trinity.Tests
 {
     [SetUpFixture]
     public class SetupClass

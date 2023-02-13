@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Semiodesk.Trinity.Test
+namespace Semiodesk.Trinity.Tests
 {
     [RdfClass(NCO.ContactList)]
     public class ContactList : Resource

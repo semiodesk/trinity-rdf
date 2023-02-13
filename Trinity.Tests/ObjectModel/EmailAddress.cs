@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Semiodesk.Trinity.Test
+namespace Semiodesk.Trinity.Tests
 {
     [RdfClass(NCO.EmailAddress)]
     public class EmailAddress : Resource

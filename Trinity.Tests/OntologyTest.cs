@@ -28,7 +28,7 @@
 using NUnit.Framework;
 using System.Reflection;
 
-namespace Semiodesk.Trinity.Test
+namespace Semiodesk.Trinity.Tests
 {
     /// <summary>
     /// This test needs A LOT work!

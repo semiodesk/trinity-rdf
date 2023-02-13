@@ -28,7 +28,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Semiodesk.Trinity.Test.Linq
+namespace Semiodesk.Trinity.Tests.Linq
 {
     [RdfClass(FOAF.Person)]
     internal class Person : Agent

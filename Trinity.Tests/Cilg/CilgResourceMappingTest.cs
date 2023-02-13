@@ -30,12 +30,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Semiodesk.Trinity.Ontologies;
-using Semiodesk.Trinity.Test.Cilg;
+using Semiodesk.Trinity.Tests.Cilg;
 #if NET35
 using Semiodesk.Trinity.Utility;
 #endif
 
-namespace Semiodesk.Trinity.Test
+namespace Semiodesk.Trinity.Tests
 {
     [TestFixture]
     public class CilgResourceMappingTest : SetupClass

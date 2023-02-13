@@ -29,7 +29,7 @@ using NUnit.Framework;
 using System;
 using System.Diagnostics;
 
-namespace Semiodesk.Trinity.Test.Linq
+namespace Semiodesk.Trinity.Tests.Linq
 {
     [TestFixture]
     public class LinqModelTest : LinqTestBase
