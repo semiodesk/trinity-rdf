@@ -34,7 +34,7 @@ using Semiodesk.Trinity.Ontologies;
 using System.IO;
 using System.Globalization;
 
-namespace Semiodesk.Trinity.Test.Fuseki
+namespace Semiodesk.Trinity.Tests.Fuseki
 {
     [TestFixture]
     public class ModelTest : SetupClass

@@ -34,7 +34,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
-namespace Semiodesk.Trinity.Test.Fuseki
+namespace Semiodesk.Trinity.Tests.Fuseki
 {
     [TestFixture]
     public class SparqlQueryTest : SetupClass

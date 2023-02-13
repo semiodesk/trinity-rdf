@@ -2,8 +2,9 @@
 using System.IO;
 using NUnit.Framework;
 using Semiodesk.Trinity.Store.Fuseki;
+using Semiodesk.Trinity.Tests;
 
-namespace Semiodesk.Trinity.Test.Fuseki
+namespace Semiodesk.Trinity.Tests.Fuseki
 {
 
     public class SetupClass

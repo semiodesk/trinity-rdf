@@ -1,7 +1,7 @@
 ﻿using NUnit.Framework;
 using Semiodesk.Trinity.Store.Fuseki;
 
-namespace Semiodesk.Trinity.Test.Fuseki
+namespace Semiodesk.Trinity.Tests.Fuseki
 {
     [TestFixture]
     public class StoreProviderTest : SetupClass
