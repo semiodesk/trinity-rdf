@@ -29,14 +29,15 @@ using NUnit.Framework;
 using Newtonsoft.Json;
 using Semiodesk.Trinity.Ontologies;
 using Semiodesk.Trinity.Serialization;
+using Semiodesk.Trinity.Test;
 using System.Collections.Generic;
 using System.Linq;
 using System;
 
-namespace Semiodesk.Trinity.Test.GraphDB
+namespace Semiodesk.Trinity.Tests.Store
 {
     [TestFixture]
-    public class ResourceMappingTest : TestBase
+    public abstract class ResourceMappingTest<T> : StoreTest<T> where T : IStoreTestSetup
     {
         #region Members
         
@@ -66,44 +67,17 @@ namespace Semiodesk.Trinity.Test.GraphDB
             _p1 = new Property(BaseUri.GetUriRef("p1"));
             _p2 = new Property(BaseUri.GetUriRef("p2"));
         }
-        
-        protected void InitializeModels()
-        {
-            var m1_r1 = Model1.CreateResource(_r1);
-            m1_r1.AddProperty(_p1, "in the jungle");
-            m1_r1.AddProperty(_p1, 123);
-            m1_r1.AddProperty(_p1, DateTime.Now);
-            m1_r1.Commit();
 
-            var m1_r2 = Model1.CreateResource(_r2);
-            m1_r2.AddProperty(_p1, "in the jungle");
-            m1_r2.AddProperty(_p1, 123);
-            m1_r2.AddProperty(_p1, DateTime.Now);
-            m1_r2.Commit();
-            
-            var m2_r1 = Model2.CreateResource(_r1);
-            m2_r1.AddProperty(_p1, "in the jungle");
-            m2_r1.AddProperty(_p1, 123);
-            m2_r1.AddProperty(_p1, DateTime.Now);
-            m2_r1.Commit();
-
-            var m2_r2 = Model2.CreateResource(_r2);
-            m2_r2.AddProperty(_p1, "in the jungle");
-            m2_r2.AddProperty(_p1, 123);
-            m2_r2.AddProperty(_p1, DateTime.Now);
-            m2_r2.Commit();
-        }
-        
         //[Test]
         // This test does not run, but it needs to.
         public void AddUnmappedType()
         {
             var r2 = Model1.CreateResource(_r2);
-            r2.AddProperty(rdf.type, TestOntology.TestClass2);
+            r2.AddProperty(rdf.type, to.TestClass2);
             
             var r1 = Model1.CreateResource<MappingTestClass>(_r1);
-            r1.AddProperty(TestOntology.uniqueResourceTest, r2);
-            r1.AddProperty(TestOntology.resourceTest, r2);
+            r1.AddProperty(to.uniqueResourceTest, r2);
+            r1.AddProperty(to.resourceTest, r2);
 
             Assert.IsNull(r1.uniqueResourceTest);
             Assert.AreEqual(0, r1.resourceTest.Count);
@@ -116,13 +90,13 @@ namespace Semiodesk.Trinity.Test.GraphDB
             var types1 = r1.GetTypes().ToList();
             
             Assert.AreEqual(1, types1.Count);
-            Assert.Contains(TestOntology.TestClass2, types1);
+            Assert.Contains(to.TestClass2, types1);
 
             var r2 = new MappingTestClass3(_r2);
             var types2 = r2.GetTypes().ToList();
             
             Assert.AreEqual(1, types2.Count);
-            Assert.Contains(TestOntology.TestClass3, types2);
+            Assert.Contains(to.TestClass3, types2);
         }
 
         [Test]
@@ -143,15 +117,15 @@ namespace Semiodesk.Trinity.Test.GraphDB
             // Test if property is present
             var properties = actual.ListProperties();
             
-            Assert.True(properties.Contains(TestOntology.uniqueIntTest));
+            Assert.True(properties.Contains(to.uniqueIntTest));
             Assert.AreEqual(2, properties.Count()); // rdf:type, to:uniqueIntTest
 
             // Test if ListValues works
-            Assert.AreEqual(typeof(int), actual.ListValues(TestOntology.uniqueIntTest).First().GetType());
-            Assert.AreEqual(value, actual.ListValues(TestOntology.uniqueIntTest).First());
+            Assert.AreEqual(typeof(int), actual.ListValues(to.uniqueIntTest).First().GetType());
+            Assert.AreEqual(value, actual.ListValues(to.uniqueIntTest).First());
 
             // Remove with RemoveProperty
-            r1.RemoveProperty(TestOntology.uniqueIntTest, value);
+            r1.RemoveProperty(to.uniqueIntTest, value);
             r1.Commit();
 
             actual = Model1.GetResource<MappingTestClass>(r1);
@@ -159,8 +133,8 @@ namespace Semiodesk.Trinity.Test.GraphDB
             // Test if ListProperties works
             properties = actual.ListProperties();
             
-            Assert.False(properties.Contains(TestOntology.uniqueIntTest));
-            Assert.AreEqual(0, actual.ListValues(TestOntology.uniqueIntTest).Count());
+            Assert.False(properties.Contains(to.uniqueIntTest));
+            Assert.AreEqual(0, actual.ListValues(to.uniqueIntTest).Count());
         }
 
         [Test]
@@ -182,12 +156,12 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(value1, actual.intTest.First());
 
             // Test if property is present
-            Assert.True(properties.Contains(TestOntology.intTest));
+            Assert.True(properties.Contains(to.intTest));
             Assert.AreEqual(2, properties.Count()); // rdf:type, to:intTest
 
             // Test if ListValues works
-            Assert.AreEqual(typeof(int), actual.ListValues(TestOntology.intTest).First().GetType());
-            Assert.AreEqual(value1, actual.ListValues(TestOntology.intTest).First());
+            Assert.AreEqual(typeof(int), actual.ListValues(to.intTest).First().GetType());
+            Assert.AreEqual(value1, actual.ListValues(to.intTest).First());
 
             // Add another value
             r1.intTest.Add(value2);
@@ -202,11 +176,11 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.IsTrue(actual.intTest.Contains(value2));
 
             // Test if property is present
-            Assert.True(properties.Contains(TestOntology.intTest));
+            Assert.True(properties.Contains(to.intTest));
             Assert.AreEqual(2, properties.Count());
 
             // Test if ListValues works
-            var values = actual.ListValues(TestOntology.intTest).ToList();
+            var values = actual.ListValues(to.intTest).ToList();
             
             Assert.AreEqual(typeof(int), values[0].GetType());
             Assert.AreEqual(typeof(int), values[1].GetType());
@@ -222,11 +196,11 @@ namespace Semiodesk.Trinity.Test.GraphDB
 
             // Test if removed
             Assert.AreEqual(1, actual.intTest.Count());
-            Assert.True(properties.Contains(TestOntology.intTest));
+            Assert.True(properties.Contains(to.intTest));
 
             // Test if first added property is still present
-            Assert.AreEqual(typeof(int), actual.ListValues(TestOntology.intTest).First().GetType());
-            Assert.AreEqual(value1, actual.ListValues(TestOntology.intTest).First());
+            Assert.AreEqual(typeof(int), actual.ListValues(to.intTest).First().GetType());
+            Assert.AreEqual(value1, actual.ListValues(to.intTest).First());
 
             r1.intTest.Remove(value1);
             r1.Commit();
@@ -235,8 +209,8 @@ namespace Semiodesk.Trinity.Test.GraphDB
             properties = actual.ListProperties();
             
             // Test if ListValues works
-            Assert.False(properties.Contains(TestOntology.intTest));
-            Assert.AreEqual(0, actual.ListValues(TestOntology.intTest).Count());
+            Assert.False(properties.Contains(to.intTest));
+            Assert.AreEqual(0, actual.ListValues(to.intTest).Count());
         }
 
         /// <summary>
@@ -260,25 +234,25 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(value, actual.uniqueUintTest);
 
             // Test if property is present
-            Assert.True(properties.Contains(TestOntology.uniqueUintTest));
+            Assert.True(properties.Contains(to.uniqueUintTest));
             Assert.AreEqual(2, properties.Count());
 
             // Test if ListValues works
-            Assert.AreEqual(typeof(uint), actual.ListValues(TestOntology.uniqueUintTest).First().GetType());
-            Assert.AreEqual(value, actual.ListValues(TestOntology.uniqueUintTest).First());
+            Assert.AreEqual(typeof(uint), actual.ListValues(to.uniqueUintTest).First().GetType());
+            Assert.AreEqual(value, actual.ListValues(to.uniqueUintTest).First());
 
             // Remove with RemoveProperty
-            r1.RemoveProperty(TestOntology.uniqueUintTest, value);
+            r1.RemoveProperty(to.uniqueUintTest, value);
             r1.Commit();
 
             actual = Model1.GetResource<MappingTestClass>(_r1);
             properties = (List<Property>)actual.ListProperties();
 
             // Test if ListProperties works
-            Assert.False(properties.Contains(TestOntology.uniqueUintTest));
+            Assert.False(properties.Contains(to.uniqueUintTest));
 
             // Test if ListValues works
-            Assert.AreEqual(0, actual.ListValues(TestOntology.uniqueUintTest).Count());
+            Assert.AreEqual(0, actual.ListValues(to.uniqueUintTest).Count());
         }
 
         //[Test]
@@ -299,12 +273,12 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(value, actual.uintTest[0]);
 
             // Test if property is present
-            Assert.True(properties.Contains(TestOntology.uintTest));
+            Assert.True(properties.Contains(to.uintTest));
             Assert.AreEqual(2, properties.Count());
 
             // Test if ListValues works
-            Assert.AreEqual(typeof(uint), actual.ListValues(TestOntology.uintTest).First().GetType());
-            Assert.AreEqual(value, actual.ListValues(TestOntology.uintTest).First());
+            Assert.AreEqual(typeof(uint), actual.ListValues(to.uintTest).First().GetType());
+            Assert.AreEqual(value, actual.ListValues(to.uintTest).First());
 
             // Remove value from mapped list
             r1.uintTest.Remove(value);
@@ -317,10 +291,10 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(0, actual.uintTest.Count());
 
             // Test if ListProperties works
-            Assert.False(properties.Contains(TestOntology.uintTest));
+            Assert.False(properties.Contains(to.uintTest));
 
             // Test if ListValues works
-            Assert.AreEqual(0, actual.ListValues(TestOntology.uintTest).Count());
+            Assert.AreEqual(0, actual.ListValues(to.uintTest).Count());
         }
 
         [Test]
@@ -340,29 +314,29 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(value, actual.uniqueStringTest);
             
             // Test if property is present
-            Assert.True(properties.Contains(TestOntology.uniqueStringTest));
+            Assert.True(properties.Contains(to.uniqueStringTest));
             Assert.AreEqual(2, properties.Count());
-            Assert.IsTrue(actual.HasProperty(TestOntology.uniqueStringTest));
-            Assert.IsTrue(actual.HasProperty(TestOntology.uniqueStringTest, value));
+            Assert.IsTrue(actual.HasProperty(to.uniqueStringTest));
+            Assert.IsTrue(actual.HasProperty(to.uniqueStringTest, value));
 
             // Test if ListValues works
-            Assert.AreEqual(typeof(string), actual.ListValues(TestOntology.uniqueStringTest).First().GetType());
-            Assert.AreEqual(value, r1.ListValues(TestOntology.uniqueStringTest).First());
+            Assert.AreEqual(typeof(string), actual.ListValues(to.uniqueStringTest).First().GetType());
+            Assert.AreEqual(value, r1.ListValues(to.uniqueStringTest).First());
 
             // Remove with RemoveProperty
-            r1.RemoveProperty(TestOntology.uniqueStringTest, value);
+            r1.RemoveProperty(to.uniqueStringTest, value);
             r1.Commit();
             
             actual = Model1.GetResource<MappingTestClass>(_r1);
             properties = actual.ListProperties();
 
             // Test if ListProperties works
-            Assert.False(properties.Contains(TestOntology.uniqueStringTest));
-            Assert.IsFalse(actual.HasProperty(TestOntology.uniqueStringTest));
-            Assert.IsFalse(actual.HasProperty(TestOntology.uniqueStringTest, value));
+            Assert.False(properties.Contains(to.uniqueStringTest));
+            Assert.IsFalse(actual.HasProperty(to.uniqueStringTest));
+            Assert.IsFalse(actual.HasProperty(to.uniqueStringTest, value));
 
             // Test if ListValues works
-            Assert.AreEqual(0, actual.ListValues(TestOntology.uniqueStringTest).Count());
+            Assert.AreEqual(0, actual.ListValues(to.uniqueStringTest).Count());
             
             // Test if escaping works
             r1.uniqueStringTest = "ASK { < http://steadymojo.com/sleepState> <http://www.close-game.com/ontologies/2015/ia/hasBoolValue> ?o. Filter( ?o != 'false'^^<http://www.w3.org/2001/XMLSchema#boolean>) }";
@@ -391,14 +365,14 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(value, actual.stringTest[0]);
 
             // Test if property is present
-            Assert.True(properties.Contains(TestOntology.stringTest));
+            Assert.True(properties.Contains(to.stringTest));
             Assert.AreEqual(2, properties.Count());
-            Assert.IsTrue(actual.HasProperty(TestOntology.stringTest));
-            Assert.IsTrue(actual.HasProperty(TestOntology.stringTest, value));
+            Assert.IsTrue(actual.HasProperty(to.stringTest));
+            Assert.IsTrue(actual.HasProperty(to.stringTest, value));
 
             // Test if ListValues works
-            Assert.AreEqual(typeof(string), actual.ListValues(TestOntology.stringTest).First().GetType());
-            Assert.AreEqual(value, actual.ListValues(TestOntology.stringTest).First());
+            Assert.AreEqual(typeof(string), actual.ListValues(to.stringTest).First().GetType());
+            Assert.AreEqual(value, actual.ListValues(to.stringTest).First());
 
             // Remove value from mapped list
             r1.stringTest.Remove(value);
@@ -411,12 +385,12 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(0, actual.boolTest.Count());
 
             // Test if ListProperties works
-            Assert.False(properties.Contains(TestOntology.stringTest));
-            Assert.IsFalse(actual.HasProperty(TestOntology.stringTest));
-            Assert.IsFalse(actual.HasProperty(TestOntology.stringTest, value));
+            Assert.False(properties.Contains(to.stringTest));
+            Assert.IsFalse(actual.HasProperty(to.stringTest));
+            Assert.IsFalse(actual.HasProperty(to.stringTest, value));
 
             // Test if ListValues works
-            Assert.AreEqual(0, actual.ListValues(TestOntology.stringTest).Count());
+            Assert.AreEqual(0, actual.ListValues(to.stringTest).Count());
         }
 
         [Test]
@@ -436,25 +410,25 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(value, actual.uniqueBoolTest);
 
             // Test if property is present
-            Assert.True(properties.Contains(TestOntology.uniqueBoolTest));
+            Assert.True(properties.Contains(to.uniqueBoolTest));
             Assert.AreEqual(2, properties.Count());
 
             // Test if ListValues works
-            Assert.AreEqual(typeof(bool), actual.ListValues(TestOntology.uniqueBoolTest).First().GetType());
-            Assert.AreEqual(value, actual.ListValues(TestOntology.uniqueBoolTest).First());
+            Assert.AreEqual(typeof(bool), actual.ListValues(to.uniqueBoolTest).First().GetType());
+            Assert.AreEqual(value, actual.ListValues(to.uniqueBoolTest).First());
 
             // Remove with RemoveProperty
-            r1.RemoveProperty(TestOntology.uniqueBoolTest, value);
+            r1.RemoveProperty(to.uniqueBoolTest, value);
             r1.Commit();
 
             actual = Model1.GetResource<MappingTestClass>(_r1);
             properties = actual.ListProperties().ToList();
 
             // Test if ListProperties works
-            Assert.False(properties.Contains(TestOntology.uniqueBoolTest));
+            Assert.False(properties.Contains(to.uniqueBoolTest));
 
             // Test if ListValues works
-            Assert.AreEqual(0, actual.ListValues(TestOntology.uniqueBoolTest).Count());
+            Assert.AreEqual(0, actual.ListValues(to.uniqueBoolTest).Count());
         }
 
         [Test]
@@ -475,12 +449,12 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(value, actual.boolTest[0]);
 
             // Test if property is present
-            Assert.True(properties.Contains(TestOntology.boolTest));
+            Assert.True(properties.Contains(to.boolTest));
             Assert.AreEqual(2, properties.Count());
 
             // Test if ListValues works
-            Assert.AreEqual(typeof(bool), actual.ListValues(TestOntology.boolTest).First().GetType());
-            Assert.AreEqual(value, actual.ListValues(TestOntology.boolTest).First());
+            Assert.AreEqual(typeof(bool), actual.ListValues(to.boolTest).First().GetType());
+            Assert.AreEqual(value, actual.ListValues(to.boolTest).First());
 
             // Remove value from mapped list
             r1.boolTest.Remove(value);
@@ -493,10 +467,10 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(0, actual.boolTest.Count());
 
             // Test if ListProperties works
-            Assert.False(properties.Contains(TestOntology.boolTest));
+            Assert.False(properties.Contains(to.boolTest));
 
             // Test if ListValues works
-            Assert.AreEqual(0, actual.ListValues(TestOntology.boolTest).Count());
+            Assert.AreEqual(0, actual.ListValues(to.boolTest).Count());
         }
 
         [Test]
@@ -516,25 +490,25 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(value, actual.uniqueFloatTest);
 
             // Test if property is present
-            Assert.True(properties.Contains(TestOntology.uniqueFloatTest));
+            Assert.True(properties.Contains(to.uniqueFloatTest));
             Assert.AreEqual(2, properties.Count());
 
             // Test if ListValues works
-            Assert.AreEqual(typeof(float), actual.ListValues(TestOntology.uniqueFloatTest).First().GetType());
-            Assert.AreEqual(value, actual.ListValues(TestOntology.uniqueFloatTest).First());
+            Assert.AreEqual(typeof(float), actual.ListValues(to.uniqueFloatTest).First().GetType());
+            Assert.AreEqual(value, actual.ListValues(to.uniqueFloatTest).First());
 
             // Remove with RemoveProperty
-            r1.RemoveProperty(TestOntology.uniqueFloatTest, value);
+            r1.RemoveProperty(to.uniqueFloatTest, value);
             r1.Commit();
 
             actual = Model1.GetResource<MappingTestClass>(_r1);
             properties = actual.ListProperties().ToList();
 
             // Test if ListProperties works
-            Assert.False(properties.Contains(TestOntology.uniqueFloatTest));
+            Assert.False(properties.Contains(to.uniqueFloatTest));
 
             // Test if ListValues works
-            Assert.AreEqual(0, actual.ListValues(TestOntology.uniqueFloatTest).Count());
+            Assert.AreEqual(0, actual.ListValues(to.uniqueFloatTest).Count());
         }
 
         [Test]
@@ -554,25 +528,25 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(value, actual.uniqueDoubleTest);
 
             // Test if property is present
-            Assert.True(properties.Contains(TestOntology.uniqueDoubleTest));
+            Assert.True(properties.Contains(to.uniqueDoubleTest));
             Assert.AreEqual(2, properties.Count());
 
             // Test if ListValues works
-            Assert.AreEqual(typeof(double), actual.ListValues(TestOntology.uniqueDoubleTest).First().GetType());
-            Assert.AreEqual(value, actual.ListValues(TestOntology.uniqueDoubleTest).First());
+            Assert.AreEqual(typeof(double), actual.ListValues(to.uniqueDoubleTest).First().GetType());
+            Assert.AreEqual(value, actual.ListValues(to.uniqueDoubleTest).First());
 
             // Remove with RemoveProperty
-            r1.RemoveProperty(TestOntology.uniqueDoubleTest, value);
+            r1.RemoveProperty(to.uniqueDoubleTest, value);
             r1.Commit();
 
             actual = Model1.GetResource<MappingTestClass>(_r1);
             properties = actual.ListProperties().ToList();
 
             // Test if ListProperties works
-            Assert.False(properties.Contains(TestOntology.uniqueDoubleTest));
+            Assert.False(properties.Contains(to.uniqueDoubleTest));
 
             // Test if ListValues works
-            Assert.AreEqual(0, actual.ListValues(TestOntology.uniqueDoubleTest).Count());
+            Assert.AreEqual(0, actual.ListValues(to.uniqueDoubleTest).Count());
 
             r1.DoubleTest.Add(1);
             r1.DoubleTest.Add(3);
@@ -603,25 +577,25 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(value, actual.uniqueDecimalTest);
 
             // Test if property is present
-            Assert.True(properties.Contains(TestOntology.uniqueDecimalTest));
+            Assert.True(properties.Contains(to.uniqueDecimalTest));
             Assert.AreEqual(2, properties.Count());
 
             // Test if ListValues works
-            Assert.AreEqual(typeof(decimal), actual.ListValues(TestOntology.uniqueDecimalTest).First().GetType());
-            Assert.AreEqual(value, actual.ListValues(TestOntology.uniqueDecimalTest).First());
+            Assert.AreEqual(typeof(decimal), actual.ListValues(to.uniqueDecimalTest).First().GetType());
+            Assert.AreEqual(value, actual.ListValues(to.uniqueDecimalTest).First());
 
             // Remove with RemoveProperty
-            r1.RemoveProperty(TestOntology.uniqueDecimalTest, value);
+            r1.RemoveProperty(to.uniqueDecimalTest, value);
             r1.Commit();
 
             actual = Model1.GetResource<MappingTestClass>(_r1);
             properties = actual.ListProperties().ToList();
 
             // Test if ListProperties works
-            Assert.False(properties.Contains(TestOntology.uniqueDecimalTest));
+            Assert.False(properties.Contains(to.uniqueDecimalTest));
 
             // Test if ListValues works
-            Assert.AreEqual(0, actual.ListValues(TestOntology.uniqueDecimalTest).Count());
+            Assert.AreEqual(0, actual.ListValues(to.uniqueDecimalTest).Count());
         }
 
         /// <summary>
@@ -645,26 +619,26 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(value.ToUniversalTime(), actual.uniqueDateTimeTest.ToUniversalTime());
 
             // Test if property is present
-            Assert.True(properties.Contains(TestOntology.uniqueDatetimeTest));
+            Assert.True(properties.Contains(to.uniqueDatetimeTest));
             Assert.AreEqual(2, properties.Count());
 
             // Test if ListValues works
-            var v = (DateTime)actual.ListValues(TestOntology.uniqueDatetimeTest).First();
+            var v = (DateTime)actual.ListValues(to.uniqueDatetimeTest).First();
             Assert.IsNotNull(v);
             Assert.AreEqual(value.ToUniversalTime(), v.ToUniversalTime());
 
             // Remove with RemoveProperty
-            r1.RemoveProperty(TestOntology.uniqueDatetimeTest, value);
+            r1.RemoveProperty(to.uniqueDatetimeTest, value);
             r1.Commit();
 
             actual = Model1.GetResource<MappingTestClass>(_r1);
             properties = actual.ListProperties().ToList();
 
             // Test if ListProperties works
-            Assert.False(properties.Contains(TestOntology.uniqueDatetimeTest));
+            Assert.False(properties.Contains(to.uniqueDatetimeTest));
 
             // Test if ListValues works
-            Assert.AreEqual(0, actual.ListValues(TestOntology.uniqueDatetimeTest).Count());
+            Assert.AreEqual(0, actual.ListValues(to.uniqueDatetimeTest).Count());
             Assert.IsTrue(DateTime.TryParse("2013-01-21T16:27:23.000Z", out var t));
 
             r1.uniqueDateTimeTest = t;
@@ -718,27 +692,27 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(value.ToString(), actual.uniqueUriTest.ToString());
 
             // Test if property is present
-            Assert.True(properties.Contains(TestOntology.uniqueUriTest));
+            Assert.True(properties.Contains(to.uniqueUriTest));
             Assert.AreEqual(2, properties.Count());
 
             // Test if ListValues works
-            var v = (Uri)actual.ListValues(TestOntology.uniqueUriTest).First();
+            var v = (Uri)actual.ListValues(to.uniqueUriTest).First();
             
             Assert.IsNotNull(v);
             Assert.AreEqual(value.ToString(), v.ToString());
 
             // Remove with RemoveProperty
-            r1.RemoveProperty(TestOntology.uniqueUriTest, value);
+            r1.RemoveProperty(to.uniqueUriTest, value);
             r1.Commit();
 
             actual = Model1.GetResource<MappingTestClass>(_r1);
             properties = actual.ListProperties().ToList();
 
             // Test if ListProperties works
-            Assert.False(properties.Contains(TestOntology.uniqueUriTest));
+            Assert.False(properties.Contains(to.uniqueUriTest));
 
             // Test if ListValues works
-            Assert.AreEqual(0, actual.ListValues(TestOntology.uniqueUriTest).Count());
+            Assert.AreEqual(0, actual.ListValues(to.uniqueUriTest).Count());
 
             r1.uriTest.Add(new Uri("urn:test#myUri1"));
             r1.uriTest.Add(new Uri("urn:test#myUri2"));
@@ -761,8 +735,11 @@ namespace Semiodesk.Trinity.Test.GraphDB
             r1.Commit();
 
             var actual = Model1.GetResource<MappingTestClass>(_r1);
+
+            var v0 = r1.uniqueDateTimeTest.ToUniversalTime();
+            var v1 = actual.uniqueDateTimeTest.ToUniversalTime();
             
-            Assert.AreEqual(r1.uniqueDateTimeTest, actual.uniqueDateTimeTest);
+            Assert.AreEqual(v0, v1);
         }
 
         [Test]
@@ -783,11 +760,11 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(value, r1.dateTimeTest[0]);
             
             // Test if property is present
-            Assert.True(properties.Contains(TestOntology.datetimeTest));
+            Assert.True(properties.Contains(to.datetimeTest));
             Assert.AreEqual(2, properties.Count());
 
             // Test if ListValues works
-            var v = (DateTime)actual.ListValues(TestOntology.datetimeTest).First();
+            var v = (DateTime)actual.ListValues(to.datetimeTest).First();
             
             Assert.IsNotNull(v);
             Assert.AreEqual(value.ToUniversalTime(), v.ToUniversalTime());
@@ -803,10 +780,10 @@ namespace Semiodesk.Trinity.Test.GraphDB
             Assert.AreEqual(0, actual.dateTimeTest.Count());
 
             // Test if ListProperties works
-            Assert.False(properties.Contains(TestOntology.datetimeTest));
+            Assert.False(properties.Contains(to.datetimeTest));
 
             // Test if ListValues works
-            Assert.AreEqual(0, actual.ListValues(TestOntology.datetimeTest).Count());
+            Assert.AreEqual(0, actual.ListValues(to.datetimeTest).Count());
         }
 
         [Test]
@@ -824,33 +801,33 @@ namespace Semiodesk.Trinity.Test.GraphDB
             
             var properties = actual.ListProperties().ToList();
             
-            Assert.Contains(TestOntology.uniqueResourceTest, properties);
+            Assert.Contains(to.uniqueResourceTest, properties);
             Assert.AreEqual(2, properties.Count());
 
-            Assert.IsTrue(actual.HasProperty(TestOntology.uniqueResourceTest));
-            Assert.IsTrue(actual.HasProperty(TestOntology.uniqueResourceTest, t2));
+            Assert.IsTrue(actual.HasProperty(to.uniqueResourceTest));
+            Assert.IsTrue(actual.HasProperty(to.uniqueResourceTest, t2));
 
             actual = Model1.GetResource<MappingTestClass>(_r1);
             
             var values = actual.ListValues().ToList();
             
-            Assert.Contains( new Tuple<Property, object>(TestOntology.uniqueResourceTest, t2), values);
+            Assert.Contains( new Tuple<Property, object>(to.uniqueResourceTest, t2), values);
             
-            Assert.IsTrue(typeof(Resource).IsAssignableFrom(actual.ListValues(TestOntology.uniqueResourceTest).First().GetType()));
-            //Assert.AreEqual(t2, t_actual.ListValues(TestOntology.uniqeResourceTest).First());
+            Assert.IsTrue(typeof(Resource).IsAssignableFrom(actual.ListValues(to.uniqueResourceTest).First().GetType()));
+            //Assert.AreEqual(t2, t_actual.ListValues(to.uniqeResourceTest).First());
 
-            t1.RemoveProperty(TestOntology.uniqueResourceTest, t2);
+            t1.RemoveProperty(to.uniqueResourceTest, t2);
             t1.Commit();
             
             actual = Model1.GetResource<MappingTestClass>(_r1);
             properties = actual.ListProperties().ToList();
             
-            Assert.False(properties.Contains(TestOntology.uniqueResourceTest));
-            Assert.IsFalse(actual.HasProperty(TestOntology.uniqueResourceTest));
-            Assert.IsFalse(actual.HasProperty(TestOntology.uniqueResourceTest, t2));
+            Assert.False(properties.Contains(to.uniqueResourceTest));
+            Assert.IsFalse(actual.HasProperty(to.uniqueResourceTest));
+            Assert.IsFalse(actual.HasProperty(to.uniqueResourceTest, t2));
 
             // Test if ListValues works
-            Assert.AreEqual(0, actual.ListValues(TestOntology.uniqueResourceTest).Count());
+            Assert.AreEqual(0, actual.ListValues(to.uniqueResourceTest).Count());
 
             var t3 = Model1.CreateResource<MappingTestClass3>(_r3);
             t3.Commit(); // Force loading the resource from the model with the appropriate (derived) type.
@@ -885,12 +862,12 @@ namespace Semiodesk.Trinity.Test.GraphDB
             var properties = actual.ListProperties();
 
             Assert.AreEqual(2, properties.Count());
-            Assert.IsTrue(properties.Contains(TestOntology.resourceTest));
-            Assert.IsTrue(actual.HasProperty(TestOntology.resourceTest));
-            Assert.IsTrue(actual.HasProperty(TestOntology.resourceTest, t2));
-            Assert.IsTrue(actual.HasProperty(TestOntology.resourceTest, t3));
+            Assert.IsTrue(properties.Contains(to.resourceTest));
+            Assert.IsTrue(actual.HasProperty(to.resourceTest));
+            Assert.IsTrue(actual.HasProperty(to.resourceTest, t2));
+            Assert.IsTrue(actual.HasProperty(to.resourceTest, t3));
 
-            var values = actual.ListValues(TestOntology.resourceTest);
+            var values = actual.ListValues(to.resourceTest);
 
             Assert.AreEqual(2, properties.Count());
             Assert.IsTrue(values.Contains(t2));
@@ -902,8 +879,8 @@ namespace Semiodesk.Trinity.Test.GraphDB
 
             actual = Model1.GetResource<MappingTestClass>(_r1);
             
-            Assert.IsFalse(actual.HasProperty(TestOntology.resourceTest));
-            Assert.IsFalse(actual.HasProperty(TestOntology.resourceTest, t2));
+            Assert.IsFalse(actual.HasProperty(to.resourceTest));
+            Assert.IsFalse(actual.HasProperty(to.resourceTest, t2));
 
             Assert.AreEqual(0, actual.resourceTest.Count);
         }
@@ -920,7 +897,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
             var actual = Model1.GetResource<MappingTestClass>(_r1);
             //Assert.AreEqual(null, actual.uniqueResourceTest);
 
-            var values = actual.ListValues(TestOntology.uniqueResourceTest);
+            var values = actual.ListValues(to.uniqueResourceTest);
             
             Assert.AreEqual(r2.Uri.OriginalString, (values.First() as IResource).Uri.OriginalString);
 
@@ -1098,11 +1075,11 @@ namespace Semiodesk.Trinity.Test.GraphDB
             r1.stringTest.Add("Blub");
             r1.Commit();
 
-            var values1 = r1.ListValues(TestOntology.stringTest).ToList();
+            var values1 = r1.ListValues(to.stringTest).ToList();
 
             var actual = Model1.GetResource<MappingTestClass>(r1.Uri);
             
-            var values2 = actual.ListValues(TestOntology.stringTest).ToList().ToList();
+            var values2 = actual.ListValues(to.stringTest).ToList().ToList();
 
             Assert.AreEqual(values1.Count, values2.Count);
             Assert.IsTrue(values2.Contains(values1[0]));
@@ -1113,14 +1090,14 @@ namespace Semiodesk.Trinity.Test.GraphDB
         public void KeepListsAfterRollbackTest()
         {
             var r1 = Model1.CreateResource<SingleMappingTestClass>(_r1);
-            r1.AddProperty(TestOntology.uniqueStringTest, "Hello");
+            r1.AddProperty(to.uniqueStringTest, "Hello");
             r1.Commit();
             r1.Rollback();
 
             r1.stringTest.Add("Hi");
             r1.stringTest.Add("Blub");
             
-            var values1 = r1.ListValues(TestOntology.stringTest).ToList();
+            var values1 = r1.ListValues(to.stringTest).ToList();
             
             Assert.AreEqual(2, values1.Count);
             
@@ -1128,7 +1105,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
 
             var rX = Model1.GetResource<SingleMappingTestClass>(_r1);
 
-            var values2 = rX.ListValues(TestOntology.stringTest).ToList();
+            var values2 = rX.ListValues(to.stringTest).ToList();
 
             Assert.AreEqual(values1.Count, values2.Count);
             Assert.IsTrue(values2.Contains(values1[0]));
@@ -1151,7 +1128,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
             var r1 = new StringMappingTestClass(_r1);
             r1.uniqueStringTest = "Test string";
 
-            var v = r1.GetValue(TestOntology.uniqueStringTest);
+            var v = r1.GetValue(to.uniqueStringTest);
             
             Assert.AreEqual(r1.uniqueStringTest, v);
 
@@ -1169,8 +1146,8 @@ namespace Semiodesk.Trinity.Test.GraphDB
             var englishValue = "Hello World";
             
             var r1 = Model1.CreateResource<StringMappingTestClass>(_r1);
-            r1.AddProperty(TestOntology.uniqueStringTest, germanValue, "de");
-            r1.AddProperty(TestOntology.uniqueStringTest, englishValue, "en");
+            r1.AddProperty(to.uniqueStringTest, germanValue, "de");
+            r1.AddProperty(to.uniqueStringTest, englishValue, "en");
             
             Assert.AreEqual(null, r1.uniqueStringTest);
             
@@ -1204,48 +1181,48 @@ namespace Semiodesk.Trinity.Test.GraphDB
             var englishValue = "Hello World";
             
             var r1 = Model1.CreateResource<StringMappingTestClass>(_r1);
-            r1.AddProperty(TestOntology.stringTest, germanValue+1, "de");
-            r1.AddProperty(TestOntology.stringTest, germanValue+2, "de");
-            r1.AddProperty(TestOntology.stringTest, germanValue+3, "de");
-            r1.AddProperty(TestOntology.stringTest, englishValue+1, "en");
-            r1.AddProperty(TestOntology.stringTest, englishValue+2, "en");
-            r1.AddProperty(TestOntology.stringTest, englishValue+3, "en");
-            r1.AddProperty(TestOntology.stringTest, englishValue+4, "en");
+            r1.AddProperty(to.stringTest, germanValue+1, "de");
+            r1.AddProperty(to.stringTest, germanValue+2, "de");
+            r1.AddProperty(to.stringTest, germanValue+3, "de");
+            r1.AddProperty(to.stringTest, englishValue+1, "en");
+            r1.AddProperty(to.stringTest, englishValue+2, "en");
+            r1.AddProperty(to.stringTest, englishValue+3, "en");
+            r1.AddProperty(to.stringTest, englishValue+4, "en");
             
             Assert.AreEqual(0, r1.stringListTest.Count);
             
-            var values = r1.ListValues(TestOntology.stringTest);
+            var values = r1.ListValues(to.stringTest);
             
             Assert.AreEqual(7, values.Count());
             
-            r1.AddProperty(TestOntology.stringTest, "Hello international World"+1);
-            r1.AddProperty(TestOntology.stringTest, "Hello international World"+2);
+            r1.AddProperty(to.stringTest, "Hello international World"+1);
+            r1.AddProperty(to.stringTest, "Hello international World"+2);
             
             Assert.AreEqual(2, r1.stringListTest.Count);
-            Assert.AreEqual(9, r1.ListValues(TestOntology.stringTest).Count());
+            Assert.AreEqual(9, r1.ListValues(to.stringTest).Count());
             
-            r1.RemoveProperty(TestOntology.stringTest, "Hello international World"+1);
+            r1.RemoveProperty(to.stringTest, "Hello international World"+1);
             
             Assert.AreEqual(1, r1.stringListTest.Count);
-            Assert.AreEqual(8, r1.ListValues(TestOntology.stringTest).Count());
+            Assert.AreEqual(8, r1.ListValues(to.stringTest).Count());
             
             r1.Language = "de";
             
             Assert.AreEqual(3, r1.stringListTest.Count);
-            Assert.AreEqual(8, r1.ListValues(TestOntology.stringTest).Count());
+            Assert.AreEqual(8, r1.ListValues(to.stringTest).Count());
             
             r1.Language = "en";
             
             Assert.AreEqual(4, r1.stringListTest.Count);
-            Assert.AreEqual(8, r1.ListValues(TestOntology.stringTest).Count());
+            Assert.AreEqual(8, r1.ListValues(to.stringTest).Count());
             
-            r1.RemoveProperty(TestOntology.stringTest, germanValue + 1, "de");
+            r1.RemoveProperty(to.stringTest, germanValue + 1, "de");
             
-            Assert.AreEqual(7, r1.ListValues(TestOntology.stringTest).Count());
+            Assert.AreEqual(7, r1.ListValues(to.stringTest).Count());
 
-            r1.RemoveProperty(TestOntology.stringTest, englishValue + 1, "en");
+            r1.RemoveProperty(to.stringTest, englishValue + 1, "en");
             
-            Assert.AreEqual(7, r1.ListValues(TestOntology.stringTest).Count());
+            Assert.AreEqual(7, r1.ListValues(to.stringTest).Count());
         }
 
         [Test]
@@ -1264,7 +1241,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
             r1.stringListTest.Add(germanValue + 3);
             
             Assert.AreEqual(3, r1.stringListTest.Count);
-            Assert.AreEqual(5, r1.ListValues(TestOntology.stringTest).Count());
+            Assert.AreEqual(5, r1.ListValues(to.stringTest).Count());
 
             r1.Language = "en";
             r1.stringListTest.Add(englishValue + 1);
@@ -1273,12 +1250,12 @@ namespace Semiodesk.Trinity.Test.GraphDB
             r1.stringListTest.Add(englishValue + 4);
             
             Assert.AreEqual(4, r1.stringListTest.Count);
-            Assert.AreEqual(9, r1.ListValues(TestOntology.stringTest).Count());
+            Assert.AreEqual(9, r1.ListValues(to.stringTest).Count());
 
             r1.Language = null;
             
             Assert.AreEqual(2, r1.stringListTest.Count);
-            Assert.AreEqual(9, r1.ListValues(TestOntology.stringTest).Count());
+            Assert.AreEqual(9, r1.ListValues(to.stringTest).Count());
         }
 
         [Test]

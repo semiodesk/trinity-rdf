@@ -23,25 +23,13 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015-2019
+// Copyright (c) Semiodesk GmbH 2023
 
-using System.Linq;
 using NUnit.Framework;
-using Semiodesk.Trinity.Configuration;
+using Semiodesk.Trinity.Tests.Store;
 
-namespace Semiodesk.Trinity.Test.Virtuoso
+namespace Semiodesk.Trinity.Tests.GraphDB
 {
     [TestFixture]
-    class LegacyConfigurationTest : SetupClass
-    {
-
-        [Test]
-        public void TestInitialize()
-        {
-            string connectionString = SetupClass.ConnectionString;
-
-            var store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", connectionString));
-            store.InitializeFromConfiguration();
-        }
-    }
+    public class GraphDBModelTest : ModelTest<GraphDBTestSetup> {}
 }

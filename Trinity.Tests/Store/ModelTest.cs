@@ -28,27 +28,28 @@
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
 using Semiodesk.Trinity.Test.Linq;
+using Semiodesk.Trinity.Test;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System;
 
-namespace Semiodesk.Trinity.Test.GraphDB
+namespace Semiodesk.Trinity.Tests.Store
 {
     [TestFixture]
-    public class ModelTest : TestBase
+    public abstract class ModelTest<T> : StoreTest<T> where T : IStoreTestSetup
     {
         #region Members
         
-        private UriRef _r1;
+        protected UriRef R1;
 
-        private UriRef _r2;
+        protected UriRef R2;
 
-        private UriRef _r3;
+        protected UriRef R3;
 
-        private Property _p1;
+        protected Property P1;
 
-        private Property _p2;
+        protected Property P2;
         
         #endregion
         
@@ -59,43 +60,43 @@ namespace Semiodesk.Trinity.Test.GraphDB
         {
             base.SetUp();
 
-            _r1 = BaseUri.GetUriRef("r1");
-            _r2 = BaseUri.GetUriRef("r2");
-            _r3 = BaseUri.GetUriRef("r3");
+            R1 = BaseUri.GetUriRef("r1");
+            R2 = BaseUri.GetUriRef("r2");
+            R3 = BaseUri.GetUriRef("r3");
             
-            _p1 = new Property(BaseUri.GetUriRef("p1"));
-            _p2 = new Property(BaseUri.GetUriRef("p2"));
+            P1 = new Property(BaseUri.GetUriRef("p1"));
+            P2 = new Property(BaseUri.GetUriRef("p2"));
         }
 
         private void InitializeModels()
         {
-            var m1_r1 = Model1.CreateResource(_r1);
-            m1_r1.AddProperty(_p1, "in the jungle");
-            m1_r1.AddProperty(_p1, 123);
-            m1_r1.AddProperty(_p1, DateTime.Now);
+            var m1_r1 = Model1.CreateResource(R1);
+            m1_r1.AddProperty(P1, "in the jungle");
+            m1_r1.AddProperty(P1, 123);
+            m1_r1.AddProperty(P1, DateTime.Now);
             m1_r1.Commit();
 
-            var m1_r2 = Model1.CreateResource(_r2);
-            m1_r2.AddProperty(_p1, "in the jungle");
-            m1_r2.AddProperty(_p1, 123);
-            m1_r2.AddProperty(_p1, DateTime.Now);
+            var m1_r2 = Model1.CreateResource(R2);
+            m1_r2.AddProperty(P1, "in the jungle");
+            m1_r2.AddProperty(P1, 123);
+            m1_r2.AddProperty(P1, DateTime.Now);
             m1_r2.Commit();
             
-            var m2_r1 = Model2.CreateResource(_r1);
-            m2_r1.AddProperty(_p1, "in the jungle");
-            m2_r1.AddProperty(_p1, 123);
-            m2_r1.AddProperty(_p1, DateTime.Now);
+            var m2_r1 = Model2.CreateResource(R1);
+            m2_r1.AddProperty(P1, "in the jungle");
+            m2_r1.AddProperty(P1, 123);
+            m2_r1.AddProperty(P1, DateTime.Now);
             m2_r1.Commit();
 
-            var m2_r2 = Model2.CreateResource(_r2);
-            m2_r2.AddProperty(_p1, "in the jungle");
-            m2_r2.AddProperty(_p1, 123);
-            m2_r2.AddProperty(_p1, DateTime.Now);
+            var m2_r2 = Model2.CreateResource(R2);
+            m2_r2.AddProperty(P1, "in the jungle");
+            m2_r2.AddProperty(P1, 123);
+            m2_r2.AddProperty(P1, DateTime.Now);
             m2_r2.Commit();
         }
 
         [Test]
-        public void ModelNameTest()
+        public virtual void ModelNameTest()
         {
             InitializeModels();
             
@@ -123,59 +124,59 @@ namespace Semiodesk.Trinity.Test.GraphDB
         }
 
         [Test]
-        public void ContainsResourceTest()
+        public virtual void ContainsResourceTest()
         {
             InitializeModels();
             
-            Assert.IsTrue(Model1.ContainsResource(_r1));
-            Assert.IsTrue(Model1.ContainsResource(_r2));
+            Assert.IsTrue(Model1.ContainsResource(R1));
+            Assert.IsTrue(Model1.ContainsResource(R2));
             
-            Assert.IsTrue(Model2.ContainsResource(_r1));
-            Assert.IsTrue(Model2.ContainsResource(_r2));
+            Assert.IsTrue(Model2.ContainsResource(R1));
+            Assert.IsTrue(Model2.ContainsResource(R2));
         }
 
         [Test]
-        public void CreateEmptyResourceTest()
+        public virtual void CreateEmptyResourceTest()
         {
             var empty = Model1.CreateResource(BaseUri.GetUriRef("empty"));
             empty.Commit();
         }
         
         [Test]
-        public void ContainsResourceReferenceTest()
+        public virtual void ContainsResourceReferenceTest()
         {
-            Assert.IsFalse(Model1.ContainsResource(_r1));
-            Assert.IsFalse(Model1.ContainsResource(_r2));
+            Assert.IsFalse(Model1.ContainsResource(R1));
+            Assert.IsFalse(Model1.ContainsResource(R2));
             
-            var r2 = Model1.CreateResource(_r2);
-            r2.AddProperty(_p1, 123);
-            r2.AddProperty(_p2, new Resource(_r1));
+            var r2 = Model1.CreateResource(R2);
+            r2.AddProperty(P1, 123);
+            r2.AddProperty(P2, new Resource(R1));
             r2.Commit();
 
             // r1 is only referenced and not described as a subject.
-            Assert.IsFalse(Model1.ContainsResource(_r1));
-            Assert.IsTrue(Model1.ContainsResource(_r2));
+            Assert.IsFalse(Model1.ContainsResource(R1));
+            Assert.IsTrue(Model1.ContainsResource(R2));
         }
 
         [Test]
-        public void DeleteResourceTest()
+        public virtual void DeleteResourceTest()
         {
             InitializeModels();
             
-            Assert.IsTrue(Model1.ContainsResource(_r1));
+            Assert.IsTrue(Model1.ContainsResource(R1));
 
-            Model1.DeleteResource(_r1);
+            Model1.DeleteResource(R1);
 
-            Assert.IsFalse(Model1.ContainsResource(_r1));
+            Assert.IsFalse(Model1.ContainsResource(R1));
             
-            var r0 = Model1.CreateResource(_r1);
-            r0.AddProperty(_p1, "in the jungle");
-            r0.AddProperty(_p1, 123);
+            var r0 = Model1.CreateResource(R1);
+            r0.AddProperty(P1, "in the jungle");
+            r0.AddProperty(P1, 123);
             r0.Commit();
 
-            var r3 = Model1.CreateResource(_r3);
-            r3.AddProperty(_p1, 123);
-            r3.AddProperty(_p2, r0);
+            var r3 = Model1.CreateResource(R3);
+            r3.AddProperty(P1, 123);
+            r3.AddProperty(P2, r0);
             r3.Commit();
 
             Assert.IsTrue(Model1.ContainsResource(r0));
@@ -189,61 +190,61 @@ namespace Semiodesk.Trinity.Test.GraphDB
             // Update the resource from the model.
             r3 = Model1.GetResource(r3);
 
-            Assert.IsTrue(r3.HasProperty(_p1, 123));
-            Assert.IsFalse(r3.HasProperty(_p2, r0));
+            Assert.IsTrue(r3.HasProperty(P1, 123));
+            Assert.IsFalse(r3.HasProperty(P2, r0));
         }
 
         [Test]
-        public void DeleteResourcesTest()
+        public virtual void DeleteResourcesTest()
         {
             InitializeModels();
             
-            Assert.IsTrue(Model1.ContainsResource(_r1));
-            Assert.IsTrue(Model1.ContainsResource(_r2));
+            Assert.IsTrue(Model1.ContainsResource(R1));
+            Assert.IsTrue(Model1.ContainsResource(R2));
             
-            var r1 = Model1.GetResource(_r1);
-            var r2 = Model1.GetResource(_r2);
+            var r1 = Model1.GetResource(R1);
+            var r2 = Model1.GetResource(R2);
 
             Model1.DeleteResources(null, r1, r2);
 
-            Assert.IsFalse(Model1.ContainsResource(_r1));
-            Assert.IsFalse(Model1.ContainsResource(_r2));
+            Assert.IsFalse(Model1.ContainsResource(R1));
+            Assert.IsFalse(Model1.ContainsResource(R2));
         }
 
         [Test]
-        public void DeleteResourcesFromUrisTest()
+        public virtual void DeleteResourcesFromUrisTest()
         {
             InitializeModels();
             
-            Assert.IsTrue(Model1.ContainsResource(_r1));
-            Assert.IsTrue(Model1.ContainsResource(_r2));
+            Assert.IsTrue(Model1.ContainsResource(R1));
+            Assert.IsTrue(Model1.ContainsResource(R2));
 
-            Model1.DeleteResources(new Uri[] { _r1, _r2 });
+            Model1.DeleteResources(new Uri[] { R1, R2 });
 
-            Assert.IsFalse(Model1.ContainsResource(_r1));
-            Assert.IsFalse(Model1.ContainsResource(_r2));
+            Assert.IsFalse(Model1.ContainsResource(R1));
+            Assert.IsFalse(Model1.ContainsResource(R2));
         }
 
         [Test]
-        public void GetResourceWithBlankIdTest()
+        public virtual void GetResourceWithBlankIdTest()
         {
             var rX = Model1.CreateResource(new BlankId());
-            rX.AddProperty(_p1, 123);
+            rX.AddProperty(P1, 123);
             rX.Commit();
 
             Assert.Throws<ArgumentException>(() => Model1.GetResource<Resource>(rX.Uri));
         }
 
         [Test]
-        public void GetResourceWithBlankIdPropertyTest()
+        public virtual void GetResourceWithBlankIdPropertyTest()
         {
             var r0 = Model1.CreateResource(new UriRef("_:0", true));
-            r0.AddProperty(_p1, "0");
+            r0.AddProperty(P1, "0");
             r0.Commit();
 
             var r2 = Model1.CreateResource(new UriRef("_:1", true));
-            r0.AddProperty(_p1, "1");
-            r2.AddProperty(_p2, r0);
+            r0.AddProperty(P1, "1");
+            r2.AddProperty(P2, r0);
             r2.Commit();
 
             Assert.Throws<ArgumentException>(() => Model1.ContainsResource(r2.Uri));
@@ -258,7 +259,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
             {
                 Assert.IsTrue(r.Uri.IsBlankId);
 
-                foreach(var x in r.ListValues(_p2).OfType<Resource>())
+                foreach(var x in r.ListValues(P2).OfType<Resource>())
                 {
                     Assert.IsTrue(x.Uri.IsBlankId);
                 }
@@ -266,15 +267,15 @@ namespace Semiodesk.Trinity.Test.GraphDB
         }
         
         [Test]
-        public void GetResourceWithDuplicateBlankIdPropertyTest()
+        public virtual void GetResourceWithDuplicateBlankIdPropertyTest()
         {
             var r0 = Model1.CreateResource(new UriRef("_:0", true));
-            r0.AddProperty(_p1, "0");
+            r0.AddProperty(P1, "0");
             r0.Commit();
 
             var r1 = Model1.CreateResource(new UriRef("_:0", true));
-            r0.AddProperty(_p1, "1");
-            r1.AddProperty(_p2, r0);
+            r0.AddProperty(P1, "1");
+            r1.AddProperty(P2, r0);
             r1.Commit();
 
             Assert.Throws<ArgumentException>(() => Model1.ContainsResource(r1.Uri));
@@ -289,7 +290,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
             {
                 Assert.IsTrue(r.Uri.IsBlankId);
 
-                foreach (var x in r.ListValues(_p2).OfType<Resource>())
+                foreach (var x in r.ListValues(P2).OfType<Resource>())
                 {
                     Assert.IsTrue(x.Uri.IsBlankId);
                 }
@@ -297,21 +298,21 @@ namespace Semiodesk.Trinity.Test.GraphDB
         }
 
         [Test]
-        public void GetResourceTest()
+        public virtual void GetResourceTest()
         {
             InitializeModels();
             
-            var r1 = Model1.GetResource(_r1);
+            var r1 = Model1.GetResource(R1);
             
             Assert.NotNull(r1);
             Assert.NotNull(r1.Model);
 
-            r1 = Model1.GetResource<Resource>(_r1);
+            r1 = Model1.GetResource<Resource>(R1);
             
             Assert.NotNull(r1);
             Assert.NotNull(r1.Model);
 
-            r1 = Model1.GetResource(_r1, typeof(Resource)) as Resource;
+            r1 = Model1.GetResource(R1, typeof(Resource)) as Resource;
             
             Assert.NotNull(r1);
             Assert.NotNull(r1.Model);
@@ -330,13 +331,13 @@ namespace Semiodesk.Trinity.Test.GraphDB
         }
 
         [Test]
-        public void GetResourcesTest()
+        public virtual void GetResourcesTest()
         {
             InitializeModels();
             
-            Assert.IsTrue(Model1.ContainsResource(_r1));
+            Assert.IsTrue(Model1.ContainsResource(R1));
             
-            var query = new SparqlQuery("DESCRIBE @resource").Bind("@resource", _r1);
+            var query = new SparqlQuery("DESCRIBE @resource").Bind("@resource", R1);
             var results = Model1.GetResources(query).ToList();
 
             Assert.AreEqual(1, results.Count);
@@ -344,137 +345,137 @@ namespace Semiodesk.Trinity.Test.GraphDB
         }
 
         [Test]
-        public void UpdateResourceTest()
+        public virtual void UpdateResourceTest()
         {
             InitializeModels();
             
-            var r1 = Model1.GetResource(_r1);
-            r1.RemoveProperty(_p1, 123);
+            var r1 = Model1.GetResource(R1);
+            r1.RemoveProperty(P1, 123);
             r1.Commit();
 
-            var actual = Model1.GetResource(_r1);
+            var actual = Model1.GetResource(R1);
 
             Assert.AreEqual(r1, actual);
 
-            actual = Model1.GetResource<Resource>(_r1);
+            actual = Model1.GetResource<Resource>(R1);
 
             Assert.AreEqual(r1, actual);
 
             // Try to update resource with different properties then persisted..
-            var r1mod = new Resource(_r1);
+            var r1mod = new Resource(R1);
             r1mod.Model = Model1;
-            r1mod.AddProperty(_p1, "in the jengle");
+            r1mod.AddProperty(P1, "in the jengle");
             r1mod.Commit();
             
-            actual = Model1.GetResource<Resource>(_r1);
+            actual = Model1.GetResource<Resource>(R1);
             
             Assert.AreEqual(r1mod, actual);
         }
 
         [Test]
-        public void DateTimeResourceTest()
+        public virtual void DateTimeResourceTest()
         {
             Assert.IsTrue(DateTime.TryParse("2013-01-21T16:27:23.000Z", out var t));
             
-            var r1 = Model1.CreateResource(_r1);
-            r1.AddProperty(_p1, t);
+            var r1 = Model1.CreateResource(R1);
+            r1.AddProperty(P1, t);
             r1.Commit();
 
-            var actual = Model1.GetResource(_r1);
-            var v = (DateTime)actual.GetValue(_p1);
+            var actual = Model1.GetResource(R1);
+            var v = (DateTime)actual.GetValue(P1);
 
             Assert.AreEqual(t.ToUniversalTime(), v.ToUniversalTime());
         }
 
         [Test]
-        public void TimeSpanResourceTest()
+        public virtual void TimeSpanResourceTest()
         {
             var t = TimeSpan.FromMinutes(5);
             
-            var r1 = Model1.CreateResource(_r1);
-            r1.AddProperty(_p1, t);
+            var r1 = Model1.CreateResource(R1);
+            r1.AddProperty(P1, t);
             r1.Commit();
 
-            var actual = Model1.GetResource(_r1);
-            var v = (TimeSpan)actual.GetValue(_p1);
+            var actual = Model1.GetResource(R1);
+            var v = (TimeSpan)actual.GetValue(P1);
 
             Assert.AreEqual(t.TotalMinutes, v.TotalMinutes);
         }
 
         [Test]
-        public void LiteralWithHyphenTest()
+        public virtual void LiteralWithHyphenTest()
         {
-            var r1 = Model1.CreateResource(_r1);
-            r1.AddProperty(_p1, "\"in the jungle\"");
+            var r1 = Model1.CreateResource(R1);
+            r1.AddProperty(P1, "\"in the jungle\"");
             r1.Commit();
 
-            var actual = Model1.GetResource(_r1);
-            var v = (string)actual.GetValue(_p1);
+            var actual = Model1.GetResource(R1);
+            var v = (string)actual.GetValue(P1);
             
             Assert.AreEqual("\"in the jungle\"", v);
         }
 
         [Test]
-        public void LiteralWithLangTagTest()
+        public virtual void LiteralWithLangTagTest()
         {
-            var r1 = Model1.CreateResource(_r1);
-            r1.AddProperty(_p1, "in the jungle", "en");
+            var r1 = Model1.CreateResource(R1);
+            r1.AddProperty(P1, "in the jungle", "en");
             r1.Commit();
 
-            var actual = Model1.GetResource(_r1);
-            var v = (Tuple<string, string>)actual.GetValue(_p1);
+            var actual = Model1.GetResource(R1);
+            var v = (Tuple<string, string>)actual.GetValue(P1);
 
             Assert.AreEqual("in the jungle", v.Item1);
             Assert.AreEqual("en", v.Item2);
         }
 
         [Test]
-        public void LiteralWithNewLineTest()
+        public virtual void LiteralWithNewLineTest()
         {
-            var r1 = Model1.CreateResource(_r1);
-            r1.AddProperty(_p1, "in the\n jungle");
+            var r1 = Model1.CreateResource(R1);
+            r1.AddProperty(P1, "in the\n jungle");
             r1.Commit();
 
-            var actual = Model1.GetResource(_r1);
-            var v = (string)actual.GetValue(_p1);
+            var actual = Model1.GetResource(R1);
+            var v = (string)actual.GetValue(P1);
             
             Assert.AreEqual("in the\n jungle", v);
         }
 
         [Test]
-        public void AddResourceTest()
+        public virtual void AddResourceTest()
         {
-            var r1 = new Resource (_r1);
-            r1.AddProperty(_p1, "in the jungle");
-            r1.AddProperty(_p1, 123);
-            r1.AddProperty(_p1, DateTime.Now);
+            var r1 = new Resource (R1);
+            r1.AddProperty(P1, "in the jungle");
+            r1.AddProperty(P1, 123);
+            r1.AddProperty(P1, DateTime.Now);
 
             Model1.AddResource(r1);
 
-            var actual = Model1.GetResource(_r1);
+            var actual = Model1.GetResource(R1);
 
-            Assert.AreEqual(_r1, actual.Uri);
-            Assert.AreEqual(r1.ListValues(_p1).Count(), actual.ListValues(_p1).Count());
+            Assert.AreEqual(R1, actual.Uri);
+            Assert.AreEqual(r1.ListValues(P1).Count(), actual.ListValues(P1).Count());
             
-            var r2 = new Contact(_r2);
+            var r2 = new Contact(R2);
             r2.Fullname = "Peter";
 
             Model1.AddResource(r2);
 
-            var actual2 = Model1.GetResource<Contact>(_r2);
+            var actual2 = Model1.GetResource<Contact>(R2);
 
-            Assert.AreEqual(_r2, actual2.Uri);
+            Assert.AreEqual(R2, actual2.Uri);
             Assert.AreEqual(r2.Fullname, actual2.Fullname);
         }
 
         [Test]
-        public void GetTypedResourcesTest()
+        public virtual void GetTypedResourcesTest()
         {
-            var r1 = Model1.CreateResource<Contact>(_r1);
+            var r1 = Model1.CreateResource<Contact>(R1);
             r1.Fullname = "Peter";
             r1.Commit();
 
-            var r2 = Model1.CreateResource<Contact>(_r2);
+            var r2 = Model1.CreateResource<Contact>(R2);
             r2.Fullname = "Hans";
             r2.Commit();
 
@@ -486,9 +487,9 @@ namespace Semiodesk.Trinity.Test.GraphDB
         }
         
         [Test]
-        public void GetTypedResourcesWithInferencingTest()
+        public virtual void GetTypedResourcesWithInferencingTest()
         {
-            var r1 = Model1.CreateResource<PersonContact>(_r1);
+            var r1 = Model1.CreateResource<PersonContact>(R1);
             r1.Fullname = "Peter";
             r1.Commit();
 
@@ -500,16 +501,16 @@ namespace Semiodesk.Trinity.Test.GraphDB
             
             Assert.AreEqual(1, results.Count);
 
-            var actual = Model1.GetResource(_r1);
+            var actual = Model1.GetResource(R1);
 
             Assert.AreEqual(typeof(PersonContact), actual.GetType());
         }
 
         [Test]
-        public void WriteTest()
+        public virtual void WriteTest()
         {
-            var r1 = Model1.CreateResource(_r1);
-            r1.AddProperty(_p1, "in the\n jungle");
+            var r1 = Model1.CreateResource(R1);
+            r1.AddProperty(P1, "in the\n jungle");
             r1.Commit();
 
             var stream = new MemoryStream();
@@ -522,10 +523,10 @@ namespace Semiodesk.Trinity.Test.GraphDB
         }
 
         [Test]
-        public void WriteWithBaseUriTest()
+        public virtual void WriteWithBaseUriTest()
         {
-            var r1 = Model1.CreateResource(_r1);
-            r1.AddProperty(_p1, "test");
+            var r1 = Model1.CreateResource(R1);
+            r1.AddProperty(P1, "test");
             r1.Commit();
 
             using (var s = new MemoryStream())
@@ -542,7 +543,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
         }
 
         [Test]
-        public void ReadTest()
+        public virtual void ReadTest()
         {
             var file = new FileInfo("Models\\test-ntriples.nt");
             var fileUri = file.ToUriRef();
@@ -565,7 +566,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
         }
 
         [Test]
-        public void ReadFromStringTest()
+        public virtual void ReadFromStringTest()
         {
             var data = @"
 @base <http://example.org/> .
@@ -643,10 +644,10 @@ namespace Semiodesk.Trinity.Test.GraphDB
         }
 
         [Test]
-        public void WriteToStringTest()
+        public virtual void WriteToStringTest()
         {
-            var r1 = Model1.CreateResource(_r1);
-            r1.AddProperty(_p1, "test");
+            var r1 = Model1.CreateResource(R1);
+            r1.AddProperty(P1, "test");
             r1.Commit();
 
             using (var s = new MemoryStream())

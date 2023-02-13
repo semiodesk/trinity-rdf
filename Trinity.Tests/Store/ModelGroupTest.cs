@@ -29,13 +29,29 @@ using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
 using System.Linq;
 
-namespace Semiodesk.Trinity.Test.GraphDB
+namespace Semiodesk.Trinity.Tests.Store
 {
     [TestFixture]
-    public class ModelGroupTest : TestBase
+    public abstract class ModelGroupTest<T> : StoreTest<T> where T : IStoreTestSetup
     {
+        #region Members
+        
+        protected UriRef R1;
+        
+        #endregion
+        
+        #region Methods
+        
+        [SetUp]
+        public override void SetUp()
+        {
+            base.SetUp();
+
+            R1 = BaseUri.GetUriRef("r1");
+        }
+        
         [Test]
-        public void ContainsResourceTest()
+        public virtual void ContainsResourceTest()
         {
             var group = Store.CreateModelGroup(Model1.Uri, Model2.Uri);
             
@@ -61,7 +77,21 @@ namespace Semiodesk.Trinity.Test.GraphDB
         }
         
         [Test]
-        public void GetResourceTest()
+        public virtual void DeleteResourceTest()
+        {
+            var r1 = Model1.CreateResource(R1);
+            r1.AddProperty(rdf.type, nco.Contact);
+            r1.Commit();
+
+            Assert.IsTrue(Model1.ContainsResource(R1));
+
+            Model1.DeleteResource(r1);
+
+            Assert.IsFalse(Model1.ContainsResource(R1));
+        }
+        
+        [Test]
+        public virtual void GetResourceTest()
         {
             var group = Store.CreateModelGroup(Model1.Uri, Model2.Uri);
             
@@ -94,7 +124,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
         }
 
         [Test]
-        public void LazyLoadResourceTest()
+        public virtual void LazyLoadResourceTest()
         {
             var group = Store.CreateModelGroup(Model1.Uri, Model2.Uri);
             
@@ -108,7 +138,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
             r1.Commit();
 
             var gr1 = group.GetResource<MappingTestClass>(u1);
-            var gr2 = gr1.ListValues(TestOntology.uniqueResourceTest).OfType<Resource>().First();
+            var gr2 = gr1.ListValues(to.uniqueResourceTest).OfType<Resource>().First();
             
             Assert.AreEqual(r2.Uri.OriginalString, gr2.Uri.OriginalString);
 
@@ -130,5 +160,7 @@ namespace Semiodesk.Trinity.Test.GraphDB
             
             Assert.AreEqual(typeof(MappingTestClass), x1.GetType());
         }
+        
+        #endregion
     }
 }

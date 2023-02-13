@@ -32,11 +32,12 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System;
+using Semiodesk.Trinity.Test;
 
-namespace Semiodesk.Trinity.Test.GraphDB
+namespace Semiodesk.Trinity.Tests.Store
 {
     [TestFixture]
-    public class SparqlQueryTest : TestBase
+    public abstract class SparqlQueryTest<T> : StoreTest<T> where T : IStoreTestSetup
     {
         #region Members
         
@@ -509,26 +510,15 @@ namespace Semiodesk.Trinity.Test.GraphDB
         {
             InitializeModels();
             
-            var query = new SparqlQuery(@"
-                SELECT ?s0 ?p0 ?o0 WHERE
-                {
-                   ?s0 ?p0 ?o0 .
-
-                   {
-                      SELECT DISTINCT ?s0 WHERE
-                      {
-                         ?s ?p ?o.
-                      }
-                   }
-                }");
+            var query = new SparqlQuery(@"SELECT ?s ?p ?o WHERE { ?s ?p ?o . }");
 
             var method = query.GetType().GetMethod("SetLimit", BindingFlags.NonPublic | BindingFlags.Instance);
             method.Invoke(query, new object[] { 3 });
             
             var result = Model1.ExecuteQuery(query);
-            var resources = result.GetResources().ToList();
+            var bindings = result.GetBindings().ToList();
             
-            Assert.AreEqual(3, resources.Count);
+            Assert.AreEqual(3, bindings.Count);
         }
 
         [Test]

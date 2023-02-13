@@ -46,6 +46,8 @@ namespace Semiodesk.Trinity.Store.GraphDB
     {
         #region Members
 
+        private bool _isDisposed;
+        
         private readonly IModel _inplicitModel;
         
         /// <summary>
@@ -88,9 +90,30 @@ namespace Semiodesk.Trinity.Store.GraphDB
             }
         }
 
+        ~GraphDBStore()
+        {
+            Dispose();
+        }
+        
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Closes the store. It is not usable after this call.
+        /// </summary>
+        public override void Dispose()
+        {
+            if (_isDisposed) return;
+            
+            _isDisposed = true;
+                
+            IsReady = false;
+            
+            GC.SuppressFinalize(this);
+
+            _connector.Dispose();
+        }
 
         [Obsolete("It is not necessary to create models explicitly. Use GetModel() instead, if the model does not exist, it will be created implicitly.")]
         public override IModel CreateModel(Uri uri)
@@ -520,16 +543,6 @@ namespace Semiodesk.Trinity.Store.GraphDB
             var modelList = models.Select(m => GetModel(m.Uri)).ToList();
 
             return new ModelGroup(this, modelList);
-        }
-
-        /// <summary>
-        /// Closes the store. It is not usable after this call.
-        /// </summary>
-        public override void Dispose()
-        {
-            IsReady = false;
-            
-            _connector.Dispose();
         }
 
         /// <summary>

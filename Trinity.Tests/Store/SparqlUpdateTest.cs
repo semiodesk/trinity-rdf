@@ -30,10 +30,10 @@ using System;
 using Semiodesk.Trinity.Ontologies;
 using Semiodesk.Trinity.Test.Linq;
 
-namespace Semiodesk.Trinity.Test.GraphDB
+namespace Semiodesk.Trinity.Tests.Store
 {
     [TestFixture]
-    public class SparqlUpdateTest : TestBase
+    public abstract class SparqlUpdateTest<T> : StoreTest<T> where T : IStoreTestSetup
     {
         [SetUp]
         public override void SetUp()

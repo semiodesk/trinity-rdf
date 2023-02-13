@@ -31,54 +31,16 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using NUnit.Framework;
+using Semiodesk.Trinity.Tests;
+using Semiodesk.Trinity.Tests.Store;
+using Semiodesk.Trinity.Tests.Virtuoso;
 
-namespace Semiodesk.Trinity.Test.Virtuoso
+namespace Semiodesk.Trinity.Tests.Virtuoso
 {
-    //[TestFixture]
-    class TransactionTest : SetupClass
+    [TestFixture]
+    class VirtuosoTransactionTest : StoreTest<VirtuosoTestSetup>
     {
-        #region Members
-
-        private string _connectionString = SetupClass.ConnectionString;
-
-        private IStore _store;
-
-        private UriRef _model = new UriRef("ex:TransactionTest");
-
-        #endregion
-
         #region Methods
-
-        [SetUp]
-        public void SetUp()
-        {
-            _store = StoreFactory.CreateStore(_connectionString);
-
-            IModel model = _store.GetModel(_model);
-
-            if(!model.IsEmpty)
-            {
-                model.Clear();
-            }
-        }
-
-        [TearDown]
-        public void TearDown()
-        {
-            IModel model = _store.GetModel(_model);
-
-            if (!model.IsEmpty)
-            {
-                model.Clear();
-            }
-        }
-
-        public IModel GetModel(out IStore store)
-        {
-            store = StoreFactory.CreateStore(_connectionString);
-
-            return store.GetModel(_model);
-        }
 
         [Test]
         public void TestAddingElements()
@@ -135,7 +97,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             Assert.AreEqual(50, list1.Count());
             Assert.AreEqual(50, list2.Count());
 
-            IModel model = _store.GetModel(_model);
+            IModel model = Store.GetModel(Model1.Uri);
 
             foreach (var res in list1)
             {
@@ -156,7 +118,8 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         public void TestModifyElement()
         {
             Assert.Inconclusive();
-            IModel model = _store.GetModel(_model);
+            
+            IModel model = Store.GetModel(Model1.Uri);
             var newResource = model.CreateResource<SingleMappingTestClass>();
             newResource.stringTest.Add("Hello");
             newResource.stringTest.Add("my");
@@ -236,7 +199,7 @@ namespace Semiodesk.Trinity.Test.Virtuoso
         {
             Assert.Inconclusive();
 
-            IModel model = _store.GetModel(_model);
+            IModel model = Store.GetModel(Model1.Uri);
             var newResource = model.CreateResource<SingleMappingTestClass>();
             newResource.stringTest.Add("Hello");
             newResource.stringTest.Add("my");
@@ -403,6 +366,13 @@ namespace Semiodesk.Trinity.Test.Virtuoso
             res.Commit();
         }
 
+        protected IModel GetModel(out IStore store)
+        {
+            store = StoreFactory.CreateStore(ConnectionString);
+
+            return store.GetModel(Model1.Uri);
+        }
+        
         #endregion
     }
 }

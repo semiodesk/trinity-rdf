@@ -23,27 +23,13 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2023
+// Copyright (c) Semiodesk GmbH 2015-2019
 
 using NUnit.Framework;
-using Semiodesk.Trinity.Store.GraphDB;
+using Semiodesk.Trinity.Tests.Store;
 
-namespace Semiodesk.Trinity.Test.GraphDB
+namespace Semiodesk.Trinity.Tests.Virtuoso
 {
     [TestFixture]
-    public class StoreProviderTest : TestBase
-    {
-        [Test]
-        public void GraphDBConfigurationStringTest()
-        {
-            const string connectionString = "provider=graphdb;host=http://localhost:7200;repository=trinity-test";
-            
-            var store = StoreFactory.CreateStore(connectionString);
-            
-            Assert.IsNotNull(store);
-            Assert.IsInstanceOf<GraphDBStore>(store);
-            
-            store.Dispose();
-        }
-    }
+    public class VirtuosoSparqlUpdateTest : SparqlUpdateTest<VirtuosoTestSetup> { }
 }
