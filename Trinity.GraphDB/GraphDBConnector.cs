@@ -25,19 +25,19 @@
 //
 // Copyright (c) Semiodesk GmbH 2023
 
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Text.RegularExpressions;
+using System.Text;
 using System.Web;
-using VDS.RDF;
-using VDS.RDF.Parsing;
+using System;
 using VDS.RDF.Parsing.Handlers;
+using VDS.RDF.Parsing;
 using VDS.RDF.Query;
 using VDS.RDF.Storage;
+using VDS.RDF;
 
 namespace Semiodesk.Trinity.Store.GraphDB
 {
@@ -46,6 +46,8 @@ namespace Semiodesk.Trinity.Store.GraphDB
   /// </summary>
   public class GraphDBConnector : SesameHttpProtocolVersion6Connector
   {
+    #region Constructors
+    
     /// <summary>
     /// Creates a new connection to a Sesame HTTP Protocol supporting Store.
     /// </summary>
@@ -57,7 +59,11 @@ namespace Semiodesk.Trinity.Store.GraphDB
       : base(baseUri, repositoryName, username, password)
     {
     }
+    
+    #endregion
 
+    #region Methods
+    
     /// <summary>
     /// Makes a SPARQL Query against the underlying Store.
     /// </summary>
@@ -229,5 +235,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
         throw StorageHelper.HandleError(ex, "listing Graphs from");
       }
     }
+    
+    #endregion
   }
 }

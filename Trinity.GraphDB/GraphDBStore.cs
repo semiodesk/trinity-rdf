@@ -28,11 +28,12 @@
 using Semiodesk.Trinity.Extensions;
 using System.Collections.Generic;
 using System.IO;
-using System;
 using System.Linq;
+using System;
 using VDS.RDF.Parsing.Handlers;
 using VDS.RDF.Parsing;
 using VDS.RDF.Query;
+using VDS.RDF.Storage;
 using VDS.RDF;
 
 namespace Semiodesk.Trinity.Store.GraphDB
@@ -562,6 +563,15 @@ namespace Semiodesk.Trinity.Store.GraphDB
             return query;
         }
 
+        /// <summary>
+        /// Get a handle to the native dotNetRDF triple storage implementation.
+        /// </summary>
+        /// <returns>The IUpdatableStorage instance used to communicate with the database.</returns>
+        public IUpdateableStorage GetStorage()
+        {
+            return _connector;
+        }
+        
         #endregion
     }
 }

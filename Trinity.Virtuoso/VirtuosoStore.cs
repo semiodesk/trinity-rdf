@@ -25,18 +25,18 @@
 //
 // Copyright (c) Semiodesk GmbH 2018
 
-using System;
+using OpenLink.Data.Virtuoso;
+using Semiodesk.Trinity.Extensions;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
-using System.ComponentModel;
-using OpenLink.Data.Virtuoso;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System;
 using VDS.RDF.Parsing;
 using VDS.RDF;
-using Semiodesk.Trinity.Extensions;
 
 namespace Semiodesk.Trinity.Store.Virtuoso
 {
@@ -914,7 +914,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
             ExecuteNonQuery(c, transaction);
         }
-
+        
         #endregion
 
         #region Event Handlers
