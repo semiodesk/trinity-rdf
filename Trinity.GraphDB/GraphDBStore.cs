@@ -30,11 +30,9 @@ using System.Collections.Generic;
 using System.IO;
 using System;
 using System.Linq;
-using System.Text.RegularExpressions;
 using VDS.RDF.Parsing.Handlers;
 using VDS.RDF.Parsing;
 using VDS.RDF.Query;
-using VDS.RDF.Storage;
 using VDS.RDF;
 
 namespace Semiodesk.Trinity.Store.GraphDB
@@ -48,6 +46,9 @@ namespace Semiodesk.Trinity.Store.GraphDB
 
         private bool _isDisposed;
         
+        /// <summary>
+        /// Graph which contains the inferred triples in an Ontotext GraphDB repository.
+        /// </summary>
         private readonly IModel _inplicitModel;
         
         /// <summary>

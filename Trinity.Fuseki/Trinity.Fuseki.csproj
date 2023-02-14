@@ -2,9 +2,9 @@
   
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
-    <Title>Semiodesk.Trinity.Virtuoso</Title>
-    <Copyright>Copyright © Semiodesk GmbH 2015-2020</Copyright>
-    <Description>This library allows Semiodesk.Trinity to use the OpenLink Virtuoso store directly through the ODBC interface.</Description>
+    <Title>Semiodesk.Trinity.Fuseki</Title>
+    <Copyright>Copyright © Semiodesk GmbH 2015-2023</Copyright>
+    <Description>This package provides an Apache Jena Fuseki store adapter for the Trinity RDF ORM.</Description>
     <Company>Semiodesk GmbH</Company>
     <Version>1.0.3.50</Version>
     <AssemblyVersion>1.0.3.30</AssemblyVersion>
@@ -16,13 +16,13 @@
 
 
   <PropertyGroup>
-    <OutputPath>..\Build\$(Configuration)\stores\virtuoso</OutputPath>
+    <OutputPath>..\Build\$(Configuration)\stores\fuseki</OutputPath>
     <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
     <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl>https://trinity-rdf.net</PackageProjectUrl>
     <PackageIcon>trinity-logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/semiodesk/trinity-rdf</RepositoryUrl>
-    <PackageTags>RDF SPARQL Database Semantic Object Mapping Linked Data Virtuoso</PackageTags>
+    <PackageTags>RDF SPARQL Database Semantic Object Mapping Linked Data Apache Jena Fuseki</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 
   </PropertyGroup>
@@ -41,21 +41,5 @@
   <ItemGroup>
     <ProjectReference Include="..\Trinity\Trinity.csproj" />
   </ItemGroup>
-
-  <!--  THIS SECTION CONTAINS THE PACKAGING INSTRUCTIONS FOR CILGENERATOR & ONTOLOGYGENERATOR -->
-  <PropertyGroup>
-    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);CustomContentTarget</TargetsForTfmSpecificContentInPackage>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <RepositoryType>git</RepositoryType>
-  </PropertyGroup>
-
-  <Target Name="CustomContentTarget">
-    <ItemGroup>
-      <TfmSpecificPackageFile Include="$(OutputPath)\*.Data.Virtuoso.dll" Condition="'$(TargetFramework)'=='netstandard2.0'">
-        <PackagePath>lib/netstandard2.0</PackagePath>
-      </TfmSpecificPackageFile>
-    </ItemGroup>
-  </Target>
-  <!-- END SECTION PACKAGING -->
 
 </Project>
