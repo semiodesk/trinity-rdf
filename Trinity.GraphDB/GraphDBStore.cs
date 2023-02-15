@@ -28,9 +28,8 @@
 using Semiodesk.Trinity.Extensions;
 using System.Collections.Generic;
 using System.IO;
-using System;
 using System.Linq;
-using System.Text.RegularExpressions;
+using System;
 using VDS.RDF.Parsing.Handlers;
 using VDS.RDF.Parsing;
 using VDS.RDF.Query;
@@ -48,6 +47,9 @@ namespace Semiodesk.Trinity.Store.GraphDB
 
         private bool _isDisposed;
         
+        /// <summary>
+        /// Graph which contains the inferred triples in an Ontotext GraphDB repository.
+        /// </summary>
         private readonly IModel _inplicitModel;
         
         /// <summary>
@@ -561,6 +563,15 @@ namespace Semiodesk.Trinity.Store.GraphDB
             return query;
         }
 
+        /// <summary>
+        /// Get a handle to the native dotNetRDF triple storage implementation.
+        /// </summary>
+        /// <returns>The IUpdatableStorage instance used to communicate with the database.</returns>
+        public IUpdateableStorage GetStorage()
+        {
+            return _connector;
+        }
+        
         #endregion
     }
 }
