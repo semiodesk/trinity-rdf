@@ -534,6 +534,47 @@ namespace Semiodesk.Trinity.Tests.Store
             Assert.AreEqual(1, resources.Count);
         }
         
+        [Test]
+        public virtual void TestBindLimit()
+        {
+            InitializeModels();
+
+            var query = new SparqlQuery("SELECT DISTINCT ?s WHERE { ?s ?p ?o. } LIMIT @limit");
+            query.Bind("@limit", 1);
+            
+            var result = Model1.ExecuteQuery(query);
+            var resources = result.GetBindings().ToList();
+            
+            Assert.AreEqual(1, resources.Count);
+        }
+        
+        [Test]
+        public virtual void TestBindOffset()
+        {
+            InitializeModels();
+
+            var query = new SparqlQuery("SELECT DISTINCT ?s WHERE { ?s ?p ?o. } ORDER BY ?s");
+            var result = Model1.ExecuteQuery(query);
+            
+            var expected = result.GetBindings().ToList();
+            
+            Assert.AreEqual(5, expected.Count);
+            
+            var query0 = new SparqlQuery("SELECT DISTINCT ?s WHERE { ?s ?p ?o. } ORDER BY ?s OFFSET @offset");
+            query0.Bind("@offset", 0);
+            
+            var b0 = Model1.ExecuteQuery(query0).GetBindings().First();
+            
+            Assert.AreEqual(expected[0].ToString(), b0.ToString());
+            
+            var query1 = new SparqlQuery("SELECT DISTINCT ?s WHERE { ?s ?p ?o. } ORDER BY ?s OFFSET @offset");
+            query1.Bind("@offset", 1);
+            
+            var b1 = Model1.ExecuteQuery(query1).GetBindings().First();
+            
+            Assert.AreEqual(expected[1].ToString(), b1.ToString());
+        }
+        
         #endregion
     }
 }

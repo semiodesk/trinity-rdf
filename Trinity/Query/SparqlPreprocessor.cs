@@ -243,6 +243,13 @@ namespace Semiodesk.Trinity
 
                         break;
                     }
+                    case Token.OFFSET:
+                    case Token.LIMIT:
+                    {
+                        parameterType = CustomToken.PLAINLITERALPARAMETER;
+
+                        break;
+                    }
                 }
 
                 // Remember the parameter type.
@@ -388,25 +395,28 @@ namespace Semiodesk.Trinity
             {
                 throw new ArgumentException("Empty or null value for SPARQL query parameter.");
             }
-            else if (parameter[0] != '@')
+            
+            if (parameter[0] != '@')
             {
                 throw new ArgumentException("SPARQL query parameters must start with '@'.");
             }
-            else if (value == null)
+            
+            if (value == null)
             {
                 throw new ArgumentNullException("SPARQL query parameter values may not be null.");
             }
-            else if (ParameterTypes[parameter] == CustomToken.GRAPHPARAMETER)
+            
+            if (ParameterTypes[parameter] == CustomToken.GRAPHPARAMETER)
             {
                 if (ParameterValues.ContainsKey(parameter))
                 {
-                    string g = ParameterValues[parameter];
+                    var g = ParameterValues[parameter];
 
                     DefaultGraphs.Remove(g);
                 }
 
-                string uri = SparqlSerializer.SerializeValue(value);
-                string url = uri.TrimStart('<').TrimEnd('>');
+                var uri = SparqlSerializer.SerializeValue(value);
+                var url = uri.TrimStart('<').TrimEnd('>');
 
                 if (DefaultGraphs.Contains(url))
                 {
@@ -416,6 +426,10 @@ namespace Semiodesk.Trinity
                 DefaultGraphs.Add(url);
 
                 ParameterValues[parameter] = uri;
+            }
+            else if (ParameterTypes[parameter] == CustomToken.PLAINLITERALPARAMETER)
+            {
+                ParameterValues[parameter] = value.ToString();
             }
             else
             {
@@ -430,14 +444,14 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         protected string Serialize(int outputLevel = 0)
         {
-            StringBuilder outputBuilder = new StringBuilder();
+            var outputBuilder = new StringBuilder();
 
             // The current iteration depth.
-            int level = 0;
+            var level = 0;
 
-            for (int i = 0; i < Tokens.Count; i++)
+            for (var i = 0; i < Tokens.Count; i++)
             {
-                IToken token = Tokens[i];
+                var token = Tokens[i];
 
                 if (token.TokenType == Token.LEFTCURLYBRACKET)
                 {
@@ -499,12 +513,13 @@ namespace Semiodesk.Trinity
                         }
                     case CustomToken.PARAMETER:
                     case CustomToken.GRAPHPARAMETER:
-                        {
-                            string key = token.Value;
+                    case CustomToken.PLAINLITERALPARAMETER:
+                    {
+                            var key = token.Value;
 
                             if (!ParameterValues.ContainsKey(key))
                             {
-                                string msg = string.Format("No value set for query parameter {0}.", key);
+                                var msg = $"No value set for query parameter {key}.";
 
                                 throw new KeyNotFoundException(msg);
                             }
@@ -553,6 +568,7 @@ namespace Semiodesk.Trinity
     {
         public const int PARAMETER = 1001;
         public const int GRAPHPARAMETER = 1002;
+        public const int PLAINLITERALPARAMETER = 1003;
     }
 
     /// <summary>

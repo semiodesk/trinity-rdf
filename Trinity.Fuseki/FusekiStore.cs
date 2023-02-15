@@ -81,6 +81,9 @@ namespace Semiodesk.Trinity.Store.Fuseki
         {
             Hostname = host;
             Dataset = dataset;
+            
+            // TODO: The FusekiConnector implementation uses a non-existing query API URL for some versions of Fuseki: the URL must end with /sparql instead of /query
+            // See: https://jena.apache.org/documentation/fuseki2/soh.html
             Connector = new FusekiConnector($"{Hostname}/{dataset}/data");
 
             if (!string.IsNullOrEmpty(username))

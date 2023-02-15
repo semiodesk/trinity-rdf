@@ -36,16 +36,14 @@ namespace Semiodesk.Trinity.Tests.Fuseki
             }
 
             folder.Create();
-
-
-            ConnectionString = "provider=fuseki;host=http://localhost:3030;dataset=ds";
+            
+            ConnectionString = "provider=fuseki;host=http://localhost:3030;uid=admin;pw=test;dataset=ds";
             
         }
 
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
-          
         }
 
         #endregion
