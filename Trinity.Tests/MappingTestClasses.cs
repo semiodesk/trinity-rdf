@@ -1,15 +1,13 @@
-﻿
-using Semiodesk.Trinity.Ontologies;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
-namespace Semiodesk.Trinity.Test
+namespace Semiodesk.Trinity.Tests
 {
     public abstract class AbstractMappingClass : Resource
     {
         protected PropertyMapping<string> stringTestMapping =
-            new PropertyMapping<string>("stringTest", TestOntology.stringTest);
+            new PropertyMapping<string>("stringTest", to.stringTest);
 
         public string stringTest
         {
@@ -19,28 +17,18 @@ namespace Semiodesk.Trinity.Test
 
         protected AbstractMappingClass(Uri uri) : base(uri) { }
     }
-
-    public class ConcreteMappingClass : AbstractMappingClass
-    {
-        public override IEnumerable<Class> GetTypes()
-        {
-            yield return TestOntology.SingleMappingTestClass;
-        }
-
-        public ConcreteMappingClass(Uri uri) : base(uri) { }
-    }
-
+    
     public class SingleMappingTestClass : Resource
     {
         #region Mapping
 
         public override IEnumerable<Class> GetTypes()
         {
-            yield return TestOntology.SingleMappingTestClass;
+            yield return to.SingleMappingTestClass;
         }
 
         protected PropertyMapping<ObservableCollection<string>> stringTestMapping =
-            new PropertyMapping<ObservableCollection<string>>("stringTest", TestOntology.stringTest, new ObservableCollection<string>());
+            new PropertyMapping<ObservableCollection<string>>("stringTest", to.stringTest, new ObservableCollection<string>());
 
         public ObservableCollection<string> stringTest
         {
@@ -69,11 +57,11 @@ namespace Semiodesk.Trinity.Test
 
         public override IEnumerable<Class> GetTypes()
         {
-            return new List<Class> { TestOntology.SingleResourceMappingTestClass };
+            return new List<Class> { to.SingleResourceMappingTestClass };
         }
 
         protected PropertyMapping<ObservableCollection<Resource>> resourceTestMapping =
-            new PropertyMapping<ObservableCollection<Resource>>("ResourceTest", TestOntology.resourceTest, new ObservableCollection<Resource>());
+            new PropertyMapping<ObservableCollection<Resource>>("ResourceTest", to.resourceTest, new ObservableCollection<Resource>());
 
         public ObservableCollection<Resource> ResourceTest
         {
@@ -88,7 +76,7 @@ namespace Semiodesk.Trinity.Test
     {
         #region Members
 
-        protected PropertyMapping<int> IntegerValueMapping = new PropertyMapping<int>("IntegerValue", TestOntology.intTest);
+        protected PropertyMapping<int> IntegerValueMapping = new PropertyMapping<int>("IntegerValue", to.intTest);
 
         public int IntegerValue
         {
@@ -96,7 +84,7 @@ namespace Semiodesk.Trinity.Test
             set { SetValue(IntegerValueMapping, value); }
         }
 
-        protected PropertyMapping<ResourceMappingTestClass> ResourceMapping = new PropertyMapping<ResourceMappingTestClass>("Resource", TestOntology.resourceTest);
+        protected PropertyMapping<ResourceMappingTestClass> ResourceMapping = new PropertyMapping<ResourceMappingTestClass>("Resource", to.resourceTest);
 
         public ResourceMappingTestClass Resource
         {
@@ -116,7 +104,7 @@ namespace Semiodesk.Trinity.Test
 
         public override IEnumerable<Class> GetTypes()
         {
-            yield return TestOntology.ResourceMappingTestClass;
+            yield return to.ResourceMappingTestClass;
         }
 
         #endregion
@@ -134,11 +122,11 @@ namespace Semiodesk.Trinity.Test
 
         public override IEnumerable<Class> GetTypes()
         {
-            return new List<Class> { TestOntology.TestClass };
+            return new List<Class> { to.TestClass };
         }
 
         protected PropertyMapping<ObservableCollection<int>> intTestMapping =
-            new PropertyMapping<ObservableCollection<int>>("intTest", TestOntology.intTest, new ObservableCollection<int>());
+            new PropertyMapping<ObservableCollection<int>>("intTest", to.intTest, new ObservableCollection<int>());
 
         public ObservableCollection<int> intTest
         {
@@ -147,7 +135,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<int> uniqueIntTestMapping =
-            new PropertyMapping<int>("uniqueIntTest", TestOntology.uniqueIntTest);
+            new PropertyMapping<int>("uniqueIntTest", to.uniqueIntTest);
 
         public int uniqueIntTest
         {
@@ -156,7 +144,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<ObservableCollection<uint>> uintTestMapping =
-            new PropertyMapping<ObservableCollection<uint>>("uintTest", TestOntology.uintTest, new ObservableCollection<uint>());
+            new PropertyMapping<ObservableCollection<uint>>("uintTest", to.uintTest, new ObservableCollection<uint>());
 
         public ObservableCollection<uint> uintTest
         {
@@ -166,7 +154,7 @@ namespace Semiodesk.Trinity.Test
 
 
         protected PropertyMapping<uint> uniqueUintTestMapping =
-            new PropertyMapping<uint>("uniqueUintTest", TestOntology.uniqueUintTest);
+            new PropertyMapping<uint>("uniqueUintTest", to.uniqueUintTest);
 
         public uint uniqueUintTest
         {
@@ -175,7 +163,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<ObservableCollection<string>> stringTestMapping =
-            new PropertyMapping<ObservableCollection<string>>("stringTest", TestOntology.stringTest, new ObservableCollection<string>());
+            new PropertyMapping<ObservableCollection<string>>("stringTest", to.stringTest, new ObservableCollection<string>());
 
         public ObservableCollection<string> stringTest
         {
@@ -184,7 +172,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<string> uniqueStringTestMapping =
-            new PropertyMapping<string>("uniqueStringTest", TestOntology.uniqueStringTest);
+            new PropertyMapping<string>("uniqueStringTest", to.uniqueStringTest);
 
         public string uniqueStringTest
         {
@@ -193,7 +181,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<ObservableCollection<bool>> boolTestMapping =
-            new PropertyMapping<ObservableCollection<bool>>("boolTest", TestOntology.boolTest, new ObservableCollection<bool>());
+            new PropertyMapping<ObservableCollection<bool>>("boolTest", to.boolTest, new ObservableCollection<bool>());
 
         public ObservableCollection<bool> boolTest
         {
@@ -202,7 +190,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<bool> uniqueBoolTestMapping =
-            new PropertyMapping<bool>("uniqueBoolTest", TestOntology.uniqueBoolTest);
+            new PropertyMapping<bool>("uniqueBoolTest", to.uniqueBoolTest);
 
         public bool uniqueBoolTest
         {
@@ -211,7 +199,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<float> uniqueFloatTestMapping =
-            new PropertyMapping<float>("uniqueFloatTest", TestOntology.uniqueFloatTest);
+            new PropertyMapping<float>("uniqueFloatTest", to.uniqueFloatTest);
 
         public float uniqueFloatTest
         {
@@ -220,7 +208,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<double> uniqueDoubleTestMapping =
-            new PropertyMapping<double>("uniqueDoubleTest", TestOntology.uniqueDoubleTest);
+            new PropertyMapping<double>("uniqueDoubleTest", to.uniqueDoubleTest);
 
         public double uniqueDoubleTest
         {
@@ -229,7 +217,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<ObservableCollection<double>> doubleTestMapping =
-    new PropertyMapping<ObservableCollection<double>>("doubleTest", TestOntology.doubleTest);
+    new PropertyMapping<ObservableCollection<double>>("doubleTest", to.doubleTest);
 
         public ObservableCollection<double> DoubleTest
         {
@@ -238,7 +226,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<decimal> uniqueDecimalTestMapping =
-            new PropertyMapping<decimal>("uniqueDecimalTest", TestOntology.uniqueDecimalTest);
+            new PropertyMapping<decimal>("uniqueDecimalTest", to.uniqueDecimalTest);
 
         public decimal uniqueDecimalTest
         {
@@ -247,7 +235,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<ObservableCollection<Resource>> _genericPropertyMapping =
-            new PropertyMapping<ObservableCollection<Resource>>("genericProperty", TestOntology.genericTest);
+            new PropertyMapping<ObservableCollection<Resource>>("genericProperty", to.genericTest);
 
         public ObservableCollection<Resource> genericProperty
         {
@@ -256,7 +244,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<DateTime> uniqueDateTimeTestMapping =
-            new PropertyMapping<DateTime>("uniqueDateTimeTest", TestOntology.uniqueDatetimeTest);
+            new PropertyMapping<DateTime>("uniqueDateTimeTest", to.uniqueDatetimeTest);
 
         public DateTime uniqueDateTimeTest
         {
@@ -265,7 +253,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<ObservableCollection<DateTime>> dateTimeTestMapping =
-            new PropertyMapping<ObservableCollection<DateTime>>("dateTimeTest", TestOntology.datetimeTest, new ObservableCollection<DateTime>());
+            new PropertyMapping<ObservableCollection<DateTime>>("dateTimeTest", to.datetimeTest, new ObservableCollection<DateTime>());
 
         public ObservableCollection<DateTime> dateTimeTest
         {
@@ -274,7 +262,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<TimeSpan> uniqueTimeSpanTestMapping =
-            new PropertyMapping<TimeSpan>("uniqueTimeSpanTest", TestOntology.uniqueTimespanTest);
+            new PropertyMapping<TimeSpan>("uniqueTimeSpanTest", to.uniqueTimespanTest);
 
         public TimeSpan uniqueTimeSpanTest
         {
@@ -283,7 +271,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<ObservableCollection<TimeSpan>> timeSpanTestMapping =
-            new PropertyMapping<ObservableCollection<TimeSpan>>("timeSpanTest", TestOntology.timespanTest, new ObservableCollection<TimeSpan>());
+            new PropertyMapping<ObservableCollection<TimeSpan>>("timeSpanTest", to.timespanTest, new ObservableCollection<TimeSpan>());
 
         public ObservableCollection<TimeSpan> timeSpanTest
         {
@@ -292,7 +280,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<ObservableCollection<MappingTestClass2>> resourceTestMapping =
-            new PropertyMapping<ObservableCollection<MappingTestClass2>>("resourceTest", TestOntology.resourceTest, new ObservableCollection<MappingTestClass2>());
+            new PropertyMapping<ObservableCollection<MappingTestClass2>>("resourceTest", to.resourceTest, new ObservableCollection<MappingTestClass2>());
 
         public ObservableCollection<MappingTestClass2> resourceTest
         {
@@ -301,7 +289,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<MappingTestClass2> uniqueResourceTestMapping =
-            new PropertyMapping<MappingTestClass2>("uniqueResourceTest", TestOntology.uniqueResourceTest);
+            new PropertyMapping<MappingTestClass2>("uniqueResourceTest", to.uniqueResourceTest);
 
         public MappingTestClass2 uniqueResourceTest
         {
@@ -310,7 +298,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<Resource> resPropertyMapping =
-            new PropertyMapping<Resource>("resProperty", TestOntology.resTest);
+            new PropertyMapping<Resource>("resProperty", to.resTest);
 
         public Resource resProperty
         {
@@ -319,7 +307,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<ObservableCollection<Uri>> uriTestMapping =
-            new PropertyMapping<ObservableCollection<Uri>>("uriTest", TestOntology.uriTest, new ObservableCollection<Uri>());
+            new PropertyMapping<ObservableCollection<Uri>>("uriTest", to.uriTest, new ObservableCollection<Uri>());
 
         public ObservableCollection<Uri> uriTest
         {
@@ -328,7 +316,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         protected PropertyMapping<Uri> uniqueUriTestMapping =
-            new PropertyMapping<Uri>("uniqueUriTest", TestOntology.uniqueUriTest);
+            new PropertyMapping<Uri>("uniqueUriTest", to.uniqueUriTest);
 
         public Uri uniqueUriTest
         {
@@ -353,11 +341,11 @@ namespace Semiodesk.Trinity.Test
 
         public override IEnumerable<Class> GetTypes()
         {
-            return new List<Class> { TestOntology.TestClass2 };
+            return new List<Class> { to.TestClass2 };
         }
 
         protected PropertyMapping<string> uniqueStringTestMapping =
-            new PropertyMapping<string>("uniqueStringTest", TestOntology.uniqueStringTest);
+            new PropertyMapping<string>("uniqueStringTest", to.uniqueStringTest);
 
         public string uniqueStringTest
         {
@@ -380,7 +368,7 @@ namespace Semiodesk.Trinity.Test
 
         public override IEnumerable<Class> GetTypes()
         {
-            return new List<Class> { TestOntology.TestClass3 };
+            return new List<Class> { to.TestClass3 };
         }
 
         #endregion
@@ -398,11 +386,12 @@ namespace Semiodesk.Trinity.Test
 
         public override IEnumerable<Class> GetTypes()
         {
-            return new List<Class> { TestOntology.TestClass3 };
+            return new List<Class> { to.TestClass3 };
         }
 
         #endregion
     }
+    
     public class MappingTestClass5 : MappingTestClass3
     {
         #region Constructors
@@ -415,7 +404,7 @@ namespace Semiodesk.Trinity.Test
 
         public override IEnumerable<Class> GetTypes()
         {
-            return new List<Class> { TestOntology.TestClass4 };
+            return new List<Class> { to.TestClass4 };
         }
 
         #endregion
@@ -433,7 +422,7 @@ namespace Semiodesk.Trinity.Test
 
         public override IEnumerable<Class> GetTypes()
         {
-            return new List<Class> { TestOntology.TestClass3 };
+            return new List<Class> { to.TestClass3 };
         }
 
         public PropertyMapping<string> randomPropertyTestMapping =
@@ -446,7 +435,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         public PropertyMapping<string> uniqueStringTestMapping =
-            new PropertyMapping<string>("uniqueStringTest", TestOntology.uniqueStringTest.Uri.OriginalString);
+            new PropertyMapping<string>("uniqueStringTest", to.uniqueStringTest.Uri.OriginalString);
 
         public string uniqueStringTest
         {
@@ -455,7 +444,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         public PropertyMapping<List<string>> stringListTestMapping =
-    new PropertyMapping<List<string>>("stringListTest", TestOntology.stringTest);
+    new PropertyMapping<List<string>>("stringListTest", to.stringTest);
 
         public List<string> stringListTest
         {
@@ -473,7 +462,7 @@ namespace Semiodesk.Trinity.Test
         }
 
         public PropertyMapping<Tuple<string, string>> uniqueLocalizedStringPropertyTestMapping =
-new PropertyMapping<Tuple<string, string>>("uniqueLocalizedStringTest", TestOntology.uniqueLocalizedStringTestString);
+new PropertyMapping<Tuple<string, string>>("uniqueLocalizedStringTest", to.uniqueLocalizedStringTestString);
 
         public Tuple<string, string> uniqueLocalizedStringTest
         {
@@ -482,7 +471,7 @@ new PropertyMapping<Tuple<string, string>>("uniqueLocalizedStringTest", TestOnto
         }
 
         public PropertyMapping<List<Tuple<string, string>>> localizedStringPropertyTestMapping =
-    new PropertyMapping<List<Tuple<string, string>>>("localizedStringTest", TestOntology.localizedStringTestString);
+    new PropertyMapping<List<Tuple<string, string>>>("localizedStringTest", to.localizedStringTestString);
 
         public List<Tuple<string, string>> localizedStringTest
         {
@@ -499,11 +488,11 @@ new PropertyMapping<Tuple<string, string>>("uniqueLocalizedStringTest", TestOnto
 
         public override IEnumerable<Class> GetTypes()
         {
-            yield return TestOntology.JsonTestClass;
+            yield return to.JsonTestClass;
         }
 
         protected PropertyMapping<ObservableCollection<string>> stringTestMapping =
-            new PropertyMapping<ObservableCollection<string>>("stringTest", TestOntology.stringTest, new ObservableCollection<string>());
+            new PropertyMapping<ObservableCollection<string>>("stringTest", to.stringTest, new ObservableCollection<string>());
 
         public ObservableCollection<string> stringTest
         {
@@ -519,172 +508,4 @@ new PropertyMapping<Tuple<string, string>>("uniqueLocalizedStringTest", TestOnto
 
         #endregion
     }
-
-    public class ContactList : Resource
-    {
-        #region Constructors
-        public ContactList(Uri uri) : base(uri) { }
-        #endregion
-
-        public override IEnumerable<Class> GetTypes()
-        {
-            return new List<Class> { nco.ContactList };
-        }
-
-        protected PropertyMapping<ObservableCollection<Contact>> containsContactProperty = new PropertyMapping<ObservableCollection<Contact>>("ContainsContact", nco.containsContact, new ObservableCollection<Contact>());
-
-        public ObservableCollection<Contact> ContainsContact
-        {
-            get { return GetValue(containsContactProperty); }
-            set { SetValue(containsContactProperty, value); }
-        }
-    }
-
-    public class EmailAddress : Resource
-    {
-        #region Constructors
-        public EmailAddress(Uri uri) : base(uri) { }
-        #endregion
-
-        public override IEnumerable<Class> GetTypes()
-        {
-            return new List<Class> { nco.EmailAddress };
-        }
-
-        protected PropertyMapping<string> addressProperty = new PropertyMapping<string>("Address", nco.emailAddress);
-
-        public string Address
-        {
-            get { return GetValue(addressProperty); }
-            set { SetValue(addressProperty, value); }
-        }
-    }
-
-    public class PostalAddress : Resource
-    {
-        #region Constructors
-        public PostalAddress(Uri uri) : base(uri) { }
-        #endregion
-
-        public override IEnumerable<Class> GetTypes()
-        {
-            return new List<Class> { nco.PostalAddress };
-        }
-
-        protected PropertyMapping<string> countryProperty = new PropertyMapping<string>("Country", nco.country);
-        public string Country
-        {
-            get { return GetValue(countryProperty); }
-            set { SetValue(countryProperty, value); }
-        }
-
-        protected PropertyMapping<string> postalCodeProperty = new PropertyMapping<string>("PostalCode", nco.postalcode);
-        public string PostalCode
-        {
-            get { return GetValue(postalCodeProperty); }
-            set { SetValue(postalCodeProperty, value); }
-        }
-
-        protected PropertyMapping<string> localityProperty = new PropertyMapping<string>("City", nco.locality);
-        public string City
-        {
-            get { return GetValue(localityProperty); }
-            set { SetValue(localityProperty, value); }
-        }
-
-        protected PropertyMapping<string> streetAddressProperty = new PropertyMapping<string>("StreetAddress", nco.postalcode);
-        public string StreetAddress
-        {
-            get { return GetValue(streetAddressProperty); }
-            set { SetValue(streetAddressProperty, value); }
-        }
-    }
-
-    public class Contact : Resource
-    {
-        #region Constructors
-        public Contact(Uri uri) : base(uri) { }
-        #endregion
-
-        public override IEnumerable<Class> GetTypes()
-        {
-            return new List<Class> { nco.Contact };
-        }
-
-        protected PropertyMapping<string> fullnameProperty = new PropertyMapping<string>("Fullname", nco.fullname, true);
-
-        public string Fullname
-        {
-            get { return GetValue(fullnameProperty); }
-            set { SetValue(fullnameProperty, value); }
-        }
-
-        protected PropertyMapping<DateTime> birthDateProperty = new PropertyMapping<DateTime>("BirthDate", nco.birthDate);
-
-        public DateTime BirthDate
-        {
-            get { return GetValue(birthDateProperty); }
-            set { SetValue(birthDateProperty, value); }
-        }
-
-        protected PropertyMapping<ObservableCollection<EmailAddress>> emailAddressProperty = new PropertyMapping<ObservableCollection<EmailAddress>>("EmailAddresses", nco.hasEmailAddress, new ObservableCollection<EmailAddress>());
-        public ObservableCollection<EmailAddress> EmailAddresses
-        {
-            get { return GetValue(emailAddressProperty); }
-            set { SetValue(emailAddressProperty, value); }
-        }
-
-        protected PropertyMapping<ObservableCollection<PostalAddress>> postalAddressProperty = new PropertyMapping<ObservableCollection<PostalAddress>>("PostalAddresses", nco.hasPostalAddress, new ObservableCollection<PostalAddress>());
-        public ObservableCollection<PostalAddress> PostalAddresses
-        {
-            get { return GetValue(postalAddressProperty); }
-            set { SetValue(postalAddressProperty, value); }
-        }
-
-    }
-
-    public class PersonContact : Contact
-    {
-        #region Constructors
-        public PersonContact(Uri uri) : base(uri) { }
-        #endregion
-
-        public override IEnumerable<Class> GetTypes()
-        {
-            return new List<Class> { nco.PersonContact };
-        }
-
-        protected PropertyMapping<string> nameGivenProperty = new PropertyMapping<string>("NameGiven", nco.nameGiven, true);
-
-        public string NameGiven
-        {
-            get { return GetValue(nameGivenProperty); }
-            set { SetValue(nameGivenProperty, value); }
-        }
-
-        protected PropertyMapping<ObservableCollection<string>> nameAdditonalProperty = new PropertyMapping<ObservableCollection<string>>("NameAdditional", nco.nameAdditional, new ObservableCollection<string>(), true);
-
-        public ObservableCollection<string> NameAdditional
-        {
-            get { return GetValue(nameAdditonalProperty); }
-            set { SetValue(nameAdditonalProperty, value); }
-        }
-
-        protected PropertyMapping<string> nameFamilyProperty = new PropertyMapping<string>("NameFamily", nco.nameFamily, true);
-
-        public string NameFamily
-        {
-            get { return GetValue(nameFamilyProperty); }
-            set { SetValue(nameFamilyProperty, value); }
-        }
-
-        private bool _isSelected;
-
-        public bool IsSelected
-        {
-            get { return _isSelected; }
-            set { _isSelected = value; RaisePropertyChanged("IsSelected"); }
-        }
-    }
-
 }

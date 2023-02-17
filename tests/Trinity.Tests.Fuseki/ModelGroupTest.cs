@@ -27,10 +27,10 @@
 
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
-using System;
 using System.Linq;
+using System;
 
-namespace Semiodesk.Trinity.Test.Fuseki
+namespace Semiodesk.Trinity.Tests.Fuseki
 {
     [TestFixture]
     public class ModelGroupTest : SetupClass

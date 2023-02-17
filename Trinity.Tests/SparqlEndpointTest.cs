@@ -29,7 +29,7 @@ using System;
 using System.Linq;
 using NUnit.Framework;
 
-namespace Semiodesk.Trinity.Test
+namespace Semiodesk.Trinity.Tests
 {
     [TestFixture]
     public class SparqlEndpointTest

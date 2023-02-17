@@ -25,14 +25,11 @@
 //
 // Copyright (c) Semiodesk GmbH 2022
 
-
 using System.Collections.Generic;
 using System.Composition;
 
-
 namespace Semiodesk.Trinity.Store.Fuseki
 {
-
     [Export(typeof(StoreProvider))]
 
     public class FusekiStoreProvider : StoreProvider
@@ -42,50 +39,46 @@ namespace Semiodesk.Trinity.Store.Fuseki
             Name = "fuseki";
         }
 
-        public override IStore GetStore(Dictionary<string, string> configurationDictionary )
+        public override IStore GetStore(Dictionary<string, string> config )
         {
             string hostKey = "host";
             string host = "http://localhost:3030/";
 
-            if (configurationDictionary.ContainsKey(hostKey))
+            if (config.ContainsKey(hostKey))
             {
-                host = configurationDictionary[hostKey];
+                host = config[hostKey];
             }
 
             string datasetKey = "dataset";
             string dataset = "dataset";
 
-            if (configurationDictionary.ContainsKey(datasetKey))
+            if (config.ContainsKey(datasetKey))
             {
-                dataset = configurationDictionary[datasetKey];
+                dataset = config[datasetKey];
             }
 
             string userKey = "uid";
             string user = null;
 
-            if (configurationDictionary.ContainsKey(userKey))
+            if (config.ContainsKey(userKey))
             {
-                user = configurationDictionary["uid"];
+                user = config["uid"];
             }
-
-
+            
             string passwordKey = "pw";
             string password = null;
 
-            if (configurationDictionary.ContainsKey(passwordKey))
+            if (config.ContainsKey(passwordKey))
             {
-                password = configurationDictionary[passwordKey];
+                password = config[passwordKey];
             }
 
             if (string.IsNullOrEmpty(host))
             {
                 return null;
             }
-
-          
-            FusekiStore store = new FusekiStore(host, dataset, user, password);
-
-            return store;
+            
+            return new FusekiStore(host, dataset, user, password);
         }
     }
 }

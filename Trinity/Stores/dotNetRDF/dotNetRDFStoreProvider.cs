@@ -59,16 +59,16 @@ namespace Semiodesk.Trinity.Store
         /// <summary>
         /// Create a new triple store with the given settings.
         /// </summary>
-        /// <param name="configurationDictionary">Triple store setting variables.</param>
+        /// <param name="config">Triple store setting variables.</param>
         /// <returns></returns>
-        public override IStore GetStore(Dictionary<string, string> configurationDictionary)
+        public override IStore GetStore(Dictionary<string, string> config)
         {
             string schemaKey = "schema";
             string[] schema = null;
 
-            if (configurationDictionary.ContainsKey(schemaKey))
+            if (config.ContainsKey(schemaKey))
             {
-                schema = configurationDictionary[schemaKey].Split(',');
+                schema = config[schemaKey].Split(',');
             }
 
             return new dotNetRDFStore(schema);

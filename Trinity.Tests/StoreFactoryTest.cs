@@ -27,7 +27,7 @@
 
 using NUnit.Framework;
 
-namespace Semiodesk.Trinity.Test
+namespace Semiodesk.Trinity.Tests
 {
     [TestFixture]
     class StoreFactoryTest : SetupClass

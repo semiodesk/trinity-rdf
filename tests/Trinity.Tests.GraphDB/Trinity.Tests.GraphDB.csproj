@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <Title>Trinity.Test.GraphDB</Title>
+    <Copyright>Copyright © Semiodesk GmbH 2023</Copyright>
+    <Description></Description>
+    <Company>Semiodesk GmbH</Company>
+    <Version>1.0.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyName>Semiodesk.Trinity.Tests.GraphDB</AssemblyName>
+    <RootNamespace>Semiodesk.Trinity.Tests.GraphDB</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <StartupObject></StartupObject>
+    <IsPackable>false</IsPackable>
+    <PackageId>Semiodesk.Trinity.Tests.GraphDB</PackageId>
+    <Authors>Semiodesk.Trinity.Tests.GraphDB</Authors>
+    <Product>Semiodesk.Trinity.Tests.GraphDB</Product>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Properties\**" />
+    <EmbeddedResource Remove="Properties\**" />
+    <None Remove="Properties\**" />
+    <None Update="ontologies\nco.ttl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NUnit" Version="3.12.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Trinity.Fuseki\Trinity.Fuseki.csproj" />
+    <ProjectReference Include="..\..\Trinity.GraphDB\Trinity.GraphDB.csproj" />
+    <ProjectReference Include="..\..\Trinity.Tests\Trinity.Tests.csproj" />
+    <ProjectReference Include="..\..\Trinity.Virtuoso\Trinity.Virtuoso.csproj" />
+    <ProjectReference Include="..\..\Trinity\Trinity.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="ontologies.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="ontologies\foaf.rdf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

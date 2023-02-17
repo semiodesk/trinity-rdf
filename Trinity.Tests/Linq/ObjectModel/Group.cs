@@ -27,7 +27,7 @@
 
 using System;
 
-namespace Semiodesk.Trinity.Test.Linq
+namespace Semiodesk.Trinity.Tests.Linq
 {
     [RdfClass(FOAF.Group)]
     internal class Group : Resource

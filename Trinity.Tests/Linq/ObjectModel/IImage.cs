@@ -25,7 +25,7 @@
 //
 // Copyright (c) Semiodesk GmbH 2015-2019
 
-namespace Semiodesk.Trinity.Test.Linq
+namespace Semiodesk.Trinity.Tests.Linq
 {
     public interface IImage : IResource
     {

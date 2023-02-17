@@ -35,10 +35,6 @@ namespace Semiodesk.Trinity.Store.Fuseki
     /// </summary>
     internal class FusekiSparqlQueryResult : dotNetRDFQueryResult
     {
-        #region Members
-
-        #endregion
-
         #region Constructors
 
         /// <summary>
@@ -49,7 +45,6 @@ namespace Semiodesk.Trinity.Store.Fuseki
         /// <param name="resultSet">the results</param>
         internal FusekiSparqlQueryResult(FusekiStore store, ISparqlQuery query, SparqlResultSet resultSet) : base(store, query, resultSet)
         {
- 
         }
 
         /// <summary>
@@ -60,15 +55,8 @@ namespace Semiodesk.Trinity.Store.Fuseki
         /// <param name="graph">the results</param>
         internal FusekiSparqlQueryResult(FusekiStore store, ISparqlQuery query, IGraph graph) : base(store, query, graph)
         {
-
         }
 
         #endregion
-
-        #region Methods
-
-        #endregion
-
     }
-
 }

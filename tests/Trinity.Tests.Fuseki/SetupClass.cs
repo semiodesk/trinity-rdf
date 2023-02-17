@@ -2,8 +2,9 @@
 using System.IO;
 using NUnit.Framework;
 using Semiodesk.Trinity.Store.Fuseki;
+using Semiodesk.Trinity.Tests;
 
-namespace Semiodesk.Trinity.Test.Fuseki
+namespace Semiodesk.Trinity.Tests.Fuseki
 {
 
     public class SetupClass
@@ -35,16 +36,14 @@ namespace Semiodesk.Trinity.Test.Fuseki
             }
 
             folder.Create();
-
-
-            ConnectionString = "provider=fuseki;host=http://localhost:3030;dataset=ds";
+            
+            ConnectionString = "provider=fuseki;host=http://localhost:3030;uid=admin;pw=test;dataset=ds";
             
         }
 
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
-          
         }
 
         #endregion

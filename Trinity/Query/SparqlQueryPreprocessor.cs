@@ -304,7 +304,7 @@ namespace Semiodesk.Trinity
 
             if (_limitValueToken == null)
             {
-                Tokens.Insert(Tokens.Count - 1, new OffsetKeywordToken(-1, -1));
+                Tokens.Insert(Tokens.Count - 1, new LimitKeywordToken(-1, -1));
                 Tokens.Insert(Tokens.Count - 1, new PlainLiteralToken(value, -1, -1, -1));
             }
             else

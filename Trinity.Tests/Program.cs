@@ -31,7 +31,7 @@ using System.Linq;
 using System.Text;
 using System.Reflection;
 
-namespace Semiodesk.Trinity.Test
+namespace Semiodesk.Trinity.Tests
 {
     class TestRunner
     {

@@ -29,7 +29,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using Semiodesk.Trinity.Store;
 
-namespace Semiodesk.Trinity.Test
+namespace Semiodesk.Trinity.Tests
 {
     [TestFixture]
     class StoreProviderTest

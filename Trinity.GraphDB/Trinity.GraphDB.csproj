@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <Title>Semiodesk.Trinity.GraphDB</Title>
+    <Copyright>Copyright © Semiodesk GmbH 2015-2023</Copyright>
+    <Description>This package provides an Ontotext GraphDB store adapter for the Trinity RDF ORM.</Description>
+    <Company>Semiodesk GmbH</Company>
+    <Version>1.0.3.50</Version>
+    <AssemblyVersion>1.0.3.30</AssemblyVersion>
+    <FileVersion>1.0.3.30</FileVersion>
+    <AssemblyName>Semiodesk.Trinity.GraphDB</AssemblyName>
+    <RootNamespace>Semiodesk.Trinity.Store.GraphDB</RootNamespace>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OutputPath>..\Build\$(Configuration)\stores\graphdb</OutputPath>
+    <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+    <PackageLicenseUrl></PackageLicenseUrl>
+    <PackageProjectUrl>https://trinity-rdf.net</PackageProjectUrl>
+    <PackageIcon>trinity-logo.png</PackageIcon>
+    <RepositoryUrl>https://github.com/semiodesk/trinity-rdf</RepositoryUrl>
+    <PackageTags>RDF SPARQL Database Semantic Object Mapping Linked Data GraphDB</PackageTags>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="dotNetRDF" Version="2.7.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="5.0.0" />
+    <PackageReference Include="System.Data.Common" Version="4.3.0" />
+    <PackageReference Include="System.Security.Permissions" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\assets\trinity-logo.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Trinity\Trinity.csproj" />
+  </ItemGroup>
+
+</Project>

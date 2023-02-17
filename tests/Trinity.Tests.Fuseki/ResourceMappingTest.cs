@@ -34,10 +34,8 @@ using NUnit.Framework;
 using Semiodesk.Trinity.Serialization;
 using Newtonsoft.Json;
 
-namespace Semiodesk.Trinity.Test.Fuseki
+namespace Semiodesk.Trinity.Tests.Fuseki
 {
- 
-
     [TestFixture]
     public class ResourceMappingTest : SetupClass
     {

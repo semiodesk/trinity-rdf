@@ -1,0 +1,661 @@
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Affiliation> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Aggregates three properties defined in RFC2426. Originally all three were attached directly to a person. One person could have only one title and one role within one organization. This class is intended to lift this limitation.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "Affiliation";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Role> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#AudioIMAccount> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nao#deprecated> true;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Deprecated in favour of nco:imCapabilityAudio.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "AudioIMAccount";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#BbsNumber> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A Bulletin Board System (BBS) phone number. Inspired by the (TYPE=bbsl) parameter of the TEL property as defined in RFC 2426 sec  3.3.1.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "BbsNumber";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ModemNumber> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#CarPhoneNumber> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A car phone number. Inspired by the (TYPE=car) parameter of the TEL property as defined in RFC 2426 sec  3.3.1.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "CarPhoneNumber";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#VoicePhoneNumber> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#CellPhoneNumber> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A cellular phone number. Inspired by the (TYPE=cell) parameter of the TEL property as defined in RFC 2426 sec  3.3.1. Usually a cellular phone can accept voice calls as well as textual messages (SMS), therefore this class has two superclasses.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "CellPhoneNumber";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#MessagingNumber>,
+    <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#VoicePhoneNumber> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A Contact. A piece of data that can provide means to identify or communicate with an entity.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "Contact";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#InformationElement>,
+    <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Role>, <http://www.semanticdesktop.org/ontologies/2007/08/15/nao#Party> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ContactGroup> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A group of Contacts. Could be used to express a group in an addressbook or on a contact list of an IM application. One contact can belong to many groups.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "ContactGroup";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#InformationElement> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ContactList> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A contact list, this class represents an addressbook or a contact list of an IM application. Contacts inside a contact list can belong to contact groups.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "ContactList";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#InformationElement> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ContactListDataObject> a
+    <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "An entity occuring on a contact list (usually interpreted as an nco:Contact)";
+  <http://www.w3.org/2000/01/rdf-schema#label> "ContactListDataObject";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#DataObject> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ContactMedium> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A superclass for all contact media - ways to contact an entity represented by a Contact instance. Some of the subclasses of this class (the various kinds of telephone numbers and postal addresses) have been inspired by the values of the TYPE parameter of ADR and TEL properties defined in RFC 2426 sec. 3.2.1. and 3.3.1 respectively. Each value is represented by an appropriate subclass with two major exceptions TYPE=home and TYPE=work. They are to be expressed by the roles these contact media are attached to i.e. contact media with TYPE=home parameter are to be attached to the default role (nco:Contact or nco:PersonContact), whereas media with TYPE=work parameter should be attached to nco:Affiliation or nco:OrganizationContact.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "ContactMedium";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.w3.org/2000/01/rdf-schema#Resource> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#DomesticDeliveryAddress>
+  a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Domestic Delivery Addresse. Class inspired by TYPE=dom parameter of the ADR property defined in RFC 2426 sec. 3.2.1";
+  <http://www.w3.org/2000/01/rdf-schema#label> "DomesticDeliveryAddress";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PostalAddress> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#EmailAddress> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "An email address. The recommended best practice is to use mailto: uris for instances of this class.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "EmailAddress";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ContactMedium> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#FaxNumber> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A fax number. Inspired by the (TYPE=fax) parameter of the TEL property as defined in RFC 2426 sec  3.3.1.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "FaxNumber";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PhoneNumber> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Gender> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Gender. Instances of this class may include male and female.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "Gender";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.w3.org/2000/01/rdf-schema#Resource> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "An account in an Instant Messaging system.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "IMAccount";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ContactMedium> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMCapability> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Capabilities of a cetain IMAccount.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "imCapability";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.w3.org/2000/01/rdf-schema#Resource> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMStatusType> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "The status type of an IMAccount. Based on the Connection_Presence_Type enumeration of the Telepathy project: http://telepathy.freedesktop.org/spec/Connection_Interface_Simple_Presence.html#Enum:Connection_Presence_Type";
+  <http://www.w3.org/2000/01/rdf-schema#label> "instant messaging status type";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.w3.org/2000/01/rdf-schema#Resource> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMStatusTypeAvailable> a
+    <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMStatusType>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "available" .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMStatusTypeAway> a <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMStatusType>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "away" .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMStatusTypeBusy> a <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMStatusType>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "busy" .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMStatusTypeExtendedAway>
+  a <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMStatusType>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "extended away" .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMStatusTypeHidden> a <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMStatusType>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "hidden" .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMStatusTypeOffline> a <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMStatusType>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "offline" .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMStatusTypeUnknown> a <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMStatusType>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "unknown" .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#InternationalDeliveryAddress>
+  a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "International Delivery Addresse. Class inspired by TYPE=intl parameter of the ADR property defined in RFC 2426 sec. 3.2.1";
+  <http://www.w3.org/2000/01/rdf-schema#label> "InternationalDeliveryAddress";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PostalAddress> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IsdnNumber> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "An ISDN phone number. Inspired by the (TYPE=isdn) parameter of the TEL property as defined in RFC 2426 sec  3.3.1.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "IsdnNumber";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#VoicePhoneNumber> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#MessagingNumber> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A number that can accept textual messages.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "MessagingNumber";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PhoneNumber> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ModemNumber> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A modem phone number. Inspired by the (TYPE=modem) parameter of the TEL property as defined in RFC 2426 sec  3.3.1.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "ModemNumber";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PhoneNumber> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#OrganizationContact> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A Contact that denotes on Organization.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "OrganizationContact";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PagerNumber> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A pager phone number. Inspired by the (TYPE=pager) parameter of the TEL property as defined in RFC 2426 sec  3.3.1.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "PagerNumber";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#MessagingNumber> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ParcelDeliveryAddress> a
+    <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Parcel Delivery Addresse. Class inspired by TYPE=parcel parameter of the ADR property defined in RFC 2426 sec. 3.2.1";
+  <http://www.w3.org/2000/01/rdf-schema#label> "ParcelDeliveryAddress";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PostalAddress> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PcsNumber> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Personal Communication Services Number. A class inspired by the TYPE=pcs parameter of the TEL property defined in RFC 2426 sec. 3.3.1";
+  <http://www.w3.org/2000/01/rdf-schema#label> "PcsNumber";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#VoicePhoneNumber> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A Contact that denotes a Person. A person can have multiple Affiliations.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "PersonContact";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PhoneNumber> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A telephone number.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "PhoneNumber";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ContactMedium> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PostalAddress> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A postal address. A class aggregating the various parts of a value for the 'ADR' property as defined in RFC 2426 Sec. 3.2.1.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "PostalAddress";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ContactMedium> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Role> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A role played by a contact. Contacts that denote people, can have many roles (e.g. see the hasAffiliation property and Affiliation class). Contacts that denote Organizations or other Agents usually have one role.  Each role can introduce additional contact media.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "Role";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.w3.org/2000/01/rdf-schema#Resource> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#VideoIMAccount> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nao#deprecated> true;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Deprecated in favour of nco:imCapabilityVideo.";
+  <http://www.w3.org/2000/01/rdf-schema#label> "VideoIMAccount";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#AudioIMAccount> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#VideoTelephoneNumber> a
+    <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A Video telephone number. A class inspired by the TYPE=video parameter of the TEL property defined in RFC 2426 sec. 3.3.1";
+  <http://www.w3.org/2000/01/rdf-schema#label> "VideoTelephoneNumber";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#VoicePhoneNumber> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#VoicePhoneNumber> a <http://www.w3.org/2000/01/rdf-schema#Class>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A telephone number with voice communication capabilities. Class inspired by the TYPE=voice parameter of the TEL property defined in RFC 2426 sec. 3.3.1";
+  <http://www.w3.org/2000/01/rdf-schema#label> "VoicePhoneNumber";
+  <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PhoneNumber> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#addressLocation> a <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#DefiningProperty>,
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#comment> "The geographical location of a postal address.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PostalAddress>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "addressLocation";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2003/01/geo/wgs84_pos#Point> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#belongsToGroup> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Links a Contact with a ContactGroup it belongs to.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "belongsToGroup";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ContactGroup> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#birthDate> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> 1;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Birth date of the object represented by this Contact. An equivalent of the 'BDAY' property as defined in RFC 2426 Sec. 3.1.5.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "birthDate";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#date>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://purl.org/dc/elements/1.1/date> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#birthday> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Links a contact with the calendar event of his birthday. (NCAL version)";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "birthday";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/04/02/ncal#BirthdayEvent> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#blogUrl> a <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#DefiningProperty>,
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A Blog url.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Role>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "blogUrl";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2000/01/rdf-schema#Resource>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#url> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#contactGroupName> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> 1;
+  <http://www.w3.org/2000/01/rdf-schema#comment> """The name of the contact group. This property was NOT defined 
+    in the VCARD standard. See documentation of the 'ContactGroup' class for 
+    details""";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ContactGroup>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "contactGroupName";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://purl.org/dc/elements/1.1/title> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#contactMediumComment> a
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nao#deprecated> true;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A comment about the contact medium. (Deprecated in favor of nie:comment or nao:description - based on the context)";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ContactMedium>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "contactMediumComment";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#contactUID> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A value that represents a globally unique  identifier corresponding to the individual or resource associated with the Contact. An equivalent of the 'UID' property defined in RFC 2426 Sec. 3.6.7";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "contactUID";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#identifier> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#containsContact> a <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#DefiningProperty>,
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> """A property used to group contacts into contact groups. This 
+    property was NOT defined in the VCARD standard. See documentation for the 
+    'ContactList' class for details""";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ContactList>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "containsContact";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ContactListDataObject>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#hasPart> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#contributor> a <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#DefiningProperty>,
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "An entity responsible for making contributions to the content of the InformationElement.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#InformationElement>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "contributor";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://purl.org/dc/elements/1.1/contributor>,
+    <http://www.semanticdesktop.org/ontologies/2007/08/15/nao#contributor> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#country> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> 1;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A part of an address specyfing the country. Inspired by the seventh part of the value of the 'ADR' property as defined in RFC 2426, sec. 3.2.1";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PostalAddress>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "country";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#creator> a <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#DefiningProperty>,
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Creator of an information element, an entity primarily responsible for the creation of the content of the data object.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#InformationElement>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "creator";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://purl.org/dc/elements/1.1/creator>,
+    <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#contributor>, <http://www.semanticdesktop.org/ontologies/2007/08/15/nao#creator> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#department> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Department. The organizational unit within the organization.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Affiliation>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "department";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#emailAddress> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> 1;
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#EmailAddress>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "emailAddress";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#end> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> 1;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "End datetime for the role, such as: the datetime of leaving a project or organization, datetime of ending employment, datetime of divorce. If absent or set to a date in the future, the role is currently active.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Role>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "end";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#dateTime> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#extendedAddress> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#comment> "An extended part of an address. This field might be used to express parts of an address that aren't include in the name of the Contact but also aren't part of the actual location. Usually the streed address and following fields are enough for a postal letter to arrive. Examples may include ('University of California Campus building 45', 'Sears Tower 34th floor' etc.) Inspired by the second part of the value of the 'ADR' property as defined in RFC 2426, sec. 3.2.1";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PostalAddress>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "extendedAddress";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#female> a <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Gender>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A Female";
+  <http://www.w3.org/2000/01/rdf-schema#label> "female" .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#foafUrl> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "The URL of the FOAF file.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Role>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "foafUrl";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2000/01/rdf-schema#Resource>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#url> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#fullname> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#comment> "To specify the formatted text corresponding to the name of the object the Contact represents. An equivalent of the FN property as defined in RFC 2426 Sec. 3.1.1.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "fullname";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#title> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#gender> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> 1;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Gender of the given contact.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "gender";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Gender> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#hasAffiliation> a <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#DefiningProperty>,
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Links a PersonContact with an Affiliation.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "hasAffiliation";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Affiliation> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#hasContactMedium> a <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#DefiningProperty>,
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A superProperty for all properties linking a Contact to an instance of a contact medium.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Role>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "hasContactMedium";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#ContactMedium> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#hasEmailAddress> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "An address for electronic mail communication with the object specified by this contact. An equivalent of the 'EMAIL' property as defined in RFC 2426 Sec. 3.3.1.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Role>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "hasEmailAddress";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#EmailAddress>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#hasContactMedium> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#hasIMAccount> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Indicates that an Instant Messaging account owned by an entity represented by this contact.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Role>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "hasIMAccount";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#hasContactMedium> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#hasIMCapability> a <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#DefiningProperty>,
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Indicates that an IMAccount has a certain capability.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "hasIMCapability";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMCapability> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#hasLocation> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Geographical location of the contact. Inspired by the 'GEO' property specified in RFC 2426 Sec. 3.4.2";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "hasLocation";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2003/01/geo/wgs84_pos#Point> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#hasPhoneNumber> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A number for telephony communication with the object represented by this Contact. An equivalent of the 'TEL' property defined in RFC 2426 Sec. 3.3.1";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Role>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "hasPhoneNumber";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PhoneNumber>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#hasContactMedium> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#hasPostalAddress> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "The default Address for a Contact. An equivalent of the 'ADR' property as defined in RFC 2426 Sec. 3.2.1.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Role>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "hasPostalAddress";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PostalAddress>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#hasContactMedium> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#hobby> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A hobby associated with a PersonContact. This property can be used to express hobbies and interests.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "hobby";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#imAccountType> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Type of the IM account. This may be the name of the service that provides the IM functionality. Examples might include Jabber, ICQ, MSN etc";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "imAccountType";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#imCapabilityAudio> a <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMCapability> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#imCapabilityText> a <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMCapability> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#imCapabilityVideo> a <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMCapability> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#imID> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Identifier of the IM account. Examples of such identifier might include ICQ UINs, Jabber IDs, Skype names etc.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "imID";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.semanticdesktop.org/ontologies/2007/08/15/nao#identifier> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#imNickname> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A nickname attached to a particular IM Account.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "imNickname";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#imStatus> a <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#NonDefiningProperty>,
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> 1;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Current status of the given IM account. When this property is set, the nco:imStatusType should also always be set. Applications should attempt to parse this property to determine the presence, only falling back to the nco:imStatusType property in the case that this property's value is unrecognised. Values for this property may include 'available', 'offline', 'busy' etc. The exact choice of them is unspecified, although it is recommended to follow the guidance of the Telepathy project when choosing a string identifier http://telepathy.freedesktop.org/spec/Connection_Interface_Simple_Presence.html#description";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "imStatus";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#imStatusMessage> a <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#NonDefiningProperty>,
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A feature common in most IM systems. A message left by the user for all his/her contacts to see.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "imStatusMessage";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#imStatusType> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> 1;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Current status type of the given IM account. When this property is set, the nco:imStatus property should also always be set. Applications should attempt to parse the nco:imStatus property to determine the presence, only falling back to this property in the case that the nco:imStatus property's value is unrecognised.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "instant messaging status type";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMStatusType> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#isAccessedBy> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Indicates the local IMAccount by which this IMAccount is accessed. This does not imply membership of a contact list.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "isKnownBy";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#isBlocked> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Indicates that this IMAccount has been blocked.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "isBlocked";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#boolean> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#key> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "An encryption key attached to a contact. Inspired by the KEY property defined in RFC 2426 sec. 3.7.2";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "key";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#DataObject>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#hasPart> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#locality> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> 1;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Locality or City. Inspired by the fourth part of the value of the 'ADR' property as defined in RFC 2426, sec. 3.2.1";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PostalAddress>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "locality";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#logo> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Logo of a company. Inspired by the LOGO property defined in RFC 2426 sec. 3.5.3";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#OrganizationContact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "logo";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#DataObject>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#hasPart> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#male> a <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Gender>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A Male";
+  <http://www.w3.org/2000/01/rdf-schema#label> "male" .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#nameAdditional> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Additional given name of an object represented by this contact. See documentation for 'nameFamily' property for details.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "nameAdditional";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#nameFamily> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#comment> "The family name of an Object represented by this Contact. These applies to people that have more than one given name. The 'first' one is considered 'the' given name (see nameGiven) property. All additional ones are considered 'additional' names. The name inherited from parents is the 'family name'. e.g. For Dr. John Phil Paul Stevenson Jr. M.D. A.C.P. we have contact with: honorificPrefix: 'Dr.', nameGiven: 'John', nameAdditional: 'Phil', nameAdditional: 'Paul', nameFamily: 'Stevenson', honorificSuffix: 'Jr.', honorificSuffix: 'M.D.', honorificSuffix: 'A.C.P.'. These properties form an equivalent of the compound 'N' property as defined in RFC 2426 Sec. 3.1.2";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "nameFamily";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#nameGiven> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#comment> "The given name for the object represented by this Contact. See documentation for 'nameFamily' property for details.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "nameGiven";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#nameHonorificPrefix> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A prefix for the name of the object represented by this Contact. See documentation for the 'nameFamily' property for details.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "nameHonorificPrefix";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#nameHonorificSuffix> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A suffix for the name of the Object represented by the given object. See documentation for the 'nameFamily' for details.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "nameHonorificSuffix";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#nickname> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A nickname of the Object represented by this Contact. This is an equivalent of the 'NICKNAME' property as defined in RFC 2426 Sec. 3.1.3.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "nickname";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#note> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A note about the object represented by this Contact. An equivalent for the 'NOTE' property defined in RFC 2426 Sec. 3.6.2";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "note";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#description> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#org> a <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#DefiningProperty>,
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Name of an organization or a unit within an organization the object represented by a Contact is associated with. An equivalent of the 'ORG' property defined in RFC 2426 Sec. 3.5.5";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Affiliation>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "org";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#OrganizationContact> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#phoneNumber> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PhoneNumber>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "phoneNumber";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#photo> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Photograph attached to a Contact. The DataObject referred to by this property is usually interpreted as an nfo:Image. Inspired by the PHOTO property defined in RFC 2426 sec. 3.1.4";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "photo";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#DataObject>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#hasPart> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#pobox> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Post office box. This is the first part of the value of the 'ADR' property as defined in RFC 2426, sec. 3.2.1";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PostalAddress>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "pobox";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#postalcode> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> 1;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Postal Code. Inspired by the sixth part of the value of the 'ADR' property as defined in RFC 2426, sec. 3.2.1";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PostalAddress>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "postalcode";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#publisher> a <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#DefiningProperty>,
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "An entity responsible for making the InformationElement available.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#InformationElement>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "publisher";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://purl.org/dc/elements/1.1/publisher> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#publishesPresenceTo> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Indicates that this IMAccount publishes its presence information to the other IMAccount.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "publishesPresenceTo";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#region> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> 1;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Region. Inspired by the fifth part of the value of the 'ADR' property as defined in RFC 2426, sec. 3.2.1";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PostalAddress>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "region";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#representative> a <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#DefiningProperty>,
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "An object that represent an object represented by this Contact. Usually this property is used to link a Contact to an organization, to a contact to the representative of this organization the user directly interacts with. An equivalent for the 'AGENT' property defined in RFC 2426 Sec. 3.5.4";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "representative";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#requestedPresenceSubscriptionTo>
+  a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Indicates that this IMAccount has requested a subscription to the presence information of the other IMAccount.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "requestedPresenceSubscriptionTo";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#IMAccount> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#role> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Role an object represented by this contact represents in the organization. This might include 'Programmer', 'Manager', 'Sales Representative'. Be careful to avoid confusion with the title property. An equivalent of the 'ROLE' property as defined in RFC 2426. Sec. 3.5.2. Note the difference between nco:Role class and nco:role property.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Affiliation>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "role";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#sound> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Sound clip attached to a Contact. The DataObject referred to by this property is usually interpreted as an nfo:Audio. Inspired by the SOUND property defined in RFC 2425 sec. 3.6.6.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Contact>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "sound";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#DataObject>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#hasPart> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#start> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> 1;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Start datetime for the role, such as: the datetime of joining a project or organization, datetime of starting employment, datetime of marriage";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Role>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "start";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#dateTime> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#streetAddress> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#comment> "The streed address. Inspired by the third part of the value of the 'ADR' property as defined in RFC 2426, sec. 3.2.1";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PostalAddress>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "streetAddress";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#title> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#comment> "The official title  the object represented by this contact in an organization. E.g. 'CEO', 'Director, Research and Development', 'Junior Software Developer/Analyst' etc. An equivalent of the 'TITLE' property defined in RFC 2426 Sec. 3.5.1";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Affiliation>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "title";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#string> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#url> a <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#DefiningProperty>,
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A uniform resource locator associated with the given role of a Contact. Inspired by the 'URL' property defined in RFC 2426 Sec. 3.6.8.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Role>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "url";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2000/01/rdf-schema#Resource> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#voiceMail> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.semanticdesktop.org/ontologies/2007/08/15/nrl#maxCardinality> "1";
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Indicates if the given number accepts voice mail. (e.g. there is an answering machine). Inspired by TYPE=msg parameter of the TEL property defined in RFC 2426 sec. 3.3.1";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#VoicePhoneNumber>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "voiceMail";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#boolean> .
+
+<http://www.semanticdesktop.org/ontologies/2007/03/22/nco#websiteUrl> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "A url of a website.";
+  <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#Role>;
+  <http://www.w3.org/2000/01/rdf-schema#label> "websiteUrl";
+  <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2000/01/rdf-schema#Resource>;
+  <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#url> .

@@ -1,21 +1,23 @@
 ﻿using NUnit.Framework;
 using Semiodesk.Trinity.Store.Fuseki;
 
-namespace Semiodesk.Trinity.Test.Fuseki
+namespace Semiodesk.Trinity.Tests.Fuseki
 {
     [TestFixture]
     public class StoreProviderTest : SetupClass
     {
-
         [Test]
         public void FusekiConfigurationStringTest()
         {
-
-            string connectionString = string.Format("provider=fuseki;host=http://localhost:3000;dataset=ds");
-            IStore anObject = StoreFactory.CreateStore(connectionString);
-            Assert.IsNotNull(anObject);
-            Assert.IsInstanceOf<FusekiStore>(anObject);
-            anObject.Dispose();
+            const string connectionString = "provider=fuseki;host=http://localhost:3030;uid=admin;pw=test;dataset=ds";
+            
+            var store = StoreFactory.CreateStore(connectionString);
+            
+            Assert.IsNotNull(store);
+            Assert.IsInstanceOf<FusekiStore>(store);
+            Assert.IsTrue(store.IsReady);
+            
+            store.Dispose();
         }
     }
 }
