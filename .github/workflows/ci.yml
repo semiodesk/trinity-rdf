@@ -6,6 +6,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Least privilege: this workflow only checks out, builds, tests and packs.
+# Declaring the block sets every unlisted scope to 'none'.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
