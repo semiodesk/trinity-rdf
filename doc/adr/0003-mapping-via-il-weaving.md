@@ -3,7 +3,9 @@
 Date: 2026-07-13 (decision original to 2015–2020 design)
 
 ## Status
-Accepted — under active review for the revival (see [0013](0013-replace-il-weaving-with-source-generator.md))
+Accepted — under active review for the revival (see [0013](0013-replace-il-weaving-with-source-generator.md)).
+The `INotifyPropertyChanged` weaving task has since been removed ([0035](0035-remove-inotifypropertychanged.md)),
+so the weaver now runs only `ImplementRdfClass` + `ImplementRdfProperty`.
 
 ## Context
 Given the attribute-based model ([0002](0002-attribute-based-object-mapping.md)),

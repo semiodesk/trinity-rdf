@@ -124,12 +124,7 @@ namespace Semiodesk.Trinity.CilGenerator
                     // Iterate over all types in the main assembly.
                     foreach (TypeDefinition type in Assembly.MainModule.Types)
                     {
-                        // In the following we need to seperate between properties which have the following attribute combinations:
-                        //  - PropertyAttribute with PropertyChangedAttribute
-                        //  - PropertyAttribute without PropertyChangedAttribute
-                        //  - PropertyChangedAttribute only
                         HashSet<PropertyDefinition> mapping = type.GetPropertiesWithAttribute("RdfPropertyAttribute").ToHashSet();
-                        HashSet<PropertyDefinition> notifying = type.GetPropertiesWithAttribute("NotifyPropertyChangedAttribute").ToHashSet();
 
                         // Implement the GetTypes()-method for the given type.
                         if (mapping.Any() || type.TryGetCustomAttribute("RdfClassAttribute").Any())
@@ -147,24 +142,12 @@ namespace Semiodesk.Trinity.CilGenerator
                         {
                             var implementProperty = new ImplementRdfPropertyTask(this, type);
 
-                            foreach (PropertyDefinition p in mapping.Except(notifying).Where(implementProperty.CanExecute))
+                            foreach (PropertyDefinition p in mapping.Where(implementProperty.CanExecute))
                             {
                                 assemblyModified = implementProperty.Execute(p);
                             }
                         }
 
-                        // Properties which raise the PropertyChanged-event may also have the RdfProperty attribute.
-                        if (notifying.Any())
-                        {
-                            var implementPropertyChanged = new ImplementNotifyPropertyChangedTask(this, type);
-
-                            foreach (PropertyDefinition p in notifying.Where(implementPropertyChanged.CanExecute))
-                            {
-                                implementPropertyChanged.IsMappedProperty = mapping.Contains(p);
-
-                                assemblyModified = implementPropertyChanged.Execute(p);
-                            }
-                        }
                     }
 
                     if (assemblyModified)

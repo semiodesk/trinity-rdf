@@ -3,7 +3,9 @@
 Date: 2026-07-13 (grounding decision, original to the design)
 
 ## Status
-Accepted
+Accepted — the async, UI-notifying variants (`AsyncVirtualizingCollection`,
+`AsyncVirtualizingSparqlCollection`) were removed in [0035](0035-remove-inotifypropertychanged.md);
+the synchronous `VirtualizingCollection`/`VirtualizingSparqlCollection` paging primitives are retained.
 
 ## Context
 Knowledge graphs get large. Materializing an entire result set — especially to bind a UI list

@@ -28,7 +28,6 @@
 using System;
 using System.Globalization;
 using System.Collections.Generic;
-using System.ComponentModel;
 #if NET35
 using Semiodesk.Trinity.Utility;
 #endif
@@ -38,7 +37,7 @@ namespace Semiodesk.Trinity
     /// <summary>
     /// This interface encapsulates the access to the methods of a RDF resource.
     /// </summary>
-    public interface IResource : INotifyPropertyChanged, IDisposable, ITransactional
+    public interface IResource : IDisposable, ITransactional
     {
         #region Properties
 

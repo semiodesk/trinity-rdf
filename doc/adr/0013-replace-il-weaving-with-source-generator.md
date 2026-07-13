@@ -4,6 +4,9 @@ Date: 2026-07-13
 
 ## Status
 **Proposed** — no decision made yet; captures the leading revival option for discussion.
+(Note: `INotifyPropertyChanged` support was removed in [0035](0035-remove-inotifypropertychanged.md),
+so the generator only needs to emit the `PropertyMapping<T>` field, `GetValue`/`SetValue` accessors,
+and `GetTypes()` — no NPC setter.)
 
 ## Context
 The compile-time IL weaver ([0003](0003-mapping-via-il-weaving.md)) is the biggest

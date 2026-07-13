@@ -69,6 +69,11 @@ mapped/dynamic duality, models & groups, discovery, stores, and querying.
 | [0033](0033-exception-model.md) | Explicit exception model | Accepted |
 | [0034](0034-rdf-serialization-formats.md) | RDF (de)serialization formats & JSON-LD resource converter | Accepted |
 
+### Accepted (revival changes made)
+| # | Title | Status |
+|---|-------|--------|
+| [0035](0035-remove-inotifypropertychanged.md) | Remove INotifyPropertyChanged support (resource NPC + async collections) | Accepted |
+
 ### Proposed (revival)
 | # | Title | Status |
 |---|-------|--------|

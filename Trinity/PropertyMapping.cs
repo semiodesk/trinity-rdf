@@ -204,7 +204,7 @@ namespace Semiodesk.Trinity
 
             if (!allowed.Contains(_dataType) && _dataType.GetInterface("IResource") == null && !typeof(Resource).IsAssignableFrom(_dataType))
             {
-                // Test if type is IList interface and INotifyCollectionChanged
+                // Test if type is an IList of a supported element type
                 if (_dataType.GetInterface("IList") != null )
                 {
                     // Test containing Type
