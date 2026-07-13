@@ -15,9 +15,10 @@ Shipped/maintained backends:
 - **in-memory (dotNetRDF / Leviathan)** — `provider=dotnetrdf`; the reference store, fully
   functional, used by tests and the ontology generator.
 - **SPARQL endpoint** — `provider=sparqlendpoint`; query remote endpoints.
-- **Virtuoso** (`Trinity.Virtuoso`) — functional; bound to the proprietary OpenLink
-  ADO.NET provider (vendored `OpenLink.Data.Virtuoso.dll` via HintPath) plus a vendored
-  copy of dotNetRDF's dropped `VirtuosoManager`. Highest modernization risk.
+- **Virtuoso** (`Trinity.Virtuoso`) — functional and cross-platform; uses the OpenLink ADO.NET
+  provider vendored as a **self-recompiled `OpenLink.Data.Virtuoso.dll` targeting netstandard2.0**
+  (via HintPath), plus a vendored copy of dotNetRDF's dropped `VirtuosoManager`. Builds and loads
+  on Linux/macOS — no longer a modernization blocker.
 - **GraphDB** (`Trinity.GraphDB`) — functional, most recently maintained; custom connector
   over dotNetRDF's Sesame connector with `infer=true` reasoning support; no transactions.
 - **Fuseki** (`Trinity.Fuseki`) — functional via dotNetRDF's Fuseki connector; no
@@ -29,13 +30,15 @@ though there is **no Stardog provider project** — stale.
 
 ## Consequences
 - Backend choice is a per-provider dependency decision; core stays lean.
-- Virtuoso is both on the critical path (both external consumers use it) and the riskiest
-  to modernize.
+- Virtuoso is on the critical path (both external consumers use it); with the provider
+  recompiled to netstandard2.0 it is cross-platform and no longer the modernization risk it
+  once appeared to be.
 - The dangling Stardog references are misleading and should be cleaned up.
 
 ## Revival notes
-Verify the OpenLink Virtuoso provider on modern runtimes; consider a SPARQL-protocol-over-HTTP
-fallback for Virtuoso. Fix the Fuseki/GraphDB transaction stubs and the Fuseki model-group bug.
+The OpenLink provider is a self-recompiled netstandard2.0 assembly (cross-platform); document
+how it is rebuilt and keep that source/recipe available. Fix the Fuseki/GraphDB transaction
+stubs and the Fuseki `CreateModelGroup` bug.
 Remove or resurrect Stardog explicitly.
 
 ## Related

@@ -32,7 +32,7 @@ post-build tooling. Read `doc/adr/README.md` for the decisions and history.
 |---|---|---|
 | `Trinity` | netstandard2.0 | Core: `Resource`, `PropertyMapping<T>`, `IStore`/`IModel`, `StoreFactory`, LINQ, in-memory + SPARQL-endpoint stores |
 | `Trinity.Generator` | netstandard2.0 | **Roslyn source generator** (ships as an analyzer in the package): emits `PropertyMapping<T>` fields + `GetValue`/`SetValue` + `GetTypes()` for `partial` `[RdfClass]`/`[RdfProperty]` classes |
-| `Trinity.Virtuoso` | netstandard2.0 | Virtuoso backend (vendored OpenLink provider) — highest risk |
+| `Trinity.Virtuoso` | netstandard2.0 | Virtuoso backend — OpenLink provider vendored as a self-recompiled netstandard2.0 DLL (cross-platform) |
 | `Trinity.GraphDB` | netstandard2.0 | GraphDB backend |
 | `Trinity.Fuseki` | netstandard2.0 | Fuseki backend |
 | `Trinity.Tests` | net8.0 | NUnit in-memory suite (fully generator-driven, no weaver) |
