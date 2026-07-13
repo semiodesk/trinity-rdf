@@ -17,6 +17,11 @@
     <PackageVersion Include="HtmlAgilityPack" Version="1.11.31" />
   </ItemGroup>
 
+  <!-- Roslyn source generator (Trinity.Generator) -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
+  </ItemGroup>
+
   <!-- Build-time generators (CilGenerator / OntologyGenerator) -->
   <ItemGroup>
     <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" />
