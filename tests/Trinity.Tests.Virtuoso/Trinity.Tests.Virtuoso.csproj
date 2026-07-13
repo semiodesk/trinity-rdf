@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net472</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Title>Trinity.Test.Virtuoso</Title>
     <Copyright>Copyright © Semiodesk GmbH 2019</Copyright>
     <Description></Description>
@@ -17,7 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NUnit" Version="3.12.0" />
+    <PackageReference Include="NUnit" />
   </ItemGroup>
 
   <ItemGroup>

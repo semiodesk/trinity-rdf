@@ -1,0 +1,17 @@
+<Project>
+
+  <!-- Shared metadata for all Trinity projects. Per-project files still set Title,
+       Description, PackageId, AssemblyName, RootNamespace, PackageTags and IsPackable. -->
+  <PropertyGroup>
+    <Company>Semiodesk GmbH</Company>
+    <Authors>Semiodesk GmbH</Authors>
+    <Product>Semiodesk.Trinity</Product>
+    <Copyright>Copyright © Semiodesk GmbH</Copyright>
+    <Version>1.0.3.50</Version>
+    <LangVersion>latest</LangVersion>
+    <PackageProjectUrl>https://trinity-rdf.net</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/semiodesk/trinity-rdf</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+</Project>

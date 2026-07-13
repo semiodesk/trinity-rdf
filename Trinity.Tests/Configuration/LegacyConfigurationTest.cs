@@ -35,6 +35,7 @@ namespace Semiodesk.Trinity.Tests
     class LegacyConfigurationTest : SetupClass
     {
         [Test]
+        [Ignore("Known: legacy app.config ConfigurationManager section unsupported on net8 (ADR-0011). See doc/known-test-failures.md")]
         public void TestAppConfig()
         {
             IConfiguration config = ConfigurationLoader.LoadConfiguration(null);

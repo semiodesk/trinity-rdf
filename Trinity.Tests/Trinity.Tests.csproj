@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net472</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Title>Trinity.Test</Title>
     <Copyright>Copyright © Semiodesk GmbH 2018</Copyright>
     <Description></Description>
@@ -11,8 +11,10 @@
     <FileVersion>1.0.0.0</FileVersion>
     <AssemblyName>Semiodesk.Trinity.Tests</AssemblyName>
     <RootNamespace>Semiodesk.Trinity.Tests</RootNamespace>
-    <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
+    <!-- Keep the existing (vestigial) Program.Main as the entry point; dotnet test runs via the
+         VSTest host + NUnit adapter, not Main. Avoids the Test.Sdk double-entry-point conflict. -->
+    <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -23,20 +25,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ini-parser" Version="2.5.2" />
-    <PackageReference Include="NUnit" Version="3.12.0" />
-    <PackageReference Include="NUnit3TestAdapter" Version="3.16.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0" />
-    <PackageReference Include="TinyVirtuoso" Version="0.3.29" />
-    <PackageReference Include="TinyVirtuoso.win" Version="7.2.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="ini-parser" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" />
   </ItemGroup>
 
 
   <ItemGroup>
     <ProjectReference Include="..\Trinity\Trinity.csproj" />
+    <!-- Build-order only: ensure cilg.exe exists before the (Windows-only) weave step below. -->
+    <ProjectReference Include="..\Trinity.CilGenerator\Trinity.CilGenerator.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
 
 
@@ -101,8 +101,11 @@
   </ItemGroup>
 
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="$(TargetDir)..\tools\cilg.exe -i $(TargetPath) -o $(TargetPath)" />
+  <!-- Windows-only: weave the attribute-mapped [Category("Weaver")] fixtures with the legacy
+       cilg tool. Cross-platform builds skip this; there, exclude the Weaver category when
+       running dotnet test until the source generator (ADR-0013) replaces the weaver. -->
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(WeaveTests)' != 'false'">
+    <Exec Command="&quot;$(TargetDir)..\tools\cilg.exe&quot; -i &quot;$(TargetPath)&quot; -o &quot;$(TargetPath)&quot;" />
   </Target>
 
 </Project>

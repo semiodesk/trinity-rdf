@@ -23,8 +23,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trinity.OntologyGenerator",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trinity.Virtuoso", "Trinity.Virtuoso\Trinity.Virtuoso.csproj", "{5E69F2CE-5F36-4E8B-8269-F10733608FE8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Documentation", "Documentation\Documentation.csproj", "{A96B8568-4967-44BE-B58E-BBF5CDBC4D0C}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{8F810E3F-1005-4D95-BF82-E903B9DF4F5E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trinity.Tests.Virtuoso", "tests\Trinity.Tests.Virtuoso\Trinity.Tests.Virtuoso.csproj", "{47A2749D-25BB-4C4D-BAFD-E0B02549A016}"
@@ -85,13 +83,6 @@ Global
 		{5E69F2CE-5F36-4E8B-8269-F10733608FE8}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5E69F2CE-5F36-4E8B-8269-F10733608FE8}.Release|x86.ActiveCfg = Release|Any CPU
 		{5E69F2CE-5F36-4E8B-8269-F10733608FE8}.Release|x86.Build.0 = Release|Any CPU
-		{A96B8568-4967-44BE-B58E-BBF5CDBC4D0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A96B8568-4967-44BE-B58E-BBF5CDBC4D0C}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{A96B8568-4967-44BE-B58E-BBF5CDBC4D0C}.Debug|x86.Build.0 = Debug|Any CPU
-		{A96B8568-4967-44BE-B58E-BBF5CDBC4D0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A96B8568-4967-44BE-B58E-BBF5CDBC4D0C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A96B8568-4967-44BE-B58E-BBF5CDBC4D0C}.Release|x86.ActiveCfg = Release|Any CPU
-		{A96B8568-4967-44BE-B58E-BBF5CDBC4D0C}.Release|x86.Build.0 = Release|Any CPU
 		{47A2749D-25BB-4C4D-BAFD-E0B02549A016}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{47A2749D-25BB-4C4D-BAFD-E0B02549A016}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{47A2749D-25BB-4C4D-BAFD-E0B02549A016}.Debug|x86.ActiveCfg = Debug|Any CPU

@@ -32,6 +32,7 @@ using System.Diagnostics;
 namespace Semiodesk.Trinity.Tests.Linq
 {
     [TestFixture]
+    [Category("Weaver")]
     public class LinqModelTest : LinqTestBase
     {
         [SetUp]

@@ -38,6 +38,7 @@ using Semiodesk.Trinity.Utility;
 namespace Semiodesk.Trinity.Tests
 {
     [TestFixture]
+    [Category("Weaver")]
     public class CilgResourceMappingTest : SetupClass
     {
         public static bool RegisteredOntology = false;

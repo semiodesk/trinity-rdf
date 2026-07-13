@@ -1,0 +1,51 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!-- Core / store library dependencies -->
+  <ItemGroup>
+    <PackageVersion Include="dotNetRDF" Version="2.7.0" />
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageVersion Include="Remotion.Linq" Version="2.2.0" />
+    <PackageVersion Include="System.Composition" Version="1.1.0" />
+    <PackageVersion Include="System.Configuration.ConfigurationManager" Version="5.0.0" />
+    <PackageVersion Include="System.Data.Common" Version="4.3.0" />
+    <PackageVersion Include="System.Security.Permissions" Version="5.0.0" />
+    <PackageVersion Include="VDS.Common" Version="1.10.0" />
+    <PackageVersion Include="HtmlAgilityPack" Version="1.11.31" />
+  </ItemGroup>
+
+  <!-- Build-time generators (CilGenerator / OntologyGenerator) -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" />
+    <PackageVersion Include="Mono.Cecil" Version="0.11.2" />
+    <PackageVersion Include="Microsoft.Build.Framework" Version="16.6.0" />
+    <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="16.6.0" />
+    <PackageVersion Include="Microsoft.VisualStudio.Setup.Configuration.Interop" Version="1.16.30" />
+    <PackageVersion Include="Microsoft.Win32.Registry" Version="5.0.0" />
+    <PackageVersion Include="System.Buffers" Version="4.5.1" />
+    <PackageVersion Include="System.Collections.Immutable" Version="5.0.0" />
+    <PackageVersion Include="System.Memory" Version="4.5.4" />
+    <PackageVersion Include="System.Numerics.Vectors" Version="4.5.0" />
+    <PackageVersion Include="System.Reflection.Metadata" Version="5.0.0" />
+    <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="5.0.0" />
+    <PackageVersion Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
+    <PackageVersion Include="System.Security.AccessControl" Version="5.0.0" />
+    <PackageVersion Include="System.Security.Principal.Windows" Version="5.0.0" />
+    <PackageVersion Include="System.Text.Encoding.CodePages" Version="5.0.0" />
+    <PackageVersion Include="System.ValueTuple" Version="4.5.0" />
+  </ItemGroup>
+
+  <!-- Test dependencies -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageVersion Include="NUnit" Version="3.14.0" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="4.6.0" />
+    <PackageVersion Include="ini-parser" Version="2.5.2" />
+    <PackageVersion Include="TinyVirtuoso" Version="0.3.29" />
+    <PackageVersion Include="TinyVirtuoso.win" Version="7.2.1" />
+  </ItemGroup>
+
+</Project>

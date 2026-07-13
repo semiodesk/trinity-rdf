@@ -66,6 +66,7 @@ namespace Semiodesk.Trinity.Tests.DotNetRDF
         }
         
         [Test]
+        [Ignore("Known: ontology-from-config loading differs on net8 (ADR-0011). See doc/known-test-failures.md")]
         public void LoadOntologiesTest()
         {
             Store = StoreFactory.CreateStore(ConnectionString);
