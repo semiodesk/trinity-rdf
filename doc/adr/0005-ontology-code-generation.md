@@ -3,7 +3,9 @@
 Date: 2026-07-13 (decision original to 2015–2020 design)
 
 ## Status
-Accepted — under review for the revival (see [0014](0014-ontology-generator-modernization.md))
+Superseded by [0014](0014-ontology-generator-modernization.md) — the net4x `OntologyGenerator`
+was **retired in Trinity 2.0** (removed from the build and package). Vocabulary generation will
+return as a Roslyn source generator; consumers hand-write vocab in the meantime.
 
 ## Context
 Working with ontologies means referring to many term URIs. Hand-writing URI constants

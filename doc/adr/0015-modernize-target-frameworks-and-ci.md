@@ -3,7 +3,12 @@
 Date: 2026-07-13
 
 ## Status
-**Proposed** — no decision made yet.
+**Accepted** — implemented in Trinity 2.0: Central Package Management + `Directory.Build.props`
+(single `2.0.0` version); the cilg weaver ([0013](0013-replace-il-weaving-with-source-generator.md))
+and the net4x `OntologyGenerator` were retired; `Trinity.Tests` retargeted net472 → net8.0 and is
+green under `dotnet test`; `build.cake`/`appveyor.yml`/`sign.ps1` replaced by
+`.github/workflows/ci.yml` (ubuntu; restore/build/test/pack; NuGet publish is manual). The
+solution now builds SDK-only and cross-platform.
 
 ## Context
 The current TFM mix ([0010](0010-target-frameworks.md)) means the full solution does not

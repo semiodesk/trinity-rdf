@@ -3,7 +3,9 @@
 Date: 2026-07-13
 
 ## Status
-Accepted — partially a revival blocker
+Superseded by [0015](0015-modernize-target-frameworks-and-ci.md) — as of Trinity 2.0 the net4x
+tools and net472 tests are gone: core/stores/generator are netstandard2.0 and the test projects
+are net8.0. Kept for historical context.
 
 ## Context
 The project straddles the .NET Framework → .NET Core/.NET 5+ transition. Maintenance

@@ -6,9 +6,6 @@
     <Copyright>Copyright © Semiodesk GmbH 2015-2023</Copyright>
     <Description>This package provides an Ontotext GraphDB store adapter for the Trinity RDF ORM.</Description>
     <Company>Semiodesk GmbH</Company>
-    <Version>1.0.3.50</Version>
-    <AssemblyVersion>1.0.3.30</AssemblyVersion>
-    <FileVersion>1.0.3.30</FileVersion>
     <AssemblyName>Semiodesk.Trinity.GraphDB</AssemblyName>
     <RootNamespace>Semiodesk.Trinity.Store.GraphDB</RootNamespace>
     <IsPackable>true</IsPackable>
