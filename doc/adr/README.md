@@ -72,7 +72,7 @@ mapped/dynamic duality, models & groups, discovery, stores, and querying.
 ### Accepted (revival changes made)
 | # | Title | Status |
 |---|-------|--------|
-| [0035](0035-remove-inotifypropertychanged.md) | Remove INotifyPropertyChanged support (resource NPC + async collections) | Accepted |
+| [0035](0035-remove-inotifypropertychanged.md) | Remove INotifyPropertyChanged support (resource NPC + virtualizing collections) | Accepted |
 
 ### Proposed (revival)
 | # | Title | Status |

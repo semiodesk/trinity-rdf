@@ -3,9 +3,9 @@
 Date: 2026-07-13 (grounding decision, original to the design)
 
 ## Status
-Accepted — the async, UI-notifying variants (`AsyncVirtualizingCollection`,
-`AsyncVirtualizingSparqlCollection`) were removed in [0035](0035-remove-inotifypropertychanged.md);
-the synchronous `VirtualizingCollection`/`VirtualizingSparqlCollection` paging primitives are retained.
+Superseded by [0035](0035-remove-inotifypropertychanged.md) — the entire virtualizing-collection
+feature (async **and** synchronous) was removed as unused, unwired dead code. SPARQL result paging
+via `offset`/`limit` on `ISparqlQueryResult` ([0031](0031-multimodal-query-results.md)) is unaffected.
 
 ## Context
 Knowledge graphs get large. Materializing an entire result set — especially to bind a UI list

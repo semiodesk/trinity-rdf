@@ -31,8 +31,11 @@ Remove resource-level `INotifyPropertyChanged` support and the WPF-oriented asyn
 - Remove `Resource.PropertyChanged`, `RaisePropertyChanged`, `RegisterPropertyChanged`, the
   `_notifyingProperties` field and the rollback re-raise; drop `INotifyPropertyChanged` from
   `IResource`.
-- Delete `AsyncVirtualizingCollection` and `AsyncVirtualizingSparqlCollection`. The synchronous
-  `VirtualizingCollection`/`VirtualizingSparqlCollection` paging primitives are kept.
+- Delete the entire `Trinity/Collections/` virtualizing-collection stack —
+  `AsyncVirtualizingCollection`, `AsyncVirtualizingSparqlCollection`, `VirtualizingCollection`,
+  `VirtualizingSparqlCollection`, `IItemsProvider`, `SparqlQueryItemsProvider` — which was unused
+  and never wired into any query path or consumer. SPARQL result paging via `offset`/`limit` on
+  `ISparqlQueryResult` (0031) is unaffected.
 
 ## Consequences
 - Smaller public surface; the weaver is simpler and the source generator (0013) implements only
