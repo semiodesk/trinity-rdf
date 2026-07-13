@@ -30,12 +30,12 @@ using System;
 namespace Semiodesk.Trinity.Tests.Linq
 {
     [RdfClass(FOAF.Group)]
-    internal class Group : Resource
+    internal partial class Group : Resource
     {
         #region Members
 
         [RdfProperty(FOAF.name)]
-        public string Name { get; set; }
+        public partial string Name { get; set; }
 
         #endregion
 

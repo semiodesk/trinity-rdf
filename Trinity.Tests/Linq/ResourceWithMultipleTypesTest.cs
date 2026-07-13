@@ -7,7 +7,6 @@ using NUnit.Framework;
 namespace Semiodesk.Trinity.Tests.Linq
 {
     [TestFixture]
-    [Category("Weaver")]
     public class ResourceWithMultipleTypesTest
     {
         IStore Store;

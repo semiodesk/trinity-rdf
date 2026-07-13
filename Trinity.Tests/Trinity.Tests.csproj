@@ -35,8 +35,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Trinity\Trinity.csproj" />
-    <!-- Build-order only: ensure cilg.exe exists before the (Windows-only) weave step below. -->
-    <ProjectReference Include="..\Trinity.CilGenerator\Trinity.CilGenerator.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <!-- Source generator (analyzer): implements the RDF mapping at compile time, replacing the
+         cilg weaver. The whole suite runs cross-platform with no IL weaving. -->
+    <ProjectReference Include="..\Trinity.Generator\Trinity.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 
@@ -100,12 +101,5 @@
     </None>
   </ItemGroup>
 
-
-  <!-- Windows-only: weave the attribute-mapped [Category("Weaver")] fixtures with the legacy
-       cilg tool. Cross-platform builds skip this; there, exclude the Weaver category when
-       running dotnet test until the source generator (ADR-0013) replaces the weaver. -->
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(WeaveTests)' != 'false'">
-    <Exec Command="&quot;$(TargetDir)..\tools\cilg.exe&quot; -i &quot;$(TargetPath)&quot; -o &quot;$(TargetPath)&quot;" />
-  </Target>
 
 </Project>

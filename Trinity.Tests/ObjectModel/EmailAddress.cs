@@ -3,12 +3,12 @@
 namespace Semiodesk.Trinity.Tests
 {
     [RdfClass(NCO.EmailAddress)]
-    public class EmailAddress : Resource
+    public partial class EmailAddress : Resource
     {
         #region Members
 
         [RdfProperty(NCO.emailAddress)]
-        public string Address { get; set; }
+        public partial string Address { get; set; }
 
         #endregion
 

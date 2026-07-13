@@ -31,15 +31,15 @@ using System.Linq;
 namespace Semiodesk.Trinity.Tests.Linq
 {
     [RdfClass(FOAF.Agent)]
-    public class Agent : Resource
+    public partial class Agent : Resource
     {
         #region Members
 
         [RdfProperty(FOAF.firstName)]
-        public string FirstName { get; set; }
+        public partial string FirstName { get; set; }
 
         [RdfProperty(FOAF.lastName)]
-        public string LastName { get; set; }
+        public partial string LastName { get; set; }
 
         #endregion
 

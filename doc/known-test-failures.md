@@ -18,7 +18,7 @@ are pre-existing or net472→net8 runtime-behavior differences. Revisit as noted
 
 The 7 `LinqTestBase` cases run under both `LinqModelTest` and `LinqModelGroupTest` (14 results).
 
-Note: many other mapping tests depend on the cilg weaver and therefore only pass on the
-Windows (weave-enabled) run. Full cross-platform green is delivered by the source generator
-(ADR-0013, Milestone 2), after which the `[Category("Weaver")]` split and `-p:WeaveTests=false`
-harness become unnecessary.
+Update (Milestone 2 done): `Trinity.Tests` is now fully driven by the Roslyn source generator
+(`Trinity.Generator`) — every mapped model class is `partial` — so the whole suite passes
+cross-platform with **no** IL weaving. The cilg post-build weave, the `[Category("Weaver")]`
+split, and the `-p:WeaveTests=false` harness have been removed.

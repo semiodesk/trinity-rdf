@@ -5,7 +5,7 @@ namespace Semiodesk.Trinity.Tests.Linq
 {
 
     [RdfClass(MUSIC.Band)]
-    internal class Band : Artist
+    internal partial class Band : Artist
     {
         #region Members
 
@@ -13,7 +13,7 @@ namespace Semiodesk.Trinity.Tests.Linq
         /// A member of a band. Does not distinguish between past vs current members
         /// </summary>
         [RdfProperty(MUSIC.member)]
-        public List<SoloArtist> Members { get; set; }
+        public partial List<SoloArtist> Members { get; set; }
 
         #endregion
 

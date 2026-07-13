@@ -30,12 +30,12 @@ using System;
 namespace Semiodesk.Trinity.Tests.Linq
 {
     [RdfClass(FOAF.Image)]
-    public class Image : Resource, IImage
+    public partial class Image : Resource, IImage
     {
         #region Members
 
         [RdfProperty(FOAF.depicts)]
-        public Agent DepictedAgent { get; set; }
+        public partial Agent DepictedAgent { get; set; }
 
         #endregion
 
