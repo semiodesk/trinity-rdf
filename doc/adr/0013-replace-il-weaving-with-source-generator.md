@@ -3,10 +3,10 @@
 Date: 2026-07-13
 
 ## Status
-**Proposed** — no decision made yet; captures the leading revival option for discussion.
-(Note: `INotifyPropertyChanged` support was removed in [0035](0035-remove-inotifypropertychanged.md),
-so the generator only needs to emit the `PropertyMapping<T>` field, `GetValue`/`SetValue` accessors,
-and `GetTypes()` — no NPC setter.)
+**Accepted** — implemented as `Trinity.Generator` and shipped in **Trinity 2.0**, where it
+replaces the cilg weaver entirely (see Outcome). `INotifyPropertyChanged` was dropped
+([0035](0035-remove-inotifypropertychanged.md)), so the generator emits only the
+`PropertyMapping<T>` field, `GetValue`/`SetValue` accessors, and `GetTypes()`.
 
 ## Context
 The compile-time IL weaver ([0003](0003-mapping-via-il-weaving.md)) is the biggest
@@ -40,9 +40,22 @@ Authoring change: mapped types become `partial`, mapped properties gain `partial
 - Small breaking change to the authoring model (adding `partial`); the *runtime* contract
   is preserved. cilg can run in parallel during migration and be validated against the generator.
 
-## Validation plan
-Take an `elxgen` `Resource` class, add `partial`, generate, and diff the generated members
-against what `cilg` currently produces in `Elxos.Model.dll` to confirm parity before switching.
+## Outcome (implemented in Trinity 2.0)
+`Trinity.Generator` is an `IIncrementalGenerator` that emits, for each `partial` `[RdfProperty]`
+property, a `protected PropertyMapping<T>` field + implementing getter/setter, and a `GetTypes()`
+override for each `partial` `[RdfClass]` class. It ships in the `Semiodesk.Trinity` package under
+`analyzers/dotnet/cs`, so referencing the package applies it automatically — no build-time tools,
+no `.targets`, no IL weaving.
+
+Validated by migrating the **entire** `Trinity.Tests` suite to `partial` mapped classes: it now
+passes with **no weaver** (260 passed / 16 skipped, identical to the old weave run) across scalars,
+collections (default instances), language-invariant strings, resource references, multiple
+`[RdfClass]`, and inheritance (including `GetTypes`-only subclasses and interface implementers).
+
+**Trinity 2.0 is a breaking release:** mapped resource classes and their `[RdfProperty]` properties
+must be declared `partial` (min C# 13 / .NET 9 SDK). The cilg weaver, its `.targets`, and the
+`tools/` payload were removed. Consumers on the auto-property style migrate by adding the `partial`
+keyword. A future diagnostic can flag `[RdfProperty]` on a non-`partial` member.
 
 ## Related
 - [0002](0002-attribute-based-object-mapping.md), [0003](0003-mapping-via-il-weaving.md),

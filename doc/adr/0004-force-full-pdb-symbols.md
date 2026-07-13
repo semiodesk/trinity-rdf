@@ -3,7 +3,8 @@
 Date: 2026-07-13 (decision original to the .NET Core era of the project)
 
 ## Status
-Accepted — a primary revival blocker
+Superseded by [0013](0013-replace-il-weaving-with-source-generator.md) — the weaver and its
+Windows-only full-PDB requirement were removed in Trinity 2.0, unblocking cross-platform builds.
 
 ## Context
 The IL weaver ([0003](0003-mapping-via-il-weaving.md)) reads and rewrites an

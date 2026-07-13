@@ -42,26 +42,22 @@
     <None Include="..\assets\trinity-logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
  
-  <!--  THIS SECTION CONTAINS THE PACKAGING INSTRUCTIONS FOR CILGENERATOR & ONTOLOGYGENERATOR -->
   <PropertyGroup>
-    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);CustomContentTarget</TargetsForTfmSpecificContentInPackage>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
-  <Target Name="CustomContentTarget">
-    <ItemGroup>
-      <!-- Here is the build folder with the .target files -->
-      <TfmSpecificPackageFile Include="$(OutputPath)\Targets\*">
-        <PackagePath>build</PackagePath>
-      </TfmSpecificPackageFile>
+  <!-- Ship the Roslyn source generator as an analyzer inside the package (replaces the cilg
+       IL weaver). Consumers reference Semiodesk.Trinity and get the mapping generator with no
+       build-time tools, no .targets, and no IL weaving. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Trinity.Generator\Trinity.Generator.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
 
-      <!-- Here is the tools folder -->
-      <TfmSpecificPackageFile Include="$(OutputPath)\../tools\*.exe*;$(OutputPath)\../tools\*.dll" >
-        <PackagePath>tools</PackagePath>
-      </TfmSpecificPackageFile>
-    </ItemGroup>
-  </Target>
-  <!-- END SECTION PACKAGING -->
+  <ItemGroup>
+    <None Include="..\Trinity.Generator\bin\$(Configuration)\netstandard2.0\Semiodesk.Trinity.Generator.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
 
 
   <ItemGroup>
@@ -94,11 +90,4 @@
   </ItemGroup>
 
   
-  <ItemGroup>
-    <None Update="Targets\Semiodesk.Trinity.targets">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
-
 </Project>

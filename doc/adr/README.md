@@ -72,12 +72,12 @@ mapped/dynamic duality, models & groups, discovery, stores, and querying.
 ### Accepted (revival changes made)
 | # | Title | Status |
 |---|-------|--------|
+| [0013](0013-replace-il-weaving-with-source-generator.md) | Replace IL weaving with a Roslyn source generator (partial properties) — weaver retired in 2.0 | Accepted |
 | [0035](0035-remove-inotifypropertychanged.md) | Remove INotifyPropertyChanged support (resource NPC + virtualizing collections) | Accepted |
 
 ### Proposed (revival)
 | # | Title | Status |
 |---|-------|--------|
-| [0013](0013-replace-il-weaving-with-source-generator.md) | Replace IL weaving with a Roslyn source generator (partial properties) | Proposed |
 | [0014](0014-ontology-generator-modernization.md) | Reimplement ontology vocabulary generation as a compile-time generator/tool | Proposed |
 | [0015](0015-modernize-target-frameworks-and-ci.md) | Modernize target frameworks, build, and CI | Proposed |
 
