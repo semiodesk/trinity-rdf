@@ -13,10 +13,11 @@ are pre-existing or net472→net8 runtime-behavior differences. Revisit as noted
 | `LinqTestBase.ProjectionTest` | linq | Emits invalid SPARQL (empty SELECT) | LINQ provider gap; ADR-0007 |
 | `LinqTestBase.SelectAdditionalFrom` | linq | Wrong result count | LINQ provider gap; ADR-0007 |
 | `LinqTestBase.CanSelectDateTimeWithBinaryExpression` | datetime | Off by one hour (`00:00` vs `01:00`) under net8 in a UTC+1 tz | **Possibly a real net8 DateTime behavior change — investigate** (ADR-0026) |
-| `DotNetRDFStoreTest.LoadOntologiesTest` | config | Ontology-from-config loading differs on net8 | ADR-0011; verify config path on net8 |
-| `LegacyConfigurationTest.TestAppConfig` | config | Legacy `app.config` `<TrinitySettings>` `ConfigurationManager` section unsupported on net8 | ADR-0011; legacy config path slated for removal |
 
-The 7 `LinqTestBase` cases run under both `LinqModelTest` and `LinqModelGroupTest` (14 results).
+The 7 `LinqTestBase` cases run under both `LinqModelTest` and `LinqModelGroupTest` (14 results),
+which is the entire quarantined set. The former config cases (`DotNetRDFStoreTest.LoadOntologiesTest`,
+`LegacyConfigurationTest`) were **deleted**, not ignored, when the configuration subsystem was
+retired (ADR-0011).
 
 Update (Milestone 2 done): `Trinity.Tests` is now fully driven by the Roslyn source generator
 (`Trinity.Generator`) — every mapped model class is `partial` — so the whole suite passes

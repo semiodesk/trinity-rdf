@@ -54,7 +54,7 @@ namespace Semiodesk.Trinity.Tests.Fuseki
             string connectionString = SetupClass.ConnectionString;
 
             Store = StoreFactory.CreateStore(connectionString);
-            Store.InitializeFromConfiguration();
+            TestOntologies.LoadInto(Store);
 
             Model = Store.GetModel(new Uri("http://example.org/TestModel"));
 

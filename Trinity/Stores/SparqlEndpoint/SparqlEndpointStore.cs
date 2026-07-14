@@ -110,16 +110,6 @@ namespace Semiodesk.Trinity.Store
             return new ModelGroup(this, modelList);
         }
 
-        public void InitializeFromConfiguration(string configPath = null, string sourceDir = null)
-        {
-            throw new NotSupportedException();
-        }
-
-        public void LoadOntologySettings(string configPath = null, string sourceDir = null)
-        {
-            throw new NotSupportedException();
-        }
-
         public IModel CreateModel(Uri uri)
         {
             throw new NotSupportedException();

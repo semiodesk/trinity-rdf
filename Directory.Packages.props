@@ -9,9 +9,7 @@
     <PackageVersion Include="dotNetRDF" Version="2.7.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageVersion Include="Remotion.Linq" Version="2.2.0" />
-    <PackageVersion Include="System.Composition" Version="1.1.0" />
-    <PackageVersion Include="System.Configuration.ConfigurationManager" Version="5.0.0" />
-    <PackageVersion Include="System.Data.Common" Version="4.3.0" />
+    <PackageVersion Include="System.Composition" Version="1.1.0" />    <PackageVersion Include="System.Data.Common" Version="4.3.0" />
     <PackageVersion Include="System.Security.Permissions" Version="5.0.0" />
   </ItemGroup>
 

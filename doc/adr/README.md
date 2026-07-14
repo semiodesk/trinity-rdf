@@ -41,7 +41,7 @@ edit a decided ADR (change its status, add the superseding link).
 | [0008](0008-store-model-abstraction.md) | Store/Model abstraction with manually-registered providers | Accepted |
 | [0009](0009-supported-store-backends.md) | Supported store backends; Stardog removed | Accepted |
 | [0010](0010-target-frameworks.md) | Target frameworks: netstandard2.0 core, net461 tools, net472 tests | Accepted |
-| [0011](0011-configuration-model.md) | Configuration via `ontologies.config` with legacy `app.config` | Accepted |
+| [0011](0011-configuration-model.md) | Retire the configuration subsystem for an imperative store API | Accepted (2.0) |
 | [0012](0012-packaging-and-distribution.md) | One NuGet package bundling libraries + build tools via `.targets` | Accepted |
 
 ### Accepted (grounding conceptual model)

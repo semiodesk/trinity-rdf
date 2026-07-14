@@ -28,9 +28,7 @@
     <None Include="..\assets\trinity-logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="System.Configuration.ConfigurationManager" />
-    <PackageReference Include="System.Data.Common" />
+  <ItemGroup>    <PackageReference Include="System.Data.Common" />
     <PackageReference Include="System.Security.Permissions" />
   </ItemGroup>
   

@@ -59,7 +59,7 @@ namespace Semiodesk.Trinity.Tests.Fuseki
             OntologyDiscovery.AddNamespace(nfo.GetPrefix(), nfo.GetNamespace());
 
             Store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString));
-            Store.InitializeFromConfiguration();
+            TestOntologies.LoadInto(Store);
 
             Model = Store.GetModel(new Uri("http://example.org/TestModel"));
             Model.Clear();

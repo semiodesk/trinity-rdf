@@ -710,21 +710,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             return new ModelGroup(this, result);
         }
 
-        public override void InitializeFromConfiguration(string configPath = null, string sourceDir = "")
-        {
-            var config = LoadConfiguration(configPath);
-
-            LoadOntologies(config, sourceDir);
-
-            var settings = from x in config.ListStoreConfigurations() where x.Type == "virtuoso" select x;
-
-            if (settings.Any())
-            {
-                VirtuosoSettings s = new VirtuosoSettings(settings.First());
-                s.Update(this);
-            }
-        }
-
         /// <summary>
         /// Creates a model group which allows for queries to be made on multiple models at once.
         /// </summary>

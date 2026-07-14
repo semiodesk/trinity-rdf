@@ -1156,7 +1156,7 @@ namespace Semiodesk.Trinity.Tests.Fuseki
             IModel model = GetModel();
 
             // Load the rulesets for inferencing.
-            _store.InitializeFromConfiguration();
+            TestOntologies.LoadInto(_store);
 
             model.Clear();
 
@@ -1173,7 +1173,7 @@ namespace Semiodesk.Trinity.Tests.Fuseki
         IModel GetModel()
         {
             _store = StoreFactory.CreateStore(string.Format("{0};rule=urn:semiodesk/test/ruleset", SetupClass.ConnectionString));
-            _store.InitializeFromConfiguration();
+            TestOntologies.LoadInto(_store);
             return _store.GetModel(new Uri("http://example.org/TestModel"));
         }
 

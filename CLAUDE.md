@@ -52,14 +52,14 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 260 passed, 16 skipped (quarantined)
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 257 passed, 14 skipped (quarantined)
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 4 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
 
-- The 16 skipped tests are pre-existing / net8-environmental cases, `[Ignore]`d and tracked in
-  `doc/known-test-failures.md` (inferencing, some LINQ-provider gaps, a DateTime tz difference,
-  legacy app.config). None are generator regressions.
+- The 14 skipped tests are pre-existing / net8-environmental cases, `[Ignore]`d and tracked in
+  `doc/known-test-failures.md` (inferencing, some LINQ-provider gaps, a DateTime tz difference).
+  None are generator regressions.
 - Store integration tests (`tests/Trinity.Tests.*`) need a live Virtuoso/Fuseki/GraphDB and are
   excluded from CI.
 - **CI:** `.github/workflows/ci.yml` (ubuntu, .NET 10) — restore → build → test → pack. NuGet
@@ -101,6 +101,10 @@ Invariants that surprise newcomers:
 - **Models are named graphs; a `ModelGroup` is itself an `IModel`** spanning several (0019).
 - **Discovery is global static state** (0020): consumers must `MappingDiscovery.RegisterAssembly`
   / `OntologyDiscovery.AddAssembly` at startup or mapping and SPARQL prefixes silently miss.
+- **No configuration subsystem** (0011, 2.0): the `ontologies.config`/`app.config` loading,
+  `InitializeFromConfiguration`, and `CreateStoreFromConfiguration` are gone. Seed schema/background
+  graphs with `store.Read` / the thin `store.LoadGraphs(...)` helper, register vocab via
+  `OntologyDiscovery`, and create stores from a connection string the caller supplies.
 - **Stores own their capabilities** (0022): inferencing is a per-query `inferenceEnabled` flag
   a store may honor or ignore; there is no capability model. Custom stores implement `IStore`
   (its docstrings are stale — trust the code).

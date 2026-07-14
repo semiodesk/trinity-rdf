@@ -23,9 +23,7 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <PackageReference Include="dotNetRDF" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" />
-    <PackageReference Include="System.Data.Common" />
+    <PackageReference Include="dotNetRDF" />    <PackageReference Include="System.Data.Common" />
     <PackageReference Include="System.Security.Permissions" />
   </ItemGroup>
 

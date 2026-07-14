@@ -25,7 +25,6 @@
 //
 // Copyright (c) Semiodesk GmbH 2015-2019
 
-using Semiodesk.Trinity.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -180,76 +179,6 @@ namespace Semiodesk.Trinity
         /// <param name="leaveOpen">Indicates if the stream should be left open after the writing finished.</param>
         /// <returns></returns>
         public abstract void Write(Stream fs, Uri graphUri, IRdfWriter writer, bool leaveOpen = false);
-
-        /// <summary>
-        /// Initializes the store from the configuration. It uses either the provided file or attempts to load from "ontologies.config" located next to the executing assembly.
-        /// For legacy reasons it also looks in the app.config file.
-        /// If the ontology files are in a different path, this can be supplied as a base path..
-        /// </summary>
-        /// <param name="configPath">Load a specific configuration file.</param>
-        /// <param name="sourceDir">If given, this function tries to load the ontologies from this folder.</param>
-        [Obsolete("This method will be removed in the future. Use InitializeFromConfiguration() instead.")]
-        public virtual void LoadOntologySettings(string configPath = null, string sourceDir = null)
-        {
-            var config = LoadConfiguration(configPath);
-
-            LoadOntologies(config, sourceDir);
-        }
-
-        /// <summary>
-        /// Initializes the store from the configuration. It uses either the provided file or attempts to load from "ontologies.config" located next to the executing assembly.
-        /// For legacy reasons it also looks in the app.config file.
-        /// If the ontology files are in a different path, this can be supplied as a base path..
-        /// </summary>
-        /// <param name="configPath">Path the configuration should be read from.</param>
-        /// <param name="sourceDir">Path where the ontologies should be searched for.</param>
-        public virtual void InitializeFromConfiguration(string configPath = null, string sourceDir = null)
-        {
-            var config = LoadConfiguration(configPath);
-
-            LoadOntologies(config, sourceDir);
-        }
-
-        /// <summary>
-        /// This method loads the configuration data from the given file. 
-        /// This can read the old App.config and new ontologies.config files.
-        /// </summary>
-        /// <param name="configPath">Path to either ontologies.config or App.config file.</param>
-        /// <returns></returns>
-        protected IConfiguration LoadConfiguration(string configPath = null)
-        {
-            FileInfo configFile = null;
-
-            if (!string.IsNullOrEmpty(configPath))
-            {
-                configFile = new FileInfo(configPath);
-            }
-
-            return ConfigurationLoader.LoadConfiguration(configFile);
-        }
-
-        /// <summary>
-        /// Loads Ontologies defined in the currently loaded config file into the store.
-        /// </summary>
-        /// <param name="configuration">Handle of the configuration.</param>
-        /// <param name="sourceDir">Searchpath for the ontologies.</param>
-        protected void LoadOntologies(IConfiguration configuration, string sourceDir = null)
-        {
-            DirectoryInfo srcDir;
-
-            if (string.IsNullOrEmpty(sourceDir))
-            {
-                srcDir = new DirectoryInfo(Environment.CurrentDirectory);
-            }
-            else
-            {
-                srcDir = new DirectoryInfo(sourceDir);
-            }
-
-            StoreUpdater updater = new StoreUpdater(this, srcDir);
-
-            updater.UpdateOntologies(configuration.ListOntologies());
-        }
 
         /// <summary>
         /// Disposes this store and it's underlying connection. This object cannot be reused after disposing.
