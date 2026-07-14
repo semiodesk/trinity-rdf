@@ -74,6 +74,7 @@ mapped/dynamic duality, models & groups, discovery, stores, and querying.
 |---|-------|--------|
 | [0013](0013-replace-il-weaving-with-source-generator.md) | Replace IL weaving with a Roslyn source generator (partial properties) — weaver retired in 2.0 | Accepted |
 | [0035](0035-remove-inotifypropertychanged.md) | Remove INotifyPropertyChanged support (resource NPC + virtualizing collections) | Accepted |
+| [0036](0036-integration-tests-testcontainers.md) | Store-integration tests self-provision servers via Testcontainers | Accepted |
 
 ### Proposed (revival)
 | # | Title | Status |

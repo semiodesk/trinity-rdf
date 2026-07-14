@@ -37,7 +37,7 @@ post-build tooling. Read `doc/adr/README.md` for the decisions and history.
 | `Trinity.Fuseki` | netstandard2.0 | Fuseki backend |
 | `Trinity.Tests` | net8.0 | NUnit in-memory suite (fully generator-driven, no weaver) |
 | `tests/Trinity.Generator.Tests` | net8.0 | Source-generator validation |
-| `tests/Trinity.Tests.{Virtuoso,Fuseki,GraphDB}` | net8.0 | Store integration tests — need live servers, not run in CI |
+| `tests/Trinity.Tests.{Virtuoso,Fuseki,GraphDB}` | net8.0 | Store integration tests — self-provision the server via Testcontainers/Docker (ADR-0036); not in the default CI job |
 | `doc/adr/` | — | Architecture Decision Records |
 
 Retired in 2.0: `Trinity.CilGenerator` (the cilg weaver, ADR-0013), `Trinity.OntologyGenerator`
@@ -60,8 +60,11 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
 - The 14 skipped tests are pre-existing / net8-environmental cases, `[Ignore]`d and tracked in
   `doc/known-test-failures.md` (inferencing, some LINQ-provider gaps, a DateTime tz difference).
   None are generator regressions.
-- Store integration tests (`tests/Trinity.Tests.*`) need a live Virtuoso/Fuseki/GraphDB and are
-  excluded from CI.
+- Store integration tests (`tests/Trinity.Tests.*`) **self-provision** their server in Docker via
+  Testcontainers on a random host port (ADR-0036): run `dotnet test tests/Trinity.Tests.{Virtuoso,GraphDB,Fuseki}`
+  with a Docker daemon running. Excluded from the default CI job (Docker + large images). Current:
+  Virtuoso 90/97 and GraphDB 97/101 pass; Fuseki is 4/86 — a pre-existing dotNetRDF `FusekiConnector`
+  query-endpoint bug (POSTs `/ds/query`, which the server 404s), unrelated to the container wiring.
 - **CI:** `.github/workflows/ci.yml` (ubuntu, .NET 10) — restore → build → test → pack. NuGet
   publishing is **manual** (no publish job).
 - Central Package Management: versions live in `Directory.Packages.props`; shared metadata +

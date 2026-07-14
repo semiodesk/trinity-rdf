@@ -5,17 +5,18 @@ namespace Semiodesk.Trinity.Tests.GraphDB
 {
     // These tests were created with GraphDB version 10.1.13.
             
-    // How to run:
-    // 1. Create a Docker container of 'ontotext/graphdb' exposing port 7200 on the host.
-    // 2. Create a repository named 'trinity-rdf'.
-    // 3. Assign the repository with full privileges to a user 'trinity' with password 'test'.
+    // The GraphDB server is started automatically for this assembly by the GraphDBContainer
+    // [SetUpFixture] via Testcontainers (Docker), which also creates the 'trinity-rdf' repository.
+    // No manually-provisioned server is required — just a running Docker daemon (ADR-0036).
     public class GraphDBTestSetup : IStoreTestSetup
     {
         #region Members
 
         public UriRef BaseUri => new UriRef("http://localhost:7200/repository/trinity-rdf/");
         
-        public string ConnectionString => "provider=graphdb;host=http://localhost:7200;uid=trinity;pw=test;repository=trinity-rdf";
+        // Points at the Dockerized GraphDB started by the GraphDBContainer [SetUpFixture] on a
+        // random host port, with the trinity-rdf repository already created (ADR-0036).
+        public string ConnectionString => GraphDBContainer.ConnectionString;
 
         #endregion
         

@@ -3,15 +3,18 @@ using Semiodesk.Trinity.Tests.Store;
 
 namespace Semiodesk.Trinity.Tests.Virtuoso
 {
-    // How to run:
-    // 1. Create a 'openlink/virtuoso-opensource' Docker container exposing port 1111 on the host and variable DBA_PASSWORD set to 'dba'.
+    // The Virtuoso server is started automatically for this assembly by the VirtuosoContainer
+    // [SetUpFixture] via Testcontainers (Docker). No manually-provisioned server is required —
+    // just a running Docker daemon (ADR-0036).
     public class VirtuosoTestSetup : IStoreTestSetup
     {
         #region Members
 
         public UriRef BaseUri => new UriRef("http://localhost:1111/graph/trinity-rdf/");
         
-        public string ConnectionString => "provider=virtuoso;host=127.0.0.1;port=1111;uid=dba;pw=dba;rule=urn:semiodesk/test/ruleset";
+        // Points at the Dockerized Virtuoso started by the VirtuosoContainer [SetUpFixture] on a
+        // random host port (ADR-0036).
+        public string ConnectionString => VirtuosoContainer.ConnectionString;
 
         #endregion
         

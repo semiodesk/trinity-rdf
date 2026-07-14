@@ -9,7 +9,7 @@ namespace Semiodesk.Trinity.Tests.Fuseki
         [Test]
         public void FusekiConfigurationStringTest()
         {
-            const string connectionString = "provider=fuseki;host=http://localhost:3030;uid=admin;pw=test;dataset=ds";
+            var connectionString = SetupClass.ConnectionString;
             
             var store = StoreFactory.CreateStore(connectionString);
             
