@@ -138,6 +138,7 @@ Invariants that surprise newcomers:
 ## Pointers
 
 - **Decisions & history:** `doc/adr/README.md`; known-failing tests: `doc/known-test-failures.md`.
+- **Releasing:** `RELEASING.md` — manual publish to nuget.org (CI builds/tests/packs only, no publish).
 - **External consumers:** `C:\Projects\elxgen` (ElectrixOS), `C:\Projects\DevHub` (Relay) — real
   usage; both migrate to 2.0 (`partial` properties) when they adopt it.
 - Persistent cross-session notes live in Claude's auto-memory.
