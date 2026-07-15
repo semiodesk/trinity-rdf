@@ -25,35 +25,25 @@
 //
 // Copyright (c) Semiodesk GmbH 2015-2020
 
-using System.Linq;
-using NUnit.Framework;
-using Semiodesk.Trinity.Query.Sparql;
+using System;
 
-namespace Semiodesk.Trinity.Tests.Linq
+namespace Semiodesk.Trinity.Query.Sparql
 {
-    // The same 51 LinqTestBase bodies, re-run against the new SPARQL LINQ provider
-    // (AsSparqlQueryable) instead of re-linq. This is the parity gate for the provider rebuild:
-    // the operator breadth is "done" when these go green (ADR: LINQ provider).
-
-    [TestFixture]
-    [Explicit("WIP: SPARQL LINQ provider is under construction (operator breadth). Run by filter; " +
-              "remove [Explicit] when the parity suite is green (A4).")]
-    public class LinqSparqlModelTest : LinqModelTest
+    /// <summary>Small type utilities for the SPARQL LINQ provider.</summary>
+    internal static class TypeHelper
     {
-        protected override IQueryable<T> Query<T>(bool inferenceEnabled = false)
+        /// <summary>
+        /// The value a mapped member takes when no triple exists for it — i.e. <c>default(T)</c>,
+        /// except that strings default to the empty string (matching the mapping engine).
+        /// </summary>
+        public static object GetDefaultValue(Type type)
         {
-            return Model.AsSparqlQueryable<T>(inferenceEnabled);
-        }
-    }
+            if (type == typeof(string))
+            {
+                return "";
+            }
 
-    [TestFixture]
-    [Explicit("WIP: SPARQL LINQ provider is under construction (operator breadth). Run by filter; " +
-              "remove [Explicit] when the parity suite is green (A4).")]
-    public class LinqSparqlModelGroupTest : LinqModelGroupTest
-    {
-        protected override IQueryable<T> Query<T>(bool inferenceEnabled = false)
-        {
-            return Model.AsSparqlQueryable<T>(inferenceEnabled);
+            return type.IsValueType ? Activator.CreateInstance(type) : null;
         }
     }
 }

@@ -44,8 +44,8 @@ namespace Semiodesk.Trinity.Tests.Linq
         public abstract void SetUp();
 
         /// <summary>
-        /// The queryable source under test. Overridden by the SPARQL-provider variant fixtures so the
-        /// same 51 test bodies run against both the re-linq provider and the new SPARQL LINQ provider.
+        /// The queryable source under test — the SPARQL LINQ provider via <c>IModel.AsQueryable&lt;T&gt;</c>.
+        /// A single hook kept so the query source is easy to redirect in future variants.
         /// </summary>
         protected virtual IQueryable<T> Query<T>(bool inferenceEnabled = false) where T : Resource
         {

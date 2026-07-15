@@ -81,7 +81,6 @@
   <!-- ALL TARGETS -->
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" />
-	 <PackageReference Include="Remotion.Linq" />
     <PackageReference Include="dotNetRDF" />
 	  <PackageReference Include="System.Composition" />
   </ItemGroup>

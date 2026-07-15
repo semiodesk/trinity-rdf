@@ -25,8 +25,7 @@
 //
 // Copyright (c) Semiodesk GmbH 2015-2019
 
-using Remotion.Linq.Parsing.Structure;
-using Semiodesk.Trinity.Query;
+using Semiodesk.Trinity.Query.Sparql;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -638,11 +637,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public IQueryable<T> AsQueryable<T>(bool inferenceEnabled = false) where T : Resource
         {
-            SparqlQueryExecutor executor = new SparqlQueryExecutor(this, inferenceEnabled);
-
-            QueryParser queryParser = QueryParser.CreateDefault();
-
-            return new SparqlQueryable<T>(queryParser, executor);
+            return new TrinityQueryable<T>(new SparqlQueryProvider(this, inferenceEnabled));
         }
 
         /// <summary>

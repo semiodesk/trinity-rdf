@@ -129,8 +129,10 @@ Invariants that surprise newcomers:
 ## Other architecture notes
 
 - **RDF engine** (ADR-0006): dotNetRDF **2.7.0** (pinned; 3.x is a breaking upgrade — deferred).
-- **LINQ-to-SPARQL** (ADR-0007): Remotion.Linq (re-linq) — abandoned upstream, **not used by
-  either consumer**. Deprioritized; several LINQ-provider tests are among the quarantined ones.
+- **LINQ-to-SPARQL** (ADR-0037, supersedes 0007): an **owned provider** under `Trinity/Query/Sparql`
+  (own SPARQL AST → serializer → `Model.ExecuteQuery`/`GetResources`); re-linq / Remotion.Linq retired.
+  `IModel.AsQueryable<T>()` routes to it, and it emits SPARQL strings — so it's decoupled from
+  dotNetRDF's Query Builder and the 3.x upgrade won't touch it. A few LINQ-provider gaps stay quarantined.
 - **Stores** (ADR-0008/0009): `IStore`/`IModel`/`StoreFactory`; providers registered **manually**
   via `StoreFactory.LoadProvider<T>()`. The `[Export]`/`System.Composition` MEF wiring is dead code.
   `provider=stardog` references and a Stardog test project exist but there is **no Stardog provider**.

@@ -3,7 +3,8 @@
 Date: 2026-07-13 (decision original to 2015–2020 design)
 
 ## Status
-Accepted — legacy dependency, deprioritized for revival
+Superseded by [0037](0037-linq-provider-rebuild.md) — the re-linq provider was retired in 2.0 and
+replaced by an owned SPARQL LINQ provider. Kept for historical context.
 
 ## Context
 A stated selling point is querying the graph with LINQ instead of SPARQL. Translating

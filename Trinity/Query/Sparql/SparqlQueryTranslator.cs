@@ -239,7 +239,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                     throw new NotSupportedException($"Unsupported member access root: {inner?.NodeType}.");
             }
 
-            Uri predicate = GetPredicate(member.Member);
+            Uri predicate = GetPredicate(member);
 
             if (predicate == null)
             {
@@ -340,7 +340,7 @@ namespace Semiodesk.Trinity.Query.Sparql
             }
 
             var optional = new GroupGraphPattern();
-            optional.Add(new TriplePattern(owner.Subject, new IriTerm(GetPredicate(member.Member)), item));
+            optional.Add(new TriplePattern(owner.Subject, new IriTerm(GetPredicate(member)), item));
             inner.Where.Add(new OptionalPattern(optional));
             inner.GroupBy.Add(new SparqlVariableExpression(owner.Subject.Name));
 
@@ -773,7 +773,7 @@ namespace Semiodesk.Trinity.Query.Sparql
             }
 
             var group = new GroupGraphPattern();
-            group.Add(new TriplePattern(parent, new IriTerm(GetPredicate(member.Member)), FreshVariable()));
+            group.Add(new TriplePattern(parent, new IriTerm(GetPredicate(member)), FreshVariable()));
 
             return group;
         }
@@ -804,7 +804,7 @@ namespace Semiodesk.Trinity.Query.Sparql
             var group = new GroupGraphPattern();
             VariableTerm subject = FreshVariable();
 
-            group.Add(new TriplePattern(parent, new IriTerm(GetPredicate(member.Member)), subject));
+            group.Add(new TriplePattern(parent, new IriTerm(GetPredicate(member)), subject));
 
             if (call.Arguments.Count == 2)
             {
@@ -1009,7 +1009,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                 return null;
             }
 
-            if (GetPredicate(member.Member) == null)
+            if (GetPredicate(member) == null)
             {
                 Expression inner = Unwrap(member.Expression);
 
@@ -1059,7 +1059,7 @@ namespace Semiodesk.Trinity.Query.Sparql
 
             while (current is MemberExpression m)
             {
-                if (GetPredicate(m.Member) == null)
+                if (GetPredicate(m) == null)
                 {
                     return false;
                 }
@@ -1089,7 +1089,7 @@ namespace Semiodesk.Trinity.Query.Sparql
 
             while (current is MemberExpression m)
             {
-                Uri predicate = GetPredicate(m.Member);
+                Uri predicate = GetPredicate(m);
 
                 if (predicate == null)
                 {
@@ -1297,9 +1297,18 @@ namespace Semiodesk.Trinity.Query.Sparql
             return attributes.Cast<RdfClassAttribute>().Select(a => a.MappedUri);
         }
 
-        private static Uri GetPredicate(MemberInfo member)
+        private static Uri GetPredicate(MemberExpression member)
         {
-            return (member.GetCustomAttributes(typeof(RdfPropertyAttribute), true).FirstOrDefault() as RdfPropertyAttribute)?.MappedUri;
+            MemberInfo info = member.Member;
+
+            // Interface-declared members (e.g. IImage.DepictedAgent) carry no [RdfProperty]; resolve the
+            // same-named member on the concrete expression type, which does.
+            if (info.DeclaringType != null && info.DeclaringType.IsInterface && member.Expression != null)
+            {
+                info = member.Expression.Type.GetMember(info.Name).FirstOrDefault() ?? info;
+            }
+
+            return (info.GetCustomAttributes(typeof(RdfPropertyAttribute), true).FirstOrDefault() as RdfPropertyAttribute)?.MappedUri;
         }
 
         private static SparqlTerm ToTerm(object value)

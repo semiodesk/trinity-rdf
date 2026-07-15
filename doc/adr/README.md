@@ -37,7 +37,7 @@ edit a decided ADR (change its status, add the superseding link).
 | [0004](0004-force-full-pdb-symbols.md) | Force full PDB symbols so the weaver can rewrite assemblies | Accepted |
 | [0005](0005-ontology-code-generation.md) | Generate C# ontology vocabularies from RDF/OWL at build time | Accepted |
 | [0006](0006-build-on-dotnetrdf.md) | Build on dotNetRDF as the RDF/SPARQL engine (pinned 2.7.0) | Accepted |
-| [0007](0007-linq-via-relinq.md) | LINQ-to-SPARQL via Remotion.Linq (re-linq) | Accepted |
+| [0007](0007-linq-via-relinq.md) | LINQ-to-SPARQL via Remotion.Linq (re-linq) | Superseded by [0037](0037-linq-provider-rebuild.md) |
 | [0008](0008-store-model-abstraction.md) | Store/Model abstraction with manually-registered providers | Accepted |
 | [0009](0009-supported-store-backends.md) | Supported store backends; Stardog removed | Accepted |
 | [0010](0010-target-frameworks.md) | Target frameworks: netstandard2.0 core, net461 tools, net472 tests | Accepted |
@@ -75,6 +75,7 @@ mapped/dynamic duality, models & groups, discovery, stores, and querying.
 | [0013](0013-replace-il-weaving-with-source-generator.md) | Replace IL weaving with a Roslyn source generator (partial properties) — weaver retired in 2.0 | Accepted |
 | [0035](0035-remove-inotifypropertychanged.md) | Remove INotifyPropertyChanged support (resource NPC + virtualizing collections) | Accepted |
 | [0036](0036-integration-tests-testcontainers.md) | Store-integration tests self-provision servers via Testcontainers | Accepted |
+| [0037](0037-linq-provider-rebuild.md) | Rebuild LINQ-to-SPARQL on an owned provider (retire re-linq) | Accepted |
 
 ### Proposed (revival)
 | # | Title | Status |
