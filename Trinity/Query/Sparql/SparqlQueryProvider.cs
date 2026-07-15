@@ -28,6 +28,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -81,6 +82,9 @@ namespace Semiodesk.Trinity.Query.Sparql
                 case QueryExecutionKind.Count:
                     return (TResult)Convert.ChangeType(ExecuteCount(query), typeof(TResult));
 
+                case QueryExecutionKind.Bindings:
+                    return ShapeResult<TResult>(ExecuteBindings(translation, query), translation.Terminal);
+
                 default:
                     IEnumerable resources = InvokeGetResources(translation.ElementType, query);
                     return ShapeResult<TResult>(resources, translation.Terminal);
@@ -102,6 +106,37 @@ namespace Semiodesk.Trinity.Query.Sparql
             }
 
             return Convert.ToInt64(bindings.First().Value);
+        }
+
+        /// <summary>
+        /// Executes a value-projection query and materializes the projected variable of each row
+        /// into a typed list. Values are typed by <c>XsdTypeMapper</c> on the way in; mismatches
+        /// (e.g. numeric widening) fall back to an invariant-culture conversion.
+        /// </summary>
+        private IEnumerable ExecuteBindings(QueryTranslation translation, ISparqlQuery query)
+        {
+            Type elementType = translation.ElementType;
+
+            var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+
+            foreach (BindingSet bindings in _model.ExecuteQuery(query, _inferenceEnabled).GetBindings())
+            {
+                object value;
+
+                if (!bindings.TryGetValue(translation.ProjectedVariable, out value))
+                {
+                    continue;
+                }
+
+                if (!elementType.IsInstanceOfType(value))
+                {
+                    value = Convert.ChangeType(value, elementType, CultureInfo.InvariantCulture);
+                }
+
+                list.Add(value);
+            }
+
+            return list;
         }
 
         private IEnumerable InvokeGetResources(Type elementType, ISparqlQuery query)
@@ -144,6 +179,13 @@ namespace Semiodesk.Trinity.Query.Sparql
                     break;
                 case TerminalKind.SingleOrDefault:
                     result = items.SingleOrDefault();
+                    break;
+                case TerminalKind.Last:
+                    // The translator inverted the orderings, so the last item arrives first.
+                    result = items.First();
+                    break;
+                case TerminalKind.LastOrDefault:
+                    result = items.FirstOrDefault();
                     break;
                 default:
                     throw new NotSupportedException($"Unsupported terminal operator: {terminal}.");
