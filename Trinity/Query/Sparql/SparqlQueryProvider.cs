@@ -77,16 +77,28 @@ namespace Semiodesk.Trinity.Query.Sparql
             {
                 case QueryExecutionKind.Ask:
                     bool answer = _model.ExecuteQuery(query, _inferenceEnabled).GetAnwser();
-                    return (TResult)(object)answer;
+                    return (TResult)(object)(translation.NegateResult ? !answer : answer);
 
                 case QueryExecutionKind.Count:
                     return (TResult)Convert.ChangeType(ExecuteCount(query), typeof(TResult));
 
+                case QueryExecutionKind.Scalar:
+                    return (TResult)ExecuteScalar(translation, query, typeof(TResult));
+
                 case QueryExecutionKind.Bindings:
-                    return ShapeResult<TResult>(ExecuteBindings(translation, query), translation.Terminal);
+                    IEnumerable values = translation.RowProjector != null
+                        ? ExecuteRows(translation, query)
+                        : ExecuteBindings(translation, query);
+                    return ShapeResult<TResult>(values, translation.Terminal);
 
                 default:
                     IEnumerable resources = InvokeGetResources(translation.ElementType, query);
+
+                    if (translation.MultiplicityQuery != null)
+                    {
+                        resources = RestoreMultiplicity(translation, resources);
+                    }
+
                     return ShapeResult<TResult>(resources, translation.Terminal);
             }
         }
@@ -137,6 +149,114 @@ namespace Semiodesk.Trinity.Query.Sparql
             }
 
             return list;
+        }
+
+        /// <summary>
+        /// Executes an aggregate (SUM/MIN/MAX/AVG) query and converts the single binding value to the
+        /// expected result type. An empty sequence yields 0 for SUM/COUNT and throws for the others,
+        /// matching LINQ to Objects.
+        /// </summary>
+        private object ExecuteScalar(QueryTranslation translation, ISparqlQuery query, Type resultType)
+        {
+            BindingSet bindings = _model.ExecuteQuery(query, _inferenceEnabled).GetBindings().FirstOrDefault();
+
+            object value = null;
+
+            if (bindings != null)
+            {
+                bindings.TryGetValue(translation.ProjectedVariable, out value);
+            }
+
+            if (value == null)
+            {
+                if (translation.Aggregate == SparqlAggregateKind.Sum || translation.Aggregate == SparqlAggregateKind.Count)
+                {
+                    value = 0;
+                }
+                else
+                {
+                    throw new InvalidOperationException("Sequence contains no elements");
+                }
+            }
+
+            return CoerceValue(value, resultType);
+        }
+
+        /// <summary>
+        /// Executes a multi-column projection query: each row's column values are coerced to their
+        /// declared types and shaped into a result element by the translation's row projector.
+        /// </summary>
+        private IEnumerable ExecuteRows(QueryTranslation translation, ISparqlQuery query)
+        {
+            var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(translation.ElementType));
+
+            foreach (BindingSet bindings in _model.ExecuteQuery(query, _inferenceEnabled).GetBindings())
+            {
+                object[] row = new object[translation.ColumnVariables.Length];
+
+                for (int i = 0; i < row.Length; i++)
+                {
+                    object value;
+
+                    bindings.TryGetValue(translation.ColumnVariables[i], out value);
+
+                    row[i] = value == null
+                        ? TypeHelper.GetDefaultValue(translation.ColumnTypes[i])
+                        : CoerceValue(value, translation.ColumnTypes[i]);
+                }
+
+                list.Add(translation.RowProjector(row));
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// Re-expands a materialized (per-resource-unique) result to the multiplicity of the source
+        /// rows: the multiplicity query returns the projected variable once per source row, and each
+        /// value is mapped back to its materialized resource.
+        /// </summary>
+        private IEnumerable RestoreMultiplicity(QueryTranslation translation, IEnumerable resources)
+        {
+            var byUri = new Dictionary<string, object>();
+
+            foreach (object resource in resources)
+            {
+                byUri[((IResource)resource).Uri.OriginalString] = resource;
+            }
+
+            var query = new SparqlQuery(SparqlQueryWriter.Write(translation.MultiplicityQuery)) { Model = _model };
+            var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(translation.ElementType));
+
+            foreach (BindingSet bindings in _model.ExecuteQuery(query, _inferenceEnabled).GetBindings())
+            {
+                object value;
+
+                if (!bindings.TryGetValue(translation.SubjectVariable, out value) || !(value is Uri uri))
+                {
+                    continue;
+                }
+
+                object resource;
+
+                if (byUri.TryGetValue(uri.OriginalString, out resource))
+                {
+                    list.Add(resource);
+                }
+            }
+
+            return list;
+        }
+
+        /// <summary>Coerces a binding value to the expected .NET type (invariant-culture conversion).</summary>
+        private static object CoerceValue(object value, Type type)
+        {
+            if (type.IsInstanceOfType(value))
+            {
+                return value;
+            }
+
+            return Convert.ChangeType(value, type, CultureInfo.InvariantCulture);
         }
 
         private IEnumerable InvokeGetResources(Type elementType, ISparqlQuery query)

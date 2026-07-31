@@ -118,7 +118,10 @@ namespace Semiodesk.Trinity.Query.Sparql
 
                     if (!_cannotBeEvaluated)
                     {
-                        if (node.NodeType == ExpressionType.Parameter)
+                        // A byref-like (ref struct) value cannot be boxed into a ConstantExpression —
+                        // e.g. the implicit int[] → ReadOnlySpan<int> conversion that C# 13+ binds for
+                        // array.Contains(...). Its children (the underlying array) remain candidates.
+                        if (node.NodeType == ExpressionType.Parameter || IsByRefLike(node.Type))
                         {
                             _cannotBeEvaluated = true;
                         }
@@ -132,6 +135,13 @@ namespace Semiodesk.Trinity.Query.Sparql
                 }
 
                 return node;
+            }
+
+            /// <summary>Portable byref-like check (Type.IsByRefLike is unavailable on netstandard2.0).</summary>
+            private static bool IsByRefLike(System.Type type)
+            {
+                return type.IsValueType
+                    && type.CustomAttributes.Any(a => a.AttributeType.FullName == "System.Runtime.CompilerServices.IsByRefLikeAttribute");
             }
         }
     }
