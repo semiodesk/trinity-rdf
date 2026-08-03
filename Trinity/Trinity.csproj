@@ -81,7 +81,11 @@
   <!-- ALL TARGETS -->
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" />
-    <PackageReference Include="dotNetRDF" />
+    <PackageReference Include="dotNetRdf.Core" />
+    <!-- Client supplies the connectors the built-in SPARQL-endpoint store uses. -->
+    <PackageReference Include="dotNetRdf.Client" />
+    <!-- Inferencing supplies RdfsReasoner for the in-memory store. -->
+    <PackageReference Include="dotNetRdf.Inferencing" />
 	  <PackageReference Include="System.Composition" />
   </ItemGroup>
 

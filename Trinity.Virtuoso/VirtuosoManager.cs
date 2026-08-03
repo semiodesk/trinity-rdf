@@ -969,7 +969,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                                             s.Add(var.Name, this.LoadNode(temp, r[var.Name]));
                                         }
                                     }
-                                    if (!resultsHandler.HandleResult(new SparqlResult(s))) ParserHelper.Stop();
+                                    if (!resultsHandler.HandleResult(new SparqlResult(ToBindings(s)))) ParserHelper.Stop();
                                 }
                                 break;
 
@@ -1072,7 +1072,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                                 if (!resultsHandler.HandleVariable("Result")) ParserHelper.Stop();
                                 Set s = new Set();
                                 s.Add("Result", r.ToLiteral(resultsHandler));
-                                if (!resultsHandler.HandleResult(new SparqlResult(s))) ParserHelper.Stop();
+                                if (!resultsHandler.HandleResult(new SparqlResult(ToBindings(s)))) ParserHelper.Stop();
                             }
                             else if (Single.TryParse(results.Rows[0][0].ToString(), out rflt))
                             {
@@ -1082,7 +1082,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                                 if (!resultsHandler.HandleVariable("Result")) ParserHelper.Stop();
                                 Set s = new Set();
                                 s.Add("Result", rflt.ToLiteral(resultsHandler));
-                                if (!resultsHandler.HandleResult(new SparqlResult(s))) ParserHelper.Stop();
+                                if (!resultsHandler.HandleResult(new SparqlResult(ToBindings(s)))) ParserHelper.Stop();
                             }
                             else if (Double.TryParse(results.Rows[0][0].ToString(), out rdbl))
                             {
@@ -1092,7 +1092,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                                 if (!resultsHandler.HandleVariable("Result")) ParserHelper.Stop();
                                 Set s = new Set();
                                 s.Add("Result", rdbl.ToLiteral(resultsHandler));
-                                if (!resultsHandler.HandleResult(new SparqlResult(s))) ParserHelper.Stop();
+                                if (!resultsHandler.HandleResult(new SparqlResult(ToBindings(s)))) ParserHelper.Stop();
                             }
                             else if (Decimal.TryParse(results.Rows[0][0].ToString(), out rdec))
                             {
@@ -1102,7 +1102,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                                 if (!resultsHandler.HandleVariable("Result")) ParserHelper.Stop();
                                 Set s = new Set();
                                 s.Add("Result", rdec.ToLiteral(resultsHandler));
-                                if (!resultsHandler.HandleResult(new SparqlResult(s))) ParserHelper.Stop();
+                                if (!resultsHandler.HandleResult(new SparqlResult(ToBindings(s)))) ParserHelper.Stop();
                             }
                             else
                             {
@@ -1124,7 +1124,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                                     Set s = new Set();
                                     s.Add(results.Columns[0].ColumnName, this.LoadNode(resultsHandler, results.Rows[0][0]));
                                     //Nothing was returned here previously - fix submitted by Aleksandr A. Zaripov [zaripov@tpu.ru]
-                                    if (!resultsHandler.HandleResult(new SparqlResult(s))) ParserHelper.Stop();
+                                    if (!resultsHandler.HandleResult(new SparqlResult(ToBindings(s)))) ParserHelper.Stop();
                                 }
                             }
                         }
@@ -1154,7 +1154,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                                         s.Add(var, this.LoadNode(resultsHandler, r[var]));
                                     }
                                 }
-                                if (!resultsHandler.HandleResult(new SparqlResult(s))) ParserHelper.Stop();
+                                if (!resultsHandler.HandleResult(new SparqlResult(ToBindings(s)))) ParserHelper.Stop();
                             }
                         }
                         this.Close(false);
@@ -1301,6 +1301,54 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         public override bool DeleteSupported
         {
             get { return true; }
+        }
+
+        /// <summary>
+        /// Converts an algebra <see cref="Set"/> to the variable/node pairs that dotNetRDF 3.x's
+        /// <see cref="SparqlResult"/> constructor takes (it no longer accepts a <c>Set</c> directly).
+        /// </summary>
+        private static IEnumerable<KeyValuePair<string, INode>> ToBindings(Set set)
+        {
+            foreach (string variable in set.Variables)
+            {
+                yield return new KeyValuePair<string, INode>(variable, set[variable]);
+            }
+        }
+
+        /// <summary>
+        /// Lists the names of the Graphs in the store.
+        /// </summary>
+        /// <remarks>
+        /// The canonical member since dotNetRDF 3.x, which supports blank-node graph names; Virtuoso
+        /// only has URI-named graphs, so this simply projects <see cref="ListGraphs"/>.
+        /// </remarks>
+        public override IEnumerable<string> ListGraphNames()
+        {
+#pragma warning disable CS0618 // ListGraphs() is obsolete upstream but is this provider's implementation.
+            foreach (Uri graph in ListGraphs())
+#pragma warning restore CS0618
+            {
+                yield return graph.AbsoluteUri;
+            }
+        }
+
+        /// <summary>
+        /// Updates a Graph identified by an RDF term (dotNetRDF 3.x); Virtuoso supports URI-named
+        /// graphs and the default graph only.
+        /// </summary>
+        /// <param name="graphName">Name of the Graph, or <c>null</c> for the default graph.</param>
+        /// <param name="additions">Triples to be added.</param>
+        /// <param name="removals">Triples to be removed.</param>
+        public override void UpdateGraph(IRefNode graphName, IEnumerable<Triple> additions, IEnumerable<Triple> removals)
+        {
+            if (graphName != null && !(graphName is IUriNode))
+            {
+                throw new RdfStorageException("Virtuoso does not support blank node graph names.");
+            }
+
+#pragma warning disable CS0618 // The Uri overload is this provider's implementation.
+            UpdateGraph((graphName as IUriNode)?.Uri, additions, removals);
+#pragma warning restore CS0618
         }
 
         /// <summary>

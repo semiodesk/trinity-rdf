@@ -6,8 +6,13 @@
 
   <!-- Core / store library dependencies -->
   <ItemGroup>
-    <PackageVersion Include="dotNetRDF" Version="2.7.0" />
-    <PackageVersion Include="Newtonsoft.Json" Version="13.0.1" />
+    <!-- dotNetRDF 3.x is split: Core = RDF/SPARQL engine, Client = HTTP storage connectors. -->
+    <PackageVersion Include="dotNetRdf.Core" Version="3.5.2" />
+    <PackageVersion Include="dotNetRdf.Client" Version="3.5.2" />
+    <!-- RdfsReasoner (in-memory inferencing) moved out of Core in 3.x. -->
+    <PackageVersion Include="dotNetRdf.Inferencing" Version="3.5.2" />
+    <!-- 13.0.4 is the floor dotNetRdf.Core 3.5.2 requires. -->
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageVersion Include="System.Composition" Version="1.1.0" />    <PackageVersion Include="System.Data.Common" Version="4.3.0" />
     <PackageVersion Include="System.Security.Permissions" Version="5.0.0" />
   </ItemGroup>

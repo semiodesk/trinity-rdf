@@ -23,7 +23,8 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <PackageReference Include="dotNetRDF" />    <PackageReference Include="System.Data.Common" />
+    <PackageReference Include="dotNetRdf.Client" />
+    <PackageReference Include="System.Data.Common" />
     <PackageReference Include="System.Security.Permissions" />
   </ItemGroup>
 

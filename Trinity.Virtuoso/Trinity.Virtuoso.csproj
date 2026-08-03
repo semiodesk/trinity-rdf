@@ -28,7 +28,10 @@
     <None Include="..\assets\trinity-logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
-  <ItemGroup>    <PackageReference Include="System.Data.Common" />
+  <ItemGroup>
+    <!-- The vendored VirtuosoManager implements dotNetRDF's IStorageProvider, which lives in Client. -->
+    <PackageReference Include="dotNetRdf.Client" />
+    <PackageReference Include="System.Data.Common" />
     <PackageReference Include="System.Security.Permissions" />
   </ItemGroup>
   

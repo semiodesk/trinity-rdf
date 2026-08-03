@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 using VDS.RDF;
 
 namespace Semiodesk.Trinity.Tests.dotnetrdf
@@ -12,6 +13,12 @@ namespace Semiodesk.Trinity.Tests.dotnetrdf
         public event RdfWriterWarning Warning;
 
         public void Save(IGraph g, string filename)
+        {
+            throw new NotSupportedException();
+        }
+
+        // Added by IRdfWriter in dotNetRDF 3.x.
+        public void Save(IGraph g, string filename, Encoding fileEncoding)
         {
             throw new NotSupportedException();
         }

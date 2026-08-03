@@ -148,18 +148,17 @@ namespace Semiodesk.Trinity.Store.GraphDB
         queryBuilder.Append("query=");
         queryBuilder.Append(HttpUtility.UrlEncode(this.EscapeQuery(sparqlQuery)));
         
-        using (var writer = new StreamWriter(request.GetRequestStream(), new UTF8Encoding(Options.UseBomForUtf8)))
+        // 3.x removed the global Options class; UTF-8 without a BOM was the default it carried.
+        using (var writer = new StreamWriter(request.GetRequestStream(), new UTF8Encoding(false)))
         {
           writer.Write(queryBuilder);
           writer.Close();
         }
 
-        Tools.HttpDebugRequest(request);
-        
+        // dotNetRDF 3.x removed Tools.HttpDebugRequest/Response (HTTP debugging is done through
+        // HttpClient logging now), so the former debug hooks are simply gone.
         using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
         {
-          Tools.HttpDebugResponse(response);
-          
           var input = new StreamReader(response.GetResponseStream());
           
           try
