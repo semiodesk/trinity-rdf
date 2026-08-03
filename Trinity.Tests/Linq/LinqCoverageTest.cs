@@ -41,12 +41,12 @@ namespace Semiodesk.Trinity.Tests.Linq
     /// insensitive by default (SPARQL has no implicit order); ordered cases project a deterministic
     /// sort key and compare in order.
     ///
-    /// Marked [Explicit] on purpose: it is expected to reveal provider gaps and must not fail the
-    /// default suite. Run it with:
+    /// This corpus is green and part of the default suite, so it gates CI. It is also the regression
+    /// net for the dotNetRDF 3.x upgrade — the provider emits SPARQL strings, so the same cases must
+    /// keep passing there. Run it alone with:
     ///   dotnet test --filter "FullyQualifiedName~LinqCoverageTest"
     /// </summary>
     [TestFixture]
-    [Explicit("LINQ coverage corpus — expected to reveal provider gaps; run by filter, do not gate CI.")]
     public class LinqCoverageTest
     {
         private IStore _store;
@@ -129,17 +129,28 @@ namespace Semiodesk.Trinity.Tests.Linq
         {
             public string Name;
             internal Func<IQueryable<Person>, object> Run;
+
+            /// <summary>
+            /// Optional in-memory expectation, used instead of <see cref="Run"/> on the oracle side when
+            /// RDF and LINQ-to-Objects legitimately differ. Currently only needed for string ordering:
+            /// SPARQL <c>ORDER BY</c> compares plain literals by Unicode codepoint (so "Zoe" precedes
+            /// "alice"), whereas .NET's default comparer is culture-sensitive and case-insensitive-ish.
+            /// Those cases order with <see cref="StringComparer.Ordinal"/> here.
+            /// </summary>
+            internal Func<IQueryable<Person>, object> Oracle;
+
             public bool Ordered;
             public override string ToString() => Name;
         }
 
-        private static Case C(string name, Func<IQueryable<Person>, object> run, bool ordered = false)
-            => new Case { Name = name, Run = run, Ordered = ordered };
+        private static Case C(string name, Func<IQueryable<Person>, object> run, bool ordered = false,
+                              Func<IQueryable<Person>, object> oracle = null)
+            => new Case { Name = name, Run = run, Ordered = ordered, Oracle = oracle };
 
         [TestCaseSource(nameof(Cases))]
         public void Query(Case c)
         {
-            object expected = c.Run(_people.AsQueryable());   // LINQ-to-Objects oracle
+            object expected = (c.Oracle ?? c.Run)(_people.AsQueryable()); // LINQ-to-Objects oracle
             object actual = c.Run(_model.AsQueryable<Person>()); // SPARQL provider
 
             AssertEquivalent(expected, actual, c.Ordered);
@@ -230,17 +241,23 @@ namespace Semiodesk.Trinity.Tests.Linq
             // G. Ordering (compare deterministic projected key sequences)
             yield return C("orderby int asc", q => q.OrderBy(p => p.Age).ThenBy(p => p.FirstName).Select(p => p.FirstName).ToList(), ordered: true);
             yield return C("orderby int desc", q => q.OrderByDescending(p => p.Age).ThenBy(p => p.FirstName).Select(p => p.FirstName).ToList(), ordered: true);
-            yield return C("orderby string asc", q => q.OrderBy(p => p.FirstName).Select(p => p.FirstName).ToList(), ordered: true);
-            yield return C("orderby string desc", q => q.OrderByDescending(p => p.FirstName).Select(p => p.FirstName).ToList(), ordered: true);
+            yield return C("orderby string asc", q => q.OrderBy(p => p.FirstName).Select(p => p.FirstName).ToList(), ordered: true,
+                oracle: q => q.AsEnumerable().OrderBy(p => p.FirstName, StringComparer.Ordinal).Select(p => p.FirstName).ToList());
+            yield return C("orderby string desc", q => q.OrderByDescending(p => p.FirstName).Select(p => p.FirstName).ToList(), ordered: true,
+                oracle: q => q.AsEnumerable().OrderByDescending(p => p.FirstName, StringComparer.Ordinal).Select(p => p.FirstName).ToList());
             yield return C("orderby float", q => q.OrderBy(p => p.AccountBalance).Select(p => p.FirstName).ToList(), ordered: true);
             yield return C("orderby datetime", q => q.OrderBy(p => p.Birthday).Select(p => p.FirstName).ToList(), ordered: true);
             yield return C("orderby then desc", q => q.OrderBy(p => p.Status).ThenByDescending(p => p.Age).ThenBy(p => p.FirstName).Select(p => p.FirstName).ToList(), ordered: true);
 
             // H. Paging (deterministic order + unique key projection)
-            yield return C("skip", q => q.OrderBy(p => p.FirstName).Skip(2).Select(p => p.FirstName).ToList(), ordered: true);
-            yield return C("take", q => q.OrderBy(p => p.FirstName).Take(2).Select(p => p.FirstName).ToList(), ordered: true);
-            yield return C("skip+take", q => q.OrderBy(p => p.FirstName).Skip(1).Take(2).Select(p => p.FirstName).ToList(), ordered: true);
-            yield return C("where+orderby+skip+take", q => q.Where(p => p.Age >= 30).OrderBy(p => p.FirstName).Skip(1).Take(2).Select(p => p.FirstName).ToList(), ordered: true);
+            yield return C("skip", q => q.OrderBy(p => p.FirstName).Skip(2).Select(p => p.FirstName).ToList(), ordered: true,
+                oracle: q => q.AsEnumerable().OrderBy(p => p.FirstName, StringComparer.Ordinal).Skip(2).Select(p => p.FirstName).ToList());
+            yield return C("take", q => q.OrderBy(p => p.FirstName).Take(2).Select(p => p.FirstName).ToList(), ordered: true,
+                oracle: q => q.AsEnumerable().OrderBy(p => p.FirstName, StringComparer.Ordinal).Take(2).Select(p => p.FirstName).ToList());
+            yield return C("skip+take", q => q.OrderBy(p => p.FirstName).Skip(1).Take(2).Select(p => p.FirstName).ToList(), ordered: true,
+                oracle: q => q.AsEnumerable().OrderBy(p => p.FirstName, StringComparer.Ordinal).Skip(1).Take(2).Select(p => p.FirstName).ToList());
+            yield return C("where+orderby+skip+take", q => q.Where(p => p.Age >= 30).OrderBy(p => p.FirstName).Skip(1).Take(2).Select(p => p.FirstName).ToList(), ordered: true,
+                oracle: q => q.Where(p => p.Age >= 30).AsEnumerable().OrderBy(p => p.FirstName, StringComparer.Ordinal).Skip(1).Take(2).Select(p => p.FirstName).ToList());
 
             // I. Distinct
             yield return C("distinct ages", q => q.Select(p => p.Age).Distinct().ToList());
@@ -260,7 +277,8 @@ namespace Semiodesk.Trinity.Tests.Linq
             yield return C("firstordefault none", q => q.Where(p => p.FirstName == "Zzz").Select(p => p.FirstName).FirstOrDefault());
             yield return C("single(pred)", q => q.Where(p => p.FirstName == "Carol").Single().FirstName);
             yield return C("ordered first", q => q.OrderBy(p => p.FirstName).First().FirstName);
-            yield return C("ordered last", q => q.OrderBy(p => p.FirstName).Last().FirstName);
+            yield return C("ordered last", q => q.OrderBy(p => p.FirstName).Last().FirstName,
+                oracle: q => q.AsEnumerable().OrderBy(p => p.FirstName, StringComparer.Ordinal).Last().FirstName);
 
             // K. Aggregates
             yield return C("sum ages", q => q.Select(p => p.Age).Sum());

@@ -48,11 +48,31 @@ A self-contained provider under `Trinity/Query/Sparql/`, independent of dotNetRD
 - Unsupported/awkward operators throw `NotSupportedException` rather than emit wrong SPARQL (bounded
   scope), consistent with the SPARQL semantic-mismatch areas flagged in the plan.
 
+## Unbound-member and collation semantics (decided)
+A `LinqCoverageTest` oracle corpus (~96 cases; each query runs through the provider *and* through
+LINQ-to-Objects over the same data) drove two semantic questions to a decision:
+
+- **A mapped member with no triple behaves as `default(T)`** — consistently, not just in projections.
+  Equality already did this (`OPTIONAL … FILTER(?v = c || !BOUND(?v))`) and so did value projections
+  (`COALESCE(?v, default)`); **inequalities and `ORDER BY` now do too**, comparing/sorting on
+  `COALESCE(?v, default)` with an optional binding. Before this, `Where(p => p.Age < 45)` silently
+  excluded resources without `foaf:age`, and worse, `OrderBy(p => p.Balance)` *dropped* them from the
+  result — inconsistent with `Select(p => p.Balance)`, which already yielded `0` for them.
+  Strings keep their existing no-default treatment (parity with the old provider).
+- **String ordering follows SPARQL, not .NET.** `ORDER BY` on plain literals is Unicode-codepoint
+  ordered (so `"Zoe"` precedes `"alice"`), whereas .NET's default comparer is culture-sensitive.
+  Matching .NET would mean sorting client-side and giving up `LIMIT`/`OFFSET` pushdown, so the SPARQL
+  behaviour stands and the corpus asserts it with `StringComparer.Ordinal` on the oracle side.
+
+With both settled the corpus is green (96/96) and part of the default suite, so it gates CI — and it
+is the regression net for the dotNetRDF 3.x upgrade.
+
 ## Follow-ups
 - The 4 quarantined LINQ-provider correctness gaps (from 0007, in `doc/known-test-failures.md`) are
   still `[Ignore]`d and have not been re-verified against the new provider — revisit.
-- Broaden coverage where currently bounded (some `GroupBy`-materializes-elements and set-operation
-  shapes); consider a SPARQL\* surface now that an owned AST makes it tractable.
+- Still deliberately unsupported (throws rather than emitting wrong SPARQL): `GroupBy` that
+  materializes the group's *elements*, and `Take().Skip()` (which needs a nested sub-SELECT).
+- Consider a SPARQL\* (quoted-triple) surface now that an owned AST makes it tractable.
 
 ## Related
 - [0007](0007-linq-via-relinq.md) (superseded), [0006](0006-build-on-dotnetrdf.md) (dotNetRDF; the

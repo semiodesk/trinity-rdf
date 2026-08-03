@@ -52,7 +52,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 257 passed, 14 skipped (quarantined)
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 370 passed, 14 skipped (quarantined)
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 4 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```

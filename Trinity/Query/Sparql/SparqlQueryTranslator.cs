@@ -1148,10 +1148,21 @@ namespace Semiodesk.Trinity.Query.Sparql
                         }
                     }
 
-                    // In a disjunction the member binds optionally so the pattern join does not
-                    // exclude resources that could match through the other branch; the comparison
-                    // itself evaluates to an error (= false) on unbound values.
-                    MemberBinding binding = BindChain(scope, chain.Chain, inDisjunction && chain.MemberType.IsValueType);
+                    // Unbound members hold default(T), so a value-type member binds optionally and the
+                    // comparison runs against its COALESCEd value. Without this an inequality would
+                    // silently drop resources that lack the property, disagreeing with the projected
+                    // sequence (`Select(p => p.Age)` already yields 0 for them).
+                    bool defaultable = chain.MemberType.IsValueType;
+
+                    MemberBinding binding = BindChain(scope, chain.Chain, defaultable || inDisjunction);
+
+                    if (defaultable)
+                    {
+                        return new SparqlBinaryExpression(
+                            MapComparison(op),
+                            Coalesce(binding.Variable, chain.MemberType),
+                            new SparqlConstantExpression(ToTerm(value)));
+                    }
 
                     return BindingComparison(op, binding, value);
                 }
@@ -1485,6 +1496,17 @@ namespace Semiodesk.Trinity.Query.Sparql
                 }
 
                 throw new NotSupportedException("Identity ordering is only supported after a value projection.");
+            }
+
+            ChainInfo chain = TryGetChain(body);
+
+            if (chain != null && chain.Kind == ChainKind.Value && chain.MemberType.IsValueType)
+            {
+                // Unbound members hold default(T): order by the COALESCEd value so a resource without
+                // the property sorts as default(T) rather than dropping out of the result entirely.
+                MemberBinding binding = BindChain(_rootScope, chain.Chain, true);
+
+                return Coalesce(binding.Variable, chain.MemberType);
             }
 
             return TranslateOperand(_rootScope, body);
