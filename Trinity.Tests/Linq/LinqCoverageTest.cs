@@ -307,6 +307,21 @@ namespace Semiodesk.Trinity.Tests.Linq
             yield return C("select anonymous", q => q.Where(p => p.Age == 45).Select(p => new { p.FirstName, p.Age }).ToList());
             yield return C("selectmany collection", q => q.SelectMany(p => p.KnownPeople).Select(k => k.FirstName).ToList());
 
+            // N2. Runtime type checks (`is`, GetType() == typeof(T)) and OfType over a collection
+            yield return C("where is mapped type", q => q.Where(p => p.Group is Group).ToList());
+            yield return C("where GetType()==typeof(self)", q => q.Where(p => p.GetType() == typeof(Person)).ToList());
+            yield return C("where member GetType()==typeof", q => q.Where(p => p.Group.GetType() == typeof(Group)).ToList());
+            yield return C("where member GetType()!=typeof", q => q.Where(p => p.Group.GetType() != typeof(Person)).ToList());
+            yield return C("where collection OfType Count", q => q.Where(p => p.KnownPeople.OfType<Person>().Count() > 1).ToList());
+
+            // N3. SelectMany with a result selector (the `from ... from ...` query form)
+            yield return C("selectmany result selector, duplicates",
+                q => q.SelectMany(p => p.KnownPeople, (p, k) => p).Select(p => p.FirstName).ToList());
+            yield return C("selectmany transparent identifier",
+                q => (from p in q from k in p.KnownPeople where k.FirstName == "Alice" select p).Select(p => p.FirstName).ToList());
+            yield return C("selectmany element result selector",
+                q => q.SelectMany(p => p.KnownPeople, (p, k) => k).Select(k => k.FirstName).ToList());
+
             // O. Subqueries over collections
             yield return C("where collection Any", q => q.Where(p => p.KnownPeople.Any()).ToList());
             yield return C("where collection Count>1", q => q.Where(p => p.KnownPeople.Count > 1).ToList());

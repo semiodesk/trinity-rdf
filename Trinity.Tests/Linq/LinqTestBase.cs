@@ -1120,7 +1120,9 @@ namespace Semiodesk.Trinity.Tests.Linq
         }
 
         [Test]
-        [Ignore("Known: the `is` operator (TypeIs) is not translated to an rdf:type pattern yet (ADR-0037). See doc/known-test-failures.md")]
+        [Ignore("Known: needs polymorphic base-type queries — Query<Agent>() must also return resources " +
+                "typed with a subclass (Person). `is`, `GetType() == typeof(T)` and OfType<T>().Count() " +
+                "now work; only the last assertion fails. Open decision (ADR-0037). See doc/known-test-failures.md")]
         public void CanSelectResourcesWithOperatorTypeOf()
         {
             var actual0 = (from resource in Query<Resource>() select resource).ToList();
@@ -1259,7 +1261,6 @@ namespace Semiodesk.Trinity.Tests.Linq
         }
 
         [Test]
-        [Ignore("Known: SelectMany with a result selector (multiple from clauses) is not supported yet (ADR-0037). See doc/known-test-failures.md")]
         public void SelectAdditionalFrom()
         {
             var actual = (from user in Query<Person>(true) from person in user.KnownPeople where user.FirstName == "Alice" && person.FirstName == "Bob" select user).ToList();

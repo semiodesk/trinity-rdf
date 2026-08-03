@@ -70,6 +70,13 @@ is the regression net for the dotNetRDF 3.x upgrade.
 ## Follow-ups
 - The 4 quarantined LINQ-provider correctness gaps (from 0007, in `doc/known-test-failures.md`) are
   still `[Ignore]`d and have not been re-verified against the new provider — revisit.
+- **Open decision — polymorphic base-type queries.** `GetTypes()` emits only a class's own
+  `[RdfClass]`, so a `Person` is not typed `foaf:Agent` and `AsQueryable<Agent>()` returns only
+  resources explicitly typed `foaf:Agent`. LINQ semantics say a `Person` *is* an `Agent`, so a
+  base-type query arguably should expand to a UNION over the registered subclasses
+  (`MappingDiscovery` knows them) — or be left to store-side `rdfs:subClassOf` inference. This is
+  the last blocker on `CanSelectResourcesWithOperatorTypeOf`, and it would change the behaviour a
+  current test (`SparqlLinqExemplarTest.FiltersToExactType`) documents.
 - Still deliberately unsupported (throws rather than emitting wrong SPARQL): `GroupBy` that
   materializes the group's *elements*, and `Take().Skip()` (which needs a nested sub-SELECT).
 - Consider a SPARQL\* (quoted-triple) surface now that an owned AST makes it tractable.

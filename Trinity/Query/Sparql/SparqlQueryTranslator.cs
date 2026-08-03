@@ -157,6 +157,19 @@ namespace Semiodesk.Trinity.Query.Sparql
         // subsequent operators then bind against the projected variable.
         private QueryScope _rootScope;
 
+        // Scopes for synthetic parameters introduced by a transparent identifier (see
+        // ApplySelectMany): they are not part of the _rootScope parent chain.
+        private readonly Dictionary<ParameterExpression, QueryScope> _extraScopes =
+            new Dictionary<ParameterExpression, QueryScope>();
+
+        // Transparent identifiers by anonymous type: member name -> synthetic parameter.
+        private readonly Dictionary<Type, Dictionary<string, ParameterExpression>> _transparentIdentifiers =
+            new Dictionary<Type, Dictionary<string, ParameterExpression>>();
+
+        // Set by a SelectMany with a result selector: the result is the source, but one row per
+        // (source, element) pair, so per-row multiplicity must be restored.
+        private bool _forceMultiplicity;
+
         // For value projections (Bindings): the member binding whose variable is projected.
         private MemberBinding _projection;
 
@@ -245,6 +258,13 @@ namespace Semiodesk.Trinity.Query.Sparql
                 {
                     return current;
                 }
+            }
+
+            QueryScope extra;
+
+            if (parameter != null && _extraScopes.TryGetValue(parameter, out extra))
+            {
+                return extra;
             }
 
             return _rootScope;
@@ -360,7 +380,7 @@ namespace Semiodesk.Trinity.Query.Sparql
         /// <c>{ SELECT ?s (COUNT(?x) AS ?c) WHERE { ?s a &lt;Type&gt; . OPTIONAL { ?s &lt;p&gt; ?x } } GROUP BY ?s }</c>.
         /// The member is OPTIONAL and the type pattern is inside, so resources without elements count as zero.
         /// </summary>
-        private MemberBinding BindCount(QueryScope scope, MemberExpression member)
+        private MemberBinding BindCount(QueryScope scope, MemberExpression member, Type elementType = null)
         {
             if (!(Unwrap(member.Expression) is ParameterExpression parameter))
             {
@@ -374,7 +394,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                 throw new NotSupportedException("Collection counts are only supported on the query source.");
             }
 
-            string key = PathKey(member) + "#count";
+            string key = PathKey(member) + "#count" + (elementType != null ? ":" + elementType.FullName : "");
 
             MemberBinding binding;
 
@@ -397,6 +417,16 @@ namespace Semiodesk.Trinity.Query.Sparql
 
             var optional = new GroupGraphPattern();
             optional.Add(new TriplePattern(owner.Subject, new IriTerm(GetPredicate(member)), item));
+
+            if (elementType != null)
+            {
+                // OfType<T> over the collection: only elements carrying T's class(es) are counted.
+                foreach (Uri type in GetTypeConstraints(elementType))
+                {
+                    optional.Add(new TriplePattern(item, RdfTypeTerm.Instance, new IriTerm(type)));
+                }
+            }
+
             inner.Where.Add(new OptionalPattern(optional));
             inner.GroupBy.Add(new SparqlVariableExpression(owner.Subject.Name));
 
@@ -595,9 +625,11 @@ namespace Semiodesk.Trinity.Query.Sparql
 
             Expression body = Unwrap(lambda.Body);
 
-            if (body == lambda.Parameters[0])
+            if (body == lambda.Parameters[0]
+                || (body is ParameterExpression alias && ResolveScope(_rootScope, alias).Subject == _rootScope.Subject))
             {
-                // Identity projection: the query still yields the source resources.
+                // Identity projection: the query still yields the source resources. The second form is
+                // a transparent-identifier alias for the source (`select user` after a `from ... from`).
                 return;
             }
 
@@ -613,7 +645,7 @@ namespace Semiodesk.Trinity.Query.Sparql
             switch (chain.Kind)
             {
                 case ChainKind.Count:
-                    _projection = BindCount(_rootScope, chain.Chain);
+                    _projection = BindCount(_rootScope, chain.Chain, chain.ElementType);
                     _kind = QueryExecutionKind.Bindings;
                     _elementType = typeof(int);
                     break;
@@ -723,9 +755,9 @@ namespace Semiodesk.Trinity.Query.Sparql
         /// </summary>
         private void ApplySelectMany(MethodCallExpression call)
         {
-            if (call.Arguments.Count != 2)
+            if (call.Arguments.Count != 2 && call.Arguments.Count != 3)
             {
-                throw new NotSupportedException("SelectMany with a result selector is not supported.");
+                throw new NotSupportedException($"Unsupported SelectMany overload ({call.Arguments.Count} arguments).");
             }
 
             if (_kind != QueryExecutionKind.ResourceList || _distinct || _limit.HasValue || _offset.HasValue || _orderings.Count > 0)
@@ -759,9 +791,75 @@ namespace Semiodesk.Trinity.Query.Sparql
 
             _subjectPatterns.Add(new TriplePattern(parent, new IriTerm(GetPredicate(member)), element));
 
+            if (call.Arguments.Count == 3)
+            {
+                // `from a in source from b in a.Collection ...` adds a result selector over both. The
+                // compiler emits the selected parameter directly when the query ends in `select a`/
+                // `select b`, and an anonymous "transparent identifier" when more clauses follow.
+                LambdaExpression resultSelector = GetLambda(call.Arguments[2]);
+                Expression result = Unwrap(resultSelector.Body);
+
+                if (result == resultSelector.Parameters[1])
+                {
+                    // The element is the result — same shape as the two-argument overload.
+                    _rootScope = new QueryScope(null, element, _subjectPatterns, null);
+                    _elementType = resultSelector.Parameters[1].Type;
+                    return;
+                }
+
+                if (result != resultSelector.Parameters[0])
+                {
+                    RegisterTransparentIdentifier(resultSelector, element);
+                }
+
+                // The source stays the result, but there is one row per (source, element) pair, so
+                // per-row multiplicity has to be restored after materialization.
+                _forceMultiplicity = true;
+                return;
+            }
+
             // The collection element replaces the source as the root subject.
             _rootScope = new QueryScope(null, element, _subjectPatterns, null);
             _elementType = call.Method.GetGenericArguments()[1];
+        }
+
+        /// <summary>
+        /// Registers the transparent identifier a <c>SelectMany</c> result selector introduces: the
+        /// anonymous type's members alias the source and the collection element. Each member gets a
+        /// synthetic parameter — the element's is scoped to the element variable, the source's falls
+        /// back to the root scope — and later lambdas are rewritten onto them.
+        /// </summary>
+        private void RegisterTransparentIdentifier(LambdaExpression resultSelector, VariableTerm element)
+        {
+            if (!(Unwrap(resultSelector.Body) is NewExpression projection)
+                || projection.Members == null
+                || projection.Members.Count != projection.Arguments.Count
+                || resultSelector.Parameters.Count != 2)
+            {
+                throw new NotSupportedException(
+                    "Only the compiler-generated SelectMany result selector (an anonymous type over the source and the element) is supported.");
+            }
+
+            var members = new Dictionary<string, ParameterExpression>();
+
+            for (int i = 0; i < projection.Arguments.Count; i++)
+            {
+                if (!(Unwrap(projection.Arguments[i]) is ParameterExpression argument))
+                {
+                    throw new NotSupportedException("Only a SelectMany result selector that packs its parameters unchanged is supported.");
+                }
+
+                ParameterExpression alias = Expression.Parameter(argument.Type, projection.Members[i].Name);
+
+                members[projection.Members[i].Name] = alias;
+
+                if (argument == resultSelector.Parameters[1])
+                {
+                    _extraScopes[alias] = new QueryScope(alias, element, _subjectPatterns, null);
+                }
+            }
+
+            _transparentIdentifiers[resultSelector.Body.Type] = members;
         }
 
         /// <summary>
@@ -958,6 +1056,9 @@ namespace Semiodesk.Trinity.Query.Sparql
 
             switch (expression)
             {
+                case TypeBinaryExpression typeBinary when typeBinary.NodeType == ExpressionType.TypeIs:
+                    return TranslateTypeIs(scope, typeBinary, negated);
+
                 case BinaryExpression binary when binary.NodeType == ExpressionType.AndAlso:
                 {
                     bool disjunctive = inDisjunction || negated;
@@ -1037,6 +1138,13 @@ namespace Semiodesk.Trinity.Query.Sparql
 
         private SparqlExpression TranslateComparison(QueryScope scope, ExpressionType op, Expression left, Expression right, bool inDisjunction = false)
         {
+            SparqlExpression typeCheck;
+
+            if (TryTranslateRuntimeTypeCheck(scope, op, left, right, out typeCheck))
+            {
+                return typeCheck;
+            }
+
             left = Unwrap(left);
             right = Unwrap(right);
 
@@ -1089,7 +1197,7 @@ namespace Semiodesk.Trinity.Query.Sparql
 
                 case ChainKind.Count:
                 {
-                    MemberBinding binding = BindCount(scope, chain.Chain);
+                    MemberBinding binding = BindCount(scope, chain.Chain, chain.ElementType);
 
                     // A correlated count is always bound (zero included), so plain comparisons suffice.
                     return new SparqlBinaryExpression(
@@ -1166,6 +1274,107 @@ namespace Semiodesk.Trinity.Query.Sparql
 
                     return BindingComparison(op, binding, value);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Translates <c>x is T</c> into a type check on the resource: <c>(NOT) EXISTS { ?x a &lt;T&gt; }</c>.
+        /// Expressing it as a filter (rather than adding the pattern to the main solution) keeps it
+        /// composable with <c>&amp;&amp;</c>, <c>||</c> and negation like any other predicate.
+        /// </summary>
+        private SparqlExpression TranslateTypeIs(QueryScope scope, TypeBinaryExpression expression, bool negated)
+        {
+            return TranslateTypeCheck(
+                ResolveSubjectTerm(scope, expression.Expression), expression.TypeOperand, negated, "is");
+        }
+
+        /// <summary>
+        /// Recognizes <c>x.GetType() == typeof(T)</c> (and <c>!=</c>) and translates it as the same
+        /// type check as <c>x is T</c>. Note the member chain binds mandatorily, so a resource that
+        /// lacks the member matches neither form.
+        /// </summary>
+        private bool TryTranslateRuntimeTypeCheck(QueryScope scope, ExpressionType op, Expression left, Expression right, out SparqlExpression result)
+        {
+            result = null;
+
+            if (op != ExpressionType.Equal && op != ExpressionType.NotEqual)
+            {
+                return false;
+            }
+
+            Expression operand = GetTypeCallTarget(left) ?? GetTypeCallTarget(right);
+            Type type = GetTypeConstant(left) ?? GetTypeConstant(right);
+
+            if (operand == null || type == null)
+            {
+                return false;
+            }
+
+            result = TranslateTypeCheck(
+                ResolveSubjectTerm(scope, operand), type, op == ExpressionType.NotEqual, "GetType() ==");
+
+            return true;
+        }
+
+        /// <summary>Builds the <c>(NOT) EXISTS { ?x a &lt;T&gt; }</c> type check for a mapped type.</summary>
+        private SparqlExpression TranslateTypeCheck(SparqlTerm subject, Type type, bool negate, string syntax)
+        {
+            List<Uri> types = GetTypeConstraints(type).ToList();
+
+            if (types.Count == 0)
+            {
+                throw new NotSupportedException(
+                    $"`{syntax} {type.Name}` cannot be translated: the type has no [RdfClass] mapping.");
+            }
+
+            var group = new GroupGraphPattern();
+
+            foreach (Uri uri in types)
+            {
+                group.Add(new TriplePattern(subject, RdfTypeTerm.Instance, new IriTerm(uri)));
+            }
+
+            return new SparqlExistsExpression(group, negate);
+        }
+
+        /// <summary>The receiver of a parameterless <c>GetType()</c> call, or <c>null</c>.</summary>
+        private static Expression GetTypeCallTarget(Expression expression)
+        {
+            return Unwrap(expression) is MethodCallExpression call
+                   && call.Method.Name == "GetType"
+                   && call.Object != null
+                   && call.Arguments.Count == 0
+                ? call.Object
+                : null;
+        }
+
+        /// <summary>The type denoted by a <c>typeof(T)</c> constant, or <c>null</c>.</summary>
+        private static Type GetTypeConstant(Expression expression)
+        {
+            return (Unwrap(expression) as ConstantExpression)?.Value as Type;
+        }
+
+        /// <summary>Resolves an expression denoting a resource to the term that stands for it.</summary>
+        private SparqlTerm ResolveSubjectTerm(QueryScope scope, Expression expression)
+        {
+            ChainInfo chain = TryGetChain(expression);
+
+            if (chain == null)
+            {
+                throw new NotSupportedException($"Unsupported resource expression: {expression.NodeType}.");
+            }
+
+            switch (chain.Kind)
+            {
+                case ChainKind.Subject:
+                    return ResolveScope(scope, chain.RootParameter).Subject;
+
+                case ChainKind.Value:
+                case ChainKind.Uri:
+                    return BindChain(scope, chain.Chain, false).Variable;
+
+                default:
+                    throw new NotSupportedException($"Unsupported resource expression: {chain.Kind}.");
             }
         }
 
@@ -1474,7 +1683,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                             return new SparqlFunctionExpression("STRLEN", new SparqlVariableExpression(BindChain(scope, chain.Chain, false).Variable.Name));
 
                         case ChainKind.Count:
-                            return new SparqlVariableExpression(BindCount(scope, chain.Chain).Variable.Name);
+                            return new SparqlVariableExpression(BindCount(scope, chain.Chain, chain.ElementType).Variable.Name);
 
                         default:
                             return new SparqlVariableExpression(BindChain(scope, chain.Chain, false).Variable.Name);
@@ -1544,6 +1753,12 @@ namespace Semiodesk.Trinity.Query.Sparql
 
             public Type MemberType { get; set; }
 
+            /// <summary>
+            /// For <see cref="ChainKind.Count"/>: restricts the counted elements to this mapped type
+            /// (<c>collection.OfType&lt;T&gt;().Count()</c>); <c>null</c> counts every element.
+            /// </summary>
+            public Type ElementType { get; set; }
+
             public ParameterExpression RootParameter { get; set; }
         }
 
@@ -1564,11 +1779,32 @@ namespace Semiodesk.Trinity.Query.Sparql
             if (expression is MethodCallExpression call
                 && call.Method.DeclaringType == typeof(Enumerable)
                 && call.Method.Name == "Count"
-                && call.Arguments.Count == 1
-                && Unwrap(call.Arguments[0]) is MemberExpression source
-                && IsMappedChain(source))
+                && call.Arguments.Count == 1)
             {
-                return new ChainInfo { Kind = ChainKind.Count, Chain = source, MemberType = typeof(int), RootParameter = GetRootParameter(source) };
+                Expression counted = Unwrap(call.Arguments[0]);
+                Type elementType = null;
+
+                // `collection.OfType<T>().Count()` counts only the elements typed T.
+                if (counted is MethodCallExpression ofType
+                    && ofType.Method.DeclaringType == typeof(Enumerable)
+                    && ofType.Method.Name == "OfType"
+                    && ofType.Arguments.Count == 1)
+                {
+                    elementType = ofType.Method.GetGenericArguments()[0];
+                    counted = Unwrap(ofType.Arguments[0]);
+                }
+
+                if (counted is MemberExpression source && IsMappedChain(source))
+                {
+                    return new ChainInfo
+                    {
+                        Kind = ChainKind.Count,
+                        Chain = source,
+                        ElementType = elementType,
+                        MemberType = typeof(int),
+                        RootParameter = GetRootParameter(source)
+                    };
+                }
             }
 
             if (!(expression is MemberExpression member))
@@ -1786,7 +2022,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                     }
 
                     case ChainKind.Count:
-                        return Column(_translator.BindCount(_translator._rootScope, chain.Chain).Variable, false, typeof(int), node.Type);
+                        return Column(_translator.BindCount(_translator._rootScope, chain.Chain, chain.ElementType).Variable, false, typeof(int), node.Type);
 
                     case ChainKind.Subject when node.Type == typeof(Uri):
                         return Column(_translator._rootScope.Subject, false, typeof(Uri), node.Type);
@@ -2005,7 +2241,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                 default:
                     translation.Query = BuildResourceQuery(selection);
 
-                    if (_rootScope.Subject != Subject && _terminal == TerminalKind.Enumerate)
+                    if ((_rootScope.Subject != Subject || _forceMultiplicity) && _terminal == TerminalKind.Enumerate)
                     {
                         // The result is a projected variable: GetResources materializes each resource
                         // once, so a companion multiset query restores per-source-row multiplicity.
@@ -2340,9 +2576,48 @@ namespace Semiodesk.Trinity.Query.Sparql
             }
         }
 
-        private static LambdaExpression GetLambda(Expression expression)
+        private LambdaExpression GetLambda(Expression expression)
         {
-            return (LambdaExpression)Unwrap(expression);
+            var lambda = (LambdaExpression)Unwrap(expression);
+
+            if (_transparentIdentifiers.Count == 0)
+            {
+                return lambda;
+            }
+
+            Expression body = new TransparentIdentifierRewriter(_transparentIdentifiers).Visit(lambda.Body);
+
+            return body == lambda.Body ? lambda : Expression.Lambda(body, lambda.Parameters);
+        }
+
+        /// <summary>
+        /// Removes transparent identifiers: rewrites <c>t.member</c> on the anonymous type a
+        /// <c>SelectMany</c> result selector introduced into the synthetic parameter that member
+        /// aliases, so downstream lambdas look like plain <c>p.Member</c> chains again.
+        /// </summary>
+        private sealed class TransparentIdentifierRewriter : ExpressionVisitor
+        {
+            private readonly Dictionary<Type, Dictionary<string, ParameterExpression>> _identifiers;
+
+            public TransparentIdentifierRewriter(Dictionary<Type, Dictionary<string, ParameterExpression>> identifiers)
+            {
+                _identifiers = identifiers;
+            }
+
+            protected override Expression VisitMember(MemberExpression node)
+            {
+                Dictionary<string, ParameterExpression> members;
+                ParameterExpression alias;
+
+                if (node.Expression is ParameterExpression parameter
+                    && _identifiers.TryGetValue(parameter.Type, out members)
+                    && members.TryGetValue(node.Member.Name, out alias))
+                {
+                    return alias;
+                }
+
+                return base.VisitMember(node);
+            }
         }
 
         private static object GetConstant(Expression expression)
