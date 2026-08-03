@@ -129,7 +129,12 @@ Invariants that surprise newcomers:
 
 ## Other architecture notes
 
-- **RDF engine** (ADR-0006): dotNetRDF **2.7.0** (pinned; 3.x is a breaking upgrade — deferred).
+- **RDF engine** (ADR-0038, supersedes the 0006 pin): dotNetRDF **3.5.2**, split across
+  `dotNetRdf.Core` (engine) + `dotNetRdf.Client` (HTTP connectors) + `dotNetRdf.Inferencing`
+  (`RdfsReasoner`); all netstandard2.0. A graph's identity is **`IGraph.Name` (an `IRefNode`) and it is
+  immutable** — construct graphs with their name. Gotcha: a parsed `@base` overwrites `Graph.BaseUri`,
+  and the Sesame/Fuseki connectors still pick the graph they *write* to from `BaseUri`, so the store
+  read paths re-assign it after parsing.
 - **LINQ-to-SPARQL** (ADR-0037, supersedes 0007): an **owned provider** under `Trinity/Query/Sparql`
   (own SPARQL AST → serializer → `Model.ExecuteQuery`/`GetResources`); re-linq / Remotion.Linq retired.
   `IModel.AsQueryable<T>()` routes to it, and it emits SPARQL strings — so it's decoupled from

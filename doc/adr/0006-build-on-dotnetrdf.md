@@ -3,7 +3,8 @@
 Date: 2026-07-13 (decision original to 2015–2020 design)
 
 ## Status
-Accepted
+Accepted — but the **2.7.0 pin is superseded by [0038](0038-upgrade-dotnetrdf-3.md)**, which upgrades to
+3.5.2 (Core / Client / Inferencing split). The decision to build on dotNetRDF at all still stands.
 
 ## Context
 Trinity is an object-mapping and application layer, not a triple engine. It needs a

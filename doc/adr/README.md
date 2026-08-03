@@ -76,6 +76,7 @@ mapped/dynamic duality, models & groups, discovery, stores, and querying.
 | [0035](0035-remove-inotifypropertychanged.md) | Remove INotifyPropertyChanged support (resource NPC + virtualizing collections) | Accepted |
 | [0036](0036-integration-tests-testcontainers.md) | Store-integration tests self-provision servers via Testcontainers | Accepted |
 | [0037](0037-linq-provider-rebuild.md) | Rebuild LINQ-to-SPARQL on an owned provider (retire re-linq) | Accepted |
+| [0038](0038-upgrade-dotnetrdf-3.md) | Upgrade to dotNetRDF 3.x (Core / Client / Inferencing split) | Accepted |
 
 ### Proposed (revival)
 | # | Title | Status |
