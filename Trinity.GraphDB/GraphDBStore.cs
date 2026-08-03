@@ -332,10 +332,12 @@ namespace Semiodesk.Trinity.Store.GraphDB
             
             using (var reader = new StringReader(content))
             {
-                var graph = new Graph();
+                var graph = new Graph(graphUri);
 
                 TryParse(reader, graph, format);
 
+                // Restore the target graph: a parsed @base directive overwrites BaseUri, and
+                // dotNetRDF connectors still derive the graph they write to from BaseUri.
                 graph.BaseUri = graphUri;
 
                 if (exists && !update)
@@ -363,11 +365,14 @@ namespace Semiodesk.Trinity.Store.GraphDB
             
             using (TextReader reader = new StreamReader(stream))
             {
-                var graph = new Graph();
+                var graph = new Graph(graphUri);
 
                 TryParse(reader, graph, format);
 
+                // Restore the target graph: a parsed @base directive overwrites BaseUri, and
+                // dotNetRDF connectors still derive the graph they write to from BaseUri.
                 graph.BaseUri = graphUri;
+
 
                 if (exists && !update)
                 {
@@ -431,19 +436,25 @@ namespace Semiodesk.Trinity.Store.GraphDB
                     }
                     else
                     {
-                        graph = new Graph();
+                        graph = new Graph(graphUri);
                         graph.LoadFromFile(path);
+
+                        // Restore the target graph: a parsed @base directive overwrites BaseUri,
+                        // and dotNetRDF connectors still derive the graph they write to from it.
                         graph.BaseUri = graphUri;
                     }
                 }
             }
             else if (url.Scheme == "http")
             {
-                graph = new Graph();
+                graph = new Graph(graphUri);
 
                 UriLoader.Load(graph, url);
 
+                // Restore the target graph: a parsed @base directive overwrites BaseUri, and
+                // dotNetRDF connectors still derive the graph they write to from BaseUri.
                 graph.BaseUri = graphUri;
+
             }
 
             if (graph != null)
@@ -477,7 +488,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
             
             if (!graphs.Contains(graphUri)) return;
             
-            var graph = new Graph();
+            var graph = new Graph(graphUri);
                 
             _connector.LoadGraph(graph, graphUri);
 
@@ -506,7 +517,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
         {
             if (!_connector.ListGraphs().Contains(graphUri)) return;
             
-            IGraph graph = new Graph();
+            IGraph graph = new Graph(graphUri);
             
             _connector.LoadGraph(graph, graphUri);
 

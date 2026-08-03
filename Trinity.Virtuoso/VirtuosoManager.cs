@@ -84,7 +84,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
     /// Virtuoso automatically assigns IDs to Blank Nodes input into it, these IDs are <strong>not</strong> based on the actual Blank Node ID so inputting a Blank Node with the same ID multiple times will result in multiple Nodes being created in Virtuoso.  This means that data containing Blank Nodes which is stored to Virtuoso and then retrieved will have different Blank Node IDs to those input.  In addition there is no guarentee that when you save a Graph containing Blank Nodes into Virtuoso that retrieving it will give the same Blank Node IDs even if the Graph being saved was originally retrieved from Virtuoso.  Finally please see the remarks on the <see cref="VirtuosoManager.UpdateGraph(Uri,IEnumerable{Triple},IEnumerable{Triple})">UpdateGraph()</see> method which deal with how insertion and deletion of triples containing blank nodes into existing graphs operates.
     /// </para>
     /// <para>
-    /// You can use a null Uri or an empty String as a Uri to indicate that operations should affect the Default Graph.  Where the argument is only a Graph a null <see cref="IGraph.BaseUri">BaseUri</see> property indicates that the Graph affects the Default Graph
+    /// You can use a null Uri or an empty String as a Uri to indicate that operations should affect the Default Graph.  Where the argument is only a Graph a null <see cref="IGraph.Name">Name</see> property indicates that the Graph affects the Default Graph
     /// </para>
     /// </remarks>
     public class VirtuosoManager
@@ -229,10 +229,9 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         /// <param name="graphUri">URI of the Graph to Load</param>
         public override void LoadGraph(IGraph g, Uri graphUri)
         {
-            if (g.IsEmpty && graphUri != null)
-            {
-                g.BaseUri = graphUri;
-            }
+            // A graph's name is immutable in dotNetRDF 3.x, so the target graph can no longer be
+            // renamed here — upstream's own connectors likewise leave the caller's graph name alone.
+            // Callers that need the loaded graph to carry a name must construct it with one.
             this.LoadGraph(new GraphHandler(g), graphUri);
         }
 
@@ -523,14 +522,15 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         /// </remarks>
         public override void SaveGraph(IGraph g)
         {
-            if (g.BaseUri == null) throw new RdfStorageException("Cannot save a Graph without a Base URI to Virtuoso");
+            // 3.x: the target graph is identified by IGraph.Name, not BaseUri.
+            if (!(g.Name is IUriNode graphName)) throw new RdfStorageException("Cannot save a Graph without a URI name to Virtuoso");
 
             try
             {
                 this.Open(false);
 
                 //Delete the existing Graph (if it exists)
-                this.ExecuteNonQuery("DELETE FROM DB.DBA.RDF_QUAD WHERE G = DB.DBA.RDF_MAKE_IID_OF_QNAME('" + this.UnmarshalUri(g.BaseUri) + "')");
+                this.ExecuteNonQuery("DELETE FROM DB.DBA.RDF_QUAD WHERE G = DB.DBA.RDF_MAKE_IID_OF_QNAME('" + this.UnmarshalUri(graphName.Uri) + "')");
 
                 //Make a call to the TTLP() Virtuoso function
                 VirtuosoCommand cmd = new VirtuosoCommand();
@@ -538,7 +538,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                 cmd.CommandText = "DB.DBA.TTLP(@data, @base, @graph, 1)";
                 cmd.Parameters.Add("data", VirtDbType.VarChar);
                 cmd.Parameters["data"].Value = VDS.RDF.Writing.StringWriter.Write(g, new NTriplesWriter());
-                String baseUri = this.UnmarshalUri(g.BaseUri);
+                String baseUri = this.UnmarshalUri(graphName.Uri);
                 cmd.Parameters.Add("base", VirtDbType.VarChar);
                 cmd.Parameters.Add("graph", VirtDbType.VarChar);
                 cmd.Parameters["base"].Value = baseUri;
