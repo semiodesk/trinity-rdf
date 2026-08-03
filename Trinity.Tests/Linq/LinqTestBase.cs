@@ -1120,7 +1120,7 @@ namespace Semiodesk.Trinity.Tests.Linq
         }
 
         [Test]
-        [Ignore("Known: LINQ-to-SPARQL provider gap; deprioritized (ADR-0007). See doc/known-test-failures.md")]
+        [Ignore("Known: the `is` operator (TypeIs) is not translated to an rdf:type pattern yet (ADR-0037). See doc/known-test-failures.md")]
         public void CanSelectResourcesWithOperatorTypeOf()
         {
             var actual0 = (from resource in Query<Resource>() select resource).ToList();
@@ -1249,7 +1249,6 @@ namespace Semiodesk.Trinity.Tests.Linq
         }
 
         [Test]
-        [Ignore("Known: LINQ-to-SPARQL provider gap; deprioritized (ADR-0007). See doc/known-test-failures.md")]
         public void CanSelectResourcesFromQuerySourceProperty()
         {
             var actual = (from image in Query<Image>(true) where image.DepictedAgent.FirstName == "Alice" select image.DepictedAgent).ToList();
@@ -1260,7 +1259,7 @@ namespace Semiodesk.Trinity.Tests.Linq
         }
 
         [Test]
-        [Ignore("Known: LINQ-to-SPARQL provider gap; deprioritized (ADR-0007). See doc/known-test-failures.md")]
+        [Ignore("Known: SelectMany with a result selector (multiple from clauses) is not supported yet (ADR-0037). See doc/known-test-failures.md")]
         public void SelectAdditionalFrom()
         {
             var actual = (from user in Query<Person>(true) from person in user.KnownPeople where user.FirstName == "Alice" && person.FirstName == "Bob" select user).ToList();
@@ -1271,7 +1270,6 @@ namespace Semiodesk.Trinity.Tests.Linq
         }
 
         [Test]
-        [Ignore("Known: LINQ projection emits invalid SPARQL; deprioritized (ADR-0007). See doc/known-test-failures.md")]
         public void ProjectionTest()
         {
             var actual = (from person in Query<Person>() where person.FirstName == "Alice" select new { person.FirstName, person.Birthday }).ToList();

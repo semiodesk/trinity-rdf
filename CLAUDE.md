@@ -52,14 +52,15 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 370 passed, 14 skipped (quarantined)
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 374 passed, 10 skipped (quarantined)
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 4 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
 
-- The 14 skipped tests are pre-existing / net8-environmental cases, `[Ignore]`d and tracked in
-  `doc/known-test-failures.md` (inferencing, some LINQ-provider gaps, a DateTime tz difference).
-  None are generator regressions.
+- The 10 skipped tests are `[Ignore]`d and tracked in `doc/known-test-failures.md`: in-memory
+  inferencing (store-level, ADR-0022), a real `DateTime` round-trip bug (one hour off, ADR-0026), and
+  two precisely-diagnosed LINQ translations still missing (`is`/`TypeIs`, and `SelectMany` with a
+  result selector). None are generator regressions.
 - Store integration tests (`tests/Trinity.Tests.*`) **self-provision** their server in Docker via
   Testcontainers on a random host port (ADR-0036): run `dotnet test tests/Trinity.Tests.{Virtuoso,GraphDB,Fuseki}`
   with a Docker daemon running. Excluded from the default CI job (Docker + large images). Current:
