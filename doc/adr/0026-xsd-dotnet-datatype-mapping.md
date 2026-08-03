@@ -25,6 +25,23 @@ restricts `T` to these supported types (plus `IResource`/`Uri`/tuple/lists).
 - Minor inconsistencies to tidy (`boolean_` alias; `xsd:integer`→`Int32` vs
   `xsd:nonNegativeInteger`→`UInt64`).
 
+## `DateTime` round-trip bug — fixed (2.0)
+A stored UTC `DateTime` came back **one hour off** in a UTC+1 zone, quarantining
+`LinqTestBase.CanSelectDateTimeWithBinaryExpression`. Cause: `DeserializeDateTime` tried
+`DateTime.TryParse(str, out …)` first, and with default styles that **converts a value carrying an
+explicit UTC designator (`…Z`) into the local time zone**, returning `Kind = Local`. So
+`1948-02-04T00:00:00Z` read back as `1948-02-04 01:00`. It also parsed under the ambient culture,
+contradicting this ADR's culture-invariance.
+
+Fixed by parsing with `DateTimeStyles.RoundtripKind` and `CultureInfo.InvariantCulture`, which keeps a
+`Z` value at its UTC reading (and preserves an explicit offset). This was **not** caused by net8 (the
+earlier suspicion) nor by dotNetRDF 3.x — it reproduced identically on 2.7 and 3.5.2.
+
+Note the resulting contract: serialization normalizes through
+`XmlDateTimeSerializationMode.Utc`, so **a `DateTime` round-trips as the same instant, not
+necessarily the same clock reading or `Kind`** — a `Local`/`Unspecified` value comes back as `Utc`.
+Trinity's tests compare instants (`ToUniversalTime()`) accordingly.
+
 ## Revival notes
 Consider an extensible datatype registry, add missing common XSD types, and unify with the
 localized-literal path ([0027](0027-localized-literals.md)).

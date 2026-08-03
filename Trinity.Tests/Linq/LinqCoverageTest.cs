@@ -238,6 +238,11 @@ namespace Semiodesk.Trinity.Tests.Linq
             yield return C("where unbound bool == false", q => q.Where(p => p.Status == false).ToList());
             yield return C("select unbound int", q => q.Select(p => p.Age).ToList());
 
+            // F2. A UTC DateTime must round-trip as the same instant AND the same clock reading —
+            // DateTime.TryParse with default styles used to shift "...Z" into the local zone (ADR-0026).
+            yield return C("select utc datetime round-trip", q => q.Where(p => p.FirstName == "Alice").Select(p => p.Birthday).ToList());
+            yield return C("where utc datetime equality", q => q.Where(p => p.Birthday == new DateTime(1990, 1, 1, 0, 0, 0, DateTimeKind.Utc)).ToList());
+
             // G. Ordering (compare deterministic projected key sequences)
             yield return C("orderby int asc", q => q.OrderBy(p => p.Age).ThenBy(p => p.FirstName).Select(p => p.FirstName).ToList(), ordered: true);
             yield return C("orderby int desc", q => q.OrderByDescending(p => p.Age).ThenBy(p => p.FirstName).Select(p => p.FirstName).ToList(), ordered: true);

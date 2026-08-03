@@ -289,7 +289,6 @@ namespace Semiodesk.Trinity.Tests.Linq
         }
 
         [Test]
-        [Ignore("Known: DateTime off by one hour under net8 (UTC+1) - investigate. See doc/known-test-failures.md")]
         public void CanSelectDateTimeWithBinaryExpression()
         {
             // True
