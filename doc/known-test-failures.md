@@ -6,13 +6,31 @@ are pre-existing or net472→net8 runtime-behavior differences. Revisit as noted
 
 | Test | Bucket | Why | Follow-up |
 |---|---|---|---|
-| `LinqTestBase.CanExecuteCollectionWithInferencingEnabled` | inferencing | In-memory inferencing not applied — the query returns only the explicitly-typed resource (1 of 6) | Pre-existing store-level issue, not LINQ (git: "Only inferencing is not working"); ADR-0022 |
-| `LinqTestBase.CanExecuteScalarWithInferencingEnabled` | inferencing | as above | as above |
+| `LinqTestBase.CanExecuteCollectionWithInferencingEnabled` | capability | `Query<Agent>(inferenceEnabled: true)` returns only the explicitly-typed resource (1 of 6): the in-memory store **does not implement inferencing** — see the diagnosis below | Feature, not a bug (ADR-0022 lets a store ignore the flag). Overlaps the polymorphic-query decision in ADR-0037 |
+| `LinqTestBase.CanExecuteScalarWithInferencingEnabled` | capability | as above | as above |
 | `LinqTestBase.CanSelectResourcesWithOperatorTypeOf` | semantics | Needs **polymorphic base-type queries**: its last assertion expects `Query<Agent>()` to also return resources typed with a subclass (`Person`). `is T`, `GetType() == typeof(T)` and `OfType<T>().Count()` are all implemented now — only that assertion fails | **Open decision** (ADR-0037): `GetTypes()` emits a class's own `[RdfClass]` only, so a `Person` is not typed `foaf:Agent`. Either expand a base-type constraint to a UNION over registered subclasses, or leave it to store-side `rdfs:subClassOf` inference |
 
 These 3 `LinqTestBase` cases run under both `LinqModelTest` and `LinqModelGroupTest` (6 results),
-which is the entire quarantined set: **one semantics decision and two store-level inferencing issues.**
-No quarantined test is a missing LINQ translation or a datatype bug any more.
+which is the entire quarantined set. **Every remaining entry is an unimplemented capability or an open
+design decision — none is a defect.** No quarantined test is a missing LINQ translation or a datatype
+bug any more.
+
+### Why in-memory inferencing does not work (diagnosed on dotNetRDF 3.5.2)
+Three independent gaps, any one of which would be enough:
+1. **The flag is ignored.** `dotNetRDFStore` never reads `inferenceEnabled` — it accepts the parameter
+   and drops it, so `Query<Agent>(true)` emits exactly the same SPARQL as `Query<Agent>()`.
+2. **No reasoner is ever created** in these tests. `dotNetRDFStore` only builds an `RdfsReasoner` when
+   the connection string carries a `schema=` key; the tests use plain `provider=dotnetrdf`.
+3. **Even with a reasoner it would not help.** dotNetRDF materializes inference when a graph is *added*
+   to the store (`AddInferenceEngine` + `Add`), but Trinity writes data via SPARQL UPDATE through
+   `LeviathanUpdateProcessor`, which bypasses the store's inference engine entirely.
+
+What the tests want is `rdfs:subClassOf` reasoning (`foaf:Person`/`foaf:Group` ⊑ `foaf:Agent`) gated
+behind `inferenceEnabled` — **the same capability as the polymorphic base-type query** that
+`CanSelectResourcesWithOperatorTypeOf` wants ungated (ADR-0037). Implementing it is a design choice:
+query-time expansion (e.g. `?s rdf:type/rdfs:subClassOf* <T>`, which needs the schema axioms in the
+queried dataset — today the ontologies live in separate graphs from the model) versus materializing
+inferred triples on write. Deciding it would resolve all three remaining quarantined cases at once.
 
 **Resolved by the LINQ provider rebuild (ADR-0037):** `CanSelectResourcesFromQuerySourceProperty`
 (returned 1 of N resources), `ProjectionTest` (emitted invalid SPARQL) and `SelectAdditionalFrom`
