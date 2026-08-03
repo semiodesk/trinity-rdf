@@ -312,16 +312,17 @@ namespace Semiodesk.Trinity.Store
             {
                 ILiteralNode literalNode = p as ILiteralNode;
 
+                // The language must be checked before the datatype: under RDF 1.1 — which dotNetRDF 3.x
+                // follows — a language-tagged literal also carries the rdf:langString datatype, so a
+                // datatype-first test would misread it as a plain string.
+                if (!string.IsNullOrEmpty(literalNode.Language))
+                {
+                    return new Tuple<string, string>(literalNode.Value, literalNode.Language);
+                }
+
                 if (literalNode.DataType == null)
                 {
-                    if (string.IsNullOrEmpty(literalNode.Language))
-                    {
-                        return literalNode.Value;
-                    }
-                    else
-                    {
-                        return new Tuple<string, string>(literalNode.Value, literalNode.Language);
-                    }
+                    return literalNode.Value;
                 }
 
                 return XsdTypeMapper.DeserializeString(literalNode.Value, literalNode.DataType);

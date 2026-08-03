@@ -107,9 +107,13 @@ namespace Semiodesk.Trinity.Store
 
             SparqlResultSet result = (SparqlResultSet)graph.ExecuteQuery(queryString);
 
-            graph.BaseUri = (result[0]["s"] as UriNode).Uri;
+            // A graph's name is immutable in dotNetRDF 3.x, so the ontology IRI discovered above
+            // cannot be assigned after loading — re-home the triples in a graph created with it.
+            IGraph named = new Graph(((IUriNode)result[0]["s"]).Uri);
 
-            return graph;
+            named.Merge(graph);
+
+            return named;
         }
 
         /// <summary>
@@ -215,9 +219,11 @@ namespace Semiodesk.Trinity.Store
         {
             foreach (var graph in _store.Graphs)
             {
-                if (graph.BaseUri != null)
+                // 3.x: a graph is named by an IRefNode (URI or blank node); only URI-named graphs
+                // are addressable as models.
+                if (graph.Name is IUriNode name)
                 {
-                    yield return new Model(this, new UriRef(graph.BaseUri));
+                    yield return new Model(this, new UriRef(name.Uri));
                 }
             }
         }
@@ -272,11 +278,9 @@ namespace Semiodesk.Trinity.Store
         {
             using (StringReader reader = new StringReader(content))
             {
-                IGraph graph = new Graph();
+                IGraph graph = new Graph(graphUri);
 
                 TryParse(reader, graph, format);
-
-                graph.BaseUri = graphUri;
 
                 if (!update)
                 {
@@ -301,11 +305,9 @@ namespace Semiodesk.Trinity.Store
         {
             using (TextReader reader = new StreamReader(stream))
             {
-                IGraph graph = new Graph();
+                IGraph graph = new Graph(graphUri);
 
                 TryParse(reader, graph, format);
-
-                graph.BaseUri = graphUri;
 
                 if (!update)
                 {
@@ -358,7 +360,7 @@ namespace Semiodesk.Trinity.Store
                         {
                             if (!update)
                             {
-                                _store.Remove(g.BaseUri);
+                                _store.Remove(g.Name);
                             }
 
                             _store.Add(g, update);
@@ -366,26 +368,23 @@ namespace Semiodesk.Trinity.Store
                     }
                     else
                     {
-                        graph = new Graph();
+                        graph = new Graph(graphUri);
                         graph.LoadFromFile(path);
-                        graph.BaseUri = graphUri;
                     }
                 }
             }
             else if (url.Scheme == "http")
             {
-                graph = new Graph();
+                graph = new Graph(graphUri);
 
                 UriLoader.Load(graph, url);
-
-                graph.BaseUri = graphUri;
             }
 
             if (graph != null)
             {
                 if (!update)
                 {
-                    _store.Remove(graph.BaseUri);
+                    _store.Remove(graph.Name);
                 }
 
                 _store.Add(graph, update);
