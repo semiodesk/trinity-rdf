@@ -15,9 +15,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           # 10.0.x builds the solution (C# 13 partial properties); 8.0.x supplies the runtime the
           # net8.0 test projects execute on. Without the second line that runtime is only present
@@ -60,7 +60,7 @@ jobs:
         if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master'
         run: dotnet pack Trinity/Trinity.csproj -c Release --no-build --output ./artifacts -p:VersionSuffix=${{ steps.version.outputs.suffix }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master'
         with:
           name: nupkg
