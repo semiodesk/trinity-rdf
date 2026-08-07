@@ -544,7 +544,9 @@ namespace Semiodesk.Trinity.Tests.Store
         [Test]
         public virtual void ReadTest()
         {
-            var file = new FileInfo("Models\\test-ntriples.nt");
+            // Path.Combine, not a literal separator: a backslash is a valid filename character on
+            // Linux, so "Models\\test-ntriples.nt" is one nonexistent file name there.
+            var file = new FileInfo(Path.Combine("Models", "test-ntriples.nt"));
             var fileUri = file.ToUriRef();
             
             Assert.IsTrue(Model1.Read(fileUri, RdfSerializationFormat.NTriples, false));
@@ -557,7 +559,7 @@ namespace Semiodesk.Trinity.Tests.Store
 
             Model1.Clear();
 
-            file = new FileInfo("Models\\test-tmo.trig");
+            file = new FileInfo(Path.Combine("Models", "test-tmo.trig"));
             fileUri = file.ToUriRef();
             
             Assert.Throws(typeof(ArgumentException), () => { Model1.Read(fileUri, RdfSerializationFormat.Trig, false); });
