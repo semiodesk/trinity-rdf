@@ -36,6 +36,14 @@ inferred triples on write. Deciding it would resolve all three remaining quarant
 (returned 1 of N resources), `ProjectionTest` (emitted invalid SPARQL) and `SelectAdditionalFrom`
 (the multiple-`from` query form) now pass and are no longer `[Ignore]`d.
 
+### Note: three URI-equality tests fail on the .NET 10 *runtime*
+`UriRefTest.EqualsTest`, `ResourceTest.Equal` and `ResourceTest.ResourceConstructorTest` pass on the
+targeted **net8.0** runtime (Windows and Linux alike) but fail if the same assembly is rolled forward
+onto the .NET 10 runtime — a URI with a fragment then compares *equal* to the same URI without one,
+which is exactly what `UriRef` exists to prevent (ADR-0025). Not currently reachable: the test projects
+target net8.0 and CI installs that runtime explicitly. Worth investigating before retargeting the tests
+to a newer TFM.
+
 **Resolved by fixing the `DateTime` deserializer (ADR-0026):**
 `CanSelectDateTimeWithBinaryExpression` — a stored UTC `DateTime` read back one hour off in UTC+1
 because `DateTime.TryParse` with default styles shifts a `…Z` value into the local zone. Now parsed

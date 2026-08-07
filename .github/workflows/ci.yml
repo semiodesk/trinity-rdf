@@ -19,7 +19,13 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          # 10.0.x builds the solution (C# 13 partial properties); 8.0.x supplies the runtime the
+          # net8.0 test projects execute on. Without the second line that runtime is only present
+          # because the hosted image happens to ship it, and the failure if it stops is obscure:
+          # "You must install or update .NET ... version '8.0.0'".
+          dotnet-version: |
+            8.0.x
+            10.0.x
 
       # Only the release branches build the bare version (2.0.0). Everything else — feature branches
       # and pull requests — gets a prerelease label, so a CI build can never be mistaken for, or
