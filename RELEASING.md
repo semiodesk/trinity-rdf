@@ -4,7 +4,7 @@
 and packs — it does **not** publish. A maintainer publishes to nuget.org by hand, so no NuGet API
 key and no signing secret lives in the repository or in CI.
 
-Four packages ship together at the **same version** (the single `Version` in
+Four packages ship together at the **same version** (the single `VersionPrefix` in
 `Directory.Build.props`):
 
 | Package | Notes |
@@ -21,9 +21,14 @@ Do **not** publish until every gate holds:
 1. **Branch & tree** — the change is merged to the release branch (`develop`/`master`) and the
    working tree is clean.
 2. **CI is green** — the GitHub Actions run for the exact commit you're releasing passed.
-3. **Version set** — `Version` in `Directory.Build.props` is the intended release and follows
+3. **Version set** — `VersionPrefix` in `Directory.Build.props` is the intended release and follows
    SemVer. A breaking change is a **major** bump (the weaver → source-generator move is why this
-   is `2.0.0`). Prereleases use a suffix, e.g. `2.1.0-rc.1`.
+   is `2.0.0`). For a prerelease, pass a label instead of editing the prefix:
+   `dotnet pack … -p:VersionSuffix=rc.1` → `2.1.0-rc.1`.
+   **Release the artifact from a release branch.** CI stamps a `ci.<run>.<sha>` prerelease label on
+   every other branch and PR, so a feature-branch build can never be mistaken for the release (and
+   would sort below it on nuget.org even if pushed by accident). CI only uploads a package artifact
+   from `develop`/`master`.
 4. **Builds SDK-only** — `dotnet build Semiodesk.Trinity.sln -c Release` → **0 errors**, using the
    .NET SDK alone (no targeting packs, no Visual Studio).
 5. **Tests green** —
@@ -82,5 +87,6 @@ git push origin v<version>
 - **2.0 is a breaking release:** consumers must declare mapped classes and their `[RdfProperty]`
   properties `partial` (C# 13 / .NET 9+); the cilg weaver is gone. Call this out prominently in the
   release notes and migration guidance.
-- **Version is single-source:** bump only `Directory.Build.props`. Per-project version overrides
-  were removed so all four packages stay in lockstep.
+- **Version is single-source:** bump only `VersionPrefix` in `Directory.Build.props`. Per-project
+  version overrides were removed so all four packages stay in lockstep. `AssemblyVersion`/`FileVersion`
+  stay `2.0.0.0` — assembly versions cannot carry a prerelease label.
