@@ -97,6 +97,16 @@ namespace Semiodesk.Trinity.Store
 
         #region Methods
 
+        /// <summary>
+        /// Converts a graph URI to the graph name dotNetRDF 3.x addresses graphs by. A <c>null</c> URI
+        /// maps to a <c>null</c> name, which is the default graph — the same meaning the (now obsolete)
+        /// <c>Uri</c> overloads gave it, and why this cannot simply be <c>new UriNode(uri)</c>.
+        /// </summary>
+        private static IRefNode GraphName(Uri uri)
+        {
+            return uri == null ? null : new UriNode(uri);
+        }
+
         private IGraph LoadSchema(string schema)
         {
             IGraph graph = new Graph();
@@ -122,8 +132,10 @@ namespace Semiodesk.Trinity.Store
         /// <param name="uri">Uri of the model which is to be removed.</param>
         public override void RemoveModel(Uri uri)
         {
-            if (_store.HasGraph(uri))
-                _store.Remove(uri);
+            IRefNode name = GraphName(uri);
+
+            if (_store.HasGraph(name))
+                _store.Remove(name);
         }
 
         /// <summary>
@@ -137,7 +149,7 @@ namespace Semiodesk.Trinity.Store
         public override bool ContainsModel(Uri uri)
 #pragma warning restore CS0809 // Obsolete member overrides non-obsolete member
         {
-            return _store.HasGraph(uri);
+            return _store.HasGraph(GraphName(uri));
         }
 
         /// <summary>
@@ -284,7 +296,7 @@ namespace Semiodesk.Trinity.Store
 
                 if (!update)
                 {
-                    _store.Remove(graphUri);
+                    _store.Remove(GraphName(graphUri));
                 }
 
                 _store.Add(graph, update);
@@ -311,7 +323,7 @@ namespace Semiodesk.Trinity.Store
 
                 if (!update)
                 {
-                    _store.Remove(graphUri);
+                    _store.Remove(GraphName(graphUri));
                 }
 
                 _store.Add(graph, update);
@@ -407,9 +419,11 @@ namespace Semiodesk.Trinity.Store
         /// <returns></returns>
         public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false)
         {
-            if (_store.HasGraph(graphUri))
+            IRefNode name = GraphName(graphUri);
+
+            if (_store.HasGraph(name))
             {
-                IGraph graph = _store.Graphs[graphUri];
+                IGraph graph = _store.Graphs[name];
 
                 if (namespaces != null)
                 {
@@ -435,9 +449,11 @@ namespace Semiodesk.Trinity.Store
         /// <returns></returns>
         public override void Write(Stream stream, Uri graphUri, IRdfWriter formatWriter, bool leaveOpen = false)
         {
-            if (_store.HasGraph(graphUri))
+            IRefNode name = GraphName(graphUri);
+
+            if (_store.HasGraph(name))
             {
-                IGraph graph = _store.Graphs[graphUri];
+                IGraph graph = _store.Graphs[name];
 
                 Write(stream, graph, formatWriter, leaveOpen);
             }

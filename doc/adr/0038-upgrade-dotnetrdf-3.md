@@ -63,11 +63,32 @@ Code changes:
   GraphDB **97/101**, Fuseki **4/86**. Fuseki's pre-existing connector bug ([0009](0009-supported-store-backends.md))
   is *not* fixed by 3.x.
 
+## Remaining obsolete APIs (deliberately deferred past 2.0)
+The graph-addressing overloads (`ITripleStore.HasGraph(Uri)`, `Remove(Uri)`, `GraphCollection[Uri]`) were
+migrated to their `IRefNode` replacements in `dotNetRDFStore`, via a `GraphName(Uri)` helper — a plain
+`new UriNode(uri)` would not do, because a **null** URI means the default graph and `UriNode` rejects
+null. Zero behaviour change, and it clears the majority of the `CS0618` warnings.
+
+Three groups are knowingly left on obsolete APIs. Each is a behaviour or design change rather than a
+rename, and none was worth making in the release week:
+
+| API | Sites | Why deferred |
+|---|---|---|
+| `UriLoader` → `Loader` | 4 (all four stores' load-from-URL path) | Not a rename: `UriLoader` brings its own **caching** (`CacheEnabled`) and timeout, `Loader` is `HttpClient`-based with different defaults and no disk cache. Changing it changes network behaviour. |
+| `SparqlRemoteEndpoint` → `SparqlQueryClient` | 4 (`SparqlEndpointStore`) | `SparqlQueryClient` is async-only while `IStore` is synchronous, so this needs either sync-over-async (`Task.Run(…).GetAwaiter().GetResult()`, to avoid deadlocking hosts that have a synchronization context) or a wider async store surface. The store is `internal` and largely `NotSupported`, so the payoff is small. |
+| connector `ListGraphs()` → `ListGraphNames()`, and the `CreateRequest` overload | ~8 (GraphDB/Fuseki) | `GraphDBConnector` **overrides** the obsolete member, and the return type changes `IEnumerable<Uri>` → `IEnumerable<string>`, turning every `.Contains(graphUri)` into a string comparison with its own trailing-slash and case pitfalls. |
+
+Both `UriLoader` and `SparqlRemoteEndpoint` are documented as "will be removed in a future release", so a
+future 3.x *minor* can break the build — these should be done before the next dotNetRDF bump, not left
+indefinitely.
+
 ## Follow-ups
-- Migrate off the obsolete `SparqlRemoteEndpoint`/`UriLoader` when an async store surface is on the table.
-- Re-check the quarantined `DateTime` round-trip bug (ADR-0026) now that literal handling has moved.
-- Revisit whether the in-memory inferencing tests (ADR-0022) behave differently under
-  `InferencingTripleStore`.
+- The three obsolete-API groups above.
+- ~~Re-check the quarantined `DateTime` round-trip bug~~ — **done**: it was a Trinity bug in
+  `DeserializeDateTime`, not an engine change (ADR-0026).
+- ~~Revisit the in-memory inferencing tests under `InferencingTripleStore`~~ — **done**: diagnosed as an
+  unimplemented capability, not a bug (see `doc/known-test-failures.md`); resolving it is the same
+  subclass-expansion decision left open in [0037](0037-linq-provider-rebuild.md).
 
 ## Related
 - [0006](0006-build-on-dotnetrdf.md) (version pin superseded), [0037](0037-linq-provider-rebuild.md),
