@@ -54,7 +54,7 @@ namespace Semiodesk.Trinity.Tests.Fuseki
             string connectionString = SetupClass.ConnectionString;
 
             Store = StoreFactory.CreateStore(connectionString);
-            Store.InitializeFromConfiguration();
+            TestOntologies.LoadInto(Store);
 
             Model = Store.GetModel(new Uri("http://example.org/TestModel"));
 
@@ -642,7 +642,8 @@ namespace Semiodesk.Trinity.Tests.Fuseki
         {
             Model.Clear();
 
-            FileInfo fi = new FileInfo("Models\\test-ntriples.nt");
+            // Path.Combine, not a literal separator: a backslash is a valid filename character on Linux.
+            FileInfo fi = new FileInfo(Path.Combine("Models", "test-ntriples.nt"));
             UriRef fileUri = fi.ToUriRef();
 
             Assert.IsTrue(Model.IsEmpty);
@@ -657,7 +658,7 @@ namespace Semiodesk.Trinity.Tests.Fuseki
 
             Model.Clear();
 
-            fi = new FileInfo("Models\\test-tmo.trig");
+            fi = new FileInfo(Path.Combine("Models", "test-tmo.trig"));
             fileUri = fi.ToUriRef();
 
             Assert.IsTrue(Model.IsEmpty);

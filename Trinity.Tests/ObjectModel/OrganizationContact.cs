@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Semiodesk.Trinity.Tests
 {
     [RdfClass(NCO.OrganizationContact)]
-    public class OrganizationContact : Contact
+    public partial class OrganizationContact : Contact
     {
         #region Members
         

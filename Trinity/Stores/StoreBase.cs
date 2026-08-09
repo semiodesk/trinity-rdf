@@ -25,7 +25,6 @@
 //
 // Copyright (c) Semiodesk GmbH 2015-2019
 
-using Semiodesk.Trinity.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -146,6 +145,7 @@ namespace Semiodesk.Trinity
         /// <param name="graphUri">Uri of the graph in this store</param>
         /// <param name="format">Allowed formats</param>
         /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
+        /// <param name="leaveOpen">Indicates if the stream should be left open after reading completes.</param>
         /// <returns></returns>
         public abstract Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update, bool leaveOpen=false);
 
@@ -180,76 +180,6 @@ namespace Semiodesk.Trinity
         /// <param name="leaveOpen">Indicates if the stream should be left open after the writing finished.</param>
         /// <returns></returns>
         public abstract void Write(Stream fs, Uri graphUri, IRdfWriter writer, bool leaveOpen = false);
-
-        /// <summary>
-        /// Initializes the store from the configuration. It uses either the provided file or attempts to load from "ontologies.config" located next to the executing assembly.
-        /// For legacy reasons it also looks in the app.config file.
-        /// If the ontology files are in a different path, this can be supplied as a base path..
-        /// </summary>
-        /// <param name="configPath">Load a specific configuration file.</param>
-        /// <param name="sourceDir">If given, this function tries to load the ontologies from this folder.</param>
-        [Obsolete("This method will be removed in the future. Use InitializeFromConfiguration() instead.")]
-        public virtual void LoadOntologySettings(string configPath = null, string sourceDir = null)
-        {
-            var config = LoadConfiguration(configPath);
-
-            LoadOntologies(config, sourceDir);
-        }
-
-        /// <summary>
-        /// Initializes the store from the configuration. It uses either the provided file or attempts to load from "ontologies.config" located next to the executing assembly.
-        /// For legacy reasons it also looks in the app.config file.
-        /// If the ontology files are in a different path, this can be supplied as a base path..
-        /// </summary>
-        /// <param name="configPath">Path the configuration should be read from.</param>
-        /// <param name="sourceDir">Path where the ontologies should be searched for.</param>
-        public virtual void InitializeFromConfiguration(string configPath = null, string sourceDir = null)
-        {
-            var config = LoadConfiguration(configPath);
-
-            LoadOntologies(config, sourceDir);
-        }
-
-        /// <summary>
-        /// This method loads the configuration data from the given file. 
-        /// This can read the old App.config and new ontologies.config files.
-        /// </summary>
-        /// <param name="configPath">Path to either ontologies.config or App.config file.</param>
-        /// <returns></returns>
-        protected IConfiguration LoadConfiguration(string configPath = null)
-        {
-            FileInfo configFile = null;
-
-            if (!string.IsNullOrEmpty(configPath))
-            {
-                configFile = new FileInfo(configPath);
-            }
-
-            return ConfigurationLoader.LoadConfiguration(configFile);
-        }
-
-        /// <summary>
-        /// Loads Ontologies defined in the currently loaded config file into the store.
-        /// </summary>
-        /// <param name="configuration">Handle of the configuration.</param>
-        /// <param name="sourceDir">Searchpath for the ontologies.</param>
-        protected void LoadOntologies(IConfiguration configuration, string sourceDir = null)
-        {
-            DirectoryInfo srcDir;
-
-            if (string.IsNullOrEmpty(sourceDir))
-            {
-                srcDir = new DirectoryInfo(Environment.CurrentDirectory);
-            }
-            else
-            {
-                srcDir = new DirectoryInfo(sourceDir);
-            }
-
-            StoreUpdater updater = new StoreUpdater(this, srcDir);
-
-            updater.UpdateOntologies(configuration.ListOntologies());
-        }
 
         /// <summary>
         /// Disposes this store and it's underlying connection. This object cannot be reused after disposing.
@@ -394,6 +324,13 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.
+        /// </summary>
+        /// <param name="stream">Stream to which the content should be written.</param>
+        /// <param name="graph">The graph to be serialized.</param>
+        /// <param name="format">The serialization format.</param>
+        /// <param name="leaveOpen">Indicates if the stream should be left open after writing completes.</param>
         public void Write(Stream stream, IGraph graph, RdfSerializationFormat format, bool leaveOpen)
         {
             StreamWriter writer = new StreamWriter(stream);
@@ -507,6 +444,13 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Writes a serialized graph to the given stream using a specific RDF writer.
+        /// </summary>
+        /// <param name="stream">Stream to which the content should be written.</param>
+        /// <param name="graph">The graph to be serialized.</param>
+        /// <param name="formatWriter">A RDF format writer.</param>
+        /// <param name="leaveOpen">Indicates if the stream should be left open after writing completes.</param>
         public void Write(Stream stream, IGraph graph, IRdfWriter formatWriter, bool leaveOpen)
         {
             StreamWriter streamWriter = new StreamWriter(stream);
@@ -519,6 +463,12 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Removes a resource from a model, including every statement that references it as an object.
+        /// </summary>
+        /// <param name="modelUri">Uri of the model the resource belongs to.</param>
+        /// <param name="resourceUri">Uri of the resource to be removed.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         public virtual void DeleteResource(Uri modelUri, Uri resourceUri, ITransaction transaction = null)
         {
             // NOTE: Regrettably, dotNetRDF does not support the full SPARQL 1.1 update syntax. To be precise,
@@ -534,17 +484,33 @@ namespace Semiodesk.Trinity
             ExecuteNonQuery(delete, transaction);
         }
 
+        /// <summary>
+        /// Removes a resource from its model, including every statement that references it as an object.
+        /// </summary>
+        /// <param name="resource">The resource to be removed.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         public virtual void DeleteResource(IResource resource, ITransaction transaction = null)
         {
             DeleteResource(resource.Model.Uri, resource.Uri, transaction);
         }
 
+        /// <summary>
+        /// Removes several resources from a model, including statements that reference them as objects.
+        /// </summary>
+        /// <param name="modelUri">Uri of the model the resources belong to.</param>
+        /// <param name="resources">Uris of the resources to be removed.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         public virtual void DeleteResources(Uri modelUri, IEnumerable<Uri> resources, ITransaction transaction = null)
         {
             foreach (var resource in resources)
                 DeleteResource(modelUri, resource, transaction);
         }
 
+        /// <summary>
+        /// Removes several resources from their models, including statements that reference them as objects.
+        /// </summary>
+        /// <param name="resources">The resources to be removed.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         public virtual void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null)
         {
             foreach (var resource in resources)

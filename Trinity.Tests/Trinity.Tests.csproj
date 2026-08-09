@@ -1,18 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net472</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Title>Trinity.Test</Title>
-    <Copyright>Copyright © Semiodesk GmbH 2018</Copyright>
     <Description></Description>
-    <Company>Semiodesk GmbH</Company>
     <Version>1.0.0.0</Version>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
     <AssemblyName>Semiodesk.Trinity.Tests</AssemblyName>
     <RootNamespace>Semiodesk.Trinity.Tests</RootNamespace>
-    <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
+    <!-- Keep the existing (vestigial) Program.Main as the entry point; dotnet test runs via the
+         VSTest host + NUnit adapter, not Main. Avoids the Test.Sdk double-entry-point conflict. -->
+    <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -20,33 +20,28 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <ApplicationIcon />
     <StartupObject />
+    <!-- CS8981: the vocabulary classes are deliberately named after their RDF prefix (rdf, foaf, nco,
+         ...) so test code reads like the Turtle it maps to. That is the established convention for
+         generated vocabularies, so the "all-lowercase type name" advice does not apply here. -->
+    <NoWarn>$(NoWarn);CS8981</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ini-parser" Version="2.5.2" />
-    <PackageReference Include="NUnit" Version="3.12.0" />
-    <PackageReference Include="NUnit3TestAdapter" Version="3.16.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0" />
-    <PackageReference Include="TinyVirtuoso" Version="0.3.29" />
-    <PackageReference Include="TinyVirtuoso.win" Version="7.2.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
   </ItemGroup>
 
 
   <ItemGroup>
     <ProjectReference Include="..\Trinity\Trinity.csproj" />
+    <!-- Source generator (analyzer): implements the RDF mapping at compile time, replacing the
+         cilg weaver. The whole suite runs cross-platform with no IL weaving. -->
+    <ProjectReference Include="..\Trinity.Generator\Trinity.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 
   <ItemGroup>
-    <None Update="App.config">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
-    <None Update="custom.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="Models\rdf-schema.rdf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -63,12 +58,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\test-vocab.rdf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ontologies-test.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ontologies.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Ontologies\dces.ttl">
@@ -95,14 +84,7 @@
     <None Update="Ontologies\space test ontology.ttl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="without_store.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="$(TargetDir)..\tools\cilg.exe -i $(TargetPath) -o $(TargetPath)" />
-  </Target>
 
 </Project>

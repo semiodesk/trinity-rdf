@@ -620,12 +620,16 @@ namespace Semiodesk.Trinity
         /// <returns>A DateTime value</returns>
         public static object DeserializeDateTime(string str)
         {
-            if (DateTime.TryParse(str, out var value))
+            // RoundtripKind keeps a value with an explicit UTC designator ("...Z") at its UTC reading.
+            // Without it DateTime.TryParse silently converts to the local time zone, so a stored UTC
+            // midnight came back an hour off in UTC+1 (the one-hour round-trip bug, ADR-0026).
+            // InvariantCulture keeps parsing culture-independent, as the rest of this mapper is.
+            if (DateTime.TryParse(str, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var value))
             {
                 return value;
             }
-            
-            return XmlConvert.ToDateTime(str, XmlDateTimeSerializationMode.Utc); 
+
+            return XmlConvert.ToDateTime(str, XmlDateTimeSerializationMode.Utc);
         }
 
 

@@ -47,7 +47,9 @@ namespace Semiodesk.Trinity.Store
     {
         #region Members
 
-        TripleStore _store;
+        // dotNetRDF 3.x moved inferencing out of Core: TripleStore no longer accepts an inference
+        // engine, so the inferencing-capable subclass from dotNetRdf.Inferencing is used instead.
+        InferencingTripleStore _store;
 
         ISparqlUpdateProcessor _updateProcessor;
 
@@ -68,7 +70,7 @@ namespace Semiodesk.Trinity.Store
         /// <param name="schemes">A list of ontology file paths relative to this assembly. The store will be populated with these ontologies.</param>
         public dotNetRDFStore(string[] schemes)
         {
-            _store = new TripleStore();
+            _store = new InferencingTripleStore();
             _updateProcessor = new LeviathanUpdateProcessor(_store);
             _queryProcessor = new LeviathanQueryProcessor(_store);
             _parser = new SparqlUpdateParser();
@@ -95,6 +97,16 @@ namespace Semiodesk.Trinity.Store
 
         #region Methods
 
+        /// <summary>
+        /// Converts a graph URI to the graph name dotNetRDF 3.x addresses graphs by. A <c>null</c> URI
+        /// maps to a <c>null</c> name, which is the default graph — the same meaning the (now obsolete)
+        /// <c>Uri</c> overloads gave it, and why this cannot simply be <c>new UriNode(uri)</c>.
+        /// </summary>
+        private static IRefNode GraphName(Uri uri)
+        {
+            return uri == null ? null : new UriNode(uri);
+        }
+
         private IGraph LoadSchema(string schema)
         {
             IGraph graph = new Graph();
@@ -105,9 +117,13 @@ namespace Semiodesk.Trinity.Store
 
             SparqlResultSet result = (SparqlResultSet)graph.ExecuteQuery(queryString);
 
-            graph.BaseUri = (result[0]["s"] as UriNode).Uri;
+            // A graph's name is immutable in dotNetRDF 3.x, so the ontology IRI discovered above
+            // cannot be assigned after loading — re-home the triples in a graph created with it.
+            IGraph named = new Graph(((IUriNode)result[0]["s"]).Uri);
 
-            return graph;
+            named.Merge(graph);
+
+            return named;
         }
 
         /// <summary>
@@ -116,8 +132,10 @@ namespace Semiodesk.Trinity.Store
         /// <param name="uri">Uri of the model which is to be removed.</param>
         public override void RemoveModel(Uri uri)
         {
-            if (_store.HasGraph(uri))
-                _store.Remove(uri);
+            IRefNode name = GraphName(uri);
+
+            if (_store.HasGraph(name))
+                _store.Remove(name);
         }
 
         /// <summary>
@@ -131,7 +149,7 @@ namespace Semiodesk.Trinity.Store
         public override bool ContainsModel(Uri uri)
 #pragma warning restore CS0809 // Obsolete member overrides non-obsolete member
         {
-            return _store.HasGraph(uri);
+            return _store.HasGraph(GraphName(uri));
         }
 
         /// <summary>
@@ -213,9 +231,11 @@ namespace Semiodesk.Trinity.Store
         {
             foreach (var graph in _store.Graphs)
             {
-                if (graph.BaseUri != null)
+                // 3.x: a graph is named by an IRefNode (URI or blank node); only URI-named graphs
+                // are addressable as models.
+                if (graph.Name is IUriNode name)
                 {
-                    yield return new Model(this, new UriRef(graph.BaseUri));
+                    yield return new Model(this, new UriRef(name.Uri));
                 }
             }
         }
@@ -270,15 +290,13 @@ namespace Semiodesk.Trinity.Store
         {
             using (StringReader reader = new StringReader(content))
             {
-                IGraph graph = new Graph();
+                IGraph graph = new Graph(graphUri);
 
                 TryParse(reader, graph, format);
 
-                graph.BaseUri = graphUri;
-
                 if (!update)
                 {
-                    _store.Remove(graphUri);
+                    _store.Remove(GraphName(graphUri));
                 }
 
                 _store.Add(graph, update);
@@ -294,20 +312,19 @@ namespace Semiodesk.Trinity.Store
         /// <param name="graphUri">Uri of the graph in this store</param>
         /// <param name="format">Allowed formats</param>
         /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
+        /// <param name="leaveOpen">Indicates if the stream should be left open after reading completes.</param>
         /// <returns></returns>
         public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update, bool leaveOpen = false)
         {
             using (TextReader reader = new StreamReader(stream))
             {
-                IGraph graph = new Graph();
+                IGraph graph = new Graph(graphUri);
 
                 TryParse(reader, graph, format);
 
-                graph.BaseUri = graphUri;
-
                 if (!update)
                 {
-                    _store.Remove(graphUri);
+                    _store.Remove(GraphName(graphUri));
                 }
 
                 _store.Add(graph, update);
@@ -356,7 +373,7 @@ namespace Semiodesk.Trinity.Store
                         {
                             if (!update)
                             {
-                                _store.Remove(g.BaseUri);
+                                _store.Remove(g.Name);
                             }
 
                             _store.Add(g, update);
@@ -364,26 +381,23 @@ namespace Semiodesk.Trinity.Store
                     }
                     else
                     {
-                        graph = new Graph();
+                        graph = new Graph(graphUri);
                         graph.LoadFromFile(path);
-                        graph.BaseUri = graphUri;
                     }
                 }
             }
             else if (url.Scheme == "http")
             {
-                graph = new Graph();
+                graph = new Graph(graphUri);
 
                 UriLoader.Load(graph, url);
-
-                graph.BaseUri = graphUri;
             }
 
             if (graph != null)
             {
                 if (!update)
                 {
-                    _store.Remove(graph.BaseUri);
+                    _store.Remove(graph.Name);
                 }
 
                 _store.Add(graph, update);
@@ -406,9 +420,11 @@ namespace Semiodesk.Trinity.Store
         /// <returns></returns>
         public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false)
         {
-            if (_store.HasGraph(graphUri))
+            IRefNode name = GraphName(graphUri);
+
+            if (_store.HasGraph(name))
             {
-                IGraph graph = _store.Graphs[graphUri];
+                IGraph graph = _store.Graphs[name];
 
                 if (namespaces != null)
                 {
@@ -434,9 +450,11 @@ namespace Semiodesk.Trinity.Store
         /// <returns></returns>
         public override void Write(Stream stream, Uri graphUri, IRdfWriter formatWriter, bool leaveOpen = false)
         {
-            if (_store.HasGraph(graphUri))
+            IRefNode name = GraphName(graphUri);
+
+            if (_store.HasGraph(name))
             {
-                IGraph graph = _store.Graphs[graphUri];
+                IGraph graph = _store.Graphs[name];
 
                 Write(stream, graph, formatWriter, leaveOpen);
             }

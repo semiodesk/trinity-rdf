@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [ develop, master, 'feature/**' ]
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege: this workflow only checks out, builds, tests and packs.
+# Declaring the block sets every unlisted scope to 'none'.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          # 10.0.x builds the solution (C# 13 partial properties); 8.0.x supplies the runtime the
+          # net8.0 test projects execute on. Without the second line that runtime is only present
+          # because the hosted image happens to ship it, and the failure if it stops is obscure:
+          # "You must install or update .NET ... version '8.0.0'".
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      # Only the release branches build the bare version (2.0.0). Everything else — feature branches
+      # and pull requests — gets a prerelease label, so a CI build can never be mistaken for, or
+      # installed in place of, the released package.
+      - name: Compute version suffix
+        id: version
+        run: |
+          case "$GITHUB_REF" in
+            refs/heads/develop|refs/heads/master) suffix="" ;;
+            *) suffix="ci.${GITHUB_RUN_NUMBER}.g$(git rev-parse --short HEAD)" ;;
+          esac
+          echo "suffix=$suffix" >> "$GITHUB_OUTPUT"
+          echo "Version suffix: ${suffix:-(none - release branch)}"
+
+      - name: Restore
+        run: dotnet restore Semiodesk.Trinity.sln
+
+      # GeneratePackageOnBuild is on for the four shipping projects, so this also validates packaging
+      # on every branch even though only release branches upload an artifact.
+      - name: Build
+        run: dotnet build Semiodesk.Trinity.sln -c Release --no-restore -p:VersionSuffix=${{ steps.version.outputs.suffix }}
+
+      # Only the in-memory suites run in CI; the store-integration projects
+      # (Virtuoso/Fuseki/GraphDB) need live servers and are excluded.
+      - name: Test
+        run: |
+          dotnet test Trinity.Tests/Trinity.Tests.csproj -c Release --no-build
+          dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj -c Release --no-build
+
+      # Artifacts are only produced on the release branches; publishing stays manual (RELEASING.md).
+      - name: Pack
+        if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master'
+        run: dotnet pack Trinity/Trinity.csproj -c Release --no-build --output ./artifacts -p:VersionSuffix=${{ steps.version.outputs.suffix }}
+
+      - uses: actions/upload-artifact@v7
+        if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master'
+        with:
+          name: nupkg
+          path: ./artifacts/*.nupkg

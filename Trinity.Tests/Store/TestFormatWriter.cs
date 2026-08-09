@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 using VDS.RDF;
 
 namespace Semiodesk.Trinity.Tests.dotnetrdf
@@ -9,9 +10,18 @@ namespace Semiodesk.Trinity.Tests.dotnetrdf
     /// </summary>
     class TestFormatWriter : IRdfWriter
     {
+        // Required by IRdfWriter; this writer never emits warnings, hence never raises it.
+#pragma warning disable CS0067
         public event RdfWriterWarning Warning;
+#pragma warning restore CS0067
 
         public void Save(IGraph g, string filename)
+        {
+            throw new NotSupportedException();
+        }
+
+        // Added by IRdfWriter in dotNetRDF 3.x.
+        public void Save(IGraph g, string filename, Encoding fileEncoding)
         {
             throw new NotSupportedException();
         }

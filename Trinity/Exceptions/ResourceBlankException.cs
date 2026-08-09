@@ -37,9 +37,8 @@ namespace Semiodesk.Trinity
         #region Constructors
 
         /// <summary>
-        /// Create a new instance of the <c>ResourceLockedException</c> class.
+        /// Create a new instance of the <c>ResourceBlankException</c> class.
         /// </summary>
-        /// <param name="inner">Inner exception.</param>
         public ResourceBlankException()
             : base(string.Format("One or more resources you tried to modify was a blank resources. This is not supported yet."))
         {}

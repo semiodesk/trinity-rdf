@@ -4,21 +4,21 @@ using System.Collections.Generic;
 namespace Semiodesk.Trinity.Tests
 {
     [RdfClass(NCO.Contact)]
-    public class Contact : Resource
+    public partial class Contact : Resource
     {
         #region Members
 
         [RdfProperty(NCO.fullname)]
-        public string Fullname { get; set; }
+        public partial string Fullname { get; set; }
 
         [RdfProperty(NCO.birthday)]
-        public DateTime BirthDate { get; set; }
+        public partial DateTime BirthDate { get; set; }
 
         [RdfProperty(NCO.hasEmailAddress)]
-        public List<EmailAddress> EmailAddresses { get; set; }
+        public partial List<EmailAddress> EmailAddresses { get; set; }
 
         [RdfProperty(NCO.hasPostalAddress)]
-        public List<PostalAddress> PostalAddresses { get; set; }
+        public partial List<PostalAddress> PostalAddresses { get; set; }
 
         #endregion
 

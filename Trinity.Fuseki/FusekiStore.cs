@@ -288,11 +288,14 @@ namespace Semiodesk.Trinity.Store.Fuseki
             
             using (StringReader reader = new StringReader(content))
             {
-                IGraph graph = new Graph();
+                IGraph graph = new Graph(graphUri);
 
                 TryParse(reader, graph, format);
 
+                // Restore the target graph: a parsed @base directive overwrites BaseUri, and
+                // dotNetRDF connectors still derive the graph they write to from BaseUri.
                 graph.BaseUri = graphUri;
+
 
                 if (!update && exists)
                 {
@@ -319,11 +322,14 @@ namespace Semiodesk.Trinity.Store.Fuseki
             
             using (TextReader reader = new StreamReader(stream))
             {
-                IGraph graph = new Graph();
+                IGraph graph = new Graph(graphUri);
 
                 TryParse(reader, graph, format);
 
+                // Restore the target graph: a parsed @base directive overwrites BaseUri, and
+                // dotNetRDF connectors still derive the graph they write to from BaseUri.
                 graph.BaseUri = graphUri;
+
 
                 if (!update && exists)
                 {
@@ -387,19 +393,25 @@ namespace Semiodesk.Trinity.Store.Fuseki
                     }
                     else
                     {
-                        graph = new Graph();
+                        graph = new Graph(graphUri);
                         graph.LoadFromFile(path);
+
+                        // Restore the target graph: a parsed @base directive overwrites BaseUri,
+                        // and dotNetRDF connectors still derive the graph they write to from it.
                         graph.BaseUri = graphUri;
                     }
                 }
             }
             else if (url.Scheme == "http")
             {
-                graph = new Graph();
+                graph = new Graph(graphUri);
 
                 UriLoader.Load(graph, url);
 
+                // Restore the target graph: a parsed @base directive overwrites BaseUri, and
+                // dotNetRDF connectors still derive the graph they write to from BaseUri.
                 graph.BaseUri = graphUri;
+
             }
 
             if (graph != null)
@@ -431,7 +443,7 @@ namespace Semiodesk.Trinity.Store.Fuseki
         {
             if (Connector.HasGraph(graphUri))
             {
-                IGraph graph = new Graph();
+                IGraph graph = new Graph(graphUri);
                 
                 Connector.LoadGraph(graph, graphUri);
 
@@ -461,7 +473,7 @@ namespace Semiodesk.Trinity.Store.Fuseki
         {
             if (Connector.HasGraph(graphUri))
             {
-                IGraph graph = new Graph();
+                IGraph graph = new Graph(graphUri);
                 
                 Connector.LoadGraph(graph, graphUri);
 

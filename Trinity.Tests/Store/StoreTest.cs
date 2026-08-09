@@ -52,7 +52,7 @@ namespace Semiodesk.Trinity.Tests.Store
             folder.Create();
             
             Store = StoreFactory.CreateStore(ConnectionString);
-            Store.InitializeFromConfiguration();
+            TestOntologies.LoadInto(Store);
             
             // Wait until the inference engine has loaded the ontologies..
             Thread.Sleep(1000);

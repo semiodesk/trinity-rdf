@@ -30,7 +30,7 @@ namespace Semiodesk.Trinity.Tests.Linq
 
 
             Store = StoreFactory.CreateStore(connectionString);
-            Store.InitializeFromConfiguration();
+            TestOntologies.LoadInto(Store);
             Store.Log = (l) => Debug.WriteLine(l);
 
             Model = Store.CreateModel(ex.Namespace);

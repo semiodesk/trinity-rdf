@@ -31,33 +31,33 @@ using System.Collections.Generic;
 namespace Semiodesk.Trinity.Tests.Linq
 {
     [RdfClass(FOAF.Person)]
-    internal class Person : Agent
+    internal partial class Person : Agent
     {
         #region Members
 
         [RdfProperty(FOAF.age)]
-        public int Age { get; set; }
+        public partial int Age { get; set; }
 
         [RdfProperty(FOAF.birthday)]
-        public DateTime Birthday { get; set; }
+        public partial DateTime Birthday { get; set; }
 
         [RdfProperty(FOAF.knows)]
-        public List<Person> KnownPeople { get; set; }
+        public partial List<Person> KnownPeople { get; set; }
 
         [RdfProperty(FOAF.member)]
-        public Group Group { get; set; }
+        public partial Group Group { get; set; }
 
         [RdfProperty(FOAF.status)]
-        public bool Status { get; set; }
+        public partial bool Status { get; set; }
 
         [RdfProperty(FOAF.account)]
-        public float AccountBalance { get; set; }
+        public partial float AccountBalance { get; set; }
 
         [RdfProperty(FOAF.interest)]
-        public List<Resource> Interests { get; set; }
+        public partial List<Resource> Interests { get; set; }
 
         [RdfProperty(FOAF.made)]
-        public List<Document> CreatedDocuments { get; set; }
+        public partial List<Document> CreatedDocuments { get; set; }
 
         #endregion
 

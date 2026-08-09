@@ -66,50 +66,6 @@ namespace Semiodesk.Trinity.Tests.DotNetRDF
         }
         
         [Test]
-        public void LoadOntologiesTest()
-        {
-            Store = StoreFactory.CreateStore(ConnectionString);
-            Store.InitializeFromConfiguration();
-            
-            var models = Store.ListModels().ToList();
-
-            Assert.AreEqual(8, models.Count);
-        }
-
-        [Test]
-        public void LoadOntologiesFromFileTest()
-        {
-            // Reset the store that was initialized in base.SetUp();
-            Store = StoreFactory.CreateStore(ConnectionString);
-            
-            var configFile = Path.Combine(Environment.CurrentDirectory, "custom.config");
-
-            Store.InitializeFromConfiguration(configFile);
-
-            Assert.AreEqual(4, Store.ListModels().Count());
-
-            configFile = Path.Combine(Environment.CurrentDirectory, "nonexistent.config");
-
-            Assert.Throws<FileNotFoundException>(() =>
-            {
-                Store.InitializeFromConfiguration(configFile);
-            });
-        }
-
-        [Test]
-        public void LoadOntologiesFromFileWithoutStoreTest()
-        {
-            // Reset the store that was initialized in base.SetUp();
-            Store = StoreFactory.CreateStore(ConnectionString);
-            
-            var configFile = Path.Combine(Environment.CurrentDirectory, "without_store.config");
-
-            Store.InitializeFromConfiguration(configFile);
-
-            Assert.AreEqual(4, Store.ListModels().Count());
-        }
-
-        [Test]
         public void AddModelTest()
         {
             var model = Store.CreateModel(new Uri("ex:Test"));

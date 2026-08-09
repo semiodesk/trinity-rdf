@@ -3,7 +3,7 @@
 namespace Semiodesk.Trinity.Tests.Linq
 {
     [RdfClass(MUSIC.Songwriter)]
-    internal class Songwriter : Person
+    internal partial class Songwriter : Person
     {
         #region Members
 

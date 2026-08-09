@@ -3,7 +3,7 @@
 namespace Semiodesk.Trinity.Tests.Linq
 {
     [RdfClass(MUSIC.Artist)]
-    internal class Artist : Resource, IArtist
+    internal partial class Artist : Resource, IArtist
     {
         #region Members
 
@@ -11,7 +11,7 @@ namespace Semiodesk.Trinity.Tests.Linq
         /// The name of an entity.
         /// </summary>
         [RdfProperty(MUSIC.name)]
-        public string Name { get; set; }
+        public partial string Name { get; set; }
 
         #endregion
 

@@ -31,7 +31,6 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Semiodesk.Trinity.Store;
-using System.Configuration;
 using System.Reflection;
 using System.Net;
 #if NETSTANDARD2_0
@@ -110,36 +109,6 @@ namespace Semiodesk.Trinity
             }
 
             throw new StoreProviderMissingException("No store provider key specified.");
-        }
-
-        /// <summary>
-        /// Tries to read a connection string with the given name from the configuration. If no name was given, the first compatible connection string is used.
-        /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        public static IStore CreateStoreFromConfiguration(string name = null)
-        {
-            foreach (ConnectionStringSettings setting in ConfigurationManager.ConnectionStrings)
-            {
-                if (!string.IsNullOrEmpty(name) && setting.Name != name)
-                {
-                    continue;
-                }
-
-                string conString = setting.ConnectionString;
-
-                if (setting.ProviderName == "Semiodesk.Trinity" && StoreFactory.TestConnectionString(conString))
-                {
-                    return CreateStore(conString);
-                }
-            }
-
-            if (!string.IsNullOrEmpty(name))
-            {
-                throw new ArgumentException(string.Format("Connection string with given name \"{0}\" not found.", name));
-            }
-
-            return null;
         }
 
         /// <summary>

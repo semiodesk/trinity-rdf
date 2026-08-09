@@ -59,11 +59,6 @@ namespace Semiodesk.Trinity
         private Dictionary<Property, HashSet<object>> _properties;
 
         /// <summary>
-        /// Contains a list of all properties which implement the INotifyPropertyChanged interface.
-        /// </summary>
-        private readonly HashSet<string> _notifyingProperties = new HashSet<string>();
-
-        /// <summary>
         /// All mappings as discovered by InitialisePropertyMapping.
         /// </summary>
         private Dictionary<string, IPropertyMapping> _mappings;
@@ -1113,11 +1108,6 @@ namespace Semiodesk.Trinity
                         ResourceCache.CacheValues(mapping.Value, resource.ResourceCache.ListCachedValues(persistedMapping));
                     }
                 }
-
-                foreach (string name in _notifyingProperties)
-                {
-                    RaisePropertyChanged(name);
-                }
             }
 
             // NOTE: We do not need to copy the classes, we have to assume the mapped type stays the same.
@@ -1208,26 +1198,6 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Register a property name to raise the INotifyProperty signal on rollback.
-        /// </summary>
-        /// <param name="propertyName">Name of a property.</param>
-        protected void RegisterPropertyChanged(string propertyName)
-        {
-            _notifyingProperties.Add(propertyName);
-        }
-
-        /// <summary>
-        /// Raises the PropertyChanged event of the object.
-        /// </summary>
-        /// <param name="propertyName">Name of a property.</param>
-        protected virtual void RaisePropertyChanged(string propertyName)
-        {
-            VerifyPropertyName(propertyName);
-
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        /// <summary>
         /// Update the property mappings with the values in the selected language.
         /// </summary>
         protected void ReloadLocalizedMappings()
@@ -1300,15 +1270,6 @@ namespace Semiodesk.Trinity
                 IsDisposed = true;
             }
         }
-
-        #endregion
-
-        #region Events
-
-        /// <summary>
-        /// Needed for the implementation of the INotifyPropertyChanged interface.
-        /// </summary>
-        public event PropertyChangedEventHandler PropertyChanged;
 
         #endregion
 

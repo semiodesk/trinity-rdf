@@ -3,12 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
 	<Title>Semiodesk.Trinity</Title>
-	<Copyright>Copyright © Semiodesk GmbH 2015-2020</Copyright>
 	<Description>Enterprise ready object mapper for developing RDF knowledge graph applications with .NET</Description>
-	<Company>Semiodesk GmbH</Company>
-	<Version>1.0.3.50</Version>
-	<AssemblyVersion>1.0.3.50</AssemblyVersion>
-	<FileVersion>1.0.3.50</FileVersion>
 	<AssemblyName>Semiodesk.Trinity</AssemblyName>
 	<RootNamespace>Semiodesk.Trinity</RootNamespace>
     <IsPackable>true</IsPackable>
@@ -28,8 +23,6 @@
     <NeutralLanguage>en-001</NeutralLanguage>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Semiodesk.Trinity</PackageId>
-    <Authors>Semiodesk GmbH</Authors>
-    <Product>Semiodesk.Trinity</Product>
     <PackageTags>RDF SPARQL ORM object mapping linked data semantic web knowledge graph database</PackageTags>
     <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl>https://trinity-rdf.net</PackageProjectUrl>
@@ -42,26 +35,22 @@
     <None Include="..\assets\trinity-logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
  
-  <!--  THIS SECTION CONTAINS THE PACKAGING INSTRUCTIONS FOR CILGENERATOR & ONTOLOGYGENERATOR -->
   <PropertyGroup>
-    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);CustomContentTarget</TargetsForTfmSpecificContentInPackage>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
-  <Target Name="CustomContentTarget">
-    <ItemGroup>
-      <!-- Here is the build folder with the .target files -->
-      <TfmSpecificPackageFile Include="$(OutputPath)\Targets\*">
-        <PackagePath>build</PackagePath>
-      </TfmSpecificPackageFile>
+  <!-- Ship the Roslyn source generator as an analyzer inside the package (replaces the cilg
+       IL weaver). Consumers reference Semiodesk.Trinity and get the mapping generator with no
+       build-time tools, no .targets, and no IL weaving. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Trinity.Generator\Trinity.Generator.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
 
-      <!-- Here is the tools folder -->
-      <TfmSpecificPackageFile Include="$(OutputPath)\../tools\*.exe*;$(OutputPath)\../tools\*.dll" >
-        <PackagePath>tools</PackagePath>
-      </TfmSpecificPackageFile>
-    </ItemGroup>
-  </Target>
-  <!-- END SECTION PACKAGING -->
+  <ItemGroup>
+    <None Include="..\Trinity.Generator\bin\$(Configuration)\netstandard2.0\Semiodesk.Trinity.Generator.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
 
 
   <ItemGroup>
@@ -87,18 +76,16 @@
 
   <!-- ALL TARGETS -->
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-	 <PackageReference Include="Remotion.Linq" Version="2.2.0" />
-    <PackageReference Include="dotNetRDF" Version="2.7.0" />
-	  <PackageReference Include="System.Composition" Version="1.1.0" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <!-- Overrides the vulnerable 1.4.0 that dotNetRdf.Core pulls in (see Directory.Packages.props). -->
+    <PackageReference Include="AngleSharp" />
+    <PackageReference Include="dotNetRdf.Core" />
+    <!-- Client supplies the connectors the built-in SPARQL-endpoint store uses. -->
+    <PackageReference Include="dotNetRdf.Client" />
+    <!-- Inferencing supplies RdfsReasoner for the in-memory store. -->
+    <PackageReference Include="dotNetRdf.Inferencing" />
+	  <PackageReference Include="System.Composition" />
   </ItemGroup>
 
   
-  <ItemGroup>
-    <None Update="Targets\Semiodesk.Trinity.targets">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
-
 </Project>

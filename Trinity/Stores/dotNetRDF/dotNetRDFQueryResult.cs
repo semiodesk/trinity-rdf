@@ -37,6 +37,10 @@ using Semiodesk.Trinity.Utility;
 
 namespace Semiodesk.Trinity.Store
 {
+    /// <summary>
+    /// The result of a SPARQL query executed against a dotNetRDF-backed store. Which accessor is
+    /// valid depends on the query form — see <see cref="ISparqlQueryResult"/>.
+    /// </summary>
     public class dotNetRDFQueryResult : ISparqlQueryResult
     {
         #region Members
@@ -55,6 +59,12 @@ namespace Semiodesk.Trinity.Store
 
         #region Constructor
 
+        /// <summary>
+        /// Creates a query result from a SPARQL result set (SELECT and ASK queries).
+        /// </summary>
+        /// <param name="store">The store the query was executed against.</param>
+        /// <param name="query">The executed query.</param>
+        /// <param name="resultSet">The bindings or boolean answer returned by the query.</param>
         public dotNetRDFQueryResult(StoreBase store, ISparqlQuery query, SparqlResultSet resultSet)
         {
             string s = null;
@@ -79,6 +89,12 @@ namespace Semiodesk.Trinity.Store
             _store = store;
         }
 
+        /// <summary>
+        /// Creates a query result from a graph (DESCRIBE and CONSTRUCT queries).
+        /// </summary>
+        /// <param name="store">The store the query was executed against.</param>
+        /// <param name="query">The executed query.</param>
+        /// <param name="graph">The graph returned by the query.</param>
         public dotNetRDFQueryResult(StoreBase store, ISparqlQuery query, IGraph graph)
         {
             _query = query;
@@ -91,6 +107,11 @@ namespace Semiodesk.Trinity.Store
 
         #region Methods
 
+        /// <summary>
+        /// Returns the boolean answer of an ASK query.
+        /// </summary>
+        /// <returns><c>true</c> if the queried pattern exists, <c>false</c> otherwise.</returns>
+        /// <exception cref="Exception">Thrown if the query was not an ASK query.</exception>
         public bool GetAnwser()
         {
             if (_query.QueryType == SparqlQueryType.Ask)
@@ -103,6 +124,10 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
+        /// <summary>
+        /// Returns the variable bindings of a SELECT query, one set per solution.
+        /// </summary>
+        /// <returns>An enumeration of variable bindings.</returns>
         public IEnumerable<BindingSet> GetBindings()
         {
             if (_query.QueryType == SparqlQueryType.Select)
@@ -128,16 +153,32 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
+        /// <summary>
+        /// Materializes the queried statements into resources.
+        /// </summary>
+        /// <returns>An enumeration of resources.</returns>
         public IEnumerable<Resource> GetResources()
         {
             return GetResources<Resource>();
         }
 
+        /// <summary>
+        /// Materializes a page of the queried statements into resources.
+        /// </summary>
+        /// <param name="offset">The number of resources to skip.</param>
+        /// <param name="limit">The maximum number of resources to return.</param>
+        /// <returns>An enumeration of resources.</returns>
+        /// <exception cref="NotImplementedException">Always; paging is not implemented for this store.</exception>
         public IEnumerable<Resource> GetResources(int offset = -1, int limit = -1)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Materializes the queried statements into resources of the given type.
+        /// </summary>
+        /// <param name="type">The resource type to instantiate.</param>
+        /// <returns>An enumeration of resources.</returns>
         public IEnumerable<Resource> GetResources(Type type)
         {
             if (_query.ProvidesStatements())
@@ -150,6 +191,12 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
+        /// <summary>
+        /// Materializes the queried statements into resources of the given type.
+        /// </summary>
+        /// <typeparam name="T">The resource type to instantiate.</typeparam>
+        /// <returns>An enumeration of resources.</returns>
+        /// <exception cref="ArgumentException">Thrown if the query does not provide statements.</exception>
         public IEnumerable<T> GetResources<T>() where T : Resource
         {
             if(_query.ProvidesStatements())
@@ -162,6 +209,14 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
+        /// <summary>
+        /// Materializes a page of the queried statements into resources of the given type.
+        /// </summary>
+        /// <typeparam name="T">The resource type to instantiate.</typeparam>
+        /// <param name="offset">The number of resources to skip.</param>
+        /// <param name="limit">The maximum number of resources to return.</param>
+        /// <returns>An enumeration of resources.</returns>
+        /// <exception cref="NotImplementedException">Always; paging is not implemented for this store.</exception>
         public IEnumerable<T> GetResources<T>(int offset = -1, int limit = -1) where T : Resource
         {
             throw new NotImplementedException();
@@ -312,16 +367,17 @@ namespace Semiodesk.Trinity.Store
             {
                 ILiteralNode literalNode = p as ILiteralNode;
 
+                // The language must be checked before the datatype: under RDF 1.1 — which dotNetRDF 3.x
+                // follows — a language-tagged literal also carries the rdf:langString datatype, so a
+                // datatype-first test would misread it as a plain string.
+                if (!string.IsNullOrEmpty(literalNode.Language))
+                {
+                    return new Tuple<string, string>(literalNode.Value, literalNode.Language);
+                }
+
                 if (literalNode.DataType == null)
                 {
-                    if (string.IsNullOrEmpty(literalNode.Language))
-                    {
-                        return literalNode.Value;
-                    }
-                    else
-                    {
-                        return new Tuple<string, string>(literalNode.Value, literalNode.Language);
-                    }
+                    return literalNode.Value;
                 }
 
                 return XsdTypeMapper.DeserializeString(literalNode.Value, literalNode.DataType);
@@ -423,6 +479,10 @@ namespace Semiodesk.Trinity.Store
             return result;
         }
 
+        /// <summary>
+        /// Returns the number of solutions the query yields.
+        /// </summary>
+        /// <returns>The result count, or <c>-1</c> if it could not be determined.</returns>
         public virtual int Count()
         {
             string countQuery = SparqlSerializer.SerializeCount(_model, _query);
@@ -449,6 +509,10 @@ namespace Semiodesk.Trinity.Store
             return -1;
         }
 
+        /// <summary>
+        /// Releases the resources held by this result.
+        /// </summary>
+        /// <exception cref="NotImplementedException">Always; this result holds no disposable state.</exception>
         public void Dispose()
         {
             throw new NotImplementedException();

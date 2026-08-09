@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
 namespace Semiodesk.Trinity.Tests.Cilg
 {
     [RdfClass(TestOntology.SingleMappingTestClassString)]
-    public class SingleMappingTestClass : Resource
+    public partial class SingleMappingTestClass : Resource
     {
 
         #region Constructors
@@ -16,7 +16,7 @@ namespace Semiodesk.Trinity.Tests.Cilg
 
 
         [RdfProperty(TestOntology.stringTestString)]
-        public ObservableCollection<string> stringTest
+        public partial ObservableCollection<string> stringTest
         {
             get;
             set;
@@ -53,36 +53,36 @@ namespace Semiodesk.Trinity.Tests.Cilg
     }
 
     [RdfClass(TestOntology.SingleMappingTestClassString)]
-    public class CilgMappingTestClass : Resource
+    public partial class CilgMappingTestClass : Resource
     {
         #region Members
 
         [RdfProperty(TestOntology.intTestString)]
-        public List<int> intTest { get; set; }
+        public partial List<int> intTest { get; set; }
 
         [RdfProperty(TestOntology.uniqueIntTestString)]
-        public int uniqueIntTest { get; set; }
+        public partial int uniqueIntTest { get; set; }
 
         [RdfProperty(TestOntology.uintTestString)]
-        public List<uint> uintTest { get; set; }
+        public partial List<uint> uintTest { get; set; }
 
         [RdfProperty(TestOntology.uniqueUintTestString)]
-        public uint uniqueUintTest { get; set; }
+        public partial uint uniqueUintTest { get; set; }
 
         [RdfProperty(TestOntology.stringTestString)]
-        public ObservableCollection<string> stringTest { get; set; }
+        public partial ObservableCollection<string> stringTest { get; set; }
 
         [RdfProperty(TestOntology.uniqueStringTestString)]
-        public string uniqueStringTest { get; set; }
+        public partial string uniqueStringTest { get; set; }
 
         [RdfProperty(TestOntology.resTestString)]
-        public Resource uriProperty { get; set; }
+        public partial Resource uriProperty { get; set; }
 
         #endregion
 
         #region Constructors
 
-        public CilgMappingTestClass(Uri uri) : base(uri) 
+        public CilgMappingTestClass(Uri uri) : base(uri)
         {
         }
 
@@ -90,7 +90,7 @@ namespace Semiodesk.Trinity.Tests.Cilg
     }
 
     [RdfClass(TestOntology.SubMappingTestClassString)]
-    public class CilgSubMappingTestClass : CilgMappingTestClass
+    public partial class CilgSubMappingTestClass : CilgMappingTestClass
     {
         #region Constructors
 
@@ -101,7 +101,7 @@ namespace Semiodesk.Trinity.Tests.Cilg
 
     [RdfClass(TestOntology.SingleMappingTestClassString)]
     [RdfClass(TestOntology.SubMappingTestClassString)]
-    public class CilgMultipleMappingTestClass : CilgMappingTestClass
+    public partial class CilgMultipleMappingTestClass : CilgMappingTestClass
     {
         #region Constructors
 
@@ -111,15 +111,17 @@ namespace Semiodesk.Trinity.Tests.Cilg
     }
 
     [RdfClass(TestOntology.TestClassString)]
-    public class CilgListInitializerTestClass3 : Resource
+    public partial class CilgListInitializerTestClass3 : Resource
     {
         #region Members
 
         [RdfProperty(TestOntology.uniqueStringTestString)]
-        public string stringTest2 { get; set; }
+        public partial string stringTest2 { get; set; }
 
+        // NOTE: partial properties cannot carry a field initializer; the generator seeds the
+        // PropertyMapping with an empty List<string> default instead.
         [RdfProperty(TestOntology.stringTestString)]
-        public List<string> stringTest { get; set; } = new List<string>();
+        public partial List<string> stringTest { get; set; }
 
         #endregion
 
@@ -131,70 +133,4 @@ namespace Semiodesk.Trinity.Tests.Cilg
 
         #endregion
     }
-
-    /*
-        [RdfClass(TestOntology.TestClassString)]
-        public class CilgListInitializerTestClass : Resource
-        {
-            #region Members
-
-            [RdfProperty(TestOntology.stringTestString)]
-            public List<string> stringTest { get; set; } = new List<string>();
-
-
-            [RdfProperty(TestOntology.intTestString)]
-            public int intTest { get; set; } = 17;
-
-            [RdfProperty(TestOntology.stringTestString)]
-            public List<string> stringTest2 { get; set; } = new List<string>() { "bla", "blub" };
-
-            #endregion
-
-            #region Constructors
-
-            public CilgListInitializerTestClass(Uri uri) : base(uri)
-            {
-            }
-
-            #endregion
-        }
-
-        [RdfClass(TestOntology.TestClassString)]
-        public class CilgListInitializerTestClass2 : Resource
-        {
-            #region Members
-
-            protected PropertyMapping<List<string>> stringTestProperty = new PropertyMapping<List<string>>("stringTest", TestOntology.intTestString, new List<string>());
-            public List<string> stringTest
-            {
-                get { return GetValue(stringTestProperty); }
-                set { SetValue(stringTestProperty, value); }
-            }
-
-
-            protected PropertyMapping<int> intTestProperty = new PropertyMapping<int>("intTest", TestOntology.intTestString, 17);
-            public int intTest
-            {
-                get { return GetValue(intTestProperty); }
-                set { SetValue(intTestProperty, value); }
-            } 
-
-
-            protected PropertyMapping<List<string>> stringTest2Property = new PropertyMapping<List<string>>("stringTest2", TestOntology.intTestString, new List<string>() { "bla", "blub" });
-            public List<string> stringTest2
-            {
-                get { return GetValue(stringTest2Property); }
-                set { SetValue(stringTest2Property, value); }
-            }
-            #endregion
-
-            #region Constructors
-
-            public CilgListInitializerTestClass2(Uri uri) : base(uri)
-            {
-            }
-
-            #endregion
-        }
-        */
 }

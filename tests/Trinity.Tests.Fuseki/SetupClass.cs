@@ -36,9 +36,9 @@ namespace Semiodesk.Trinity.Tests.Fuseki
             }
 
             folder.Create();
-            
-            ConnectionString = "provider=fuseki;host=http://localhost:3030;uid=admin;pw=test;dataset=ds";
-            
+
+            // ConnectionString is set by the FusekiContainer [SetUpFixture], which starts the
+            // Dockerized server on a random host port before any fixture runs (ADR-0036).
         }
 
         [OneTimeTearDown]

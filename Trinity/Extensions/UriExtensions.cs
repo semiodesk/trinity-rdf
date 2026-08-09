@@ -48,6 +48,7 @@ namespace Semiodesk.Trinity
         /// Create a new URI from appending a given local name to this URI.
         /// </summary>
         /// <param name="uri">A uniform resource identifier (URI)</param>
+        /// <param name="localName">The local name to append to the URI.</param>
         /// <returns>A new UriRef instance.</returns>
         public static UriRef GetUriRef(this Uri uri, string localName)
         {

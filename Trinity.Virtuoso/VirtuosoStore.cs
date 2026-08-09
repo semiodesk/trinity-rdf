@@ -549,7 +549,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                     {
                         if (update)
                         {
-                            manager.UpdateGraph(g.BaseUri, g.Triples, new Triple[] { });
+                            manager.UpdateGraph(g.Name, g.Triples, new Triple[] { });
                         }
                         else
                         {
@@ -574,13 +574,14 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
                     parser.Load(store, content);
 
-                    var g = store.Graphs.Where(x => x.BaseUri == graph).FirstOrDefault();
+                    // 3.x: graphs are keyed by an IRefNode name rather than BaseUri.
+                    var g = store.Graphs.FirstOrDefault(x => x.Name is IUriNode name && name.Uri.Equals(graph));
 
                     if( g != null )
                     {
                         if (update)
                         {
-                            manager.UpdateGraph(g.BaseUri, g.Triples, new Triple[] { });
+                            manager.UpdateGraph(g.Name, g.Triples, new Triple[] { });
                         }
                         else
                         {
@@ -597,11 +598,9 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         {
             using (VirtuosoManager manager = new VirtuosoManager(CreateConnectionString()))
             {
-                using (VDS.RDF.Graph graph = new VDS.RDF.Graph())
+                using (VDS.RDF.Graph graph = new VDS.RDF.Graph(graphUri))
                 {
                     dotNetRDFStore.TryParse(reader, graph, format);
-
-                    graph.BaseUri = graphUri;
 
                     if (update)
                     {
@@ -621,15 +620,13 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         {
             using (VirtuosoManager manager = new VirtuosoManager(CreateConnectionString()))
             {
-                using (VDS.RDF.Graph graph = new VDS.RDF.Graph())
+                using (VDS.RDF.Graph graph = new VDS.RDF.Graph(graphUri))
                 {
                     var parser = GetParser(format);
                     if (parser == null)
                         throw new NotSupportedException();
 
                     graph.LoadFromString(content, parser);
-
-                    graph.BaseUri = graphUri;
 
                     if (update)
                     {
@@ -649,11 +646,9 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         {
             using (VirtuosoManager manager = new VirtuosoManager(CreateConnectionString()))
             {
-                using (VDS.RDF.Graph g = new VDS.RDF.Graph())
+                using (VDS.RDF.Graph g = new VDS.RDF.Graph(graph))
                 {
                     UriLoader.Load(g, location);
-
-                    g.BaseUri = graph;
 
                     manager.SaveGraph(g);
                 }
@@ -708,21 +703,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             }
 
             return new ModelGroup(this, result);
-        }
-
-        public override void InitializeFromConfiguration(string configPath = null, string sourceDir = "")
-        {
-            var config = LoadConfiguration(configPath);
-
-            LoadOntologies(config, sourceDir);
-
-            var settings = from x in config.ListStoreConfigurations() where x.Type == "virtuoso" select x;
-
-            if (settings.Any())
-            {
-                VirtuosoSettings s = new VirtuosoSettings(settings.First());
-                s.Update(this);
-            }
         }
 
         /// <summary>
