@@ -3,10 +3,14 @@
   <!-- Shared metadata for all Trinity projects. Per-project files still set Title,
        Description, PackageId, AssemblyName, RootNamespace, PackageTags and IsPackable. -->
   <PropertyGroup>
-    <Company>Semiodesk GmbH</Company>
-    <Authors>Semiodesk GmbH</Authors>
+    <!-- Attribution: Semiodesk GmbH was dissolved, so the authors are named directly. The package id
+         and product stay Semiodesk.Trinity for continuity with the 1.x releases. The copyright keeps
+         the company's historic notice — the MIT headers in the source files carry the same one — and
+         adds the current holder. -->
+    <Company>Moritz Eberl, Sebastian Faubel</Company>
+    <Authors>Moritz Eberl, Sebastian Faubel</Authors>
     <Product>Semiodesk.Trinity</Product>
-    <Copyright>Copyright © Semiodesk GmbH</Copyright>
+    <Copyright>Copyright © 2015-2020 Semiodesk GmbH, © 2026 Moritz Eberl</Copyright>
     <!-- The single source of the release version. Declared as VersionPrefix (not Version) so CI can
          append a prerelease label with -p:VersionSuffix=…; setting Version directly would ignore it.
          A plain build still produces exactly 2.0.0. Assembly/file versions cannot carry a prerelease

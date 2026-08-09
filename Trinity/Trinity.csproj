@@ -3,9 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
 	<Title>Semiodesk.Trinity</Title>
-	<Copyright>Copyright © Semiodesk GmbH 2015-2020</Copyright>
 	<Description>Enterprise ready object mapper for developing RDF knowledge graph applications with .NET</Description>
-	<Company>Semiodesk GmbH</Company>
 	<AssemblyName>Semiodesk.Trinity</AssemblyName>
 	<RootNamespace>Semiodesk.Trinity</RootNamespace>
     <IsPackable>true</IsPackable>
@@ -25,8 +23,6 @@
     <NeutralLanguage>en-001</NeutralLanguage>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Semiodesk.Trinity</PackageId>
-    <Authors>Semiodesk GmbH</Authors>
-    <Product>Semiodesk.Trinity</Product>
     <PackageTags>RDF SPARQL ORM object mapping linked data semantic web knowledge graph database</PackageTags>
     <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl>https://trinity-rdf.net</PackageProjectUrl>

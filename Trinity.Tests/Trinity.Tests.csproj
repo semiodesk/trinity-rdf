@@ -3,9 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Title>Trinity.Test</Title>
-    <Copyright>Copyright © Semiodesk GmbH 2018</Copyright>
     <Description></Description>
-    <Company>Semiodesk GmbH</Company>
     <Version>1.0.0.0</Version>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>

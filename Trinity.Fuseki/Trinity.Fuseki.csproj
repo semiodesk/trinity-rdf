@@ -3,9 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <Title>Semiodesk.Trinity.Fuseki</Title>
-    <Copyright>Copyright © Semiodesk GmbH 2015-2023</Copyright>
     <Description>This package provides an Apache Jena Fuseki store adapter for the Trinity RDF ORM.</Description>
-    <Company>Semiodesk GmbH</Company>
     <AssemblyName>Semiodesk.Trinity.Fuseki</AssemblyName>
     <RootNamespace>Semiodesk.Trinity.Store.Fuseki</RootNamespace>
     <IsPackable>true</IsPackable>
