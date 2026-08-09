@@ -312,6 +312,7 @@ namespace Semiodesk.Trinity.Store
         /// <param name="graphUri">Uri of the graph in this store</param>
         /// <param name="format">Allowed formats</param>
         /// <param name="update">Pass false if you want to overwrite the existing data. True if you want to add the new data to the existing.</param>
+        /// <param name="leaveOpen">Indicates if the stream should be left open after reading completes.</param>
         /// <returns></returns>
         public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update, bool leaveOpen = false)
         {

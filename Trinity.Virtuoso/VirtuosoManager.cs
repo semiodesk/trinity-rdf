@@ -1355,6 +1355,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         /// Lists the Graphs in the store
         /// </summary>
         /// <returns></returns>
+        [Obsolete("Replaced by ListGraphNames, which this method backs.")]
         public override IEnumerable<Uri> ListGraphs()
         {
             try

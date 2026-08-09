@@ -176,6 +176,12 @@ namespace Semiodesk.Trinity
             return Properties.ContainsKey(u) ? Properties[u] : new Property(new UriRef(u));
         }
 
+        /// <summary>
+        /// Registers the ontologies declared in the assembly containing the given type.
+        /// </summary>
+        /// <param name="type">A type whose declaring assembly should be scanned.</param>
+        /// <exception cref="NotImplementedException">Always. Use <see cref="AddAssembly(Assembly)"/>
+        /// with <c>type.Assembly</c> instead; this overload has never been implemented.</exception>
         public static void AddAssembly(Type type)
         {
             throw new NotImplementedException();

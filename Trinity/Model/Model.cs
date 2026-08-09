@@ -51,7 +51,6 @@ namespace Semiodesk.Trinity
         // for implementing the GetResource(Uri, Type) method that supports runtime type specification.
         private MethodInfo _getResourceMethod;
 
-        private MethodInfo _getResourcesMethod;
 
         /// <summary>
         /// The Uniform Resource Identifier which provides a name for the model.
@@ -287,16 +286,31 @@ namespace Semiodesk.Trinity
             DeleteResource(resource.Uri);
         }
 
+        /// <summary>
+        /// Removes the given resources and all statements referencing them from the model.
+        /// </summary>
+        /// <param name="resources">Uniform Resource Identifiers of the resources to be removed.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         public virtual void DeleteResources(IEnumerable<Uri> resources, ITransaction transaction = null)
         {
             _store.DeleteResources(Uri, resources, transaction);
         }
 
+        /// <summary>
+        /// Removes the given resources and all statements referencing them from the model.
+        /// </summary>
+        /// <param name="resources">The resources to be removed.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
         public virtual void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null)
         {
             _store.DeleteResources(resources, transaction);
         }
 
+        /// <summary>
+        /// Removes the given resources and all statements referencing them from the model.
+        /// </summary>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <param name="resources">The resources to be removed.</param>
         public virtual void DeleteResources(ITransaction transaction = null, params IResource[] resources)
         {
             _store.DeleteResources(resources, transaction);

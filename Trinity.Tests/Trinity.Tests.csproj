@@ -22,11 +22,14 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <ApplicationIcon />
     <StartupObject />
+    <!-- CS8981: the vocabulary classes are deliberately named after their RDF prefix (rdf, foaf, nco,
+         ...) so test code reads like the Turtle it maps to. That is the established convention for
+         generated vocabularies, so the "all-lowercase type name" advice does not apply here. -->
+    <NoWarn>$(NoWarn);CS8981</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
-    <PackageReference Include="ini-parser" />
     <PackageReference Include="NUnit" />
     <PackageReference Include="NUnit3TestAdapter" />
   </ItemGroup>

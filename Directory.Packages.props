@@ -27,7 +27,6 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageVersion Include="NUnit" Version="3.14.0" />
     <PackageVersion Include="NUnit3TestAdapter" Version="4.6.0" />
-    <PackageVersion Include="ini-parser" Version="2.5.2" />
     <!-- Store-integration tests self-provision their servers via Docker (ADR-0036). -->
     <PackageVersion Include="Testcontainers" Version="3.10.0" />
   </ItemGroup>
