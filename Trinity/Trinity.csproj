@@ -81,6 +81,8 @@
   <!-- ALL TARGETS -->
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" />
+    <!-- Overrides the vulnerable 1.4.0 that dotNetRdf.Core pulls in (see Directory.Packages.props). -->
+    <PackageReference Include="AngleSharp" />
     <PackageReference Include="dotNetRdf.Core" />
     <!-- Client supplies the connectors the built-in SPARQL-endpoint store uses. -->
     <PackageReference Include="dotNetRdf.Client" />

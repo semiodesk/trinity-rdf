@@ -20,4 +20,19 @@
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
+  <!-- Package health: Source Link, embedded symbols and a deterministic build. These are what NuGet
+       Package Explorer's health checks look for, and together they let a consumer step into Trinity's
+       source from a stack trace. Source Link itself needs no package reference — it ships in the SDK. -->
+  <PropertyGroup>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <!-- Embedded rather than a separate .snupkg: the package is then self-contained, so symbols cannot
+         go missing and the manual release has one artifact per project to push instead of two. -->
+    <DebugType>embedded</DebugType>
+    <Deterministic>true</Deterministic>
+    <!-- Normalizes source paths so a Release build is byte-for-byte reproducible. Applied to every
+         Release build, not just CI, because releases are packed manually (see RELEASING.md). -->
+    <ContinuousIntegrationBuild Condition="'$(Configuration)' == 'Release'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
 </Project>
