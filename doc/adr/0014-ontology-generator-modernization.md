@@ -66,8 +66,12 @@ vocabularies.
   constructor, static fields named exactly `Prefix` and `Namespace` —
   `Trinity/OntologyDiscovery.cs:93,124-133`). The round-trip test that compiles generated source and
   asserts discovery actually registers it is therefore the load-bearing test, not the golden files.
-- The `const string` companion class exists partly to give a future analyzer a set of known term URIs via
-  `IFieldSymbol.ConstantValue`, with no RDF parsing in the compiler.
+- The `const string` companion class gives `TRIN006` its set of known term URIs via
+  `IFieldSymbol.ConstantValue`, with no RDF parsing in the compiler. Both emitted classes carry
+  `[GeneratedCode("trinity-vocab", "2.0")]`, which is load-bearing rather than cosmetic: the analyzer
+  trusts only marked vocabularies, because only a generated one is known to list every term. Validating
+  against a partially hand-written vocabulary would flag correct URIs, and a rule that cries wolf gets
+  suppressed together with TRIN001-005. The version is coarse so regeneration does not churn per patch.
 - Regenerating the repository's own `rdf` vocabulary produced three terms the committed file lacks
   (`rdf:HTML`, `rdf:PlainLiteral`, `rdf:langString` — RDF 1.1 datatypes). Additive only, no renames or
   changed kinds, which is both a useful demonstration of the drift `--check` prevents and evidence the

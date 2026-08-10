@@ -56,7 +56,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
 dotnet test Trinity.Tests/Trinity.Tests.csproj         # 397 passed, 7 skipped (quarantined)
-dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 11 passed
+dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 17 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 7 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
@@ -105,6 +105,7 @@ warnings, declared in `Trinity.Generator/AnalyzerReleases.Unshipped.md`:
 | `TRIN003` | the mapped type is nested rather than top-level |
 | `TRIN004` | a mapped class does not derive from `Resource` |
 | `TRIN005` | a mapped class has no accessible `(Uri)` constructor, so `Activator.CreateInstance(type, uri)` cannot materialize it when reading |
+| `TRIN006` | a URI belongs to a **generated** vocabulary but is not one of its terms — a typo. Only vocabularies marked `[GeneratedCode("trinity-vocab", …)]` are trusted, since only those list every term; an unknown namespace is never reported |
 
 The generator handles scalars, collections (seeded with a default instance), language-invariant
 strings, resource references, multiple `[RdfClass]`, and inheritance (including `GetTypes`-only
