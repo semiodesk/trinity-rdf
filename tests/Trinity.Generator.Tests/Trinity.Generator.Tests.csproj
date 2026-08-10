@@ -11,13 +11,17 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="NUnit" />
     <PackageReference Include="NUnit3TestAdapter" />
+    <!-- Needed to drive the generator directly in-process, which is the only way to observe the
+         diagnostics it reports; compiling against it only shows what it emits. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Trinity\Trinity.csproj" />
-    <!-- The generator is referenced as an analyzer only (no runtime assembly, no weaver). -->
+    <!-- Referenced as an analyzer so the mapped test classes in this project are generated, and as a
+         normal assembly so the diagnostic tests can instantiate the generator. -->
     <ProjectReference Include="..\..\Trinity.Generator\Trinity.Generator.csproj"
-                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
   </ItemGroup>
 
 </Project>

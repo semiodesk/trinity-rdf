@@ -15,4 +15,10 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
   </ItemGroup>
 
+  <!-- Analyzer release tracking (RS2008): every diagnostic id this generator can report is declared
+       here, which is also the closest thing the package has to a rule index. -->
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
 </Project>

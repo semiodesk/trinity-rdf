@@ -68,8 +68,9 @@ field, the getter and setter, and a `GetTypes()` override derived from `[RdfClas
 after the build, so `dotnet build` is all you need on Windows, Linux and macOS.
 
 It handles scalars, collections, language-invariant strings, resource references, multiple
-`[RdfClass]` attributes and inheritance. Only `partial` members are generated — a `[RdfProperty]`
-on a regular property does nothing.
+`[RdfClass]` attributes and inheritance. Only `partial` members are generated — and if you forget
+the keyword, or nest a mapped type, or leave out the `Uri` constructor, the generator says so at
+build time (`TRIN001`–`TRIN005`) rather than leaving you with a mapping that quietly does nothing.
 
 Mapped resources stay open: a `Person` can still carry predicates your class never declared, and
 `ListValues()` returns both the mapped and the unmapped ones. RDF is not forced into a closed

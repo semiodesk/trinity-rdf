@@ -88,7 +88,20 @@ public partial class Person : Resource
 
 `Trinity.Generator` supplies the implementing half at compile time: a `protected
 PropertyMapping<T>` field, the getter/setter calling `GetValue`/`SetValue`, and a `GetTypes()`
-override from `[RdfClass]`. It handles scalars, collections (seeded with a default instance),
+override from `[RdfClass]`.
+
+**Authoring mistakes are diagnostics, not silence.** Each of these compiles fine and produces no
+mapping at all, so they used to surface only as a query returning nothing at runtime — all are
+warnings, declared in `Trinity.Generator/AnalyzerReleases.Unshipped.md`:
+
+| Id | Fires when |
+|---|---|
+| `TRIN001` | `[RdfProperty]` on a property that is not `partial` |
+| `TRIN002` | `[RdfClass]` on a class that is not `partial` |
+| `TRIN003` | the mapped type is nested rather than top-level |
+| `TRIN004` | a mapped class does not derive from `Resource` |
+| `TRIN005` | a mapped class has no accessible `(Uri)` constructor, so `Activator.CreateInstance(type, uri)` cannot materialize it when reading |
+ It handles scalars, collections (seeded with a default instance),
 language-invariant strings, resource references, multiple `[RdfClass]`, and inheritance
 (including `GetTypes`-only subclasses). Only `partial` members are processed. The runtime engine
 (`Resource`, `PropertyMapping<T>`, reflective `InitializePropertyMappings`) is unchanged from 1.x.
