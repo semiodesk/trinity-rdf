@@ -9,3 +9,4 @@ Documentation/log.txt
 *.user
 **/.vs/**
 **/.idea/**
+artifacts/**
