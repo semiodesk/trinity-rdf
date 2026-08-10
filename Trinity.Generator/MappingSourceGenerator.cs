@@ -60,35 +60,40 @@ namespace Semiodesk.Trinity.Generator
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
+            // The predicates deliberately do not filter on 'partial'. A non-partial declaration is the
+            // single most common authoring mistake and produces no mapping at all, so it has to reach
+            // the transform in order to be reported rather than silently dropped here.
             var properties = context.SyntaxProvider.ForAttributeWithMetadataName(
                     RdfPropertyAttribute,
-                    predicate: static (node, _) =>
-                        node is PropertyDeclarationSyntax p &&
-                        p.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)),
-                    transform: static (ctx, _) => PropertyInfo.From(ctx))
-                .Where(static m => m is not null)
-                .Select(static (m, _) => m!);
+                    predicate: static (node, _) => node is PropertyDeclarationSyntax,
+                    transform: static (ctx, _) => PropertyInfo.From(ctx));
 
             var classes = context.SyntaxProvider.ForAttributeWithMetadataName(
                     RdfClassAttribute,
-                    predicate: static (node, _) =>
-                        node is ClassDeclarationSyntax c &&
-                        c.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)),
-                    transform: static (ctx, _) => ClassInfo.From(ctx))
-                .Where(static c => c is not null)
-                .Select(static (c, _) => c!);
+                    predicate: static (node, _) => node is ClassDeclarationSyntax,
+                    transform: static (ctx, _) => ClassInfo.From(ctx));
 
             var combined = properties.Collect().Combine(classes.Collect());
 
             context.RegisterSourceOutput(combined, static (spc, data) => Emit(spc, data.Left, data.Right));
         }
 
-        private static void Emit(SourceProductionContext context, ImmutableArray<PropertyInfo> properties, ImmutableArray<ClassInfo> classes)
+        private static void Emit(SourceProductionContext context, ImmutableArray<PropertyResult> properties, ImmutableArray<ClassResult> classes)
         {
             var types = new Dictionary<string, TypeAggregate>();
 
-            foreach (PropertyInfo property in properties)
+            foreach (PropertyResult result in properties)
             {
+                if (result.Diagnostic is not null)
+                {
+                    context.ReportDiagnostic(result.Diagnostic.ToDiagnostic());
+                }
+
+                if (result.Info is not PropertyInfo property)
+                {
+                    continue;
+                }
+
                 if (!types.TryGetValue(property.TypeKey, out TypeAggregate aggregate))
                 {
                     aggregate = new TypeAggregate(property.Namespace, property.TypeName);
@@ -98,8 +103,18 @@ namespace Semiodesk.Trinity.Generator
                 aggregate.Properties.Add(property);
             }
 
-            foreach (ClassInfo cls in classes)
+            foreach (ClassResult result in classes)
             {
+                if (result.Diagnostic is not null)
+                {
+                    context.ReportDiagnostic(result.Diagnostic.ToDiagnostic());
+                }
+
+                if (result.Info is not ClassInfo cls)
+                {
+                    continue;
+                }
+
                 if (!types.TryGetValue(cls.TypeKey, out TypeAggregate aggregate))
                 {
                     aggregate = new TypeAggregate(cls.Namespace, cls.TypeName);
@@ -212,6 +227,83 @@ namespace Semiodesk.Trinity.Generator
 
         private static bool IsTopLevel(INamedTypeSymbol? type) => type is not null && type.ContainingType is null;
 
+        private static bool IsPartial(SyntaxNode node) =>
+            node is MemberDeclarationSyntax member &&
+            member.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
+
+        private static Location IdentifierLocation(SyntaxNode node)
+        {
+            switch (node)
+            {
+                case PropertyDeclarationSyntax property:
+                    return property.Identifier.GetLocation();
+                case ClassDeclarationSyntax cls:
+                    return cls.Identifier.GetLocation();
+                default:
+                    return node.GetLocation();
+            }
+        }
+
+        private static bool DerivesFromResource(INamedTypeSymbol type)
+        {
+            for (INamedTypeSymbol? current = type.BaseType; current is not null; current = current.BaseType)
+            {
+                if (current.ToDisplayString() == "Semiodesk.Trinity.Resource")
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Whether Trinity can materialize the type, which it does with
+        /// <c>Activator.CreateInstance(type, uri)</c> while marshalling query results.
+        /// </summary>
+        private static bool HasUriConstructor(INamedTypeSymbol type)
+        {
+            // Abstract types are never instantiated directly; the concrete subclass is what matters.
+            if (type.IsAbstract)
+            {
+                return true;
+            }
+
+            foreach (IMethodSymbol constructor in type.InstanceConstructors)
+            {
+                if (constructor.DeclaredAccessibility == Accessibility.Private ||
+                    constructor.Parameters.Length != 1)
+                {
+                    continue;
+                }
+
+                string parameter = constructor.Parameters[0].Type.ToDisplayString();
+
+                if (parameter == "System.Uri" || parameter == "Semiodesk.Trinity.UriRef")
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// A diagnostic held in the incremental pipeline. <see cref="Diagnostic"/> itself is not a good
+        /// cache key, so the pieces are carried in an equatable record and the diagnostic is built only
+        /// when it is reported.
+        /// </summary>
+        private sealed record DiagnosticInfo(DiagnosticDescriptor Descriptor, Location Location, string Name)
+        {
+            public Diagnostic ToDiagnostic() => Diagnostic.Create(Descriptor, Location, Name);
+        }
+
+        /// <summary>The outcome of inspecting one <c>[RdfProperty]</c> declaration.</summary>
+        private sealed record PropertyResult(PropertyInfo? Info, DiagnosticInfo? Diagnostic);
+
+        /// <summary>The outcome of inspecting one <c>[RdfClass]</c> declaration.</summary>
+        private sealed record ClassResult(ClassInfo? Info, DiagnosticInfo? Diagnostic);
+
         private static string GetNamespace(INamedTypeSymbol type) =>
             type.ContainingNamespace.IsGlobalNamespace ? string.Empty : type.ContainingNamespace.ToDisplayString();
 
@@ -259,11 +351,25 @@ namespace Semiodesk.Trinity.Generator
             bool LanguageInvariant,
             string? CollectionConcreteType)
         {
-            public static PropertyInfo? From(GeneratorAttributeSyntaxContext ctx)
+            public static PropertyResult From(GeneratorAttributeSyntaxContext ctx)
             {
-                if (ctx.TargetSymbol is not IPropertySymbol prop || !IsTopLevel(prop.ContainingType))
+                if (ctx.TargetSymbol is not IPropertySymbol prop)
                 {
-                    return null;
+                    return new PropertyResult(null, null);
+                }
+
+                Location location = IdentifierLocation(ctx.TargetNode);
+
+                if (!IsPartial(ctx.TargetNode))
+                {
+                    return new PropertyResult(null, new DiagnosticInfo(
+                        MappingDiagnostics.PropertyMustBePartial, location, prop.Name));
+                }
+
+                if (!IsTopLevel(prop.ContainingType))
+                {
+                    return new PropertyResult(null, new DiagnosticInfo(
+                        MappingDiagnostics.TypeMustBeTopLevel, location, prop.ContainingType.Name));
                 }
 
                 AttributeData attribute = ctx.Attributes[0];
@@ -271,7 +377,7 @@ namespace Semiodesk.Trinity.Generator
                 if (attribute.ConstructorArguments.Length == 0 ||
                     attribute.ConstructorArguments[0].Value is not string uri)
                 {
-                    return null;
+                    return new PropertyResult(null, null);
                 }
 
                 bool languageInvariant =
@@ -288,7 +394,7 @@ namespace Semiodesk.Trinity.Generator
 
                 INamedTypeSymbol type = prop.ContainingType;
 
-                return new PropertyInfo(
+                return new PropertyResult(new PropertyInfo(
                     type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                     GetNamespace(type),
                     GetTypeName(type),
@@ -296,7 +402,7 @@ namespace Semiodesk.Trinity.Generator
                     prop.Type.ToDisplayString(TypeFormat),
                     uri,
                     languageInvariant,
-                    GetCollectionConcreteType(prop.Type));
+                    GetCollectionConcreteType(prop.Type)), null);
             }
         }
 
@@ -306,11 +412,33 @@ namespace Semiodesk.Trinity.Generator
             string TypeName,
             string ClassUris)
         {
-            public static ClassInfo? From(GeneratorAttributeSyntaxContext ctx)
+            public static ClassResult From(GeneratorAttributeSyntaxContext ctx)
             {
-                if (ctx.TargetSymbol is not INamedTypeSymbol type || !IsTopLevel(type))
+                if (ctx.TargetSymbol is not INamedTypeSymbol type)
                 {
-                    return null;
+                    return new ClassResult(null, null);
+                }
+
+                Location location = IdentifierLocation(ctx.TargetNode);
+
+                // Reported one at a time, most fundamental first: each of these stops the mapping from
+                // being generated, so there is no value in listing the consequences of the first.
+                if (!IsPartial(ctx.TargetNode))
+                {
+                    return new ClassResult(null, new DiagnosticInfo(
+                        MappingDiagnostics.ClassMustBePartial, location, type.Name));
+                }
+
+                if (!IsTopLevel(type))
+                {
+                    return new ClassResult(null, new DiagnosticInfo(
+                        MappingDiagnostics.TypeMustBeTopLevel, location, type.Name));
+                }
+
+                if (!DerivesFromResource(type))
+                {
+                    return new ClassResult(null, new DiagnosticInfo(
+                        MappingDiagnostics.ClassMustDeriveFromResource, location, type.Name));
                 }
 
                 string uris = string.Join("\n", ctx.Attributes
@@ -319,14 +447,20 @@ namespace Semiodesk.Trinity.Generator
 
                 if (uris.Length == 0)
                 {
-                    return null;
+                    return new ClassResult(null, null);
                 }
 
-                return new ClassInfo(
+                // A missing constructor does not stop generation — the mapping is still correct, the type
+                // just cannot be read back from a store — so the mapping is emitted alongside the warning.
+                DiagnosticInfo? constructor = HasUriConstructor(type)
+                    ? null
+                    : new DiagnosticInfo(MappingDiagnostics.ClassNeedsUriConstructor, location, type.Name);
+
+                return new ClassResult(new ClassInfo(
                     type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                     GetNamespace(type),
                     GetTypeName(type),
-                    uris);
+                    uris), constructor);
             }
         }
     }

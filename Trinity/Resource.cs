@@ -42,8 +42,25 @@ using Semiodesk.Trinity.Utility;
 namespace Semiodesk.Trinity
 {
     /// <summary>
-    /// This class repesents a RDF resource. 
+    /// This class repesents a RDF resource.
     /// </summary>
+    /// <remarks>
+    /// Three behaviours regularly surprise newcomers:
+    ///
+    /// <b>Resources are open.</b> A mapped subclass does not constrain what a resource may carry: it can
+    /// be annotated with arbitrary predicates at runtime, and <see cref="ListValues(bool)"/> returns the
+    /// unmapped ones alongside the mapped ones. There is no closed schema.
+    ///
+    /// <b>Linked resources load lazily, always.</b> Reading a property that references other resources
+    /// fetches them on access; this cannot be turned off. A link whose target does not exist in the store
+    /// still materializes as an instance — see <see cref="IsUnresolved"/>.
+    ///
+    /// <b>Identity is fragment-aware.</b> <see cref="Uri"/> is a <see cref="UriRef"/>, because .NET's
+    /// <see cref="System.Uri.Equals"/> ignores fragments and would treat two distinct RDF resources as
+    /// the same one.
+    ///
+    /// Persisting is <see cref="Commit"/>, which writes only what changed and does not cascade.
+    /// </remarks>
     public class Resource : IResource
     {
         #region Members
@@ -103,10 +120,101 @@ namespace Semiodesk.Trinity
         public bool IsDisposed { get; set; }
 
         /// <summary>
+        /// True if this resource was reached by following a link whose target does not exist in the
+        /// backing store — a dangling reference.
+        /// </summary>
+        /// <remarks>
+        /// Committing a resource that references an uncommitted one persists the link but no triples for
+        /// the target. Loading it back yields an empty instance, which is otherwise indistinguishable
+        /// from a resource that genuinely exists and happens to have no properties. This flag is the
+        /// difference, and it is set only where such an instance is fabricated.
+        /// </remarks>
+        [Browsable(false), JsonIgnore, IgnoreDataMember]
+        public bool IsUnresolved { get; internal set; }
+
+        /// <summary>
         /// True if the properties of the resources has been committed to the model.
         /// </summary>
+        /// <remarks>
+        /// Setting this to <c>true</c> declares that the resource now matches the backing store, so it
+        /// is also the point at which the persisted state is snapshotted. <see cref="Commit"/> diffs
+        /// against that snapshot to write only what actually changed — see <see cref="PersistedValues"/>.
+        /// </remarks>
         [Browsable(false), JsonIgnore, IgnoreDataMember]
-        public bool IsSynchronized { get; set; }
+        public bool IsSynchronized
+        {
+            get { return _isSynchronized; }
+            set
+            {
+                _isSynchronized = value;
+
+                if (value)
+                {
+                    CapturePersistedValues();
+                }
+            }
+        }
+
+        private bool _isSynchronized;
+
+        /// <summary>
+        /// The property/value pairs known to exist in the backing store, serialized as SPARQL
+        /// <c>predicate object</c> fragments. Captured whenever <see cref="IsSynchronized"/> becomes
+        /// true — that is, on materialization from a model and after a successful commit.
+        /// </summary>
+        /// <remarks>
+        /// Null until the resource has been synchronized at least once. A null snapshot means no delta
+        /// can be computed and the writer must fall back to replacing the whole resource.
+        /// </remarks>
+        internal HashSet<string> PersistedValues { get; private set; }
+
+        /// <summary>
+        /// Indicates whether this resource holds values that differ from what is known to be in the
+        /// backing store — that is, whether committing it would write anything.
+        /// </summary>
+        /// <remarks>
+        /// This is per-resource only. A resource can report no unsaved changes while a resource it links
+        /// to is dirty, because <see cref="Commit"/> does not cascade; determining that for a whole object
+        /// graph needs a traversal with a cycle guard.
+        /// </remarks>
+        /// <returns>True if a commit would write something.</returns>
+        public bool HasUnsavedChanges()
+        {
+            // Never synchronized, so nothing is known to be persisted and everything counts as unsaved.
+            if (PersistedValues == null)
+            {
+                return true;
+            }
+
+            if (!SparqlSerializer.TrySerializeResourceDelta(this, false, out var deleted, out var inserted))
+            {
+                return true;
+            }
+
+            return deleted.Count > 0 || inserted.Count > 0;
+        }
+
+        /// <summary>
+        /// Snapshots the current values as the state believed to be in the backing store.
+        /// </summary>
+        private void CapturePersistedValues()
+        {
+            var values = new HashSet<string>(StringComparer.Ordinal);
+
+            // Unmapped properties are included: they are part of the resource in the store, and
+            // leaving them out would make them look like additions on the next commit.
+            foreach (var value in ListValues())
+            {
+                if (value.Item2 == null)
+                {
+                    continue;
+                }
+
+                values.Add(SparqlSerializer.SerializePredicateObject(value.Item1, value.Item2));
+            }
+
+            PersistedValues = values;
+        }
 
         /// <summary>
         /// Indicates this resource is read-only.
@@ -856,10 +964,18 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// This method lists all combinations of properties and values.
+        /// Lists every property/value pair on this resource, mapped and unmapped alike.
         /// </summary>
-        /// <param name="forSerialization">Only return values which should be serialized.</param>
-        /// <returns></returns>
+        /// <remarks>
+        /// A mapped resource stays open: it can carry predicates the class never declared, and those are
+        /// included here alongside the mapped ones. Also yields an <c>rdf:type</c> entry per
+        /// <see cref="GetTypes"/> class, and lazily-loaded links that have not been materialized yet.
+        /// </remarks>
+        /// <param name="forSerialization">
+        /// When true, unmapped properties are left out. Note this only suppresses them from the result —
+        /// it never causes them to be deleted on write.
+        /// </param>
+        /// <returns>Property/value pairs; a property with several values appears once per value.</returns>
         public virtual IEnumerable<Tuple<Property, object>> ListValues(bool forSerialization = false)
         {
             if (!forSerialization)
@@ -1064,8 +1180,19 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Persist changes in the model.
+        /// Persists this resource's changes to the model.
         /// </summary>
+        /// <remarks>
+        /// Writes a <b>delta</b>, not the whole resource: only values that differ from what was last
+        /// read from the store are written, so a concurrent writer that changed a different value is not
+        /// overwritten. If nothing changed, no update is issued at all.
+        ///
+        /// Does <b>not</b> cascade. Linked resources you modified must each be committed themselves, and
+        /// committing a resource that references an uncommitted one persists the link but no triples for
+        /// the target — see <see cref="IsUnresolved"/> for detecting that on the way back.
+        ///
+        /// Does nothing if the resource has no model or <see cref="IsReadOnly"/> is set.
+        /// </remarks>
         public virtual void Commit()
         {
             if (_model != null && IsReadOnly == false)
@@ -1076,8 +1203,13 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Reload the resource from the model.
+        /// Discards uncommitted changes by re-reading this resource from the model.
         /// </summary>
+        /// <remarks>
+        /// This is a fresh read from the store, not an undo of a committed write — anything already
+        /// committed stays committed, and values another writer changed in the meantime are picked up.
+        /// Unrelated to <see cref="ITransaction.Rollback"/>.
+        /// </remarks>
         public void Rollback()
         {
             using (Resource resource = Model.GetResource(Uri, GetType()) as Resource)

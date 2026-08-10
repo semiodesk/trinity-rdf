@@ -33,6 +33,21 @@ namespace Semiodesk.Trinity
     /// <summary>
     /// Exposes the results of a SPARQL query.
     /// </summary>
+    /// <remarks>
+    /// The accessor has to match the query form — this type does not adapt one form to another, and
+    /// calling the wrong one yields an empty result rather than an error:
+    ///
+    /// <list type="table">
+    ///   <item><term>SELECT</term><description><see cref="GetBindings"/>, or <see cref="GetResources()"/>
+    ///   when the projection is shaped so resources can be marshalled from it</description></item>
+    ///   <item><term>DESCRIBE / CONSTRUCT</term><description><see cref="GetResources()"/> or its typed
+    ///   overloads</description></item>
+    ///   <item><term>ASK</term><description><see cref="GetAnwser"/></description></item>
+    ///   <item><term>any</term><description><see cref="Count"/></description></item>
+    /// </list>
+    ///
+    /// The <c>offset</c>/<c>limit</c> overloads page in the store rather than in memory.
+    /// </remarks>
     public interface ISparqlQueryResult : IDisposable
     {
         #region Methods
@@ -63,6 +78,10 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Returns the bool value from ASK query forms.
         /// </summary>
+        /// <remarks>
+        /// The misspelling is preserved from 1.x for source compatibility; it is "answer".
+        /// Meaningful only for ASK — other query forms do not produce a boolean.
+        /// </remarks>
         /// <returns>True on success, False otherwise.</returns>
         bool GetAnwser();
 

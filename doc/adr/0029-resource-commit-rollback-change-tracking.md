@@ -3,7 +3,10 @@
 Date: 2026-07-13 (grounding decision, original to the design)
 
 ## Status
-Accepted
+Accepted — the whole-resource write behaviour described here is superseded by
+[0039](0039-resource-write-semantics.md), which makes a commit write only the values that changed. The
+rest (no cascade, the coarse `IsNew`/`IsSynchronized`/`IsReadOnly` flags, `Rollback()` re-fetching) still
+holds; 0039 adds a per-resource `HasUnsavedChanges()` but no aggregate state.
 
 ## Context
 Beyond store transactions ([0028](0028-store-level-transactions.md)), the resource objects

@@ -199,6 +199,80 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// Serializes a property and one of its values as a SPARQL <c>predicate object</c> fragment.
+        /// </summary>
+        /// <param name="property">The property.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>A SPARQL fragment such as <c>&lt;http://…/name&gt; 'Alice'</c>.</returns>
+        internal static string SerializePredicateObject(Property property, object value)
+        {
+            return string.Format("{0} {1}", SerializeUri(property.Uri), SerializeValue(value));
+        }
+
+        /// <summary>
+        /// Computes the difference between a resource's current values and the values last known to be
+        /// in the backing store, so that a commit writes only what the caller actually changed.
+        /// </summary>
+        /// <remarks>
+        /// This is what keeps a commit from overwriting a whole resource. Two callers that each load the
+        /// same resource and add a different value both keep their addition, because neither one's update
+        /// mentions the other's triple. Without it, the second writer's full re-serialization — which
+        /// never contained the first writer's value — silently erases it.
+        ///
+        /// Removals are computed against the resource's complete value list, never the filtered one, so
+        /// <paramref name="ignoreUnmappedProperties"/> can only ever suppress a write, never cause a
+        /// delete.
+        /// </remarks>
+        /// <param name="resource">The resource being committed.</param>
+        /// <param name="ignoreUnmappedProperties">Set this to true to write only mapped properties.</param>
+        /// <param name="deleteTriples">Receives the <c>predicate object</c> fragments to remove.</param>
+        /// <param name="insertTriples">Receives the <c>predicate object</c> fragments to add.</param>
+        /// <returns>
+        /// False if the resource has never been synchronized, in which case no delta can be computed and
+        /// the caller must fall back to replacing the resource wholesale.
+        /// </returns>
+        public static bool TrySerializeResourceDelta(Resource resource, bool ignoreUnmappedProperties, out List<string> deleteTriples, out List<string> insertTriples)
+        {
+            deleteTriples = null;
+            insertTriples = null;
+
+            var persisted = resource.PersistedValues;
+
+            if (persisted == null)
+            {
+                return false;
+            }
+
+            var current = SerializeValueSet(resource, ignoreUnmappedProperties);
+
+            // Removals are judged against everything the resource currently holds, so a value excluded
+            // from the write by the filter is never mistaken for a deletion.
+            var currentForRemoval = ignoreUnmappedProperties ? SerializeValueSet(resource, false) : current;
+
+            deleteTriples = persisted.Where(t => !currentForRemoval.Contains(t)).ToList();
+            insertTriples = current.Where(t => !persisted.Contains(t)).ToList();
+
+            return true;
+        }
+
+        private static HashSet<string> SerializeValueSet(IResource resource, bool ignoreUnmappedProperties)
+        {
+            var result = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (var value in resource.ListValues(ignoreUnmappedProperties))
+            {
+                if (value.Item2 == null)
+                {
+                    continue;
+                }
+
+                result.Add(SerializePredicateObject(value.Item1, value.Item2));
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Generate the dataset clause for a given model.
         /// </summary>
         /// <param name="model">A model.</param>

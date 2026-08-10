@@ -243,9 +243,16 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Load all mapped classes from the given assembly.
+        /// Loads all mapped classes from the given assembly into the global mapping registry.
         /// </summary>
-        /// <param name="asm"></param>
+        /// <remarks>
+        /// <b>Required at startup.</b> Mapping discovery is global static state, and nothing registers
+        /// automatically. Until an assembly is registered, resources read from a store cannot be matched
+        /// to their mapped types — queries return base <c>Resource</c> instances or nothing at all,
+        /// without raising an error. Forgetting this call is the most common cause of a query that
+        /// "silently returns the wrong thing".
+        /// </remarks>
+        /// <param name="asm">The assembly to scan for <c>[RdfClass]</c> types.</param>
         public static void RegisterAssembly(Assembly asm)
         {
             var name = asm.GetName().FullName;

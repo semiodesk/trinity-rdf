@@ -467,7 +467,9 @@ namespace Semiodesk.Trinity.Store
         /// <returns></returns>
         public override ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
-            return null;
+            // Not transactional — the in-memory store applies writes immediately. A no-op handle is returned rather
+            // than null so callers need not null-check and so transaction code stays testable.
+            return new NoOpTransaction();
         }
 
         /// <summary>

@@ -150,8 +150,22 @@ namespace Semiodesk.Trinity.Store.Fuseki
                     modelUri.OriginalString,
                     SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
             }
+            else if (TryBuildDeltaUpdate(resource, modelUri, ignoreUnmappedProperties, out updateString))
+            {
+                if (updateString == null)
+                {
+                    // Nothing changed since this copy was loaded — writing would only risk clobbering
+                    // whatever another writer has done in the meantime.
+                    resource.IsNew = false;
+                    resource.IsSynchronized = true;
+
+                    return;
+                }
+            }
             else
             {
+                // The resource was never synchronized, so there is no baseline to diff against and the
+                // whole resource has to be replaced.
                 updateString = string.Format(@"
                     WITH <{0}>
                     DELETE {{ {1} ?p ?o. }}
@@ -488,7 +502,9 @@ namespace Semiodesk.Trinity.Store.Fuseki
         /// <returns></returns>
         public override ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
-            return null;
+            // Not transactional — the Fuseki connector exposes no transaction handle. A no-op handle is returned rather
+            // than null so callers need not null-check and so transaction code stays testable.
+            return new NoOpTransaction();
         }
 
         /// <summary>

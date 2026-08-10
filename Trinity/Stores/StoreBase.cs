@@ -272,8 +272,22 @@ namespace Semiodesk.Trinity
                 modelUri.OriginalString,
                 SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
             }
+            else if (TryBuildDeltaUpdate(resource, modelUri, ignoreUnmappedProperties, out updateString))
+            {
+                if (updateString == null)
+                {
+                    // Nothing changed since this copy was loaded — writing would only risk clobbering
+                    // whatever another writer has done in the meantime.
+                    resource.IsNew = false;
+                    resource.IsSynchronized = true;
+
+                    return;
+                }
+            }
             else
             {
+                // The resource was never synchronized, so there is no baseline to diff against and the
+                // whole resource has to be replaced.
                 updateString = string.Format(@"
                     WITH <{0}>
                     DELETE {{ {1} ?p ?o. }}
@@ -291,6 +305,77 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// Builds a SPARQL update that writes only the values which changed since the resource was last
+        /// synchronized, instead of replacing the resource as a whole.
+        /// </summary>
+        /// <remarks>
+        /// Naming only the changed triples is what stops two callers who loaded the same resource from
+        /// erasing each other's edits — see <c>doc/trinity-write-semantics.md</c>. Every store backend
+        /// shares this so the semantics cannot drift between them.
+        /// </remarks>
+        /// <param name="resource">The resource being committed.</param>
+        /// <param name="modelUri">Uri of the model the resource lives in.</param>
+        /// <param name="ignoreUnmappedProperties">Set this to true to write only mapped properties.</param>
+        /// <param name="updateString">
+        /// Receives the update, or <c>null</c> when nothing changed and no write is needed.
+        /// </param>
+        /// <returns>
+        /// False if the resource has never been synchronized, so no delta can be computed and the caller
+        /// must fall back to replacing the whole resource.
+        /// </returns>
+        protected static bool TryBuildDeltaUpdate(Resource resource, Uri modelUri, bool ignoreUnmappedProperties, out string updateString)
+        {
+            updateString = null;
+
+            if (!SparqlSerializer.TrySerializeResourceDelta(resource, ignoreUnmappedProperties, out var deleted, out var inserted))
+            {
+                return false;
+            }
+
+            if (deleted.Count == 0 && inserted.Count == 0)
+            {
+                return true;
+            }
+
+            var subject = SparqlSerializer.SerializeUri(resource.Uri);
+            var update = new StringBuilder();
+
+            update.AppendFormat("WITH <{0}> ", modelUri.OriginalString);
+
+            if (deleted.Count > 0)
+            {
+                update.AppendFormat("DELETE {{ {0} }} ", SerializeTripleBlock(subject, deleted));
+            }
+
+            if (inserted.Count > 0)
+            {
+                update.AppendFormat("INSERT {{ {0} }} ", SerializeTripleBlock(subject, inserted));
+            }
+
+            // An empty pattern yields exactly one solution, so the ground templates apply once.
+            update.Append("WHERE {}");
+
+            updateString = update.ToString();
+
+            return true;
+        }
+
+        /// <summary>
+        /// Joins <c>predicate object</c> fragments into a triple block for a single subject.
+        /// </summary>
+        protected static string SerializeTripleBlock(string subject, IEnumerable<string> predicateObjects)
+        {
+            var result = new StringBuilder();
+
+            foreach (var predicateObject in predicateObjects)
+            {
+                result.AppendFormat("{0} {1}. ", subject, predicateObject);
+            }
+
+            return result.ToString();
+        }
+
+        /// <summary>
         /// Updates the properties of multiple resources in the backing RDF store.
         /// </summary>
         /// <param name="resources">Resources that are to be updated in the backing store.</param>
@@ -300,6 +385,13 @@ namespace Semiodesk.Trinity
         public virtual void UpdateResources(IEnumerable<Resource> resources, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
         {
             string WITH = $"{SparqlSerializer.SerializeUri(modelUri)} ";
+
+            // Resources that have been synchronized are written as a delta, exactly as in
+            // UpdateResource — a bulk write must not erase other writers' values either.
+            StringBuilder deltaDelete = new StringBuilder();
+            StringBuilder deltaInsert = new StringBuilder();
+
+            // Resources without a baseline still have to be replaced wholesale.
             StringBuilder INSERT = new StringBuilder();
             StringBuilder DELETE = new StringBuilder();
             StringBuilder OPTIONAL = new StringBuilder();
@@ -307,15 +399,56 @@ namespace Semiodesk.Trinity
             int count = 0;
             foreach (var res in resources)
             {
-                DELETE.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p{count} ?o{count}. ");
-                OPTIONAL.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p{count} ?o{count}. ");
-                INSERT.Append($" {SparqlSerializer.SerializeResource(res, ignoreUnmappedProperties)} ");
-                count++;
-            }
-            string updateString = $"WITH {WITH} DELETE {{ {DELETE} }} INSERT {{ {INSERT} }} WHERE {{ OPTIONAL {{ {OPTIONAL} }} }}";
-            SparqlUpdate update = new SparqlUpdate(updateString);
+                if (SparqlSerializer.TrySerializeResourceDelta(res, ignoreUnmappedProperties, out var deleted, out var inserted))
+                {
+                    var subject = SparqlSerializer.SerializeUri(res.Uri);
 
-            ExecuteNonQuery(update, transaction);
+                    if (deleted.Count > 0)
+                    {
+                        deltaDelete.Append(SerializeTripleBlock(subject, deleted));
+                    }
+
+                    if (inserted.Count > 0)
+                    {
+                        deltaInsert.Append(SerializeTripleBlock(subject, inserted));
+                    }
+                }
+                else
+                {
+                    DELETE.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p{count} ?o{count}. ");
+                    OPTIONAL.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p{count} ?o{count}. ");
+                    INSERT.Append($" {SparqlSerializer.SerializeResource(res, ignoreUnmappedProperties)} ");
+                    count++;
+                }
+            }
+
+            if (deltaDelete.Length > 0 || deltaInsert.Length > 0)
+            {
+                var delta = new StringBuilder();
+
+                delta.AppendFormat("WITH {0} ", WITH);
+
+                if (deltaDelete.Length > 0)
+                {
+                    delta.AppendFormat("DELETE {{ {0} }} ", deltaDelete);
+                }
+
+                if (deltaInsert.Length > 0)
+                {
+                    delta.AppendFormat("INSERT {{ {0} }} ", deltaInsert);
+                }
+
+                delta.Append("WHERE {}");
+
+                ExecuteNonQuery(new SparqlUpdate(delta.ToString()), transaction);
+            }
+
+            if (count > 0)
+            {
+                string updateString = $"WITH {WITH} DELETE {{ {DELETE} }} INSERT {{ {INSERT} }} WHERE {{ OPTIONAL {{ {OPTIONAL} }} }}";
+
+                ExecuteNonQuery(new SparqlUpdate(updateString), transaction);
+            }
 
             foreach (var resource in resources)
             {
