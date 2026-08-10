@@ -39,4 +39,17 @@
     <ContinuousIntegrationBuild Condition="'$(Configuration)' == 'Release'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
+  <!-- Readme rendered on the nuget.org listing page (another Package Explorer health check).
+       PackageReadmeFile names the file *inside* the package, so the file itself has to be packed
+       as well — hence the None item with the flat PackagePath. The repo README documents the core
+       package and the store backends together, so all packable projects share the one file.
+       Projects with IsPackable=false simply ignore both. -->
+  <PropertyGroup>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
 </Project>
