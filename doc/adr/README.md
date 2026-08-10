@@ -78,11 +78,11 @@ mapped/dynamic duality, models & groups, discovery, stores, and querying.
 | [0037](0037-linq-provider-rebuild.md) | Rebuild LINQ-to-SPARQL on an owned provider (retire re-linq) | Accepted |
 | [0038](0038-upgrade-dotnetrdf-3.md) | Upgrade to dotNetRDF 3.x (Core / Client / Inferencing split) | Accepted |
 | [0039](0039-resource-write-semantics.md) | Commits write a per-value delta, not the whole resource | Accepted |
+| [0014](0014-ontology-generator-modernization.md) | Reimplement ontology vocabulary generation as a `dotnet tool` | Accepted |
 
 ### Proposed (revival)
 | # | Title | Status |
 |---|-------|--------|
-| [0014](0014-ontology-generator-modernization.md) | Reimplement ontology vocabulary generation as a compile-time generator/tool | Proposed |
 | [0015](0015-modernize-target-frameworks-and-ci.md) | Modernize target frameworks, build, and CI | Proposed |
 
 ## Revival north star

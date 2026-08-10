@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>trinity-vocab</AssemblyName>
+    <RootNamespace>Semiodesk.Trinity.Vocabulary.Cli</RootNamespace>
+    <Title>Semiodesk.Trinity.Vocabulary.Cli</Title>
+    <Description>Command line tool that generates Semiodesk.Trinity vocabulary classes from RDF files.</Description>
+    <!-- Distinct from the engine's assembly name (Semiodesk.Trinity.Vocabulary), which NuGet would
+         otherwise see as an ambiguous project reference. Installed as a tool, invoked as trinity-vocab. -->
+    <PackageId>Semiodesk.Trinity.Vocabulary.Tool</PackageId>
+    <PackageTags>RDF SPARQL ontology vocabulary code generation dotnet-tool</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>trinity-vocab</ToolCommandName>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Trinity.Vocabulary\Trinity.Vocabulary.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -54,6 +54,7 @@ jobs:
         run: |
           dotnet test Trinity.Tests/Trinity.Tests.csproj -c Release --no-build
           dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj -c Release --no-build
+          dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj -c Release --no-build
 
       # Artifacts are only produced on the release branches; publishing stays manual (RELEASING.md).
       - name: Pack
