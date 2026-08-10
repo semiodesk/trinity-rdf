@@ -42,8 +42,25 @@ using Semiodesk.Trinity.Utility;
 namespace Semiodesk.Trinity
 {
     /// <summary>
-    /// This class repesents a RDF resource. 
+    /// This class repesents a RDF resource.
     /// </summary>
+    /// <remarks>
+    /// Three behaviours regularly surprise newcomers:
+    ///
+    /// <b>Resources are open.</b> A mapped subclass does not constrain what a resource may carry: it can
+    /// be annotated with arbitrary predicates at runtime, and <see cref="ListValues(bool)"/> returns the
+    /// unmapped ones alongside the mapped ones. There is no closed schema.
+    ///
+    /// <b>Linked resources load lazily, always.</b> Reading a property that references other resources
+    /// fetches them on access; this cannot be turned off. A link whose target does not exist in the store
+    /// still materializes as an instance — see <see cref="IsUnresolved"/>.
+    ///
+    /// <b>Identity is fragment-aware.</b> <see cref="Uri"/> is a <see cref="UriRef"/>, because .NET's
+    /// <see cref="System.Uri.Equals"/> ignores fragments and would treat two distinct RDF resources as
+    /// the same one.
+    ///
+    /// Persisting is <see cref="Commit"/>, which writes only what changed and does not cascade.
+    /// </remarks>
     public class Resource : IResource
     {
         #region Members
@@ -947,10 +964,18 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// This method lists all combinations of properties and values.
+        /// Lists every property/value pair on this resource, mapped and unmapped alike.
         /// </summary>
-        /// <param name="forSerialization">Only return values which should be serialized.</param>
-        /// <returns></returns>
+        /// <remarks>
+        /// A mapped resource stays open: it can carry predicates the class never declared, and those are
+        /// included here alongside the mapped ones. Also yields an <c>rdf:type</c> entry per
+        /// <see cref="GetTypes"/> class, and lazily-loaded links that have not been materialized yet.
+        /// </remarks>
+        /// <param name="forSerialization">
+        /// When true, unmapped properties are left out. Note this only suppresses them from the result —
+        /// it never causes them to be deleted on write.
+        /// </param>
+        /// <returns>Property/value pairs; a property with several values appears once per value.</returns>
         public virtual IEnumerable<Tuple<Property, object>> ListValues(bool forSerialization = false)
         {
             if (!forSerialization)
@@ -1155,8 +1180,19 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Persist changes in the model.
+        /// Persists this resource's changes to the model.
         /// </summary>
+        /// <remarks>
+        /// Writes a <b>delta</b>, not the whole resource: only values that differ from what was last
+        /// read from the store are written, so a concurrent writer that changed a different value is not
+        /// overwritten. If nothing changed, no update is issued at all.
+        ///
+        /// Does <b>not</b> cascade. Linked resources you modified must each be committed themselves, and
+        /// committing a resource that references an uncommitted one persists the link but no triples for
+        /// the target — see <see cref="IsUnresolved"/> for detecting that on the way back.
+        ///
+        /// Does nothing if the resource has no model or <see cref="IsReadOnly"/> is set.
+        /// </remarks>
         public virtual void Commit()
         {
             if (_model != null && IsReadOnly == false)
@@ -1167,8 +1203,13 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Reload the resource from the model.
+        /// Discards uncommitted changes by re-reading this resource from the model.
         /// </summary>
+        /// <remarks>
+        /// This is a fresh read from the store, not an undo of a committed write — anything already
+        /// committed stays committed, and values another writer changed in the meantime are picked up.
+        /// Unrelated to <see cref="ITransaction.Rollback"/>.
+        /// </remarks>
         public void Rollback()
         {
             using (Resource resource = Model.GetResource(Uri, GetType()) as Resource)

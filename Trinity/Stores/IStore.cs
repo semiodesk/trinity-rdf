@@ -123,8 +123,15 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Starts a transaction. The resulting transaction handle can be used to chain operations together.
         /// </summary>
+        /// <remarks>
+        /// Transaction support is uneven across stores, and a non-null handle does <b>not</b> imply
+        /// isolation. Stores that cannot isolate return a <see cref="NoOpTransaction"/>: writes are applied
+        /// immediately and <see cref="ITransaction.Rollback"/> cannot undo them. Check
+        /// <see cref="ITransaction.IsolationLevel"/> — a no-op handle reports
+        /// <see cref="IsolationLevel.Unspecified"/>. Today only Virtuoso provides a real transaction.
+        /// </remarks>
         /// <param name="isolationLevel">The isolation level of the transaction.</param>
-        /// <returns></returns>
+        /// <returns>A transaction handle, never null.</returns>
         ITransaction BeginTransaction(IsolationLevel isolationLevel);
 
         /// <summary>
@@ -197,9 +204,17 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Updates the properties of a resource in the backing RDF store.
         /// </summary>
+        /// <remarks>
+        /// Writes only the values that changed since the resource was last read, so a concurrent writer
+        /// who modified a different value is not overwritten. A resource that was never synchronized has
+        /// no baseline to compare against and is written whole.
+        /// </remarks>
         /// <param name="resource">Resource that is to be updated in the backing store.</param>
         /// <param name="modelUri">The uri of the model where the resource should be updated.</param>
-        /// <param name="ignoreUnmappedProperties">Omits unmapped properties from the update query. This essentially deletes triples that do not match the mappings.</param>
+        /// <param name="ignoreUnmappedProperties">
+        /// Omits unmapped properties from the update. This only suppresses writing them — it does not
+        /// delete them, since removals are computed against the resource's complete value list.
+        /// </param>
         /// <param name="transaction">Transaction associated with this action.</param>
         void UpdateResource(Resource resource, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false);
 

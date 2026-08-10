@@ -142,6 +142,11 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Removes the given resource from the model and its backing RDF store.
         /// </summary>
+        /// <remarks>
+        /// Broader than it looks, by design: this deletes every triple in which the resource appears as
+        /// the <b>subject or the object</b>. Links pointing at it from elsewhere in the model are removed
+        /// too, so deleting a resource can silently alter resources you did not name.
+        /// </remarks>
         /// <param name="uri">A Uniform Resource Identifier.</param>
         /// <param name="transaction">The transaction associated with this action.</param>
         void DeleteResource(Uri uri, ITransaction transaction = null);
@@ -290,8 +295,17 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Returns a queryable object that can be used to build LINQ statements.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
+        /// <remarks>
+        /// The query is translated to SPARQL and executed by the store — nothing is fetched and filtered
+        /// in memory. Results are the resources explicitly typed as <typeparamref name="T"/>; a subclass
+        /// instance is not returned unless the store applies inferencing.
+        /// </remarks>
+        /// <typeparam name="T">The mapped resource type to query for.</typeparam>
+        /// <param name="inferenceEnabled">
+        /// Requests store-side inferencing. This is a <b>request, not a guarantee</b>: a store may honour
+        /// it or ignore it entirely, and the in-memory store ignores it.
+        /// </param>
+        /// <returns>A queryable over the resources of that type in this model.</returns>
         IQueryable<T> AsQueryable<T>(bool inferenceEnabled = false) where T : Resource;
 
         /// <summary>

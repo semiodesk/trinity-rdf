@@ -33,6 +33,15 @@ namespace Semiodesk.Trinity
     /// This class extends the framework Uri class to also include fragments for
     /// equality testing.
     /// </summary>
+    /// <remarks>
+    /// <b>Prefer this over <see cref="Uri"/> for resource identity.</b> .NET's <see cref="Uri.Equals"/>
+    /// ignores the fragment, so <c>http://example.org/x#a</c> and <c>http://example.org/x#b</c> compare
+    /// equal — in RDF those are two different resources, which makes raw <see cref="Uri"/> unsafe as a
+    /// key or in comparisons. This type compares fragments as well.
+    ///
+    /// It also carries whether the identifier is a blank node (<see cref="IsBlankId"/>), which a plain
+    /// <see cref="Uri"/> cannot express.
+    /// </remarks>
     public class UriRef : Uri
     {
         #region Members

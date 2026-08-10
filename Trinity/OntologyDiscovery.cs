@@ -76,9 +76,15 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Register an assembly to search for RDF ontologies.
+        /// Registers an assembly's vocabulary classes so their prefixes and terms are known.
         /// </summary>
-        /// <param name="asm"></param>
+        /// <remarks>
+        /// <b>Required at startup</b> if you write SPARQL using prefixes. Ontology discovery is global
+        /// static state and nothing registers automatically; registered prefixes are what let a query say
+        /// <c>foaf:name</c> without a <c>PREFIX</c> line. Skipping this does not raise an error — the
+        /// prefix simply fails to resolve when the query runs.
+        /// </remarks>
+        /// <param name="asm">The assembly to scan for <see cref="Ontology"/> classes.</param>
         public static void AddAssembly(Assembly asm)
         {
             var instances =
