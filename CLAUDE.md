@@ -56,7 +56,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
 dotnet test Trinity.Tests/Trinity.Tests.csproj         # 397 passed, 7 skipped (quarantined)
-dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 17 passed
+dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 21 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 7 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
@@ -96,12 +96,14 @@ override from `[RdfClass]`.
 
 **Authoring mistakes are diagnostics, not silence.** Each of these compiles fine and produces no
 mapping at all, so they used to surface only as a query returning nothing at runtime — all are
-warnings, declared in `Trinity.Generator/AnalyzerReleases.Unshipped.md`:
+warnings, declared in `Trinity.Generator/AnalyzerReleases.Unshipped.md`. The class-level checks are
+**independent** — a class that is neither `partial` nor has a `(Uri)` constructor reports both, because
+someone migrating a large model wants the whole list from one build:
 
 | Id | Fires when |
 |---|---|
 | `TRIN001` | `[RdfProperty]` on a property that is not `partial` |
-| `TRIN002` | `[RdfClass]` on a class that is not `partial` |
+| `TRIN002` | a mapped class is not `partial` — fires for `[RdfClass]` **and** for a class that merely has `[RdfProperty]` members, once per class, independently of the property-level `TRIN001` |
 | `TRIN003` | the mapped type is nested rather than top-level |
 | `TRIN004` | a mapped class does not derive from `Resource` |
 | `TRIN005` | a mapped class has no accessible `(Uri)` constructor, so `Activator.CreateInstance(type, uri)` cannot materialize it when reading |
