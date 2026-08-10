@@ -52,18 +52,20 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 386 passed, 6 skipped (quarantined)
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 397 passed, 7 skipped (quarantined)
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 4 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
 
-- The 6 skipped tests are `[Ignore]`d and tracked in `doc/known-test-failures.md`: in-memory
-  inferencing (store-level, ADR-0022) and one open semantics decision (polymorphic base-type queries,
-  ADR-0037). No missing LINQ translation or datatype bug remains, and none are generator regressions.
+- The 7 skipped tests are `[Ignore]`d and tracked in `doc/known-test-failures.md`: in-memory
+  inferencing (store-level, ADR-0022), one open semantics decision (polymorphic base-type queries,
+  ADR-0037), and blank-node values in mapped collections failing on the read path (ADR-0039) — the only
+  quarantined case that is an outright defect. No missing LINQ translation or datatype bug remains, and
+  none are generator regressions.
 - Store integration tests (`tests/Trinity.Tests.*`) **self-provision** their server in Docker via
   Testcontainers on a random host port (ADR-0036): run `dotnet test tests/Trinity.Tests.{Virtuoso,GraphDB,Fuseki}`
   with a Docker daemon running. Excluded from the default CI job (Docker + large images). Current:
-  Virtuoso 90/97 and GraphDB 97/101 pass; Fuseki is 4/86 — a pre-existing dotNetRDF `FusekiConnector`
+  Virtuoso 99/107 and GraphDB 106/111 pass; Fuseki is 4/86 — a pre-existing dotNetRDF `FusekiConnector`
   query-endpoint bug (POSTs `/ds/query`, which the server 404s), unrelated to the container wiring.
 - **CI:** `.github/workflows/ci.yml` (ubuntu, .NET 10) — restore → build → test → pack. NuGet
   publishing is **manual** (no publish job).
@@ -116,11 +118,14 @@ Invariants that surprise newcomers:
 - **SPARQL reuses registered ontology prefixes** (0024): `foaf:name` needs no `PREFIX` line.
 - **URI identity is fragment-aware** (0025): use `UriRef`, not raw `Uri` — .NET's `Uri.Equals`
   ignores the fragment, which is wrong for RDF. Blank nodes/URNs have their own identity.
-- **`Commit()` does not cascade** (0029): it persists only that resource; linked resources you
-  changed must be committed individually. `IsNew`/`IsSynchronized`/`IsReadOnly` are the (coarse)
-  tracking flags; `Rollback()` re-fetches from the store.
+- **`Commit()` writes a per-value delta, not the whole resource** (0039): it diffs against a snapshot
+  taken whenever `IsSynchronized` became true, so concurrent writers touching different values no longer
+  erase each other. It still **does not cascade** (0029) — linked resources you changed must be committed
+  individually. `HasUnsavedChanges()` is a per-resource dirty check (there is no aggregate one);
+  `IsNew`/`IsSynchronized`/`IsReadOnly` remain the coarse flags and `Rollback()` re-fetches.
 - **Deleting a resource removes triples where it's subject *and* object** (0030) — broad by design.
-- **Transactions are ADO-style but unevenly supported** (0028): Fuseki/GraphDB return `null`.
+- **Transactions are ADO-style but unevenly supported** (0028): the non-transactional stores return a
+  `NoOpTransaction` rather than `null` (0039) — never null, but never isolating either.
 - **Query results are multi-modal** (0031): `GetResources`/`GetBindings`/`GetAnwser`(sic)/`Count` —
   pick the accessor matching the query form (with offset/limit paging).
 - **Datatype & i18n mapping** (0026/0027): `XsdTypeMapper` (culture-invariant via `XmlConvert`);

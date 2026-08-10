@@ -9,11 +9,15 @@ are pre-existing or net472→net8 runtime-behavior differences. Revisit as noted
 | `LinqTestBase.CanExecuteCollectionWithInferencingEnabled` | capability | `Query<Agent>(inferenceEnabled: true)` returns only the explicitly-typed resource (1 of 6): the in-memory store **does not implement inferencing** — see the diagnosis below | Feature, not a bug (ADR-0022 lets a store ignore the flag). Overlaps the polymorphic-query decision in ADR-0037 |
 | `LinqTestBase.CanExecuteScalarWithInferencingEnabled` | capability | as above | as above |
 | `LinqTestBase.CanSelectResourcesWithOperatorTypeOf` | semantics | Needs **polymorphic base-type queries**: its last assertion expects `Query<Agent>()` to also return resources typed with a subclass (`Person`). `is T`, `GetType() == typeof(T)` and `OfType<T>().Count()` are all implemented now — only that assertion fails | **Open decision** (ADR-0037): `GetTypes()` emits a class's own `[RdfClass]` only, so a `Person` is not typed `foaf:Agent`. Either expand a base-type constraint to a UNION over registered subclasses, or leave it to store-side `rdfs:subClassOf` inference |
+| `ResourceWriteSemanticsTest.CanRemoveBlankNodeValuedLink` | defect (read path) | Reading a mapped collection whose value is a **blank node** throws `RdfParseException: "Cannot resolve a Relative URI Reference since there is no in-scope Base URI"` from dotNetRDF's expression parser while it resolves the lazy-load filter. Confirmed to fail *before* the write by cutting the test short — so it is a read-path limitation, not a write-semantics one | Fix blank-node handling in the lazy-load query. Until then the hazard the test was written for is **uncovered**: blank nodes are illegal in SPARQL `DELETE` templates, and delta writes (ADR-0039) name triples directly where the old whole-resource rewrite deleted through variables. Extends item 6 of `doc/trinity-write-semantics.md` |
 
-These 3 `LinqTestBase` cases run under both `LinqModelTest` and `LinqModelGroupTest` (6 results),
-which is the entire quarantined set. **Every remaining entry is an unimplemented capability or an open
-design decision — none is a defect.** No quarantined test is a missing LINQ translation or a datatype
-bug any more.
+The 3 `LinqTestBase` cases run under both `LinqModelTest` and `LinqModelGroupTest` (6 results); with the
+blank-node case that is the entire quarantined set in `Trinity.Tests`. The blank-node entry lives in the
+shared `ResourceWriteSemanticsTest<T>` fixture, so it is also skipped once per store suite.
+
+Of these, the three LINQ entries are an unimplemented capability or an open design decision. **The
+blank-node entry is a genuine defect** — the first quarantined case that is. No quarantined test is a
+missing LINQ translation or a datatype bug.
 
 ### Why in-memory inferencing does not work (diagnosed on dotNetRDF 3.5.2)
 Three independent gaps, any one of which would be enough:

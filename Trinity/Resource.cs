@@ -103,10 +103,101 @@ namespace Semiodesk.Trinity
         public bool IsDisposed { get; set; }
 
         /// <summary>
+        /// True if this resource was reached by following a link whose target does not exist in the
+        /// backing store — a dangling reference.
+        /// </summary>
+        /// <remarks>
+        /// Committing a resource that references an uncommitted one persists the link but no triples for
+        /// the target. Loading it back yields an empty instance, which is otherwise indistinguishable
+        /// from a resource that genuinely exists and happens to have no properties. This flag is the
+        /// difference, and it is set only where such an instance is fabricated.
+        /// </remarks>
+        [Browsable(false), JsonIgnore, IgnoreDataMember]
+        public bool IsUnresolved { get; internal set; }
+
+        /// <summary>
         /// True if the properties of the resources has been committed to the model.
         /// </summary>
+        /// <remarks>
+        /// Setting this to <c>true</c> declares that the resource now matches the backing store, so it
+        /// is also the point at which the persisted state is snapshotted. <see cref="Commit"/> diffs
+        /// against that snapshot to write only what actually changed — see <see cref="PersistedValues"/>.
+        /// </remarks>
         [Browsable(false), JsonIgnore, IgnoreDataMember]
-        public bool IsSynchronized { get; set; }
+        public bool IsSynchronized
+        {
+            get { return _isSynchronized; }
+            set
+            {
+                _isSynchronized = value;
+
+                if (value)
+                {
+                    CapturePersistedValues();
+                }
+            }
+        }
+
+        private bool _isSynchronized;
+
+        /// <summary>
+        /// The property/value pairs known to exist in the backing store, serialized as SPARQL
+        /// <c>predicate object</c> fragments. Captured whenever <see cref="IsSynchronized"/> becomes
+        /// true — that is, on materialization from a model and after a successful commit.
+        /// </summary>
+        /// <remarks>
+        /// Null until the resource has been synchronized at least once. A null snapshot means no delta
+        /// can be computed and the writer must fall back to replacing the whole resource.
+        /// </remarks>
+        internal HashSet<string> PersistedValues { get; private set; }
+
+        /// <summary>
+        /// Indicates whether this resource holds values that differ from what is known to be in the
+        /// backing store — that is, whether committing it would write anything.
+        /// </summary>
+        /// <remarks>
+        /// This is per-resource only. A resource can report no unsaved changes while a resource it links
+        /// to is dirty, because <see cref="Commit"/> does not cascade; determining that for a whole object
+        /// graph needs a traversal with a cycle guard.
+        /// </remarks>
+        /// <returns>True if a commit would write something.</returns>
+        public bool HasUnsavedChanges()
+        {
+            // Never synchronized, so nothing is known to be persisted and everything counts as unsaved.
+            if (PersistedValues == null)
+            {
+                return true;
+            }
+
+            if (!SparqlSerializer.TrySerializeResourceDelta(this, false, out var deleted, out var inserted))
+            {
+                return true;
+            }
+
+            return deleted.Count > 0 || inserted.Count > 0;
+        }
+
+        /// <summary>
+        /// Snapshots the current values as the state believed to be in the backing store.
+        /// </summary>
+        private void CapturePersistedValues()
+        {
+            var values = new HashSet<string>(StringComparer.Ordinal);
+
+            // Unmapped properties are included: they are part of the resource in the store, and
+            // leaving them out would make them look like additions on the next commit.
+            foreach (var value in ListValues())
+            {
+                if (value.Item2 == null)
+                {
+                    continue;
+                }
+
+                values.Add(SparqlSerializer.SerializePredicateObject(value.Item1, value.Item2));
+            }
+
+            PersistedValues = values;
+        }
 
         /// <summary>
         /// Indicates this resource is read-only.

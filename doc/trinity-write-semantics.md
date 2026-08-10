@@ -11,6 +11,49 @@ Each item lists what we measured, not what we inferred.
 
 ---
 
+## Response from the Trinity work stream (2.0)
+
+All six items were re-verified against `develop` at `ad74b73` and **every one still reproduced** — the
+2.0 revival never touched the write path. Resolution below; the design is recorded in
+[ADR-0039](adr/0039-resource-write-semantics.md).
+
+| # | Item | Status in 2.0 |
+|---|---|---|
+| 1 | `UpdateResource` erases concurrent writes | **Fixed.** Commits now write a per-value delta instead of replacing the resource |
+| 2 | Dangling references read back hollow | **Detectable.** New `Resource.IsUnresolved` distinguishes them from genuinely empty resources |
+| 3 | No aggregate dirty state | **Partly.** `Resource.HasUnsavedChanges()` supplies the per-resource primitive; there is still no aggregate/cascade state |
+| 4 | `ListValues` omission deletes the property | **Dissolved.** Omission can no longer delete — see below |
+| 5 | In-memory `BeginTransaction` returns `null` | **Fixed.** All non-transactional stores return a `NoOpTransaction` |
+| 6 | Blank-node children re-mint their id | **Unchanged, and worse than reported** — see below |
+
+**On item 1.** The fix is snapshot-and-diff: a resource records its values whenever `IsSynchronized`
+becomes true (materialization and after commit), and `Commit()` emits only the triples that changed.
+Note that *per-predicate* granularity would **not** have fixed the measured case — six writers each
+adding a child all touch the same predicate. It had to be per-value, which is the same shape as
+`GraphWrites.cs`. Setter-based dirty tracking was not an option either: list properties are seeded with
+a plain `List<T>`, so `parent.Children.Add(x)` is invisible to setters but visible to a diff.
+
+**On item 4.** The hazard needed no repair. A property that fails to materialize is absent from both the
+snapshot and the current values, so it lands in neither the delete nor the insert set. What was
+"omission means deletion" is now "omission means untouched".
+
+**On item 6.** Confirmed as a live trap, and the delta makes one aspect sharper: blank nodes are illegal
+in SPARQL `DELETE` templates, and delta writes name triples directly where the old code deleted through
+variables. The test written to cover this is **quarantined**, because it never gets that far — reading a
+mapped collection whose value is a blank node already fails on the *query* side with
+`"Cannot resolve a Relative URI Reference since there is no in-scope Base URI"`. So blank-node handling
+is broken on read before it is questionable on write. Tracked in `doc/known-test-failures.md`.
+
+**Also found, not in this report:** `UpdateResource(..., ignoreUnmappedProperties: true)` was a data-loss
+trap — the INSERT omitted unmapped triples while the DELETE still removed all of them, so the flag
+deleted unmapped properties rather than preserving them. Delta writes compute removals against the
+resource's complete value list, so the flag can now only suppress a write, never cause a delete.
+
+**Not addressed:** the aggregate/cascade state of item 3, and a Fuseki regression fixture (its test
+project has a different structure and the backend is 4/86 on an upstream connector bug).
+
+---
+
 ## 1. `UpdateResource` silently erases concurrent writes to a shared resource
 
 **Severity: high — silent data loss, no exception.**

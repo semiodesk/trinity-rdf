@@ -117,9 +117,18 @@ namespace Semiodesk.Trinity
                 AddToMapping(mapping, resource);
             }
 
+            // Whatever is left did not come back from the store: the link points at a resource that was
+            // never written. It still has to be materialized so the mapping is complete, but it is
+            // flagged so callers can tell a dangling reference from a genuinely empty resource.
             foreach( var uri in cachedUris)
             {
                 var resource = Activator.CreateInstance(baseType, uri) as IResource;
+
+                if (resource is Resource unresolved)
+                {
+                    unresolved.IsUnresolved = true;
+                }
+
                 AddToMapping(mapping, resource);
             }
 
