@@ -73,39 +73,41 @@ namespace Semiodesk.Trinity.Vocabulary.Cli
 
             foreach (VocabularyDocument document in documents)
             {
-                string generated = generator.Generate(document);
-                string outputPath = Path.GetFullPath(Path.Combine(root, document.Output));
+                string directory = Path.GetFullPath(Path.Combine(root, document.Output ?? string.Empty));
 
-                if (check)
+                foreach (GeneratedFile file in generator.Generate(document))
                 {
-                    if (!File.Exists(outputPath))
+                    string outputPath = Path.Combine(directory, file.FileName);
+
+                    // Reported relative to the manifest, so the message names something the reader can find.
+                    string relative = Path.Combine(document.Output ?? string.Empty, file.FileName);
+
+                    if (check)
                     {
-                        error.WriteLine($"out of date: {document.Output} does not exist");
-                        stale++;
-                    }
-                    else if (!Equivalent(File.ReadAllText(outputPath), generated))
-                    {
-                        error.WriteLine($"out of date: {document.Output} differs from the vocabularies");
-                        stale++;
-                    }
-                    else
-                    {
-                        output.WriteLine($"up to date: {document.Output}");
+                        if (!File.Exists(outputPath))
+                        {
+                            error.WriteLine($"out of date: {relative} does not exist");
+                            stale++;
+                        }
+                        else if (!Equivalent(File.ReadAllText(outputPath), file.Source))
+                        {
+                            error.WriteLine($"out of date: {relative} differs from the vocabulary");
+                            stale++;
+                        }
+                        else
+                        {
+                            output.WriteLine($"up to date: {relative}");
+                        }
+
+                        continue;
                     }
 
-                    continue;
-                }
-
-                string? directory = Path.GetDirectoryName(outputPath);
-
-                if (!string.IsNullOrEmpty(directory))
-                {
                     Directory.CreateDirectory(directory);
+
+                    File.WriteAllText(outputPath, file.Source, new UTF8Encoding(false));
+
+                    output.WriteLine($"wrote {relative}");
                 }
-
-                File.WriteAllText(outputPath, generated, new UTF8Encoding(false));
-
-                output.WriteLine($"wrote {document.Output}");
             }
 
             if (stale > 0)

@@ -57,7 +57,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
 dotnet test Trinity.Tests/Trinity.Tests.csproj         # 398 passed, 7 skipped (quarantined)
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 23 passed
-dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 28 passed
+dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
 
@@ -135,6 +135,11 @@ emitted as `Resource` (`rdf:nil`, the datatypes).
 
 The generator is **optional and stays that way**: `Trinity.Tests` has **28 hand-written** vocabulary
 classes and **2 generated** ones (`dces`, `owl` — see `Trinity.Tests/Ontologies/vocabularies.json`).
+Each vocabulary is emitted to its own `<prefix>.g.cs`, so regenerating one never rewrites another and
+`--check` names the file that drifted. Both of a vocabulary's classes go in that one file: a file per
+*class* would give `dces.g.cs` and `DCES.g.cs`, which collide on Windows. The two classes are both
+required — attribute arguments must be constants, so `[RdfProperty(FOAF.age)]` needs the `const string`
+companion, while the typed class is what `OntologyDiscovery` and runtime code use.
 `OntologyDiscovery` cannot tell them apart, and `OntologyTest.DiscoversHandWrittenAndGeneratedVocabulariesAlike`
 asserts both routes stay first-class. The hand-written `dc` and generated `dces` deliberately cover the
 same namespace with the same terms, which is the plainest demonstration that they are equivalent. CI runs

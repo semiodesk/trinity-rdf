@@ -76,7 +76,8 @@ namespace Semiodesk.Trinity.Vocabulary.Tests
             string manifest = WriteManifest("rdf.rdf", "rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
 
             Assert.AreEqual(VocabularyRunner.Success, Run(manifest, check: false));
-            Assert.IsTrue(File.Exists(Path.Combine(_scratch, "Vocabularies.g.cs")));
+            Assert.IsTrue(File.Exists(Path.Combine(_scratch, "rdf.g.cs")),
+                "Each vocabulary is written to its own <prefix>.g.cs.");
         }
 
         /// <summary>
@@ -99,7 +100,7 @@ namespace Semiodesk.Trinity.Vocabulary.Tests
             string manifest = WriteManifest("rdf.rdf", "rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
 
             Run(manifest, check: false);
-            File.AppendAllText(Path.Combine(_scratch, "Vocabularies.g.cs"), "// edited by hand\n");
+            File.AppendAllText(Path.Combine(_scratch, "rdf.g.cs"), "// edited by hand\n");
 
             Assert.AreEqual(VocabularyRunner.OutOfDate, Run(manifest, check: true));
         }
@@ -120,7 +121,7 @@ namespace Semiodesk.Trinity.Vocabulary.Tests
         public void CheckIgnoresLineEndingDifferences()
         {
             string manifest = WriteManifest("rdf.rdf", "rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
-            string output = Path.Combine(_scratch, "Vocabularies.g.cs");
+            string output = Path.Combine(_scratch, "rdf.g.cs");
 
             Run(manifest, check: false);
 
@@ -139,7 +140,8 @@ namespace Semiodesk.Trinity.Vocabulary.Tests
         }
 
         /// <summary>
-        /// A manifest may be an array, so several files can be generated in one run.
+        /// A manifest may be an array, which is how one run generates into more than one namespace or
+        /// directory.
         /// </summary>
         [Test]
         public void ReadsAnArrayOfDocuments()
@@ -147,9 +149,9 @@ namespace Semiodesk.Trinity.Vocabulary.Tests
             string manifest = Path.Combine(_scratch, "vocabularies.json");
 
             File.WriteAllText(manifest, @"[
-              { ""namespace"": ""A"", ""output"": ""A.g.cs"", ""vocabularies"": [
+              { ""namespace"": ""A"", ""output"": ""a"", ""vocabularies"": [
                   { ""file"": ""rdf.rdf"", ""prefix"": ""rdf"", ""uri"": ""http://www.w3.org/1999/02/22-rdf-syntax-ns#"" } ] },
-              { ""namespace"": ""B"", ""output"": ""B.g.cs"", ""vocabularies"": [
+              { ""namespace"": ""B"", ""output"": ""b"", ""vocabularies"": [
                   { ""file"": ""rdfs.n3"", ""prefix"": ""rdfs"", ""uri"": ""http://www.w3.org/2000/01/rdf-schema#"" } ] }
             ]");
 
@@ -157,19 +159,54 @@ namespace Semiodesk.Trinity.Vocabulary.Tests
             CopyOntology("rdfs.n3");
 
             Assert.AreEqual(VocabularyRunner.Success, Run(manifest, check: false));
-            Assert.IsTrue(File.Exists(Path.Combine(_scratch, "A.g.cs")), "first document");
-            Assert.IsTrue(File.Exists(Path.Combine(_scratch, "B.g.cs")), "second document");
+            Assert.IsTrue(File.Exists(Path.Combine(_scratch, "a", "rdf.g.cs")), "first document");
+            Assert.IsTrue(File.Exists(Path.Combine(_scratch, "b", "rdfs.g.cs")), "second document");
         }
 
+        /// <summary>
+        /// 'output' is an optional directory; without it the files land beside the manifest.
+        /// </summary>
         [Test]
-        public void RejectsAManifestEntryWithoutAnOutput()
+        public void DefaultsToTheManifestDirectoryWhenNoOutputIsGiven()
         {
+            CopyOntology("rdf.rdf");
+
             string manifest = Path.Combine(_scratch, "vocabularies.json");
 
             File.WriteAllText(manifest, @"{ ""vocabularies"": [
-                { ""file"": ""rdf.rdf"", ""prefix"": ""rdf"", ""uri"": ""http://example.org/"" } ] }");
+                { ""file"": ""rdf.rdf"", ""prefix"": ""rdf"",
+                  ""uri"": ""http://www.w3.org/1999/02/22-rdf-syntax-ns#"" } ] }");
 
-            Assert.Throws<FormatException>(() => Run(manifest, check: false));
+            Assert.AreEqual(VocabularyRunner.Success, Run(manifest, check: false));
+            Assert.IsTrue(File.Exists(Path.Combine(_scratch, "rdf.g.cs")));
+        }
+
+        /// <summary>
+        /// Several vocabularies produce several files, one per prefix — so regenerating one does not rewrite
+        /// the others, which is what keeps diffs and check-mode reports readable.
+        /// </summary>
+        [Test]
+        public void WritesOneFilePerVocabulary()
+        {
+            CopyOntology("rdf.rdf");
+            CopyOntology("rdfs.n3");
+
+            string manifest = Path.Combine(_scratch, "vocabularies.json");
+
+            File.WriteAllText(manifest, @"{ ""namespace"": ""X"", ""vocabularies"": [
+                { ""file"": ""rdf.rdf"", ""prefix"": ""rdf"",
+                  ""uri"": ""http://www.w3.org/1999/02/22-rdf-syntax-ns#"" },
+                { ""file"": ""rdfs.n3"", ""prefix"": ""rdfs"",
+                  ""uri"": ""http://www.w3.org/2000/01/rdf-schema#"" } ] }");
+
+            Assert.AreEqual(VocabularyRunner.Success, Run(manifest, check: false));
+
+            Assert.IsTrue(File.Exists(Path.Combine(_scratch, "rdf.g.cs")), "rdf.g.cs");
+            Assert.IsTrue(File.Exists(Path.Combine(_scratch, "rdfs.g.cs")), "rdfs.g.cs");
+
+            // Each file holds only its own vocabulary.
+            Assert.That(File.ReadAllText(Path.Combine(_scratch, "rdf.g.cs")),
+                Does.Not.Contain("class rdfs"), "rdf.g.cs must not contain the rdfs vocabulary.");
         }
 
         [Test]
@@ -195,7 +232,7 @@ namespace Semiodesk.Trinity.Vocabulary.Tests
 
             string manifest = Path.Combine(_scratch, "vocabularies.json");
 
-            File.WriteAllText(manifest, @"{ ""output"": ""out/Vocabularies.g.cs"", ""vocabularies"": [
+            File.WriteAllText(manifest, @"{ ""output"": ""out"", ""vocabularies"": [
                 { ""file"": ""vocab/rdf.rdf"", ""prefix"": ""rdf"",
                   ""uri"": ""http://www.w3.org/1999/02/22-rdf-syntax-ns#"" } ] }");
 
@@ -213,7 +250,7 @@ namespace Semiodesk.Trinity.Vocabulary.Tests
                 Directory.SetCurrentDirectory(previous);
             }
 
-            Assert.IsTrue(File.Exists(Path.Combine(_scratch, "out", "Vocabularies.g.cs")),
+            Assert.IsTrue(File.Exists(Path.Combine(_scratch, "out", "rdf.g.cs")),
                 "The output path is relative to the manifest and its directory is created.");
         }
 
@@ -237,7 +274,6 @@ namespace Semiodesk.Trinity.Vocabulary.Tests
 
             File.WriteAllText(manifest, $@"{{
               ""namespace"": ""Generated.Vocabularies"",
-              ""output"": ""Vocabularies.g.cs"",
               ""vocabularies"": [ {{ ""file"": ""{file}"", ""prefix"": ""{prefix}"", ""uri"": ""{uri}"" }} ]
             }}");
 

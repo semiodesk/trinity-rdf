@@ -80,14 +80,15 @@ namespace Semiodesk.Trinity.Vocabulary.Cli
             var document = new VocabularyDocument
             {
                 Namespace = GetString(element, "namespace") ?? string.Empty,
-                Output = GetString(element, "output")
-                         ?? throw new FormatException("A manifest entry is missing 'output'.")
+                // Optional: an empty directory means the manifest's own, which is the common case now that
+                // each vocabulary writes its own file.
+                Output = GetString(element, "output") ?? string.Empty
             };
 
             if (!element.TryGetProperty("vocabularies", out JsonElement vocabularies) ||
                 vocabularies.ValueKind != JsonValueKind.Array)
             {
-                throw new FormatException($"Manifest entry '{document.Output}' has no 'vocabularies' array.");
+                throw new FormatException("A manifest entry has no 'vocabularies' array.");
             }
 
             foreach (JsonElement entry in vocabularies.EnumerateArray())
@@ -110,7 +111,7 @@ namespace Semiodesk.Trinity.Vocabulary.Cli
 
             if (document.Vocabularies.Count == 0)
             {
-                throw new FormatException($"Manifest entry '{document.Output}' lists no vocabularies.");
+                throw new FormatException("A manifest entry lists no vocabularies.");
             }
 
             return document;

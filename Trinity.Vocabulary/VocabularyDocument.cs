@@ -41,9 +41,14 @@ namespace Semiodesk.Trinity.Vocabulary
         public string Namespace { get; set; }
 
         /// <summary>
-        /// Where the generated file is written, relative to the manifest.
+        /// The directory the generated files are written to, relative to the manifest. Empty means the
+        /// manifest's own directory.
         /// </summary>
-        public string Output { get; set; }
+        /// <remarks>
+        /// A directory rather than a filename: each vocabulary gets its own <c>&lt;prefix&gt;.g.cs</c>, so
+        /// regenerating one does not rewrite the others.
+        /// </remarks>
+        public string Output { get; set; } = string.Empty;
 
         /// <summary>
         /// The vocabularies to include, in the order they should be emitted.
@@ -69,6 +74,29 @@ namespace Semiodesk.Trinity.Vocabulary
 
         /// <summary>The vocabulary's namespace URI.</summary>
         public Uri Uri { get; set; }
+    }
+
+    /// <summary>
+    /// One generated file: what to call it, and what goes in it.
+    /// </summary>
+    public sealed class GeneratedFile
+    {
+        /// <summary>
+        /// Creates a generated file.
+        /// </summary>
+        /// <param name="fileName">The filename, without a directory.</param>
+        /// <param name="source">The C# source.</param>
+        public GeneratedFile(string fileName, string source)
+        {
+            FileName = fileName;
+            Source = source;
+        }
+
+        /// <summary>The filename, conventionally <c>&lt;prefix&gt;.g.cs</c>.</summary>
+        public string FileName { get; }
+
+        /// <summary>The C# source.</summary>
+        public string Source { get; }
     }
 
     /// <summary>

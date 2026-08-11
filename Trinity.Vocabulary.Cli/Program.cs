@@ -90,15 +90,16 @@ namespace Semiodesk.Trinity.Vocabulary.Cli
             Console.WriteLine();
             Console.WriteLine("  {");
             Console.WriteLine("    \"namespace\": \"My.Project\",");
-            Console.WriteLine("    \"output\": \"Ontologies.g.cs\",");
+            Console.WriteLine("    \"output\": \"Ontologies\",   // directory, optional");
             Console.WriteLine("    \"vocabularies\": [");
             Console.WriteLine("      { \"file\": \"ontologies/foaf.rdf\", \"prefix\": \"foaf\",");
             Console.WriteLine("        \"uri\": \"http://xmlns.com/foaf/0.1/\" }");
             Console.WriteLine("    ]");
             Console.WriteLine("  }");
             Console.WriteLine();
+            Console.WriteLine("Each vocabulary is written to its own <prefix>.g.cs in the output directory.");
             Console.WriteLine("Paths are relative to the manifest. A manifest may also be an array of such");
-            Console.WriteLine("objects to generate several files in one run.");
+            Console.WriteLine("objects, to generate into several namespaces in one run.");
         }
     }
 }

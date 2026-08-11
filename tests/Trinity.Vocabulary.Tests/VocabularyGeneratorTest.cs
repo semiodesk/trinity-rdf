@@ -250,9 +250,9 @@ namespace Semiodesk.Trinity.Vocabulary.Tests
         [Test]
         public void OutputIsDeterministic()
         {
-            var document = Document(Rdf());
+            VocabularySource vocabulary = Rdf();
 
-            Assert.AreEqual(_generator.Generate(document), _generator.Generate(document),
+            Assert.AreEqual(_generator.GenerateFile(vocabulary, Ns), _generator.GenerateFile(vocabulary, Ns),
                 "Two runs over the same input must produce identical source.");
         }
 
@@ -288,10 +288,10 @@ namespace Semiodesk.Trinity.Vocabulary.Tests
                 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
                 ex:thing a rdf:Property ; rdfs:comment ""Use <b>a & b</b> carefully"" .");
 
-            string generated = _generator.Generate(Document(new VocabularySource
+            string generated = _generator.GenerateFile(new VocabularySource
             {
                 File = file, Prefix = "ex", Uri = new Uri("http://example.org/")
-            }));
+            }, Ns);
 
             Assert.That(generated, Does.Contain("&lt;b&gt;"), "Markup must be escaped in the doc comment.");
             Assert.That(generated, Does.Contain("&amp;"), "Ampersands must be escaped in the doc comment.");
@@ -333,7 +333,7 @@ namespace Semiodesk.Trinity.Vocabulary.Tests
         [Test]
         public void GeneratedSourceIsDiscoveredByOntologyDiscovery()
         {
-            string generated = _generator.Generate(Document(Rdf()));
+            string generated = _generator.GenerateFile(Rdf(), Ns);
             Assembly assembly = Compile(generated);
 
             OntologyDiscovery.AddAssembly(assembly);
@@ -355,12 +355,7 @@ namespace Semiodesk.Trinity.Vocabulary.Tests
             Uri = new Uri(RdfNamespace)
         };
 
-        private static VocabularyDocument Document(VocabularySource vocabulary) => new VocabularyDocument
-        {
-            Namespace = "Generated.Vocabularies",
-            Output = "Vocabularies.g.cs",
-            Vocabularies = new List<VocabularySource> { vocabulary }
-        };
+        private const string Ns = "Generated.Vocabularies";
 
         private static string Kind(IReadOnlyList<VocabularyTerm> terms, string name) =>
             terms.FirstOrDefault(t => t.Name == name)?.Kind;
