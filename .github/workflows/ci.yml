@@ -48,6 +48,11 @@ jobs:
       - name: Build
         run: dotnet build Semiodesk.Trinity.sln -c Release --no-restore -p:VersionSuffix=${{ steps.version.outputs.suffix }}
 
+      # The two generated vocabularies are committed, so a stale file must fail the build rather than
+      # drift silently. The other 28 vocabulary classes in that project are hand-written and unaffected.
+      - name: Verify committed vocabularies are current
+        run: dotnet run --project Trinity.Vocabulary.Cli/Trinity.Vocabulary.Cli.csproj -c Release --no-build -- Trinity.Tests/Ontologies/vocabularies.json --check
+
       # Only the in-memory suites run in CI; the store-integration projects
       # (Virtuoso/Fuseki/GraphDB) need live servers and are excluded.
       - name: Test

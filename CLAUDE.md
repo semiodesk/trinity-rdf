@@ -55,7 +55,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 397 passed, 7 skipped (quarantined)
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 398 passed, 7 skipped (quarantined)
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 23 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 28 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -132,6 +132,13 @@ The manifest lists local RDF files with their prefix and namespace URI; `WebSour
 files yourself. Emitted names are public API and reproduce 1.x exactly — notably keywords are
 prefixed with `_` (`rdf:object` → `_object`), and terms that are neither class nor property are
 emitted as `Resource` (`rdf:nil`, the datatypes).
+
+The generator is **optional and stays that way**: `Trinity.Tests` has **28 hand-written** vocabulary
+classes and **2 generated** ones (`dces`, `owl` — see `Trinity.Tests/Ontologies/vocabularies.json`).
+`OntologyDiscovery` cannot tell them apart, and `OntologyTest.DiscoversHandWrittenAndGeneratedVocabulariesAlike`
+asserts both routes stay first-class. The hand-written `dc` and generated `dces` deliberately cover the
+same namespace with the same terms, which is the plainest demonstration that they are equivalent. CI runs
+`trinity-vocab --check` so the two committed generated files cannot drift.
 
 `OntologyDiscovery` finds vocabularies **by reflection, not by an interface**: the class must derive
 *directly* from `Ontology`, have a parameterless constructor, and expose static fields named exactly
