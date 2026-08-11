@@ -39,7 +39,7 @@ post-build tooling. Read `doc/adr/README.md` for the decisions and history.
 | `Trinity.Vocabulary.Cli` | net8.0 | `dotnet tool` front end, command `trinity-vocab`, package `Semiodesk.Trinity.Vocabulary.Tool` |
 | `Trinity.Tests` | net8.0 | NUnit in-memory suite (fully generator-driven, no weaver) |
 | `tests/Trinity.Generator.Tests` | net8.0 | Source-generator validation, incl. the TRIN diagnostics |
-| `tests/Trinity.Vocabulary.Tests` | net8.0 | Vocabulary generator — classification, determinism, sanitization, and a round-trip that compiles generated source and asserts `OntologyDiscovery` finds it |
+| `tests/Trinity.Vocabulary.Tests` | net8.0 | Vocabulary generator + `trinity-vocab`: term classification, all four RDF formats, determinism, sanitization/collisions, manifest reading, the check-mode exit codes, a member-compatibility check against the committed vocabularies, and a round-trip that compiles generated source and asserts `OntologyDiscovery` finds it |
 | `tests/Trinity.Tests.{Virtuoso,Fuseki,GraphDB}` | net8.0 | Store integration tests — self-provision the server via Testcontainers/Docker (ADR-0036); not in the default CI job |
 | `doc/adr/` | — | Architecture Decision Records |
 
@@ -57,7 +57,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
 dotnet test Trinity.Tests/Trinity.Tests.csproj         # 397 passed, 7 skipped (quarantined)
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 23 passed
-dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 7 passed
+dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 28 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
 

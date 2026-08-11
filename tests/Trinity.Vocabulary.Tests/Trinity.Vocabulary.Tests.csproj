@@ -20,11 +20,17 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Trinity\Trinity.csproj" />
     <ProjectReference Include="..\..\Trinity.Vocabulary\Trinity.Vocabulary.csproj" />
+    <!-- Referenced for the manifest reader and the check-mode exit codes, which are internal. -->
+    <ProjectReference Include="..\..\Trinity.Vocabulary.Cli\Trinity.Vocabulary.Cli.csproj" />
   </ItemGroup>
 
-  <!-- The real vocabularies are the test corpus. Two of the filenames contain spaces on purpose. -->
   <ItemGroup>
+    <!-- The real vocabularies are the test corpus, covering RDF/XML, Turtle, N3 and TriG. Two of the
+         filenames contain spaces on purpose. -->
     <None Include="..\..\Trinity.Tests\Ontologies\*.*" LinkBase="Ontologies" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The committed vocabulary classes, copied as data. The compatibility test parses them to prove
+         the generator still produces every member consumers already compile against. -->
+    <None Include="..\..\Trinity.Tests\Ontologies.cs" Link="Committed\Ontologies.cs" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

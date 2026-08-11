@@ -26,30 +26,22 @@
 // Copyright (c) Semiodesk GmbH
 
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using Semiodesk.Trinity.Vocabulary;
 
 namespace Semiodesk.Trinity.Vocabulary.Cli
 {
     /// <summary>
-    /// Entry point for the <c>trinity-vocab</c> tool.
+    /// Entry point for the <c>trinity-vocab</c> tool. Argument handling and usage text only — the work
+    /// lives in <see cref="VocabularyRunner"/> so it can be tested without launching a process.
     /// </summary>
     internal static class Program
     {
-        private const int Success = 0;
-        private const int UsageError = 1;
-        private const int GenerationError = 2;
-        private const int OutOfDate = 3;
-
         private static int Main(string[] args)
         {
             if (args.Length == 0 || IsHelp(args[0]))
             {
                 WriteUsage();
 
-                return args.Length == 0 ? UsageError : Success;
+                return args.Length == 0 ? VocabularyRunner.UsageError : VocabularyRunner.Success;
             }
 
             string manifestPath = args[0];
@@ -66,93 +58,21 @@ namespace Semiodesk.Trinity.Vocabulary.Cli
                     Console.Error.WriteLine($"Unknown option '{args[i]}'.");
                     WriteUsage();
 
-                    return UsageError;
+                    return VocabularyRunner.UsageError;
                 }
             }
 
             try
             {
-                return Run(manifestPath, check);
+                return VocabularyRunner.Run(manifestPath, check, Console.Out, Console.Error);
             }
             catch (Exception exception)
             {
                 Console.Error.WriteLine("error: " + exception.Message);
 
-                return GenerationError;
+                return VocabularyRunner.GenerationError;
             }
         }
-
-        private static int Run(string manifestPath, bool check)
-        {
-            if (!File.Exists(manifestPath))
-            {
-                Console.Error.WriteLine($"error: manifest not found: {manifestPath}");
-
-                return UsageError;
-            }
-
-            // Paths inside the manifest are relative to the manifest itself, so a checked-in manifest
-            // works the same from any working directory.
-            string root = Path.GetDirectoryName(Path.GetFullPath(manifestPath)) ?? ".";
-
-            List<VocabularyDocument> documents = VocabularyManifest.Read(manifestPath, root);
-            var generator = new VocabularyGenerator();
-            int stale = 0;
-
-            foreach (VocabularyDocument document in documents)
-            {
-                string generated = generator.Generate(document);
-                string outputPath = Path.GetFullPath(Path.Combine(root, document.Output));
-
-                if (check)
-                {
-                    if (!File.Exists(outputPath))
-                    {
-                        Console.Error.WriteLine($"out of date: {document.Output} does not exist");
-                        stale++;
-                    }
-                    else if (!Equivalent(File.ReadAllText(outputPath), generated))
-                    {
-                        Console.Error.WriteLine($"out of date: {document.Output} differs from the vocabularies");
-                        stale++;
-                    }
-                    else
-                    {
-                        Console.WriteLine($"up to date: {document.Output}");
-                    }
-
-                    continue;
-                }
-
-                string? directory = Path.GetDirectoryName(outputPath);
-
-                if (!string.IsNullOrEmpty(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
-                File.WriteAllText(outputPath, generated, new UTF8Encoding(false));
-
-                Console.WriteLine($"wrote {document.Output}");
-            }
-
-            if (stale > 0)
-            {
-                Console.Error.WriteLine(
-                    $"{stale} file(s) out of date. Run trinity-vocab without --check to regenerate.");
-
-                return OutOfDate;
-            }
-
-            return Success;
-        }
-
-        /// <summary>
-        /// Compares generated output to a file on disk, ignoring line-ending differences so a checkout
-        /// with normalized endings does not read as out of date.
-        /// </summary>
-        private static bool Equivalent(string left, string right) =>
-            left.Replace("\r\n", "\n") == right.Replace("\r\n", "\n");
 
         private static bool IsHelp(string argument) =>
             argument == "-h" || argument == "--help" || argument == "help";

@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using NUnit.Framework;
@@ -123,7 +124,128 @@ namespace Semiodesk.Trinity.Vocabulary.Tests
         }
 
         /// <summary>
-        /// Output feeds a committed file and a --check comparison, so it has to be stable run to run.
+        /// All four RDF formats in the corpus. TriG matters most: it carries named graphs, so it takes the
+        /// store-parser branch rather than the single-graph one, and nothing else exercises that path.
+        /// </summary>
+        [TestCase("rdf.rdf", "rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#", TestName = "RDF/XML")]
+        [TestCase("rdfs.n3", "rdfs", "http://www.w3.org/2000/01/rdf-schema#", TestName = "N3")]
+        [TestCase("owl.n3", "owl", "http://www.w3.org/2002/07/owl#", TestName = "N3 (owl)")]
+        [TestCase("dces.ttl", "dces", "http://purl.org/dc/elements/1.1/", TestName = "Turtle")]
+        [TestCase("nco.trig", "nco", "http://www.semanticdesktop.org/ontologies/2007/03/22/nco#", TestName = "TriG")]
+        [TestCase("foaf.rdf", "foaf", "http://xmlns.com/foaf/0.1/", TestName = "RDF/XML (foaf)")]
+        public void ReadsEveryFormatInTheCorpus(string file, string prefix, string uri)
+        {
+            string path = Path.Combine(_ontologies, file);
+
+            Assume.That(File.Exists(path), $"Corpus file missing: {path}");
+
+            var vocabulary = new VocabularySource { File = path, Prefix = prefix, Uri = new Uri(uri) };
+
+            IReadOnlyList<VocabularyTerm> terms = _generator.ReadTerms(vocabulary);
+
+            Assert.IsNotEmpty(terms, $"{file} produced no terms, so the format was not parsed.");
+            Assert.IsTrue(terms.All(t => !string.IsNullOrEmpty(t.Name)), "Every term must be nameable.");
+            Assert.IsTrue(terms.Any(t => t.Uri.OriginalString.StartsWith(uri, StringComparison.Ordinal)),
+                "At least some terms must come from the vocabulary's own namespace.");
+        }
+
+        /// <summary>
+        /// The compatibility acceptance: every member of a committed vocabulary class must still be
+        /// generated, with the same name and the same kind.
+        /// </summary>
+        /// <remarks>
+        /// The committed classes were produced by the retired 1.x generator and are public API that
+        /// consumers compile against, so a rename or a changed kind is a silent break. Extra terms are
+        /// fine — the checked-in files predate RDF 1.1 — which is why this asserts a superset rather than
+        /// equality. The committed file is read as text rather than by referencing the test assembly, so
+        /// this stays independent of Trinity.Tests.
+        /// </remarks>
+        [TestCase("rdf", "rdf.rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#")]
+        [TestCase("rdfs", "rdfs.n3", "http://www.w3.org/2000/01/rdf-schema#")]
+        [TestCase("nco", "nco.trig", "http://www.semanticdesktop.org/ontologies/2007/03/22/nco#")]
+        public void GeneratesEveryMemberOfTheCommittedVocabulary(string prefix, string file, string uri)
+        {
+            var committed = ReadCommittedMembers(prefix);
+
+            // Deliberately an assertion, not Assume: a missing or misparsed class would otherwise make
+            // this test pass while comparing nothing, which is exactly how an 'owl' case hid here once.
+            Assert.Greater(committed.Count, 0, $"No committed '{prefix}' class found to compare against.");
+
+            IReadOnlyList<VocabularyTerm> terms = _generator.ReadTerms(new VocabularySource
+            {
+                File = Path.Combine(_ontologies, file),
+                Prefix = prefix,
+                Uri = new Uri(uri)
+            });
+
+            var generated = terms.ToDictionary(t => t.Name, t => t.Kind);
+            var missing = new List<string>();
+
+            foreach (var member in committed)
+            {
+                if (!generated.TryGetValue(member.Key, out string kind))
+                {
+                    missing.Add($"{member.Key} (missing)");
+                }
+                else if (kind != member.Value)
+                {
+                    missing.Add($"{member.Key} (was {member.Value}, now {kind})");
+                }
+            }
+
+            Assert.IsEmpty(missing,
+                $"The generated '{prefix}' vocabulary no longer matches the committed one: " +
+                string.Join(", ", missing));
+        }
+
+        /// <summary>
+        /// Two terms whose local names collide must both be emitted under distinct identifiers. The suffix
+        /// stage is what makes that possible, and ordinal ordering is what makes the suffixes stable.
+        /// </summary>
+        [Test]
+        public void ResolvesCollidingLocalNames()
+        {
+            string file = WriteTurtle("collisions.ttl", @"
+                @prefix ex: <http://example.org/> .
+                @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+                ex:thing a rdf:Property .
+                <http://example.org/nested/thing> a rdf:Property .
+                <http://example.org/other/thing> a rdf:Property .");
+
+            IReadOnlyList<VocabularyTerm> terms = _generator.ReadTerms(new VocabularySource
+            {
+                File = file, Prefix = "ex", Uri = new Uri("http://example.org/")
+            });
+
+            var names = terms.Select(t => t.Name).ToList();
+
+            Assert.AreEqual(3, terms.Count, "Every colliding term must still be emitted.");
+            Assert.AreEqual(3, names.Distinct().Count(), "Names must be unique: " + string.Join(", ", names));
+        }
+
+        /// <summary>
+        /// A term named after the vocabulary class itself would not compile, so it must be renamed.
+        /// </summary>
+        [Test]
+        public void RenamesATermThatCollidesWithTheVocabularyClass()
+        {
+            string file = WriteTurtle("selfname.ttl", @"
+                @prefix ex: <http://example.org/> .
+                @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+                ex:ex a rdf:Property .");
+
+            IReadOnlyList<VocabularyTerm> terms = _generator.ReadTerms(new VocabularySource
+            {
+                File = file, Prefix = "ex", Uri = new Uri("http://example.org/")
+            });
+
+            Assert.IsFalse(terms.Any(t => t.Name == "ex"),
+                "A term may not take the name of the class that contains it.");
+            Assert.AreEqual(1, terms.Count, "It must still be emitted, under another name.");
+        }
+
+        /// <summary>
+        /// Output feeds a committed file and a check-mode comparison, so it has to be stable run to run.
         /// </summary>
         [Test]
         public void OutputIsDeterministic()
@@ -242,6 +364,53 @@ namespace Semiodesk.Trinity.Vocabulary.Tests
 
         private static string Kind(IReadOnlyList<VocabularyTerm> terms, string name) =>
             terms.FirstOrDefault(t => t.Name == name)?.Kind;
+
+        /// <summary>
+        /// Extracts <c>name → kind</c> for one vocabulary class from the committed source, read as text so
+        /// this fixture does not have to reference the assembly that declares it.
+        /// </summary>
+        private static Dictionary<string, string> ReadCommittedMembers(string prefix)
+        {
+            string path = Path.Combine(TestContext.CurrentContext.TestDirectory, "Committed", "Ontologies.cs");
+            var result = new Dictionary<string, string>();
+
+            if (!File.Exists(path))
+            {
+                return result;
+            }
+
+            string[] lines = File.ReadAllLines(path);
+            var declaration = new Regex(@"^\s*public\s+class\s+(\w+)\s*:\s*Ontology\b");
+            var member = new Regex(@"static\s+readonly\s+(Class|Property|Resource)\s+(\w+)\s*=");
+            bool inside = false;
+
+            foreach (string line in lines)
+            {
+                Match start = declaration.Match(line);
+
+                if (start.Success)
+                {
+                    // The classes are siblings, so entering one leaves the previous.
+                    inside = start.Groups[1].Value == prefix;
+
+                    continue;
+                }
+
+                if (!inside)
+                {
+                    continue;
+                }
+
+                Match found = member.Match(line);
+
+                if (found.Success)
+                {
+                    result[found.Groups[2].Value] = found.Groups[1].Value;
+                }
+            }
+
+            return result;
+        }
 
         private string WriteTurtle(string name, string content)
         {

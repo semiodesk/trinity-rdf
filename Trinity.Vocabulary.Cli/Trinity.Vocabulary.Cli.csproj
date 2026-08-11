@@ -23,4 +23,12 @@
     <ProjectReference Include="..\Trinity.Vocabulary\Trinity.Vocabulary.csproj" />
   </ItemGroup>
 
+  <!-- The runner and manifest reader are internal; the tests drive them directly so the check-mode exit
+       codes are covered without launching a process. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Semiodesk.Trinity.Vocabulary.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>
