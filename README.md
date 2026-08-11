@@ -76,6 +76,54 @@ Mapped resources stay open: a `Person` can still carry predicates your class nev
 `ListValues()` returns both the mapped and the unmapped ones. RDF is not forced into a closed
 schema.
 
+## Vocabularies
+
+The examples above spell URIs out in full. In a real model you want them as constants, in classes that
+Trinity also uses to resolve SPARQL prefixes. You can hand-write those classes — nothing requires
+otherwise — or generate them from the RDF with a separate tool:
+
+```bash
+dotnet tool install -g Semiodesk.Trinity.Vocabulary.Tool
+trinity-vocab vocabularies.json
+```
+
+The manifest lists local RDF files with their prefix and namespace, in any format dotNetRDF reads
+(Turtle, TriG, N-Triples, N3, RDF/XML, JSON-LD):
+
+```json
+{
+  "namespace": "My.Project.Vocabularies",
+  "vocabularies": [
+    { "file": "ontologies/foaf.rdf", "prefix": "foaf", "uri": "http://xmlns.com/foaf/0.1/" }
+  ]
+}
+```
+
+Each vocabulary is written to its own `<prefix>.g.cs`, so regenerating one never rewrites another. Commit
+the output; it is ordinary source you review like any other. Two classes are emitted per vocabulary — a
+typed one for runtime use (`foaf.name` as a `Property`) and a `const string` companion for attributes,
+since C# requires attribute arguments to be compile-time constants:
+
+```csharp
+[RdfClass(FOAF.Person)]
+public partial class Person : Resource
+{
+    [RdfProperty(FOAF.name)]
+    public partial string Name { get; set; }
+}
+```
+
+Because the output is committed, it can drift from the ontology. `--check` writes nothing and exits
+non-zero when it has, which makes it usable as a build gate:
+
+```bash
+trinity-vocab vocabularies.json --check
+```
+
+Generation is **author-time, not build-time**: the tool runs when you choose, so builds stay offline and
+reproducible and no RDF parser is loaded into your compiler. Remote vocabularies must be saved locally
+first.
+
 ## Querying
 
 LINQ queries are translated to SPARQL by Trinity's own query provider and executed on the store —

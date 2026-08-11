@@ -4,7 +4,7 @@
 and packs — it does **not** publish. A maintainer publishes to nuget.org by hand, so no NuGet API
 key and no signing secret lives in the repository or in CI.
 
-Four packages ship together at the **same version** (the single `VersionPrefix` in
+Five packages ship together at the **same version** (the single `VersionPrefix` in
 `Directory.Build.props`):
 
 | Package | Notes |
@@ -13,6 +13,7 @@ Four packages ship together at the **same version** (the single `VersionPrefix` 
 | `Semiodesk.Trinity.Virtuoso` | Virtuoso store backend |
 | `Semiodesk.Trinity.Fuseki` | Fuseki store backend |
 | `Semiodesk.Trinity.GraphDB` | GraphDB store backend |
+| `Semiodesk.Trinity.Vocabulary.Tool` | **`dotnet tool`**, command `trinity-vocab` (ADR-0014). Installed with `dotnet tool install -g`, not referenced as a package, but published and pushed the same way |
 
 ## Preconditions (gates)
 
@@ -51,11 +52,13 @@ Do **not** publish until every gate holds:
 # 0. Clean output so only the freshly built packages are pushed
 rm -rf ./artifacts
 
-# 1. Pack all four packages (Release) into ./artifacts
+# 1. Pack all five packages (Release) into ./artifacts.
+#    `dotnet pack Semiodesk.Trinity.sln -c Release -o ./artifacts` does the same in one command.
 dotnet pack Trinity/Trinity.csproj                   -c Release -o ./artifacts
 dotnet pack Trinity.Virtuoso/Trinity.Virtuoso.csproj -c Release -o ./artifacts
 dotnet pack Trinity.Fuseki/Trinity.Fuseki.csproj     -c Release -o ./artifacts
 dotnet pack Trinity.GraphDB/Trinity.GraphDB.csproj   -c Release -o ./artifacts
+dotnet pack Trinity.Vocabulary.Cli/Trinity.Vocabulary.Cli.csproj -c Release -o ./artifacts
 
 # 2. Sanity-check the core package: correct version, and it contains
 #    lib/netstandard2.0 + analyzers/dotnet/cs — and NO tools/ or build/*.targets

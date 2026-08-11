@@ -62,9 +62,12 @@ jobs:
           dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj -c Release --no-build
 
       # Artifacts are only produced on the release branches; publishing stays manual (RELEASING.md).
+      # Packs the solution rather than the core project alone, so every shipping package is produced --
+      # including the trinity-vocab tool, which was previously built but never packed anywhere.
+      # Test projects set IsPackable=false and are skipped.
       - name: Pack
         if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master'
-        run: dotnet pack Trinity/Trinity.csproj -c Release --no-build --output ./artifacts -p:VersionSuffix=${{ steps.version.outputs.suffix }}
+        run: dotnet pack Semiodesk.Trinity.sln -c Release --no-build --output ./artifacts -p:VersionSuffix=${{ steps.version.outputs.suffix }}
 
       - uses: actions/upload-artifact@v7
         if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master'
