@@ -35,13 +35,16 @@ post-build tooling. Read `doc/adr/README.md` for the decisions and history.
 | `Trinity.Virtuoso` | netstandard2.0 | Virtuoso backend — OpenLink provider vendored as a self-recompiled netstandard2.0 DLL (cross-platform) |
 | `Trinity.GraphDB` | netstandard2.0 | GraphDB backend |
 | `Trinity.Fuseki` | netstandard2.0 | Fuseki backend |
+| `Trinity.Vocabulary` | netstandard2.0 | Vocabulary **parse+emit engine** — reads RDF, emits the `Ontology` classes `OntologyDiscovery` reflects on (ADR-0014) |
+| `Trinity.Vocabulary.Cli` | net8.0 | `dotnet tool` front end, command `trinity-vocab`, package `Semiodesk.Trinity.Vocabulary.Tool` |
 | `Trinity.Tests` | net8.0 | NUnit in-memory suite (fully generator-driven, no weaver) |
-| `tests/Trinity.Generator.Tests` | net8.0 | Source-generator validation |
+| `tests/Trinity.Generator.Tests` | net8.0 | Source-generator validation, incl. the TRIN diagnostics |
+| `tests/Trinity.Vocabulary.Tests` | net8.0 | Vocabulary generator + `trinity-vocab`: term classification, all four RDF formats, determinism, sanitization/collisions, manifest reading, the check-mode exit codes, a member-compatibility check against the committed vocabularies, and a round-trip that compiles generated source and asserts `OntologyDiscovery` finds it |
 | `tests/Trinity.Tests.{Virtuoso,Fuseki,GraphDB}` | net8.0 | Store integration tests — self-provision the server via Testcontainers/Docker (ADR-0036); not in the default CI job |
 | `doc/adr/` | — | Architecture Decision Records |
 
 Retired in 2.0: `Trinity.CilGenerator` (the cilg weaver, ADR-0013), `Trinity.OntologyGenerator`
-(net4x vocab tool — ADR-0014 will reintroduce vocab generation as a source generator), the
+(the net4x vocab tool — replaced by `Trinity.Vocabulary` + `trinity-vocab`, ADR-0014), the
 `build/Semiodesk.Trinity.targets`, `build.cake`/`appveyor.yml`, and the `Documentation` docfx
 project (removed from the solution; docs build separately).
 
@@ -52,8 +55,9 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 397 passed, 7 skipped (quarantined)
-dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 4 passed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 398 passed, 7 skipped (quarantined)
+dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 23 passed
+dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
 
@@ -92,19 +96,60 @@ override from `[RdfClass]`.
 
 **Authoring mistakes are diagnostics, not silence.** Each of these compiles fine and produces no
 mapping at all, so they used to surface only as a query returning nothing at runtime — all are
-warnings, declared in `Trinity.Generator/AnalyzerReleases.Unshipped.md`:
+warnings, declared in `Trinity.Generator/AnalyzerReleases.Unshipped.md`. The class-level checks are
+**independent** — a class that is neither `partial` nor has a `(Uri)` constructor reports both, because
+someone migrating a large model wants the whole list from one build:
 
 | Id | Fires when |
 |---|---|
 | `TRIN001` | `[RdfProperty]` on a property that is not `partial` |
-| `TRIN002` | `[RdfClass]` on a class that is not `partial` |
+| `TRIN002` | a mapped class is not `partial` — fires for `[RdfClass]` **and** for a class that merely has `[RdfProperty]` members, once per class, independently of the property-level `TRIN001` |
 | `TRIN003` | the mapped type is nested rather than top-level |
 | `TRIN004` | a mapped class does not derive from `Resource` |
 | `TRIN005` | a mapped class has no accessible `(Uri)` constructor, so `Activator.CreateInstance(type, uri)` cannot materialize it when reading |
- It handles scalars, collections (seeded with a default instance),
-language-invariant strings, resource references, multiple `[RdfClass]`, and inheritance
-(including `GetTypes`-only subclasses). Only `partial` members are processed. The runtime engine
-(`Resource`, `PropertyMapping<T>`, reflective `InitializePropertyMappings`) is unchanged from 1.x.
+| `TRIN006` | a URI belongs to a **generated** vocabulary but is not one of its terms — a typo. Only vocabularies marked `[GeneratedCode("trinity-vocab", …)]` are trusted, since only those list every term; an unknown namespace is never reported |
+
+The generator handles scalars, collections (seeded with a default instance), language-invariant
+strings, resource references, multiple `[RdfClass]`, and inheritance (including `GetTypes`-only
+subclasses). The implementing half copies the declaring declaration's **modifiers verbatim**, so
+accessibility and `new`/`virtual`/`override`/`sealed` match — C# requires both halves to agree, and
+hiding a `Resource` member (`Language`, say) needs `new` on both or it is an unfixable CS8800. Only `partial` members are processed. The runtime engine (`Resource`,
+`PropertyMapping<T>`, reflective `InitializePropertyMappings`) is unchanged from 1.x.
+
+## Vocabularies (ADR-0014)
+
+Vocabulary classes are generated by an author-time tool, not at build time, and the output is
+committed:
+
+```bash
+dotnet tool install -g Semiodesk.Trinity.Vocabulary.Tool
+trinity-vocab vocabularies.json            # write the generated file(s)
+trinity-vocab vocabularies.json --check    # exit 3 if committed output is stale (for CI)
+```
+
+The manifest lists local RDF files with their prefix and namespace URI; `WebSource` and
+`MetadataSource` from the 1.x `ontologies.config` are gone, so resolve remote vocabularies to local
+files yourself. Emitted names are public API and reproduce 1.x exactly — notably keywords are
+prefixed with `_` (`rdf:object` → `_object`), and terms that are neither class nor property are
+emitted as `Resource` (`rdf:nil`, the datatypes).
+
+The generator is **optional and stays that way**: `Trinity.Tests` has **28 hand-written** vocabulary
+classes and **2 generated** ones (`dces`, `owl` — see `Trinity.Tests/Ontologies/vocabularies.json`).
+Each vocabulary is emitted to its own `<prefix>.g.cs`, so regenerating one never rewrites another and
+`--check` names the file that drifted. Both of a vocabulary's classes go in that one file: a file per
+*class* would give `dces.g.cs` and `DCES.g.cs`, which collide on Windows. The two classes are both
+required — attribute arguments must be constants, so `[RdfProperty(FOAF.age)]` needs the `const string`
+companion, while the typed class is what `OntologyDiscovery` and runtime code use.
+`OntologyDiscovery` cannot tell them apart, and `OntologyTest.DiscoversHandWrittenAndGeneratedVocabulariesAlike`
+asserts both routes stay first-class. The hand-written `dc` and generated `dces` deliberately cover the
+same namespace with the same terms, which is the plainest demonstration that they are equivalent. CI runs
+`trinity-vocab --check` so the two committed generated files cannot drift.
+
+`OntologyDiscovery` finds vocabularies **by reflection, not by an interface**: the class must derive
+*directly* from `Ontology`, have a parameterless constructor, and expose static fields named exactly
+`Prefix` and `Namespace` (`Trinity/OntologyDiscovery.cs:93,124-133`). Nothing enforces this at compile
+time, so the round-trip test in `tests/Trinity.Vocabulary.Tests` — which compiles generated source and
+asserts discovery registers it — is the guard.
 
 ## Mental model (grounding decisions — ADR-0016…0035)
 

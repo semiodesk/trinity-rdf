@@ -1,38 +1,101 @@
-# 0014. Reimplement ontology vocabulary generation as a compile-time generator/tool
+# 0014. Reimplement ontology vocabulary generation as a `dotnet tool`
 
-Date: 2026-07-13
+Date: 2026-08-10
 
 ## Status
-**Proposed** — no decision made yet.
+**Accepted (2.0)** — supersedes [0005](0005-ontology-code-generation.md). Closes the last capability
+regression of the revival, which is what makes a 2.0 final release possible rather than another RC.
 
 ## Context
-`OntologyGenerator` ([0005](0005-ontology-code-generation.md)) is a net461 EXE MSBuild task
-with legacy `ConfigurationManager`/`app.config` coupling ([0011](0011-configuration-model.md))
-and buggy config detection. Both external consumers bypass it and hand-write vocabularies —
-evidence the mechanism's ergonomics failed, not that vocab generation is unwanted.
+`OntologyGenerator` ([0005](0005-ontology-code-generation.md)) was a net461 EXE MSBuild task with legacy
+`ConfigurationManager`/`app.config` coupling ([0011](0011-configuration-model.md)) and buggy config
+detection. It was deleted in 2.0 with nothing in its place, so there was **no supported way to generate
+vocabulary classes**. Both external consumers hand-write and commit vocabularies — evidence the
+mechanism's ergonomics failed, not that vocabulary generation is unwanted.
 
-## Decision (proposed)
-Reimplement vocabulary generation for modern .NET. Two shapes are viable:
-1. **Roslyn source generator** consuming `.ttl` files as `AdditionalFiles`, with prefix/
-   namespace supplied via MSBuild item metadata (`CompilerVisibleItemMetadata`), replacing
-   `ontologies.config`. Best DX (live, no files on disk, cross-platform). The tradeoff is the
-   RDF parser runs inside the compiler/IDE — use a lightweight Turtle parser, or dotNetRDF
-   (netstandard2.0) bundled into the analyzer and accept the heavier load.
-2. **netstandard2.0 MSBuild task / `dotnet tool`** that emits `.g.cs` pre-compile — keeps the
-   heavy parser out of the IDE, retains full multi-format fidelity, at the cost of the live DX.
+## Decision
 
-Either way: drop the `app.config` legacy path; forbid build-time network fetches
-(resolve `<websource>` to local files at author time); sort terms for deterministic output.
-Reuse the existing `Templates.cs` emission (typed `Ontology` class + string-constant class)
-largely unchanged.
+A **parse+emit engine plus a CLI front end**, with generated output committed to the consumer's repo.
+
+- `Trinity.Vocabulary` — netstandard2.0, references `dotNetRdf.Core` only. Parses any RDF format,
+  classifies terms, emits C#. Takes typed options; knows nothing about files, JSON or the console.
+- `Trinity.Vocabulary.Cli` — net8.0, `PackAsTool`, command `trinity-vocab`, package
+  `Semiodesk.Trinity.Vocabulary.Tool` (distinct from the engine's assembly name, which NuGet would
+  otherwise reject as an ambiguous project reference). Reads a JSON manifest and drives the engine.
+
+The engine/front-end split is the actual decision: an MSBuild task or source-generator front end can be
+added later without redoing the work.
+
+**Rejected: a Roslyn source generator.** `dotNetRdf.Core` pulls 12 packages including `Newtonsoft.Json`,
+`Microsoft.Extensions.Configuration` and `System.Configuration.ConfigurationManager`. Analyzers ship flat
+under `analyzers/dotnet/cs` with no NuGet resolution, are loaded into every compilation and into the IDE
+process, and `Trinity.Generator` sets `EnforceExtendedAnalyzerRules=true` (which bans file IO outright).
+A source generator would therefore need a hand-written Turtle parser, which would also exclude the
+`.n3`/`.trig`/`.rdf` files in our own corpus. For inputs that change roughly never, live regeneration is
+not worth a permanent parser and a format restriction.
+
+**Parity is on the essentials, not literal.** The 1.x config's `WebSource` (fetch from a URL) and
+`MetadataSource` (a second file describing the ontology itself) are **dropped**: resolve a remote
+vocabulary to a local file yourself, so generation is reproducible and offline. Nothing in the corpus
+exercised `MetadataSource`. This belongs in the release notes.
+
+**Behaviour deliberately reproduced from 1.x**, because the emitted names are public API that consumers
+already compile against:
+
+- Keywords are prefixed with `_`, not `@` — `rdf:object` becomes `_object`, as in the committed
+  vocabularies today.
+- Every IRI subject is a candidate term. Restricting to the declared namespace would be tidier but drops
+  terms the existing vocabularies and tests rely on.
+- Three term categories, not two: `Property` (13 RDF/OWL property types), `Class` (`rdfs:Class`,
+  `owl:Class`), and `Resource` for everything else — `rdf:nil` and the datatypes being the common cases.
+- Collision resolution in three stages: local name, then the URI relative to the namespace, then a
+  numeric suffix.
+
+**One file per vocabulary**, named `<prefix>.g.cs`, holding both of that vocabulary's classes.
+Regenerating one vocabulary then does not rewrite its neighbours, so the diff names what changed and
+`--check` can point at a single file. This also follows the cleaner of the two shapes already in the
+repository — `Trinity.Tests/Linq/ObjectModel/foaf.cs` is one vocabulary per file — rather than the
+27-class `Ontologies.cs`. Note the file must be per *vocabulary* and not per *class*: naming a file per
+class would produce `dces.g.cs` and `DCES.g.cs`, which collide on a case-insensitive filesystem. The
+manifest's `output` is therefore a directory, and optional — omitted, files land beside the manifest.
+
+**Two classes per vocabulary are necessary**, not redundant. C# attribute arguments must be
+compile-time constants, so `[RdfProperty(FOAF.age)]` requires the `const string` companion; the typed
+class (`static readonly Property age`) is what `OntologyDiscovery` reflects on and what runtime code
+uses. Both are load-bearing, and the const class is additionally what `TRIN006` reads.
+
+**The manifest stays.** Deriving prefix and namespace from the RDF itself would be more portable, and
+was considered — but of the five vocabularies in this repository's corpus, **none** declares
+`vann:preferredNamespacePrefix`, and `owl:Ontology` occurrences are unreliable (`owl.n3` has 18 because
+it *defines* the term). Inference would fail outright on `dces` and `nco`. Worse, an inferred prefix
+decides a *class name*: a heuristic change would silently rename public API, which is the class of break
+this design is otherwise careful to avoid. Explicit declaration is the feature.
+
+**Improvements over 1.x:** deterministic ordering (terms sorted ordinal by URI, which also stabilizes the
+collision suffixes), an `<auto-generated/>` header, `#pragma warning disable CS8981` for the lowercase
+prefix-named classes, XML-escaped doc comments (1.x emitted `rdfs:comment` raw, so markup produced
+malformed XML docs), and a `--check` mode that fails CI when committed output no longer matches the
+vocabularies.
 
 ## Consequences
-- Cross-platform vocab generation with no net461 EXE.
-- Option 1 packages naturally alongside the mapping generator
-  ([0013](0013-replace-il-weaving-with-source-generator.md)) in one analyzer package, and can
-  expose the `prefix:term → URI` map for compile-time validation of `[RdfProperty(Vocab.X)]`.
-- Lower priority than the mapping generator, since consumers currently hand-write vocab and
-  are unblocked.
+- Vocabulary generation works cross-platform with no net461 EXE and no build-time coupling.
+- Generated code is committed, so it is reviewable and builds stay hermetic; the cost is remembering to
+  regenerate, which `--check` converts into a CI failure.
+- The emission contract is **enforced by nothing at compile time**: `OntologyDiscovery` finds
+  vocabularies purely by reflection (a class deriving *directly* from `Ontology`, a parameterless
+  constructor, static fields named exactly `Prefix` and `Namespace` —
+  `Trinity/OntologyDiscovery.cs:93,124-133`). The round-trip test that compiles generated source and
+  asserts discovery actually registers it is therefore the load-bearing test, not the golden files.
+- The `const string` companion class gives `TRIN006` its set of known term URIs via
+  `IFieldSymbol.ConstantValue`, with no RDF parsing in the compiler. Both emitted classes carry
+  `[GeneratedCode("trinity-vocab", "2.0")]`, which is load-bearing rather than cosmetic: the analyzer
+  trusts only marked vocabularies, because only a generated one is known to list every term. Validating
+  against a partially hand-written vocabulary would flag correct URIs, and a rule that cries wolf gets
+  suppressed together with TRIN001-005. The version is coarse so regeneration does not churn per patch.
+- Regenerating the repository's own `rdf` vocabulary produced three terms the committed file lacks
+  (`rdf:HTML`, `rdf:PlainLiteral`, `rdf:langString` — RDF 1.1 datatypes). Additive only, no renames or
+  changed kinds, which is both a useful demonstration of the drift `--check` prevents and evidence the
+  emission is compatible.
 
 ## Related
 - [0005](0005-ontology-code-generation.md), [0011](0011-configuration-model.md),

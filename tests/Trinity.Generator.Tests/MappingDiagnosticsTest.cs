@@ -55,6 +55,109 @@ namespace Semiodesk.Trinity.Generator.Tests
             Assert.That(Message(diagnostics), Does.Contain("Thing").And.Contain("GetTypes"));
         }
 
+        /// <summary>
+        /// The migration case: nothing is partial yet. Reported during a 1.x → 2.0 migration of a 163-file
+        /// model, where a silent build wrote every resource untyped and 837 tests failed with queries
+        /// returning nothing. The class-level diagnostic must not depend on the properties being fixed
+        /// first, because on the first build of a migration nothing has been converted at all.
+        /// </summary>
+        [Test]
+        public void ReportsTheClassEvenWhenItsPropertiesAreAlsoNotPartial()
+        {
+            var diagnostics = Run(@"
+                using System;
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Person"")]
+                public class Person : Resource
+                {
+                    public Person(Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/name"")]
+                    public string Name { get; set; }
+
+                    [RdfProperty(""http://example.org/age"")]
+                    public int Age { get; set; }
+                }");
+
+            Assert.AreEqual(1, diagnostics.Count(d => d.Id == "TRIN002"),
+                "The class must be reported exactly once: " + Describe(diagnostics));
+            Assert.AreEqual(2, diagnostics.Count(d => d.Id == "TRIN001"),
+                "Each unconverted property must still be reported: " + Describe(diagnostics));
+        }
+
+        /// <summary>
+        /// A class with mapped properties but no <c>[RdfClass]</c> of its own — the GetTypes-only subclass
+        /// pattern — must still be told it needs to be partial, and only once however many properties it
+        /// has.
+        /// </summary>
+        [Test]
+        public void ReportsAClassWithMappedPropertiesButNoRdfClass()
+        {
+            var diagnostics = Run(@"
+                using System;
+                using Semiodesk.Trinity;
+
+                public class Employee : Resource
+                {
+                    public Employee(Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/salary"")]
+                    public int Salary { get; set; }
+
+                    [RdfProperty(""http://example.org/title"")]
+                    public string Title { get; set; }
+                }");
+
+            Assert.AreEqual(1, diagnostics.Count(d => d.Id == "TRIN002"),
+                "The class must be reported once, not once per property: " + Describe(diagnostics));
+        }
+
+        /// <summary>
+        /// The checks are independent, so a class that is both non-partial and missing its Uri constructor
+        /// reports both rather than surfacing one problem per build.
+        /// </summary>
+        [Test]
+        public void ReportsEveryApplicableClassProblemAtOnce()
+        {
+            var diagnostics = Run(@"
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public class Thing : Resource
+                {
+                    public Thing(string uri) : base(uri) { }
+                }");
+
+            var ids = diagnostics.Select(d => d.Id).OrderBy(id => id).ToList();
+
+            Assert.Contains("TRIN002", ids, "not partial: " + Describe(diagnostics));
+            Assert.Contains("TRIN005", ids, "no Uri constructor: " + Describe(diagnostics));
+        }
+
+        /// <summary>
+        /// The regression guard for the previous behaviour: once the class is partial, an unconverted
+        /// property is still reported and the class is not.
+        /// </summary>
+        [Test]
+        public void ReportsOnlyThePropertyWhenTheClassIsAlreadyPartial()
+        {
+            var diagnostics = Run(@"
+                using System;
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Person"")]
+                public partial class Person : Resource
+                {
+                    public Person(Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/name"")]
+                    public string Name { get; set; }
+                }");
+
+            Assert.AreEqual("TRIN001", SingleId(diagnostics));
+        }
+
         [Test]
         public void ReportsNestedMappedType()
         {
@@ -183,6 +286,11 @@ namespace Semiodesk.Trinity.Generator.Tests
 
             return diagnostics[0].Id;
         }
+
+        private static string Describe(ImmutableArray<Diagnostic> diagnostics) =>
+            diagnostics.Length == 0
+                ? "no diagnostics"
+                : string.Join("; ", diagnostics.Select(d => d.Id + " " + d.GetMessage()));
 
         private static string Message(ImmutableArray<Diagnostic> diagnostics) =>
             diagnostics[0].GetMessage();

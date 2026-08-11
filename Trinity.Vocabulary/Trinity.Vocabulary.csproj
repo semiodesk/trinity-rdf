@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>Semiodesk.Trinity.Vocabulary</AssemblyName>
+    <RootNamespace>Semiodesk.Trinity.Vocabulary</RootNamespace>
+    <Title>Semiodesk.Trinity.Vocabulary</Title>
+    <Description>Parses RDF vocabularies and emits the C# classes Semiodesk.Trinity discovers at runtime.</Description>
+    <!-- Shipped inside the trinity-vocab tool package rather than on its own. netstandard2.0 keeps the
+         door open for an MSBuild-task or source-generator front end later. -->
+    <IsPackable>false</IsPackable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Deliberately dotNetRDF only, not Trinity: parsing through Trinity's own store would drag in
+         MappingDiscovery/OntologyDiscovery global state, which a build tool must not depend on. -->
+    <PackageReference Include="dotNetRdf.Core" />
+  </ItemGroup>
+
+</Project>

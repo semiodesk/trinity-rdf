@@ -25,6 +25,7 @@
 //
 // Copyright (c) Semiodesk GmbH
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -103,11 +104,20 @@ namespace Semiodesk.Trinity.Generator
                 aggregate.Properties.Add(property);
             }
 
+            // Classes carrying [RdfClass] are the authority on their own partial-ness, so they are
+            // reported first and their locations remembered.
+            var reportedClasses = new HashSet<Location>();
+
             foreach (ClassResult result in classes)
             {
-                if (result.Diagnostic is not null)
+                foreach (DiagnosticInfo diagnostic in result.Diagnostics)
                 {
-                    context.ReportDiagnostic(result.Diagnostic.ToDiagnostic());
+                    context.ReportDiagnostic(diagnostic.ToDiagnostic());
+
+                    if (diagnostic.Descriptor.Equals(MappingDiagnostics.ClassMustBePartial))
+                    {
+                        reportedClasses.Add(diagnostic.Location);
+                    }
                 }
 
                 if (result.Info is not ClassInfo cls)
@@ -122,6 +132,18 @@ namespace Semiodesk.Trinity.Generator
                 }
 
                 aggregate.ClassUris = cls.ClassUris;
+            }
+
+            // A class with mapped properties but no [RdfClass] of its own would otherwise only produce
+            // per-property warnings and never be named. Deduplicated against the loop above.
+            foreach (PropertyResult result in properties)
+            {
+                DiagnosticInfo? containing = result.ContainingClassNotPartial;
+
+                if (containing is not null && reportedClasses.Add(containing.Location))
+                {
+                    context.ReportDiagnostic(containing.ToDiagnostic());
+                }
             }
 
             foreach (var entry in types)
@@ -170,7 +192,8 @@ namespace Semiodesk.Trinity.Generator
 
                 source.AppendLine(");");
 
-                source.Append("        public partial ").Append(p.PropertyType).Append(' ').AppendLine(p.PropertyName);
+                source.Append("        ").Append(p.Modifiers).Append(' ').Append(p.PropertyType)
+                    .Append(' ').AppendLine(p.PropertyName);
                 source.AppendLine("        {");
                 source.Append("            get { return GetValue(").Append(field).AppendLine("); }");
                 source.Append("            set { SetValue(").Append(field).AppendLine(", value); }");
@@ -299,10 +322,54 @@ namespace Semiodesk.Trinity.Generator
         }
 
         /// <summary>The outcome of inspecting one <c>[RdfProperty]</c> declaration.</summary>
-        private sealed record PropertyResult(PropertyInfo? Info, DiagnosticInfo? Diagnostic);
+        /// <remarks>
+        /// <paramref name="ContainingClassNotPartial"/> is carried here so a class that has mapped
+        /// properties but no <c>[RdfClass]</c> is still told it needs to be partial. Without it, such a
+        /// class produces only per-property warnings and never names the class itself.
+        /// </remarks>
+        private sealed record PropertyResult(
+            PropertyInfo? Info,
+            DiagnosticInfo? Diagnostic,
+            DiagnosticInfo? ContainingClassNotPartial);
 
         /// <summary>The outcome of inspecting one <c>[RdfClass]</c> declaration.</summary>
-        private sealed record ClassResult(ClassInfo? Info, DiagnosticInfo? Diagnostic);
+        /// <remarks>
+        /// Holds every applicable diagnostic rather than the first one. The checks are independent — a
+        /// class can be non-partial *and* lack a Uri constructor — and someone migrating a large model
+        /// wants the whole list in one build, not one item per build. Equality is structural so the
+        /// incremental pipeline still caches.
+        /// </remarks>
+        private sealed class ClassResult : IEquatable<ClassResult>
+        {
+            public ClassResult(ClassInfo? info, ImmutableArray<DiagnosticInfo> diagnostics)
+            {
+                Info = info;
+                Diagnostics = diagnostics;
+            }
+
+            public ClassInfo? Info { get; }
+
+            public ImmutableArray<DiagnosticInfo> Diagnostics { get; }
+
+            public bool Equals(ClassResult? other) =>
+                other is not null &&
+                Equals(Info, other.Info) &&
+                Diagnostics.SequenceEqual(other.Diagnostics);
+
+            public override bool Equals(object? other) => Equals(other as ClassResult);
+
+            public override int GetHashCode()
+            {
+                int hash = Info?.GetHashCode() ?? 0;
+
+                foreach (DiagnosticInfo diagnostic in Diagnostics)
+                {
+                    hash = (hash * 397) ^ diagnostic.GetHashCode();
+                }
+
+                return hash;
+            }
+        }
 
         private static string GetNamespace(INamedTypeSymbol type) =>
             type.ContainingNamespace.IsGlobalNamespace ? string.Empty : type.ContainingNamespace.ToDisplayString();
@@ -341,6 +408,16 @@ namespace Semiodesk.Trinity.Generator
             public List<PropertyInfo> Properties { get; } = new List<PropertyInfo>();
         }
 
+        /// <summary>
+        /// One mapped property, as the implementing half needs to be written.
+        /// </summary>
+        /// <param name="Modifiers">
+        /// The declaring declaration's modifiers, verbatim. C# requires both halves of a partial property
+        /// to agree on accessibility and on the <c>virtual</c>/<c>override</c>/<c>sealed</c>/<c>new</c>
+        /// combination, so these are copied rather than assumed — hardcoding <c>public partial</c> made
+        /// <c>public new partial</c> an unfixable CS8800, and any non-public mapped property a CS8799.
+        /// Copying the list verbatim also preserves the author's ordering, which C# allows to vary.
+        /// </param>
         private sealed record PropertyInfo(
             string TypeKey,
             string Namespace,
@@ -349,27 +426,53 @@ namespace Semiodesk.Trinity.Generator
             string PropertyType,
             string Uri,
             bool LanguageInvariant,
-            string? CollectionConcreteType)
+            string? CollectionConcreteType,
+            string Modifiers)
         {
             public static PropertyResult From(GeneratorAttributeSyntaxContext ctx)
             {
                 if (ctx.TargetSymbol is not IPropertySymbol prop)
                 {
-                    return new PropertyResult(null, null);
+                    return new PropertyResult(null, null, null);
                 }
 
                 Location location = IdentifierLocation(ctx.TargetNode);
 
+                // Verbatim, so accessibility and the new/virtual/override/sealed combination match the
+                // declaring half exactly. 'partial' is already among them, since only partial members
+                // reach emission.
+                string modifiers = ctx.TargetNode is PropertyDeclarationSyntax declaration
+                    ? string.Join(" ", declaration.Modifiers.Select(m => m.Text))
+                    : "public partial";
+
+                // Reported even when the class carries no [RdfClass] of its own, so a class with only
+                // mapped properties is still told it must be partial. Deduplicated in Emit against the
+                // [RdfClass] pipeline, which reports the same thing for classes that have one.
+                DiagnosticInfo? containingClassNotPartial = null;
+                ClassDeclarationSyntax? containingClass =
+                    ctx.TargetNode.FirstAncestorOrSelf<ClassDeclarationSyntax>();
+
+                if (containingClass is not null &&
+                    !containingClass.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)))
+                {
+                    containingClassNotPartial = new DiagnosticInfo(
+                        MappingDiagnostics.ClassMustBePartial,
+                        containingClass.Identifier.GetLocation(),
+                        containingClass.Identifier.ValueText);
+                }
+
                 if (!IsPartial(ctx.TargetNode))
                 {
                     return new PropertyResult(null, new DiagnosticInfo(
-                        MappingDiagnostics.PropertyMustBePartial, location, prop.Name));
+                        MappingDiagnostics.PropertyMustBePartial, location, prop.Name),
+                        containingClassNotPartial);
                 }
 
                 if (!IsTopLevel(prop.ContainingType))
                 {
                     return new PropertyResult(null, new DiagnosticInfo(
-                        MappingDiagnostics.TypeMustBeTopLevel, location, prop.ContainingType.Name));
+                        MappingDiagnostics.TypeMustBeTopLevel, location, prop.ContainingType.Name),
+                        containingClassNotPartial);
                 }
 
                 AttributeData attribute = ctx.Attributes[0];
@@ -377,7 +480,7 @@ namespace Semiodesk.Trinity.Generator
                 if (attribute.ConstructorArguments.Length == 0 ||
                     attribute.ConstructorArguments[0].Value is not string uri)
                 {
-                    return new PropertyResult(null, null);
+                    return new PropertyResult(null, null, containingClassNotPartial);
                 }
 
                 bool languageInvariant =
@@ -402,7 +505,8 @@ namespace Semiodesk.Trinity.Generator
                     prop.Type.ToDisplayString(TypeFormat),
                     uri,
                     languageInvariant,
-                    GetCollectionConcreteType(prop.Type)), null);
+                    GetCollectionConcreteType(prop.Type),
+                    modifiers), null, containingClassNotPartial);
             }
         }
 
@@ -416,51 +520,58 @@ namespace Semiodesk.Trinity.Generator
             {
                 if (ctx.TargetSymbol is not INamedTypeSymbol type)
                 {
-                    return new ClassResult(null, null);
+                    return new ClassResult(null, ImmutableArray<DiagnosticInfo>.Empty);
                 }
 
                 Location location = IdentifierLocation(ctx.TargetNode);
+                var diagnostics = ImmutableArray.CreateBuilder<DiagnosticInfo>();
 
-                // Reported one at a time, most fundamental first: each of these stops the mapping from
-                // being generated, so there is no value in listing the consequences of the first.
-                if (!IsPartial(ctx.TargetNode))
+                // Every applicable check is reported, not just the first. They are independent — a class
+                // can be non-partial *and* lack a Uri constructor — and someone migrating a large model
+                // wants the full list from one build rather than one problem per build.
+                bool partial = IsPartial(ctx.TargetNode);
+                bool topLevel = IsTopLevel(type);
+                bool resource = DerivesFromResource(type);
+
+                if (!partial)
                 {
-                    return new ClassResult(null, new DiagnosticInfo(
+                    diagnostics.Add(new DiagnosticInfo(
                         MappingDiagnostics.ClassMustBePartial, location, type.Name));
                 }
 
-                if (!IsTopLevel(type))
+                if (!topLevel)
                 {
-                    return new ClassResult(null, new DiagnosticInfo(
+                    diagnostics.Add(new DiagnosticInfo(
                         MappingDiagnostics.TypeMustBeTopLevel, location, type.Name));
                 }
 
-                if (!DerivesFromResource(type))
+                if (!resource)
                 {
-                    return new ClassResult(null, new DiagnosticInfo(
+                    diagnostics.Add(new DiagnosticInfo(
                         MappingDiagnostics.ClassMustDeriveFromResource, location, type.Name));
+                }
+
+                if (!HasUriConstructor(type))
+                {
+                    diagnostics.Add(new DiagnosticInfo(
+                        MappingDiagnostics.ClassNeedsUriConstructor, location, type.Name));
                 }
 
                 string uris = string.Join("\n", ctx.Attributes
                     .Select(a => a.ConstructorArguments.Length > 0 ? a.ConstructorArguments[0].Value as string : null)
                     .Where(s => !string.IsNullOrEmpty(s)));
 
-                if (uris.Length == 0)
-                {
-                    return new ClassResult(null, null);
-                }
+                // Emission still requires every structural condition. A missing Uri constructor does not
+                // stop it: the mapping itself is correct, only materialization from a store would fail.
+                ClassInfo? info = partial && topLevel && resource && uris.Length > 0
+                    ? new ClassInfo(
+                        type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                        GetNamespace(type),
+                        GetTypeName(type),
+                        uris)
+                    : null;
 
-                // A missing constructor does not stop generation — the mapping is still correct, the type
-                // just cannot be read back from a store — so the mapping is emitted alongside the warning.
-                DiagnosticInfo? constructor = HasUriConstructor(type)
-                    ? null
-                    : new DiagnosticInfo(MappingDiagnostics.ClassNeedsUriConstructor, location, type.Name);
-
-                return new ClassResult(new ClassInfo(
-                    type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                    GetNamespace(type),
-                    GetTypeName(type),
-                    uris), constructor);
+                return new ClassResult(info, diagnostics.ToImmutable());
             }
         }
     }

@@ -27,6 +27,32 @@ namespace Semiodesk.Trinity.Generator.Tests
         public partial List<Person> Knows { get; set; }
     }
 
+    /// <summary>
+    /// A mapped property that hides a member of <c>Resource</c>. <c>Resource.Language</c> is Trinity's
+    /// literal language tag; a domain model may legitimately mean something else by the name, and C# says
+    /// to write <c>new</c>. That has to survive into the generated half or the build fails with CS8800,
+    /// with no in-language escape: keeping <c>new</c> is an error, dropping it is a CS0108 warning whose
+    /// advice is the thing that just failed.
+    ///
+    /// This class compiling at all is the regression test.
+    /// </summary>
+    [RdfClass("http://example.org/test/Document")]
+    public partial class HidingDocument : Resource
+    {
+        public HidingDocument(Uri uri) : base(uri) { }
+
+        [RdfProperty("http://example.org/test/language")]
+        public new partial string Language { get; set; }
+
+        /// <summary>Non-public accessibility has to round-trip too, or it is CS8799.</summary>
+        [RdfProperty("http://example.org/test/internalNote")]
+        internal partial string InternalNote { get; set; }
+
+        /// <summary>A virtual mapped property: the same CS8800 sentence as <c>new</c>.</summary>
+        [RdfProperty("http://example.org/test/subject")]
+        public virtual partial string Subject { get; set; }
+    }
+
     [TestFixture]
     public class GeneratorMappingTest
     {
@@ -34,6 +60,50 @@ namespace Semiodesk.Trinity.Generator.Tests
         public void Setup()
         {
             MappingDiscovery.RegisterAssembly(typeof(Person).Assembly);
+        }
+
+        /// <summary>
+        /// The hiding property has its own storage, distinct from the member it hides.
+        /// </summary>
+        /// <remarks>
+        /// Note what hiding does <b>not</b> do: <c>Resource.Language</c> stays load-bearing. Setting it
+        /// switches every mapped string property to a language-tagged view, so reading the mapped property
+        /// afterwards resolves against that language and finds nothing. Hiding the name makes the mechanism
+        /// harder to reach, not inactive — hence the ordering here.
+        /// </remarks>
+        [Test]
+        public void HidingPropertyHasItsOwnStorage()
+        {
+            var document = new HidingDocument(new Uri("http://example.org/test/doc"));
+
+            document.Language = "de-DE";
+
+            Assert.AreEqual("de-DE", document.Language, "The mapped property holds its own value.");
+            Assert.IsNull(((Resource)document).Language, "Writing the mapped property must not set Resource.Language.");
+
+            ((Resource)document).Language = "en";
+
+            Assert.AreEqual("en", ((Resource)document).Language, "Resource.Language remains reachable via a cast.");
+        }
+
+        /// <summary>
+        /// Modifiers other than <c>new</c> fall under the same CS8800 rule, and non-public accessibility
+        /// under CS8799. Reaching these members at all proves the generated half agreed.
+        /// </summary>
+        [Test]
+        public void CarriesAccessibilityAndVirtualOntoTheGeneratedHalf()
+        {
+            var document = new HidingDocument(new Uri("http://example.org/test/doc"));
+
+            document.InternalNote = "note";
+            document.Subject = "subject";
+
+            Assert.AreEqual("note", document.InternalNote);
+            Assert.AreEqual("subject", document.Subject);
+
+            var property = typeof(HidingDocument).GetProperty("Subject");
+
+            Assert.IsTrue(property!.GetMethod!.IsVirtual, "'virtual' must survive into the generated half.");
         }
 
         [Test]

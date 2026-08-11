@@ -44,9 +44,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="ontologies.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="ontologies\foaf.rdf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

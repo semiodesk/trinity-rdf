@@ -10,3 +10,4 @@ TRIN002 | Trinity.Mapping | Warning | [RdfClass] on a class that is not partial,
 TRIN003 | Trinity.Mapping | Warning | Mapped type is nested; mapping is only generated for top-level types
 TRIN004 | Trinity.Mapping | Warning | Mapped class does not derive from Semiodesk.Trinity.Resource
 TRIN005 | Trinity.Mapping | Warning | Mapped class has no accessible constructor taking a single Uri
+TRIN006 | Trinity.Mapping | Warning | URI belongs to a generated vocabulary but is not one of its terms

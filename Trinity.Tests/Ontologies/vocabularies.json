@@ -1,0 +1,20 @@
+{
+  "//": "Input for the trinity-vocab tool (ADR-0014). Regenerate with:",
+  "//  ": "  trinity-vocab Trinity.Tests/Ontologies/vocabularies.json",
+  "// ": "CI runs it with --check, so a stale file fails the build. Each vocabulary is written to its own <prefix>.g.cs beside this manifest.",
+  "// dces and owl are generated on purpose": "the other 28 vocabulary classes in this project are hand-written and stay that way, because the generator is optional — nothing in Trinity requires generated vocabulary.",
+
+  "namespace": "Semiodesk.Trinity.Ontologies",
+  "vocabularies": [
+    {
+      "file": "dces.ttl",
+      "prefix": "dces",
+      "uri": "http://purl.org/dc/elements/1.1/"
+    },
+    {
+      "file": "owl.n3",
+      "prefix": "owl",
+      "uri": "http://www.w3.org/2002/07/owl#"
+    }
+  ]
+}
