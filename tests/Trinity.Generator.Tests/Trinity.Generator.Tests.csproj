@@ -5,6 +5,7 @@
     <AssemblyName>Semiodesk.Trinity.Generator.Tests</AssemblyName>
     <RootNamespace>Semiodesk.Trinity.Generator.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   </PropertyGroup>
 
   <ItemGroup>

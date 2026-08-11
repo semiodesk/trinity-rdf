@@ -56,7 +56,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
 dotnet test Trinity.Tests/Trinity.Tests.csproj         # 397 passed, 7 skipped (quarantined)
-dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 21 passed
+dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 23 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 7 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
@@ -111,7 +111,9 @@ someone migrating a large model wants the whole list from one build:
 
 The generator handles scalars, collections (seeded with a default instance), language-invariant
 strings, resource references, multiple `[RdfClass]`, and inheritance (including `GetTypes`-only
-subclasses). Only `partial` members are processed. The runtime engine (`Resource`,
+subclasses). The implementing half copies the declaring declaration's **modifiers verbatim**, so
+accessibility and `new`/`virtual`/`override`/`sealed` match — C# requires both halves to agree, and
+hiding a `Resource` member (`Language`, say) needs `new` on both or it is an unfixable CS8800. Only `partial` members are processed. The runtime engine (`Resource`,
 `PropertyMapping<T>`, reflective `InitializePropertyMappings`) is unchanged from 1.x.
 
 ## Vocabularies (ADR-0014)

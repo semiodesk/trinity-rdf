@@ -192,7 +192,8 @@ namespace Semiodesk.Trinity.Generator
 
                 source.AppendLine(");");
 
-                source.Append("        public partial ").Append(p.PropertyType).Append(' ').AppendLine(p.PropertyName);
+                source.Append("        ").Append(p.Modifiers).Append(' ').Append(p.PropertyType)
+                    .Append(' ').AppendLine(p.PropertyName);
                 source.AppendLine("        {");
                 source.Append("            get { return GetValue(").Append(field).AppendLine("); }");
                 source.Append("            set { SetValue(").Append(field).AppendLine(", value); }");
@@ -407,6 +408,16 @@ namespace Semiodesk.Trinity.Generator
             public List<PropertyInfo> Properties { get; } = new List<PropertyInfo>();
         }
 
+        /// <summary>
+        /// One mapped property, as the implementing half needs to be written.
+        /// </summary>
+        /// <param name="Modifiers">
+        /// The declaring declaration's modifiers, verbatim. C# requires both halves of a partial property
+        /// to agree on accessibility and on the <c>virtual</c>/<c>override</c>/<c>sealed</c>/<c>new</c>
+        /// combination, so these are copied rather than assumed — hardcoding <c>public partial</c> made
+        /// <c>public new partial</c> an unfixable CS8800, and any non-public mapped property a CS8799.
+        /// Copying the list verbatim also preserves the author's ordering, which C# allows to vary.
+        /// </param>
         private sealed record PropertyInfo(
             string TypeKey,
             string Namespace,
@@ -415,7 +426,8 @@ namespace Semiodesk.Trinity.Generator
             string PropertyType,
             string Uri,
             bool LanguageInvariant,
-            string? CollectionConcreteType)
+            string? CollectionConcreteType,
+            string Modifiers)
         {
             public static PropertyResult From(GeneratorAttributeSyntaxContext ctx)
             {
@@ -425,6 +437,13 @@ namespace Semiodesk.Trinity.Generator
                 }
 
                 Location location = IdentifierLocation(ctx.TargetNode);
+
+                // Verbatim, so accessibility and the new/virtual/override/sealed combination match the
+                // declaring half exactly. 'partial' is already among them, since only partial members
+                // reach emission.
+                string modifiers = ctx.TargetNode is PropertyDeclarationSyntax declaration
+                    ? string.Join(" ", declaration.Modifiers.Select(m => m.Text))
+                    : "public partial";
 
                 // Reported even when the class carries no [RdfClass] of its own, so a class with only
                 // mapped properties is still told it must be partial. Deduplicated in Emit against the
@@ -486,7 +505,8 @@ namespace Semiodesk.Trinity.Generator
                     prop.Type.ToDisplayString(TypeFormat),
                     uri,
                     languageInvariant,
-                    GetCollectionConcreteType(prop.Type)), null, containingClassNotPartial);
+                    GetCollectionConcreteType(prop.Type),
+                    modifiers), null, containingClassNotPartial);
             }
         }
 
