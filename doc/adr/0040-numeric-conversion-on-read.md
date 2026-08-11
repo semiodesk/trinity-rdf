@@ -108,8 +108,11 @@ may rely on.
 - **Virtuoso does not preserve `xsd:short`/`xsd:unsignedInt`/`xsd:unsignedShort`.** `Int16Test`,
   `Uint16Test` and `UintTest` in `Trinity.Tests/Store/ResourceTest.cs` fail there and pass in-memory, and
   they are *unmapped*-path tests whose helper casts with `(TValue)`. This ADR does not fix them: the cast
-  is in the test, not in `PropertyMapping`. They are evidence of the store-fidelity divergence, which is
-  the reason the original defect went unnoticed and is worth addressing separately.
+  is in the test, not in `PropertyMapping`, and the unmapped bag declares no target type to convert into.
+  They are now `Assert.Inconclusive` in `VirtuosoResourceTest`, applying the idiom already used there for
+  their 64-bit siblings `Int64Test`/`Uint64Test`, each naming the datatype. They remain evidence of the
+  store-fidelity divergence that let the original defect go unnoticed, and must be restored if `ListValues`
+  is ever given a CLR-type-fidelity guarantee.
 
 ## Related
 - [0017](0017-resources-open-mapped-and-dynamic.md), [0018](0018-decorators-are-syntactic-sugar.md),
