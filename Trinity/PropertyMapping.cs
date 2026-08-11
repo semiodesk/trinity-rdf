@@ -303,9 +303,10 @@ namespace Semiodesk.Trinity
 
                         return;
                     }
-                    else if (t.IsValueType && ((IPropertyMapping)this).IsTypeCompatible(t))
+                    else if (t.IsValueType &&
+                             NumericConversion.TryConvert(value, _genericType, out object convertedItem))
                     {
-                        list.Add(Convert.ChangeType(value, _genericType));
+                        list.Add(convertedItem);
                         _isUnsetValue = false;
 
                         return;
@@ -330,9 +331,9 @@ namespace Semiodesk.Trinity
 
                     return;
                 }
-                else if(t.IsValueType && ((IPropertyMapping)this).IsTypeCompatible(t))
+                else if (t.IsValueType && NumericConversion.TryConvert(value, _dataType, out object converted))
                 {
-                    _value = (T)Convert.ChangeType(value, _dataType);
+                    _value = (T)converted;
                     _isUnsetValue = false;
 
                     return;
@@ -455,14 +456,41 @@ namespace Semiodesk.Trinity
                 mappingType = _genericType;
             }
 
-            if( IsNumericType(type) )
+            // NumericConversion is the single authority: the setter below converts with the same rules,
+            // so the gate and the conversion cannot disagree. It also unwraps Nullable<T>, which the old
+            // precision check did not — every nullable numeric property was unreadable as a result.
+            if (NumericConversion.IsNumeric(type) && NumericConversion.IsNumeric(mappingType))
             {
-                return IsPrecisionCompatible(type, mappingType);
+                return NumericConversion.IsWideningTo(type, mappingType);
             }
             else
             {
                 return (mappingType.IsAssignableFrom(type) || typeof(Resource).IsAssignableFrom(mappingType) && typeof(Resource).IsAssignableFrom(type) || (typeof(Uri).IsAssignableFrom(mappingType) && typeof(Resource).IsAssignableFrom(type)) );
             }
+        }
+
+        /// <summary>
+        /// Indicates if a particular value can be set on this mapping.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns><c>true</c> if the value can be set.</returns>
+        bool IPropertyMapping.IsValueCompatible(object value)
+        {
+            if (value == null)
+            {
+                return false;
+            }
+
+            Type mappingType = _isList ? _genericType : _dataType;
+
+            // Numerics are value-aware: an exact integral narrowing is acceptable even though the types
+            // alone would refuse it. Everything else falls back to the type-only question.
+            if (NumericConversion.IsNumeric(value.GetType()) && NumericConversion.IsNumeric(mappingType))
+            {
+                return NumericConversion.CanConvert(value, mappingType);
+            }
+
+            return ((IPropertyMapping)this).IsTypeCompatible(value.GetType());
         }
 
         /// <summary>
@@ -489,46 +517,6 @@ namespace Semiodesk.Trinity
                 default:
                     return false;
             }
-        }
-
-        /// <summary>
-        /// Indicates if the precision of a numeric target type is greater or equal to a given source type.
-        /// </summary>
-        /// <param name="source">The source type.</param>
-        /// <param name="target">The target type.</param>
-        /// <returns><c>true</c> if the types are precision compatible, <c>false</c> otherwise.</returns>
-        public bool IsPrecisionCompatible(Type source, Type target)
-        {
-            if (target == typeof(Double))
-            {
-                return true;
-            }
-            
-            if (target == typeof(Single))
-            {
-                if (source == typeof(Double))
-                {
-                    return false;
-                }
-                else
-                {
-                    return true;
-                }
-            }
-
-            if (target == typeof(Decimal))
-            {
-                if (source == typeof(Double) || source == typeof(Single))
-                {
-                    return false;
-                }
-                else
-                {
-                    return true;
-                }
-            }
-
-            return true;   
         }
 
         /// <summary>
