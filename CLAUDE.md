@@ -71,6 +71,10 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   with a Docker daemon running. Excluded from the default CI job (Docker + large images). Current:
   Virtuoso 99/107 and GraphDB 106/111 pass; Fuseki is 4/86 — a pre-existing dotNetRDF `FusekiConnector`
   query-endpoint bug (POSTs `/ds/query`, which the server 404s), unrelated to the container wiring.
+  Virtuoso's `Int16Test`/`Uint16Test`/`UintTest` failures are now understood (ADR-0040): Virtuoso does not
+  preserve `xsd:short`/`xsd:unsignedInt`/`xsd:unsignedShort`, and the `Test<TValue>` helper in
+  `Trinity.Tests/Store/ResourceTest.cs` casts the returned object with `(TValue)`. The cast is in the test,
+  not in the mapping layer, so the numeric-conversion fix does not address them.
 - **CI:** `.github/workflows/ci.yml` (ubuntu, .NET 10) — restore → build → test → pack. NuGet
   publishing is **manual** (no publish job).
 - Central Package Management: versions live in `Directory.Packages.props`; shared metadata +

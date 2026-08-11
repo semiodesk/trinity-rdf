@@ -79,6 +79,7 @@ mapped/dynamic duality, models & groups, discovery, stores, and querying.
 | [0038](0038-upgrade-dotnetrdf-3.md) | Upgrade to dotNetRDF 3.x (Core / Client / Inferencing split) | Accepted |
 | [0039](0039-resource-write-semantics.md) | Commits write a per-value delta, not the whole resource | Accepted |
 | [0014](0014-ontology-generator-modernization.md) | Reimplement ontology vocabulary generation as a `dotnet tool` | Accepted |
+| [0040](0040-numeric-conversion-on-read.md) | Numeric values are widened, never narrowed, when read into a mapped property | Accepted |
 
 ### Proposed (revival)
 | # | Title | Status |
