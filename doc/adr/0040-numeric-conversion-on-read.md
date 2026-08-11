@@ -64,10 +64,18 @@ decided the conversion is lossless and the target has been unwrapped.
 | `UInt64` | `Decimal` |
 | `Single` | `Double` |
 
+**Integral narrowing is accepted when the actual value fits.** Type-level widening alone proved
+insufficient against a real store: Virtuoso returns `Int32` for `xsd:short`, so refusing `Int32`→`Int16`
+on type made every `short?`/`ushort?`/`byte?` property silently unreadable from Virtuoso — worse than the
+exception this ADR removes, because it reads as `null`. `NumericConversion.FitsIn` therefore range-checks
+the value, and a value outside the target's range is still refused so nothing is truncated or wrapped.
+This is why the mapping gate is **value-aware** (`IPropertyMapping.IsValueCompatible`) rather than
+type-only: a type-only gate could not answer the same question the setter answers, and the two must agree.
+
 **Refused, deliberately:**
 
-- All narrowing — `Decimal`→`Int32`, `Int64`→`Int16`, `Double`→`Single`. The previous behaviour silently
-  rounded `3.7m` to `4` for an `int` property, which is a defect in its own right.
+- Narrowing that loses information — `Decimal`→`Int32` (the previous behaviour silently rounded `3.7m` to
+  `4`), `Double`→`Single`, and any integral narrowing whose value does not fit.
 - `Double`/`Single`→`Decimal` and `Decimal`→ any floating type: different value spaces, lossy both ways.
 - Signed→unsigned (`Int32`→`UInt32`, `Int64`→`UInt64`): the negative range has nowhere to go.
 - `Int64`→`Double`, `UInt64`→`Double`, `Int32`→`Single`. **C# permits these implicitly; we do not.** They
@@ -82,6 +90,9 @@ may rely on.
 
 ## Consequences
 - Every nullable numeric mapped property becomes readable when a store returns a different numeric type.
+  Measured on all three backends: dotNetRDF preserves `xsd:decimal` and always worked; **Virtuoso
+  canonicalizes to `Int32` and threw before this change**; GraphDB preserves it. Virtuoso also returns
+  `Int32` for `xsd:short`, which is what forced the value-aware narrowing above.
 - A refused conversion does **not** throw. It fails the mapping gate, so the value lands among the
   unmapped values and the typed property reads as unset. This is deliberate: resources are open
   ([0017](0017-resources-open-mapped-and-dynamic.md)), so an unmapped value is a normal place for it to live, and

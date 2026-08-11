@@ -79,6 +79,19 @@ namespace Semiodesk.Trinity
         bool IsTypeCompatible(Type type);
 
         /// <summary>
+        /// Indicates if a particular value can be set on this mapping.
+        /// </summary>
+        /// <remarks>
+        /// Value-aware, unlike <see cref="IsTypeCompatible"/>, because type alone cannot answer it: a store
+        /// may hand back a wider numeric type than the property declares (Virtuoso returns Int32 for
+        /// xsd:short), which is lossless for the actual value but narrowing by type. The mapping gate uses
+        /// this so it agrees exactly with what the setter will accept.
+        /// </remarks>
+        /// <param name="value">The value.</param>
+        /// <returns><c>true</c> if the value can be set.</returns>
+        bool IsValueCompatible(object value);
+
+        /// <summary>
         /// Gets the value or values mapped to this property.
         /// </summary>
         /// <returns></returns>

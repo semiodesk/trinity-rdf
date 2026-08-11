@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace Semiodesk.Trinity
 {
@@ -106,6 +107,22 @@ namespace Semiodesk.Trinity
                 [TypeCode.Single] = new[] { TypeCode.Double }
             };
 
+        /// <summary>
+        /// The inclusive range of each integral type, as decimal so no comparison can overflow.
+        /// </summary>
+        private static readonly Dictionary<TypeCode, Range> IntegralRanges =
+            new Dictionary<TypeCode, Range>
+            {
+                [TypeCode.SByte] = new Range(sbyte.MinValue, sbyte.MaxValue),
+                [TypeCode.Byte] = new Range(byte.MinValue, byte.MaxValue),
+                [TypeCode.Int16] = new Range(short.MinValue, short.MaxValue),
+                [TypeCode.UInt16] = new Range(ushort.MinValue, ushort.MaxValue),
+                [TypeCode.Int32] = new Range(int.MinValue, int.MaxValue),
+                [TypeCode.UInt32] = new Range(uint.MinValue, uint.MaxValue),
+                [TypeCode.Int64] = new Range(long.MinValue, long.MaxValue),
+                [TypeCode.UInt64] = new Range(ulong.MinValue, ulong.MaxValue)
+            };
+
         #endregion
 
         #region Methods
@@ -167,7 +184,7 @@ namespace Semiodesk.Trinity
                 return true;
             }
 
-            if (!IsWideningTo(value.GetType(), to))
+            if (!IsWideningTo(value.GetType(), to) && !FitsIn(value, to))
             {
                 return false;
             }
@@ -178,6 +195,49 @@ namespace Semiodesk.Trinity
 
             return true;
         }
+
+        /// <summary>
+        /// Indicates whether an integral value fits exactly in a narrower integral type.
+        /// </summary>
+        /// <remarks>
+        /// Type-level widening alone is not enough in practice. Virtuoso hands <c>xsd:short</c> back in an
+        /// integer box, so a <c>short?</c> property receives an <c>Int32</c> — narrowing by type, yet
+        /// perfectly lossless for the actual value. Refusing it on type alone made every
+        /// <c>short?</c>/<c>ushort?</c>/<c>byte?</c> property silently unreadable from that store, which is
+        /// worse than the exception this class was written to remove.
+        ///
+        /// Only integral-to-integral is considered. A value that does not fit is still refused, so nothing
+        /// is ever truncated or wrapped.
+        /// </remarks>
+        /// <param name="value">The value that arrived.</param>
+        /// <param name="target">The mapped property's underlying type.</param>
+        /// <returns><c>true</c> if the conversion is exact for this particular value.</returns>
+        public static bool FitsIn(object value, Type target)
+        {
+            if (value == null || target == null)
+            {
+                return false;
+            }
+
+            if (!IntegralRanges.ContainsKey(Type.GetTypeCode(value.GetType())) ||
+                !IntegralRanges.TryGetValue(Type.GetTypeCode(Unwrap(target)), out Range range))
+            {
+                return false;
+            }
+
+            decimal actual = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+
+            return actual >= range.Minimum && actual <= range.Maximum;
+        }
+
+        /// <summary>
+        /// Indicates whether a particular value can land in a mapped property without loss. Value-aware, so
+        /// it can accept an exact integral narrowing that <see cref="IsWideningTo"/> refuses on type alone.
+        /// </summary>
+        /// <param name="value">The value that arrived.</param>
+        /// <param name="target">The mapped property's type.</param>
+        /// <returns><c>true</c> if <see cref="TryConvert"/> would succeed.</returns>
+        public static bool CanConvert(object value, Type target) => TryConvert(value, target, out _);
 
         /// <summary>
         /// Indicates whether a type is one this class knows how to convert.
@@ -211,6 +271,19 @@ namespace Semiodesk.Trinity
         }
 
         private static Type Unwrap(Type type) => Nullable.GetUnderlyingType(type) ?? type;
+
+        private readonly struct Range
+        {
+            public Range(decimal minimum, decimal maximum)
+            {
+                Minimum = minimum;
+                Maximum = maximum;
+            }
+
+            public decimal Minimum { get; }
+
+            public decimal Maximum { get; }
+        }
 
         #endregion
     }

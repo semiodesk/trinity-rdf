@@ -469,7 +469,7 @@ namespace Semiodesk.Trinity
                 }
             }
 
-            IPropertyMapping propertyMapping = GetPropertyMapping(property, value.GetType());
+            IPropertyMapping propertyMapping = GetPropertyMapping(property, value);
 
             if (propertyMapping != null)
             {
@@ -674,7 +674,7 @@ namespace Semiodesk.Trinity
         /// <param name="value"></param>
         internal virtual void RemovePropertyFromMapping(Property property, object value)
         {
-            IPropertyMapping propertyMapping = GetPropertyMapping(property, value.GetType());
+            IPropertyMapping propertyMapping = GetPropertyMapping(property, value);
 
             if (propertyMapping != null)
             {
@@ -1275,6 +1275,28 @@ namespace Semiodesk.Trinity
             foreach (IPropertyMapping mappingObject in _mappings.Values)
             {
                 if (mappingObject.Property.Uri.OriginalString == property.Uri.OriginalString && mappingObject.IsTypeCompatible(type))
+                {
+                    return mappingObject;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Finds the mapping a given value can be set on.
+        /// </summary>
+        /// <remarks>
+        /// Value-aware, so the gate answers exactly the question the setter will: a value the setter would
+        /// refuse must not be routed to it, or the refusal becomes an exception instead of landing among the
+        /// unmapped values.
+        /// </remarks>
+        internal IPropertyMapping GetPropertyMapping(Property property, object value)
+        {
+            foreach (IPropertyMapping mappingObject in _mappings.Values)
+            {
+                if (mappingObject.Property.Uri.OriginalString == property.Uri.OriginalString &&
+                    mappingObject.IsValueCompatible(value))
                 {
                     return mappingObject;
                 }

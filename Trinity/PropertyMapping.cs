@@ -470,6 +470,30 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// Indicates if a particular value can be set on this mapping.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns><c>true</c> if the value can be set.</returns>
+        bool IPropertyMapping.IsValueCompatible(object value)
+        {
+            if (value == null)
+            {
+                return false;
+            }
+
+            Type mappingType = _isList ? _genericType : _dataType;
+
+            // Numerics are value-aware: an exact integral narrowing is acceptable even though the types
+            // alone would refuse it. Everything else falls back to the type-only question.
+            if (NumericConversion.IsNumeric(value.GetType()) && NumericConversion.IsNumeric(mappingType))
+            {
+                return NumericConversion.CanConvert(value, mappingType);
+            }
+
+            return ((IPropertyMapping)this).IsTypeCompatible(value.GetType());
+        }
+
+        /// <summary>
         /// Indicates if the mapped value is a numeric type.
         /// </summary>
         /// <param name="type">A .NET type object.</param>

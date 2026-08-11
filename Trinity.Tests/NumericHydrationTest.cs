@@ -166,6 +166,37 @@ namespace Semiodesk.Trinity.Tests
         }
 
         /// <summary>
+        /// An integral value that fits exactly in a narrower type is accepted, because type-level widening
+        /// alone is not enough in practice: Virtuoso returns Int32 for xsd:short, so refusing on type made
+        /// every short?/ushort?/byte? property silently unreadable from that store.
+        /// </summary>
+        [Test]
+        public void Int32ThatFitsLandsInANullableShort()
+        {
+            var thing = new NumericThing(Subject);
+
+            thing.AddPropertyToMapping(Property("nullableShort"), 400, fromModel: true);
+
+            Assert.AreEqual((short)400, thing.NullableShort);
+        }
+
+        /// <summary>
+        /// The limit of that leniency: a value outside the target's range is still refused, so nothing is
+        /// truncated or wrapped.
+        /// </summary>
+        [Test]
+        public void Int32ThatDoesNotFitIsRefusedForANullableShort()
+        {
+            var thing = new NumericThing(Subject);
+
+            thing.AddPropertyToMapping(Property("nullableShort"), 40000, fromModel: true);
+
+            Assert.IsNull(thing.NullableShort, "40000 does not fit in a short and must not be wrapped.");
+            Assert.Contains(40000, new List<object>(thing.ListValues(Property("nullableShort"))),
+                "The refused value must remain reachable as an unmapped value.");
+        }
+
+        /// <summary>
         /// Narrowing is refused rather than rounded. Before the conversion allowlist,
         /// <c>IsPrecisionCompatible</c> ended in an unconditional <c>return true</c>, so
         /// <c>Convert.ChangeType(3.7m, typeof(int))</c> silently produced <c>4</c>.
