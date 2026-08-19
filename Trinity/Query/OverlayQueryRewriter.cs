@@ -620,11 +620,8 @@ namespace Semiodesk.Trinity
                              .Append(") ");
                         break;
 
-                    case IPropertyPathPattern _:
-                        throw Unsupported(
-                            "a property path. A path walks intermediate nodes that must themselves resolve against " +
-                            "the effective graph, and a transitive path (+ or *) has no fixed expansion to rewrite " +
-                            "into, so it cannot be handled pattern by pattern");
+                    case IPropertyPathPattern path:
+                        throw UnsupportedPath(path);
 
                     case IPropertyFunctionPattern _:
                         throw Unsupported("a property function");
@@ -768,6 +765,59 @@ namespace Semiodesk.Trinity
 
                     default:
                         throw Unsupported($"a term of type {item.GetType().Name}");
+                }
+            }
+
+            /// <summary>
+            /// Refuses a property path, distinguishing the forms that are impossible from the forms
+            /// that are merely not implemented yet.
+            /// </summary>
+            /// <remarks>
+            /// <para>
+            /// The <b>unbounded</b> forms - <c>p+</c>, <c>p*</c>, <c>p{n,}</c> - cannot be supported at
+            /// all, and the reason is sharper than "paths are hard": <b>transitive closure does not
+            /// distribute over the union of the layers</b>. With <c>a p b</c> in the baseline and
+            /// <c>b p c</c> in the additions, the effective graph contains the chain, so
+            /// <c>a p+ c</c> must hold - but evaluating the closure inside each graph and unioning the
+            /// results yields only <c>b</c>, because neither graph contains the whole chain. So the
+            /// path cannot be pushed inside the overlay's GRAPH blocks, and there is no finite
+            /// expansion into triple patterns to push the overlay into instead. The only way to
+            /// evaluate one correctly would be to materialize the effective graph first, which is a
+            /// write, and O(baseline) per query.
+            /// </para>
+            /// <para>
+            /// The <b>bounded</b> forms are a different matter and are simply not implemented:
+            /// <c>^p</c> is a subject/object swap, <c>p1/p2</c> expands into two patterns joined by a
+            /// fresh variable, <c>p1|p2</c> into a UNION, and <c>!p</c> into a variable predicate with
+            /// a filter - each of which the overlay then handles one pattern at a time. They are
+            /// refused only because the expansion has not been written, not because it cannot be.
+            /// </para>
+            /// </remarks>
+            private static NotSupportedException UnsupportedPath(IPropertyPathPattern path)
+            {
+                string kind = path.Path == null ? "a property path" : PathKind(path.Path);
+
+                return Unsupported(kind);
+            }
+
+            private static string PathKind(VDS.RDF.Query.Paths.ISparqlPath path)
+            {
+                switch (path)
+                {
+                    case VDS.RDF.Query.Paths.OneOrMore _:
+                    case VDS.RDF.Query.Paths.ZeroOrMore _:
+                    case VDS.RDF.Query.Paths.NOrMore _:
+                        return "an unbounded property path (+, * or {n,}). This one cannot be supported: " +
+                               "transitive closure does not distribute over the union of the three layers - a chain " +
+                               "whose hops come from different layers exists in the effective graph but in none of " +
+                               "them alone - and there is no finite expansion into triple patterns to apply the " +
+                               "overlay to instead";
+
+                    default:
+                        return "a property path. The unbounded forms (+, *) cannot be supported at all, because " +
+                               "transitive closure does not distribute over the union of the layers; the bounded " +
+                               "forms (^, /, |, !) could be expanded into ordinary triple patterns but that is not " +
+                               "implemented yet";
                 }
             }
 

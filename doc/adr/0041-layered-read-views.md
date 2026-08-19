@@ -148,7 +148,7 @@ Refused, each detected from the parse tree rather than guessed:
 
 | Form | Why |
 |---|---|
-| property path (`/`, `+`, `*`, …) | walks intermediate nodes that must themselves resolve against the effective graph, and a transitive path has no fixed expansion |
+| property path — see below | the unbounded forms cannot be supported at all; the bounded forms are simply not implemented yet |
 | explicit `GRAPH` block | a view is itself built from three graphs; naming one reads past the overlay, and `GRAPH ?g` exposes the removals graph as ordinary data |
 | `SERVICE` | the remote endpoint knows nothing of the overlay |
 | `CONSTRUCT` | its template describes triples to build, not to match, so the overlay must not be applied there |
@@ -157,6 +157,30 @@ Refused, each detected from the parse tree rather than guessed:
 | a blank node, including the `[ … ]` property-list form | the overlay repeats each pattern across three basic graph patterns, and SPARQL forbids a blank-node label appearing in more than one of them |
 | a negation inside `HAVING`, a projected expression, `GROUP BY` or `ORDER BY` | dotNetRDF mangles it and none of those four are re-emitted by the rewriter — see below |
 | a query with its own `FROM` / `FROM NAMED` | the view defines the dataset, so a query cannot also choose one |
+
+### Why property paths are refused, and which of them could not be otherwise
+
+The **unbounded** forms — `p+`, `p*`, `p{n,}` — cannot be supported, and the reason is sharper than
+"paths are hard": **transitive closure does not distribute over the union of the layers.** Measured —
+with `a p b` in the baseline and `b p c` in the additions, so the chain crosses the layer boundary:
+
+| evaluation | result |
+|---|---|
+| closure over the merged graph (correct) | `b, c` |
+| closure inside each graph, then unioned | `b` |
+
+The chain exists in the effective graph but in neither layer alone, so the path cannot be pushed inside
+the overlay's `GRAPH` blocks. And being unbounded it has no finite expansion into triple patterns to
+push the overlay into instead. Evaluating one correctly would mean materializing the effective graph
+first — a write, and O(baseline) per query.
+
+The **bounded** forms are a different matter, and are refused only because the expansion is unwritten:
+`^p` is a subject/object swap, `p1/p2` expands into two patterns joined by a fresh variable, `p1|p2`
+into a `UNION`, and `!p` into a variable predicate with a filter. Each then goes through the overlay one
+pattern at a time; the sequence case was verified to give the same answer as the native path. The
+refusal message distinguishes the two groups so a caller can tell which side of the line they are on.
+Implementing the bounded forms is a worthwhile follow-up — the original blanket claim that paths "cannot
+be rewritten" was too broad.
 
 ### Expressions are serialized by Trinity, not by dotNetRDF
 
