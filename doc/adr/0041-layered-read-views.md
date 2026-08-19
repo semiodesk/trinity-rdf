@@ -60,12 +60,23 @@ of the formula, `(baseline ∪ additions) − removals`, would let a stale remov
 ```sparql
 { { GRAPH <baseline>  { S P O } <guard> }
   UNION
-  { GRAPH <additions> { S P O } } }
+  { GRAPH <additions> { S P O }
+    FILTER NOT EXISTS { GRAPH <baseline> { S P O } FILTER NOT EXISTS { GRAPH <removals> { S P O } } } } }
 ```
 
-with the guard applying **only** to the baseline branch — that asymmetry is what makes additions win.
-The dataset clause is `FROM NAMED` for all three graphs, never bare `FROM`, because the overlay
-addresses them with `GRAPH` and merging them would union the removals graph straight back in.
+The guard applies **only** to the baseline branch — that asymmetry is what makes additions win. The
+dataset clause is `FROM NAMED` for all three graphs, never bare `FROM`, because the overlay addresses
+them with `GRAPH` and merging them would union the removals graph straight back in.
+
+**The two branches are disjoint by construction, and that is load-bearing.** SPARQL `UNION` is a
+**bag** union, so overlapping branches yield *two* solutions for a triple present in both the baseline
+and the additions — inflated `COUNT`s and duplicated rows — where the view promises the *set*
+`(baseline − removals) ∪ additions`. Re-adding a value that is already there is precisely what
+"additions win" invites a caller to do, so the overlap is the ordinary case, not an exotic one. The
+additions branch therefore excludes whatever the baseline branch already produced. Its inner guard is
+always `FILTER NOT EXISTS`, never `MINUS`: nested inside `NOT EXISTS` the pattern is tested for
+existence rather than joined, so a `MINUS` with no shared variables would remove nothing and invert the
+answer for a triple present in all three graphs.
 
 Used by exactly four call sites: `LayeredModel`'s own templates, `SparqlQueryWriter` (LINQ),
 `SparqlSerializer.GenerateDatasetClause` and `SparqlSerializer.SerializeOffsetLimit`.
@@ -143,7 +154,8 @@ Refused, each detected from the parse tree rather than guessed:
 | `CONSTRUCT` | its template describes triples to build, not to match, so the overlay must not be applied there |
 | `DESCRIBE` | the store chooses the triples; there is no pattern to rewrite |
 | `FILTER EXISTS` / `NOT EXISTS` | not a child pattern but an `ExistsFunction` inside the filter expression, whose nested pattern would read the baseline directly |
-| a negation inside `HAVING` or a projected expression | dotNetRDF mangles it and those two are not re-emitted by the rewriter — see below |
+| a blank node, including the `[ … ]` property-list form | the overlay repeats each pattern across three basic graph patterns, and SPARQL forbids a blank-node label appearing in more than one of them |
+| a negation inside `HAVING`, a projected expression, `GROUP BY` or `ORDER BY` | dotNetRDF mangles it and none of those four are re-emitted by the rewriter — see below |
 | a query with its own `FROM` / `FROM NAMED` | the view defines the dataset, so a query cannot also choose one |
 
 ### Expressions are serialized by Trinity, not by dotNetRDF
@@ -162,12 +174,13 @@ in one corner. Self-delimiting forms (function calls, aggregates) keep their own
 serialized recursively so a bad expression cannot hide inside one. Measured over a 22-expression corpus:
 faithful in 22/22, where dotNetRDF is faithful in 17/22.
 
-**Two things it cannot repair, only detect.** `HAVING` and projected expressions are not re-emitted by
-the rewriter — they come from dotNetRDF's serialization of the query head and solution modifiers, which
-is reused verbatim precisely so that projection, `GROUP BY` and `ORDER BY` need not be reimplemented. A
-negation inside one of those is mangled exactly as it is inside a filter, so such a query is **refused**
-with a suggested rephrasing. Extending the writer to the head would lift that restriction and is a
-reasonable follow-up; it was not worth reimplementing projection emission for.
+**Four things it cannot repair, only detect.** `HAVING`, projected expressions, `GROUP BY` and
+`ORDER BY` are not re-emitted by the rewriter — they come from dotNetRDF's serialization of the query
+head and solution modifiers, which is reused verbatim precisely so that projection, grouping and
+ordering need not be reimplemented. A negation inside any of them is mangled exactly as it is inside a
+filter, so such a query is **refused** with a suggested rephrasing. Extending the writer to the head
+would lift that restriction and is a reasonable follow-up; it was not worth reimplementing projection
+emission for.
 
 **The rewrite is verified, not trusted.** The result is re-parsed and everything that had to be
 preserved is compared structurally against the original: query form, `LIMIT`, `OFFSET`, projected
@@ -264,14 +277,21 @@ the `ISparqlQuery` overloads throw.
 
 ## Consequences
 
-**Performance is a non-issue on the server stores and acceptable in memory.** Ratios of layered to
-plain reads at 1,000,000 baseline triples, with ~100 staged additions and ~100 staged removals:
+**Performance is a non-issue on the server stores and acceptable in memory.** Measured through the
+production code path at 1,000,000 baseline triples, with ~100 staged additions and ~100 staged removals:
 
-| Read shape | in-memory | Virtuoso | GraphDB |
+| Read | in-memory | Virtuoso | GraphDB |
 |---|---|---|---|
-| `GetResource` (subject-bound) | 1.55x | 1.06x | 0.86x |
-| LINQ `Where` (selective) | 3.00x | 1.03x | 1.55x |
-| `GetResources<T>()` (unselective scan) | 1.50x | 1.05x | 1.14x |
+| `GetResource` (subject-bound) | 1.31x | 0.94x | 1.29x |
+| `ContainsResource` (`ASK`) | 3.45x | 1.18x | 1.04x |
+| caller query, unselective scan | 2.24x | 0.97x | 0.94x |
+| caller query, selective | 4.23x | 1.47x | 2.33x |
+
+The in-memory ratios above 2x are on sub-millisecond absolutes where fixed cost dominates — the caller
+rows include parse, rewrite and re-parse, which the mapped reads skip entirely. The one number worth
+noting is the in-memory unselective scan: 1.50x before the set-semantics fix, 2.24x after, because the
+additions branch now carries a nested `NOT EXISTS`. Still inside the original 5x gate, and the price of
+a correct answer.
 
 **The cheap alternative was measured and rejected.** `COPY <baseline> TO <working>` works on all three
 stores — this contradicts the initial expectation that Virtuoso's `SPARQL { … }` update wrapper would
@@ -293,12 +313,35 @@ long-lived, write-heavy working copies; it is not this feature.
   read-only `IModel` base was considered and skipped: `ModelGroup` is load-bearing for existing
   consumers and this release favours not touching it.
 
+**Five defects were found in review after the first implementation**, three of them silent wrong
+answers, and they are recorded because each says something about where this design is fragile:
+
+1. **A union reached as an alternative of another union lost its disjunction** — emitted as a join.
+   Only the child-iteration path checked `IsUnion`, so `{{A} UNION {B}} UNION {C}` degraded. Since
+   `A UNION B UNION C` parses *left-nested*, this was the ordinary three-way case, not an edge one.
+2. **The overlay was a bag, not a set** — the branches overlapped, so a re-added triple produced two
+   solutions. Fixed by making them disjoint (above).
+3. **`GROUP BY` and `ORDER BY` expressions escaped the round-trip check**, so the dotNetRDF negation
+   defect reached them unnoticed. Both are now checked, direction included.
+4. **Blank-node patterns produced an unparseable rewrite** and were reported as a rewriter defect
+   rather than as the unsupported form they are.
+5. **`BIND` was relocated after all triple patterns**, which is invalid when its variable is used by
+   one of them — pattern reordering is now confined to contiguous runs of match patterns, since `BIND`
+   is order-sensitive and a triple pattern is not.
+
+The lesson is that a corpus of hand-written expectations only catches what someone thought to write
+down: the mislabelled corpus case ("blank node property list", which was a predicate-object list) is
+exactly why #4 survived it. `LayeredModelDifferentialTest` is the answer — with empty layers the view
+must answer exactly as the plain baseline model does, or refuse, so the baseline *is* the oracle and no
+expectations have to be authored. It catches #1, #3 and #5 directly, and was verified to fail when #1
+is reintroduced.
+
 **Explicitly out of scope for v1:** branching, merge, conflict detection, history, nested or stacked
 overlays, and views spanning more than one store. One baseline, one additions graph, one removals
 graph, one store.
 
-**Verified:** in-memory 542 passed / 3 pre-existing failures / 7 skipped; Virtuoso 175 passed / 4
-pre-existing failures / 1 skipped; GraphDB 182 passed / 4 pre-existing failures / 1 skipped. In each
+**Verified:** in-memory 589 passed / 3 pre-existing failures / 7 skipped; Virtuoso 221 passed / 4
+pre-existing failures / 1 skipped; GraphDB 228 passed / 4 pre-existing failures / 1 skipped. In each
 case the failure set is byte-identical to the same suite at the previous commit, and the delta is
 exactly the new tests (+27 in-memory, +16 per store). Fuseki is not covered: its suite is a
 hand-written non-generic copy and the backend is 4/86 on an upstream `FusekiConnector` bug (ADR-0036).

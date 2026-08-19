@@ -55,7 +55,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 542 passed, 7 skipped (quarantined)
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 589 passed, 7 skipped (quarantined)
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 23 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -69,7 +69,7 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
 - Store integration tests (`tests/Trinity.Tests.*`) **self-provision** their server in Docker via
   Testcontainers on a random host port (ADR-0036): run `dotnet test tests/Trinity.Tests.{Virtuoso,GraphDB,Fuseki}`
   with a Docker daemon running. Excluded from the default CI job (Docker + large images). Current:
-  Virtuoso 175/180 and GraphDB 182/187 pass; Fuseki is 4/86 — a pre-existing dotNetRDF `FusekiConnector`
+  Virtuoso 221/226 and GraphDB 228/233 pass; Fuseki is 4/86 — a pre-existing dotNetRDF `FusekiConnector`
   query-endpoint bug (POSTs `/ds/query`, which the server 404s), unrelated to the container wiring.
   Virtuoso's `Int16Test`/`Uint16Test`/`UintTest` are now `Assert.Inconclusive` in `VirtuosoResourceTest`,
   alongside the pre-existing `Int64Test`/`Uint64Test` overrides for the same phenomenon: Virtuoso widens
@@ -176,8 +176,11 @@ Invariants that surprise newcomers:
   blocks, `SERVICE`, `CONSTRUCT`/`DESCRIBE`, `FILTER EXISTS` and a caller `FROM` are **refused**), and
   `inferenceEnabled: true` throws. Nothing silently returns unsubtracted triples. **dotNetRDF cannot serialize a
   negated comparison faithfully** (`!(?r < 3)` → `!?r < 3`, which still parses), so `SparqlExpressionWriter` writes
-  `FILTER`/`BIND` expressions instead; `HAVING` and projected expressions come from dotNetRDF and are only checked,
-  so a negation there is refused. Every rewrite is re-parsed and compared structurally against the original.
+  `FILTER`/`BIND` expressions instead; `HAVING`, projections, `GROUP BY` and `ORDER BY` come from dotNetRDF and are
+  only checked, so a negation there is refused. Every rewrite is re-parsed and compared structurally against the
+  original. The overlay's two branches are **disjoint by construction** — `UNION` is a bag union, so overlapping
+  branches would duplicate a re-added triple. Blank nodes (incl. `[ … ]`) are refused: the overlay repeats each
+  pattern across three BGPs and SPARQL forbids a label spanning them.
   Caller queries are parsed on **every** execution — see ADR-0041 for the placeholder-IRI caching optimisation
   if that ever shows up in a profile. The SPARQL is
   built only by `LayeredModelSparql`, whose emission rules (MINUS vs FILTER NOT EXISTS, `VALUES` before the
