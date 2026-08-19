@@ -230,6 +230,83 @@ namespace Semiodesk.Trinity.Tests.Store
                 "a triple in both additions and removals must be visible: additions win");
         }
 
+        /// <summary>
+        /// Re-adding a triple that is already in the baseline must not double it.
+        /// </summary>
+        /// <remarks>
+        /// SPARQL <c>UNION</c> is a bag union, so an overlay whose branches overlap yields two
+        /// solutions for one triple: <c>COUNT</c> inflates and rows duplicate, with nothing to signal
+        /// it. The view promises the <i>set</i> <c>(baseline - removals) union additions</c>, and an
+        /// idempotent re-add is exactly what "additions win" invites a caller to do - so this is the
+        /// ordinary case rather than an exotic one.
+        /// </remarks>
+        [Test]
+        public virtual void AnIdenticalReAddDoesNotDuplicateSolutions()
+        {
+            GivenBaselineResource(R1, "same value");
+
+            // Stage the identical triple as an addition.
+            Additions.ExecuteUpdate(new SparqlUpdate(
+                "INSERT { GRAPH @additions { ?s ?p ?o } } WHERE { GRAPH @baseline { ?s ?p ?o } }")
+                .Bind("@additions", Additions)
+                .Bind("@baseline", Baseline));
+
+            Assert.AreEqual(1, View.GetResource(R1).ListValues(to.uniqueStringTest).Count(),
+                "a triple in both the baseline and the additions must yield one value, not two");
+
+            var count = View.GetBindings(new SparqlQuery(
+                $"SELECT (COUNT(*) AS ?n) WHERE {{ ?s <{to.uniqueStringTest.Uri}> ?o }}", declarePrefixes: false))
+                .First();
+
+            Assert.AreEqual("1", count["n"].ToString(), "COUNT must not be inflated by the overlay");
+        }
+
+        /// <summary>
+        /// The same triple in all three graphs is still visible exactly once.
+        /// </summary>
+        [Test]
+        public virtual void ATripleInAllThreeLayersIsVisibleOnce()
+        {
+            GivenBaselineResource(R1, "same value");
+
+            foreach (IModel target in new[] { Removals, Additions })
+            {
+                target.ExecuteUpdate(new SparqlUpdate(
+                    "INSERT { GRAPH @target { ?s ?p ?o } } WHERE { GRAPH @baseline { ?s ?p ?o } }")
+                    .Bind("@target", target)
+                    .Bind("@baseline", Baseline));
+            }
+
+            Assert.AreEqual(1, View.GetResource(R1).ListValues(to.uniqueStringTest).Count(),
+                "additions win over removals, but only once");
+        }
+
+        /// <summary>
+        /// A union reached as an alternative of another union keeps its disjunction.
+        /// </summary>
+        /// <remarks>
+        /// <c>A UNION B UNION C</c> parses left-nested, so this is the ordinary three-way case rather
+        /// than an unusual one. Emitting the inner union as a group would turn it into a join and
+        /// quietly drop solutions.
+        /// </remarks>
+        [Test]
+        public virtual void NestedUnionKeepsItsDisjunction()
+        {
+            GivenBaselineResource(R1, "one");
+            GivenBaselineResource(R2, "two");
+
+            string p = to.uniqueStringTest.Uri.OriginalString;
+
+            var seen = View.GetBindings(new SparqlQuery(
+                $"SELECT ?s WHERE {{ {{ {{ ?s <{p}> 'one' }} UNION {{ ?s <{p}> 'two' }} }} UNION {{ ?s <{p}> 'three' }} }}",
+                declarePrefixes: false))
+                .Select(b => b["s"].ToString())
+                .OrderBy(x => x)
+                .ToList();
+
+            Assert.AreEqual(2, seen.Count, "both alternatives of the inner union must survive");
+        }
+
         #endregion
 
         #region Mapped-object reads
@@ -393,6 +470,55 @@ namespace Semiodesk.Trinity.Tests.Store
                 $"SELECT ?s WHERE {{ GRAPH <{Baseline.Uri}> {{ ?s ?p ?o }} }}", declarePrefixes: false);
 
             Assert.Throws<NotSupportedException>(() => View.GetBindings(graphBlock).ToList());
+        }
+
+        /// <summary>
+        /// A blank node in a triple pattern is refused, and says why.
+        /// </summary>
+        /// <remarks>
+        /// The overlay repeats each pattern across three basic graph patterns, and SPARQL forbids a
+        /// blank-node label appearing in more than one BGP - so the rewrite could not be legal SPARQL.
+        /// The <c>[ ... ]</c> property-list form is the same thing spelled differently.
+        /// </remarks>
+        [Test]
+        public virtual void BlankNodePatternsAreRefusedWithAReason()
+        {
+            foreach (string sparql in new[]
+            {
+                $"SELECT ?o WHERE {{ _:b <{to.uniqueStringTest.Uri}> ?o }}",
+                $"SELECT ?o WHERE {{ ?s <{to.resourceTest.Uri}> [ <{to.uniqueStringTest.Uri}> ?o ] }}",
+            })
+            {
+                var ex = Assert.Throws<NotSupportedException>(
+                    () => View.GetBindings(new SparqlQuery(sparql, declarePrefixes: false)).ToList(), sparql);
+
+                Assert.That(ex.Message, Does.Contain("blank node"),
+                    $"the refusal must name the cause, not report a rewriter defect:\n{ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// A negation inside GROUP BY or ORDER BY is refused rather than answered differently.
+        /// </summary>
+        /// <remarks>
+        /// Those clauses reach the output through dotNetRDF's own serialization of the query head,
+        /// which mangles a negation wrapped around a comparison, so they can only be detected - the
+        /// same treatment HAVING and projected expressions get.
+        /// </remarks>
+        [Test]
+        public virtual void NegationInGroupByOrOrderByIsRefused()
+        {
+            GivenBaselineResource(R1, "one");
+
+            string p = to.uniqueStringTest.Uri.OriginalString;
+
+            Assert.Throws<NotSupportedException>(() => View.GetBindings(new SparqlQuery(
+                $"SELECT ?g (COUNT(?s) AS ?n) WHERE {{ ?s <{p}> ?o }} GROUP BY (!(?o = 'x') AS ?g)",
+                declarePrefixes: false)).ToList(), "GROUP BY");
+
+            Assert.Throws<NotSupportedException>(() => View.GetBindings(new SparqlQuery(
+                $"SELECT ?s WHERE {{ ?s <{p}> ?o }} ORDER BY DESC(!(?o = 'x'))",
+                declarePrefixes: false)).ToList(), "ORDER BY");
         }
 
         [Test]

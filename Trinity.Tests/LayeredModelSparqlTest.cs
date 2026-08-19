@@ -73,13 +73,38 @@ namespace Semiodesk.Trinity.Tests
         /// A pattern with a variable is subtracted with <c>MINUS</c>, which engines evaluate as an
         /// anti-join rather than a per-row probe.
         /// </summary>
+        /// <remarks>
+        /// The overlay also carries a <c>FILTER NOT EXISTS</c> that keeps the two branches disjoint,
+        /// so the assertion is about which primitive guards the <b>baseline</b> branch - the part
+        /// before the <c>UNION</c>.
+        /// </remarks>
         [Test]
         public void OverlayUsesMinusWhenThePatternBindsAVariable()
         {
             string overlay = LayeredModelSparql.Overlay(_view, "?s", "?p", "?o");
+            string baselineBranch = overlay.Substring(0, overlay.IndexOf("UNION", StringComparison.Ordinal));
 
-            Assert.IsTrue(overlay.Contains("MINUS"), overlay);
-            Assert.IsFalse(overlay.Contains("NOT EXISTS"), overlay);
+            Assert.IsTrue(baselineBranch.Contains("MINUS"), overlay);
+            Assert.IsFalse(baselineBranch.Contains("NOT EXISTS"), overlay);
+        }
+
+        /// <summary>
+        /// The two branches must be disjoint, or the bag semantics of <c>UNION</c> duplicate a triple
+        /// that is in both the baseline and the additions.
+        /// </summary>
+        [Test]
+        public void OverlayBranchesAreDisjoint()
+        {
+            string overlay = LayeredModelSparql.Overlay(_view, "?s", "?p", "?o");
+            string additionsBranch = overlay.Substring(overlay.IndexOf("UNION", StringComparison.Ordinal));
+
+            Assert.IsTrue(additionsBranch.Contains(AddGraph.ToString()),
+                "the branch after UNION is the additions branch");
+            Assert.IsTrue(additionsBranch.Contains("FILTER NOT EXISTS"),
+                "the additions branch must exclude what the baseline branch already yielded, or the " +
+                "two overlap and UNION duplicates the solution:\n" + overlay);
+            Assert.IsTrue(additionsBranch.Contains(BaseGraph.ToString()),
+                "that exclusion is expressed against the baseline graph:\n" + overlay);
         }
 
         /// <summary>
@@ -133,21 +158,28 @@ namespace Semiodesk.Trinity.Tests
         #region Overlay structure
 
         /// <summary>
-        /// The guard applies only to the baseline branch, which is what makes additions win.
+        /// The removals guard applies only to the baseline branch, which is what makes additions win.
         /// </summary>
         [Test]
         public void OverlayGuardsOnlyTheBaselineBranch()
         {
             string overlay = LayeredModelSparql.Overlay(_view, "?s", "?p", "?o");
 
-            int baseline = overlay.IndexOf(BaseGraph.ToString(), StringComparison.Ordinal);
-            int guard = overlay.IndexOf("MINUS", StringComparison.Ordinal);
             int union = overlay.IndexOf("UNION", StringComparison.Ordinal);
-            int additions = overlay.IndexOf(AddGraph.ToString(), StringComparison.Ordinal);
+            string baselineBranch = overlay.Substring(0, union);
+            string additionsBranch = overlay.Substring(union);
 
-            Assert.Less(baseline, guard, "the guard must follow the baseline branch");
-            Assert.Less(guard, union, "the guard must sit inside the baseline branch, before the UNION");
-            Assert.Less(union, additions, "the additions branch must follow the UNION, ungarded");
+            Assert.IsTrue(baselineBranch.Contains(BaseGraph.ToString()), overlay);
+            Assert.IsTrue(baselineBranch.Contains(RemGraph.ToString()),
+                "the baseline branch is the one the removals guard applies to");
+
+            // The additions branch references the removals graph only inside its disjointness guard,
+            // never to subtract from itself - subtracting there would stop additions winning.
+            int additionsGraphAt = additionsBranch.IndexOf(AddGraph.ToString(), StringComparison.Ordinal);
+            int notExistsAt = additionsBranch.IndexOf("FILTER NOT EXISTS", StringComparison.Ordinal);
+
+            Assert.Less(additionsGraphAt, notExistsAt,
+                "the additions graph is matched first, then filtered - not guarded before matching");
         }
 
         /// <summary>

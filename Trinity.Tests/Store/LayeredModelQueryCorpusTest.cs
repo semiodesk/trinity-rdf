@@ -237,8 +237,18 @@ namespace Semiodesk.Trinity.Tests.Store
             yield return new TestCaseData("OFFSET",
                 $"SELECT ?s WHERE {{ ?s a {thing} ; {rank} ?r }} ORDER BY ?r OFFSET 2", "added");
 
-            yield return new TestCaseData("blank node property list",
+            // NB: this is a predicate-object list with a FILTER, not a blank-node property list - it
+            // was mislabelled, which is how a blank-node defect survived an otherwise thorough suite.
+            // The real [ ... ] form cannot be rewritten at all; see the refused corpus.
+            yield return new TestCaseData("predicate-object list with FILTER",
                 $"SELECT ?s WHERE {{ ?s a {thing} ; {rank} ?r . FILTER(?r = 1) }}", "keep");
+
+            yield return new TestCaseData("nested UNION (left-nested, as A UNION B UNION C parses)",
+                $"SELECT ?s WHERE {{ {{ {{ ?s a {thing} }} UNION {{ ?s a {other} }} }} UNION {{ ?s {rank} 99 }} }}",
+                "added,both,keep,other");
+
+            yield return new TestCaseData("BIND before the pattern that uses it",
+                $"SELECT ?r WHERE {{ BIND(<{EX}keep> AS ?s) ?s {rank} ?r }}", "");
 
             // dotNetRDF serializes !(?r < 3) as !?r < 3, i.e. (!?r) < 3, and it still parses.
             // Trinity writes filter expressions with its own serializer so these stay faithful.
@@ -400,6 +410,18 @@ namespace Semiodesk.Trinity.Tests.Store
             // it is inside a FILTER, but those two are reused from its serialization of the query head
             // and solution modifiers rather than re-emitted, so they can only be detected. Refused
             // with a suggested rephrasing rather than answered differently than asked.
+            yield return new TestCaseData("blank node subject",
+                $"SELECT ?o WHERE {{ _:b {rank} ?o }}", "blank node");
+
+            yield return new TestCaseData("blank node property list",
+                $"SELECT ?o WHERE {{ ?s {peer} [ {rank} ?o ] }}", "blank node");
+
+            yield return new TestCaseData("negation inside GROUP BY",
+                $"SELECT ?g WHERE {{ ?s {rank} ?r }} GROUP BY (!(?r < 3) AS ?g)", "GROUP BY");
+
+            yield return new TestCaseData("negation inside ORDER BY",
+                $"SELECT ?s WHERE {{ ?s {rank} ?r }} ORDER BY DESC(!(?r < 3))", "ORDER BY");
+
             yield return new TestCaseData("negation inside HAVING",
                 $"SELECT ?s WHERE {{ ?s a {thing} ; {rank} ?r }} GROUP BY ?s HAVING(!(COUNT(?r) < 1))", "HAVING");
 
