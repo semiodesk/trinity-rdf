@@ -83,13 +83,58 @@ namespace Semiodesk.Trinity
             }
 
             string triple = string.Concat(subject, " ", predicate, " ", @object);
+            bool hasVariable = IsVariable(subject) || IsVariable(predicate) || IsVariable(@object);
 
-            string guard = IsVariable(subject) || IsVariable(predicate) || IsVariable(@object)
+            // The effective triple is in the baseline and not staged for removal...
+            string baselineBranch = string.Format("{{ GRAPH {0} {{ {1} }} {2} }}",
+                Graph(model.Baseline), triple, Guard(model, triple, hasVariable));
+
+            // ...or it is staged for addition and the baseline branch did not already yield it.
+            // Without that second condition the two branches overlap, and SPARQL UNION is a bag
+            // union: a triple present in both the baseline and the additions would produce two
+            // solutions where the view promises a set. Re-adding a triple that is already there is
+            // exactly what "additions win" invites, so the overlap is the common case, not a corner
+            // one - and it would show up as inflated COUNTs and duplicated rows, silently.
+            string additionsBranch = string.Format(
+                "{{ GRAPH {0} {{ {1} }} FILTER NOT EXISTS {{ GRAPH {2} {{ {1} }} {3} }} }}",
+                Graph(model.Additions), triple, Graph(model.Baseline),
+                GroundGuard(model, triple));
+
+            return "{ " + baselineBranch + " UNION " + additionsBranch + " }";
+        }
+
+        /// <summary>
+        /// The removals guard for the baseline branch.
+        /// </summary>
+        /// <remarks>
+        /// <c>MINUS</c> where the pattern binds a variable: engines evaluate it as an anti-join rather
+        /// than a per-row probe, which is the difference between 1.5x and 18x on an unselective scan.
+        /// But SPARQL <c>MINUS</c> removes nothing when the two sides share no variables, and a fully
+        /// ground pattern has none - so there it would <b>silently fail to subtract</b> (verified:
+        /// dotNetRDF and GraphDB both return the removed triple; Virtuoso happens not to). A ground
+        /// pattern is a single existence check, so <c>FILTER NOT EXISTS</c> costs nothing there and is
+        /// the only correct choice.
+        /// </remarks>
+        private static string Guard(ILayeredModel model, string triple, bool hasVariable)
+        {
+            return hasVariable
                 ? string.Format("MINUS {{ GRAPH {0} {{ {1} }} }}", Graph(model.Removals), triple)
                 : string.Format("FILTER NOT EXISTS {{ GRAPH {0} {{ {1} }} }}", Graph(model.Removals), triple);
+        }
 
-            return string.Format("{{ {{ GRAPH {0} {{ {1} }} {2} }} UNION {{ GRAPH {3} {{ {1} }} }} }}",
-                Graph(model.Baseline), triple, guard, Graph(model.Additions));
+        /// <summary>
+        /// The removals guard as used inside a <c>NOT EXISTS</c>, where <c>MINUS</c> is never safe.
+        /// </summary>
+        /// <remarks>
+        /// Nested inside <c>NOT EXISTS</c> the pattern is being tested for existence rather than
+        /// joined, so a <c>MINUS</c> whose sides share no variables would remove nothing and invert the
+        /// answer for a triple that is in the baseline, the removals and the additions at once.
+        /// <c>FILTER NOT EXISTS</c> is used unconditionally, and costs little because the additions
+        /// branch yields few rows to test.
+        /// </remarks>
+        private static string GroundGuard(ILayeredModel model, string triple)
+        {
+            return string.Format("FILTER NOT EXISTS {{ GRAPH {0} {{ {1} }} }}", Graph(model.Removals), triple);
         }
 
         /// <summary>

@@ -194,6 +194,25 @@ namespace Semiodesk.Trinity
                 differences.Add($"a projected expression changed: [{projectionsBefore}] became [{projectionsAfter}]");
             }
 
+            // GROUP BY and ORDER BY carry expressions too, and reach the output through the same
+            // reused serialization as HAVING and the projection - so they are exposed to the same
+            // negation defect and need the same check.
+            string groupByBefore = GroupBySignature(original.GroupBy);
+            string groupByAfter = GroupBySignature(check.GroupBy);
+
+            if (groupByBefore != groupByAfter)
+            {
+                differences.Add($"the GROUP BY expression {groupByBefore} became {groupByAfter}");
+            }
+
+            string orderByBefore = OrderBySignature(original.OrderBy);
+            string orderByAfter = OrderBySignature(check.OrderBy);
+
+            if (orderByBefore != orderByAfter)
+            {
+                differences.Add($"the ORDER BY expression {orderByBefore} became {orderByAfter}");
+            }
+
             if (differences.Count > 0)
             {
                 throw new NotSupportedException(
@@ -202,10 +221,43 @@ namespace Semiodesk.Trinity
                     string.Join("; ", differences) + "). Re-serializing a query relies on dotNetRDF, which is not " +
                     "faithful in every case - notably a negation wrapped around a comparison, where " +
                     "!(?x < 1) comes back as !?x < 1 and still parses. Trinity serializes FILTER and BIND " +
-                    "expressions itself to avoid that, but a projection or a HAVING clause is reused from " +
-                    "dotNetRDF's own output and cannot be repaired here, only detected. Rephrasing the " +
-                    "expression avoids it (here, ?x >= 1).\nOriginal: " + queryString + "\nRewritten: " + rewritten);
+                    "expressions itself to avoid that, but a projection, GROUP BY, HAVING or ORDER BY clause " +
+                    "is reused from dotNetRDF's own output and cannot be repaired here, only detected. " +
+                    "Rephrasing the expression avoids it (here, ?x >= 1).\nOriginal: " + queryString + "\nRewritten: " + rewritten);
             }
+        }
+
+        /// <summary>
+        /// Signature of a GROUP BY chain, following <c>Child</c> to the end.
+        /// </summary>
+        private static string GroupBySignature(VDS.RDF.Query.Grouping.ISparqlGroupBy groupBy)
+        {
+            var parts = new List<string>();
+
+            for (var current = groupBy; current != null; current = current.Child)
+            {
+                parts.Add(SparqlExpressionWriter.Signature(current.Expression) +
+                          (current.AssignVariable == null ? "" : " AS ?" + current.AssignVariable));
+            }
+
+            return parts.Count == 0 ? "(none)" : string.Join(" , ", parts);
+        }
+
+        /// <summary>
+        /// Signature of an ORDER BY chain, following <c>Child</c> to the end. Direction is included
+        /// because reversing it changes the answer just as surely as changing the expression.
+        /// </summary>
+        private static string OrderBySignature(VDS.RDF.Query.Ordering.ISparqlOrderBy orderBy)
+        {
+            var parts = new List<string>();
+
+            for (var current = orderBy; current != null; current = current.Child)
+            {
+                parts.Add((current.Descending ? "DESC" : "ASC") + "(" +
+                          SparqlExpressionWriter.Signature(current.Expression) + ")");
+            }
+
+            return parts.Count == 0 ? "(none)" : string.Join(" , ", parts);
         }
 
         /// <summary>
@@ -423,6 +475,15 @@ namespace Semiodesk.Trinity
                     throw Unsupported("an inline data block that could not be read");
                 }
 
+                // A union has to be recognised here, not only when it is reached as a child: an
+                // alternative of a union can itself be a union, and emitting that as a group would
+                // silently turn the inner disjunction into a join.
+                if (pattern.IsUnion)
+                {
+                    WriteUnion(pattern);
+                    return;
+                }
+
                 _body.Append("{ ");
 
                 WriteTriplePatterns(pattern);
@@ -439,29 +500,86 @@ namespace Semiodesk.Trinity
                 _body.Append('}');
             }
 
+            /// <summary>
+            /// Emits a union as <c>{ alt UNION alt ... }</c>.
+            /// </summary>
+            /// <remarks>
+            /// dotNetRDF models a union as a pattern whose own children are the alternatives, and an
+            /// alternative may itself be a union - <c>{A} UNION {B} UNION {C}</c> parses left-nested.
+            /// Each alternative therefore goes through <see cref="WritePattern"/>, which recognises a
+            /// nested union rather than flattening it into a join.
+            /// </remarks>
+            private void WriteUnion(DnrQuery.Patterns.GraphPattern pattern)
+            {
+                if (pattern.TriplePatterns.Count > 0 || pattern.IsFiltered || pattern.HasInlineData)
+                {
+                    throw Unsupported(
+                        "a UNION that also carries patterns of its own, which this rewriter does not model");
+                }
+
+                if (pattern.ChildGraphPatterns.Count == 0)
+                {
+                    throw Unsupported("a UNION with no alternatives");
+                }
+
+                _body.Append("{ ");
+
+                for (int i = 0; i < pattern.ChildGraphPatterns.Count; i++)
+                {
+                    if (i > 0)
+                    {
+                        _body.Append("UNION ");
+                    }
+
+                    WritePattern(pattern.ChildGraphPatterns[i]);
+                    _body.Append(' ');
+                }
+
+                _body.Append('}');
+            }
+
+            /// <summary>
+            /// Emits a group's triple patterns, preserving the order of anything order-sensitive.
+            /// </summary>
+            /// <remarks>
+            /// Match patterns are reordered so more-bound ones come first: order inside a basic graph
+            /// pattern is semantically irrelevant, but the overlay turns each pattern into a UNION
+            /// containing an anti-join, and an engine that cannot reorder joins across that evaluates
+            /// them as written - so a leading unbound pattern makes it materialize the whole effective
+            /// graph before applying any constraint.
+            /// <para>
+            /// That reordering is confined to contiguous <b>runs</b> of match patterns, because BIND is
+            /// not order-insensitive: its variable must not already be in scope where it appears, so
+            /// hoisting patterns across a BIND - or moving every BIND to the end - produces SPARQL that
+            /// is either invalid or means something else.
+            /// </para>
+            /// </remarks>
             private void WriteTriplePatterns(DnrQuery.Patterns.GraphPattern pattern)
             {
-                var matches = new List<IMatchTriplePattern>();
-                var others = new List<ITriplePattern>();
+                var run = new List<IMatchTriplePattern>();
 
                 foreach (ITriplePattern triplePattern in pattern.TriplePatterns)
                 {
                     if (triplePattern is IMatchTriplePattern match)
                     {
-                        matches.Add(match);
+                        run.Add(match);
+
+                        continue;
                     }
-                    else
-                    {
-                        others.Add(triplePattern);
-                    }
+
+                    FlushRun(run);
+                    WriteNonMatchPattern(triplePattern);
                 }
 
-                // More-bound patterns first. Order inside a basic graph pattern is semantically
-                // irrelevant, but the overlay turns each pattern into a UNION containing an
-                // anti-join, and an engine that cannot reorder joins across that evaluates them as
-                // written - so a leading unbound pattern makes it materialize the whole effective
-                // graph before applying any constraint.
-                foreach (IMatchTriplePattern match in matches.OrderByDescending(BoundTermCount))
+                FlushRun(run);
+            }
+
+            /// <summary>
+            /// Writes the accumulated run of match patterns, most-bound first, and clears it.
+            /// </summary>
+            private void FlushRun(List<IMatchTriplePattern> run)
+            {
+                foreach (IMatchTriplePattern match in run.OrderByDescending(BoundTermCount))
                 {
                     _body.Append(LayeredModelSparql.Overlay(
                         _model, Term(match.Subject), Term(match.Predicate), Term(match.Object)));
@@ -469,10 +587,7 @@ namespace Semiodesk.Trinity
                     _body.Append(' ');
                 }
 
-                foreach (ITriplePattern triplePattern in others)
-                {
-                    WriteNonMatchPattern(triplePattern);
-                }
+                run.Clear();
             }
 
             private void WriteNonMatchPattern(ITriplePattern triplePattern)
@@ -523,23 +638,6 @@ namespace Semiodesk.Trinity
             {
                 foreach (DnrQuery.Patterns.GraphPattern child in pattern.ChildGraphPatterns)
                 {
-                    if (child.IsUnion)
-                    {
-                        // A union is modelled as a child whose own children are the alternatives.
-                        for (int i = 0; i < child.ChildGraphPatterns.Count; i++)
-                        {
-                            if (i > 0)
-                            {
-                                _body.Append("UNION ");
-                            }
-
-                            WritePattern(child.ChildGraphPatterns[i]);
-                            _body.Append(' ');
-                        }
-
-                        continue;
-                    }
-
                     if (child.IsExists || child.IsNotExists)
                     {
                         throw Unsupported("an EXISTS / NOT EXISTS graph pattern");
@@ -655,9 +753,18 @@ namespace Semiodesk.Trinity
                 {
                     case VariablePattern _:
                     case NodeMatchPattern _:
+                        return item.ToString();
+
                     case BlankNodePattern _:
                     case FixedBlankNodePattern _:
-                        return item.ToString();
+                        // The overlay repeats each triple pattern across three basic graph patterns,
+                        // and SPARQL forbids a blank-node label appearing in more than one BGP of a
+                        // query - so the rewrite would not be legal SPARQL. This also covers the
+                        // property-list syntax [ ... ], which introduces a blank node.
+                        throw Unsupported(
+                            "a blank node in a triple pattern, including the [ ... ] property-list form. " +
+                            "The overlay repeats every pattern across three basic graph patterns, and SPARQL " +
+                            "does not allow a blank-node label to appear in more than one of them");
 
                     default:
                         throw Unsupported($"a term of type {item.GetType().Name}");
