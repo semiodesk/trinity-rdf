@@ -48,10 +48,38 @@ namespace Semiodesk.Trinity.Query.Sparql
 
         private readonly bool _inferenceEnabled;
 
+        /// <summary>
+        /// Non-null when querying a layered model, in which case every emitted triple pattern is
+        /// wrapped in its overlay.
+        /// </summary>
+        private readonly ILayeredModel _layered;
+
         public SparqlQueryProvider(IModel model, bool inferenceEnabled)
         {
             _model = model ?? throw new ArgumentNullException(nameof(model));
             _inferenceEnabled = inferenceEnabled;
+            _layered = model as ILayeredModel;
+
+            if (_layered != null)
+            {
+                LayeredModel.RequireNoInferencing(inferenceEnabled);
+            }
+        }
+
+        /// <summary>
+        /// Serializes a translated query, applying the layered overlay when there is one, and marks
+        /// it so a layered model will accept it.
+        /// </summary>
+        private ISparqlQuery CreateQuery(SparqlQueryModel translated)
+        {
+            var query = new SparqlQuery(SparqlQueryWriter.Write(translated, _layered)) { Model = _model };
+
+            if (_layered != null)
+            {
+                query.IsOverlayApplied = true;
+            }
+
+            return query;
         }
 
         public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
@@ -71,7 +99,7 @@ namespace Semiodesk.Trinity.Query.Sparql
         {
             QueryTranslation translation = new SparqlQueryTranslator().Translate(expression);
 
-            var query = new SparqlQuery(SparqlQueryWriter.Write(translation.Query)) { Model = _model };
+            ISparqlQuery query = CreateQuery(translation.Query);
 
             switch (translation.Kind)
             {
@@ -225,7 +253,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                 byUri[((IResource)resource).Uri.OriginalString] = resource;
             }
 
-            var query = new SparqlQuery(SparqlQueryWriter.Write(translation.MultiplicityQuery)) { Model = _model };
+            ISparqlQuery query = CreateQuery(translation.MultiplicityQuery);
             var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(translation.ElementType));
 
             foreach (BindingSet bindings in _model.ExecuteQuery(query, _inferenceEnabled).GetBindings())

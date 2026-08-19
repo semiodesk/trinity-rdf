@@ -1,0 +1,843 @@
+// LICENSE:
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//
+// AUTHORS:
+//
+//  Moritz Eberl <moritz@semiodesk.com>
+//  Sebastian Faubel <sebastian@semiodesk.com>
+//
+// Copyright (c) Semiodesk GmbH 2026
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using VDS.RDF.Query.Expressions;
+using VDS.RDF.Query.Expressions.Functions.Sparql.Boolean;
+using VDS.RDF.Query.Expressions.Primary;
+using VDS.RDF.Query.Patterns;
+using DnrParsing = VDS.RDF.Parsing;
+using DnrQuery = VDS.RDF.Query;
+
+namespace Semiodesk.Trinity
+{
+    /// <summary>
+    /// Rewrites a caller-supplied SPARQL query so that every triple pattern resolves against an
+    /// <see cref="ILayeredModel"/>'s effective graph instead of a single named graph.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Subtraction cannot live in a dataset clause, so a query run unchanged against a layered view
+    /// gives a wrong answer with no error — see <c>doc/adr/0041-layered-read-views.md</c>. This class
+    /// makes the honest version possible for the query forms it can prove it handles, and refuses
+    /// every other form with a reason.
+    /// </para>
+    /// <para>
+    /// It works on the query's <b>parse tree</b>, not its text. That matters: the abbreviations that
+    /// make text-level rewriting impractical — predicate-object lists (<c>;</c>), object lists
+    /// (<c>,</c>) and blank-node property lists (<c>[ ]</c>) — are already expanded into plain triple
+    /// patterns by the time the parser is done, so there is nothing left to disentangle.
+    /// </para>
+    /// <para>
+    /// <b>Whitelist, not blacklist.</b> Every pattern kind, and every filter expression, must be
+    /// recognised as safe; anything else throws. That is what keeps an unhandled form from silently
+    /// returning triples staged for removal.
+    /// </para>
+    /// </remarks>
+    internal static class OverlayQueryRewriter
+    {
+        /// <summary>
+        /// Rewrites <paramref name="queryString"/> against <paramref name="model"/>'s three graphs.
+        /// </summary>
+        /// <remarks>
+        /// The input must already have its Trinity <c>@parameters</c> substituted: the strict SPARQL
+        /// parser used here rejects them outright. Callers therefore pass
+        /// <c>ISparqlQuery.ToString()</c>, which performs the substitution.
+        /// </remarks>
+        /// <exception cref="NotSupportedException">
+        /// Thrown, with the specific reason, if the query cannot be rewritten faithfully.
+        /// </exception>
+        internal static string Rewrite(ILayeredModel model, string queryString)
+        {
+            if (model == null)
+            {
+                throw new ArgumentNullException(nameof(model));
+            }
+
+            DnrQuery.SparqlQuery parsed = Parse(queryString);
+
+            string rewritten = new Walker(model).RewriteQuery(parsed, outermost: true);
+
+            // Re-parse the result and compare the parts this class did not intend to change. A
+            // serialization slip would otherwise be indistinguishable from a correct rewrite, and
+            // the whole point of the overlay is that wrong answers are never silent.
+            VerifyRoundTrip(parsed, rewritten, queryString);
+
+            return rewritten;
+        }
+
+        private static DnrQuery.SparqlQuery Parse(string queryString)
+        {
+            try
+            {
+                return new DnrParsing.SparqlQueryParser().ParseFromString(queryString);
+            }
+            catch (Exception ex)
+            {
+                throw new NotSupportedException(
+                    "The query could not be parsed, so it cannot be rewritten to honour the layered " +
+                    "baseline/additions/removals overlay. Note that Trinity's own tokenizer accepts a " +
+                    "wider, extended syntax than the strict SPARQL parser used here, so a query may be " +
+                    "accepted by a plain model and refused by a layered one. Parser error: " + ex.Message, ex);
+            }
+        }
+
+        /// <summary>
+        /// Confirms the rewrite preserved everything outside the WHERE clause.
+        /// </summary>
+        private static void VerifyRoundTrip(DnrQuery.SparqlQuery original, string rewritten, string queryString)
+        {
+            DnrQuery.SparqlQuery check;
+
+            try
+            {
+                check = new DnrParsing.SparqlQueryParser().ParseFromString(rewritten);
+            }
+            catch (Exception ex)
+            {
+                throw new NotSupportedException(
+                    "Rewriting the query for the layered overlay produced SPARQL that does not parse. This is a " +
+                    "defect in the rewriter rather than a problem with the query; it is reported instead of " +
+                    "executed because an unparseable rewrite is preferable to a silently wrong answer.\n" +
+                    "Original: " + queryString + "\nRewritten: " + rewritten, ex);
+            }
+
+            var differences = new List<string>();
+
+            if (check.QueryType != original.QueryType)
+            {
+                differences.Add($"query form {original.QueryType} became {check.QueryType}");
+            }
+
+            if (check.Limit != original.Limit)
+            {
+                differences.Add($"LIMIT {original.Limit} became {check.Limit}");
+            }
+
+            if (check.Offset != original.Offset)
+            {
+                differences.Add($"OFFSET {original.Offset} became {check.Offset}");
+            }
+
+            string before = string.Join(",", original.Variables.Where(v => v.IsResultVariable).Select(v => v.Name));
+            string after = string.Join(",", check.Variables.Where(v => v.IsResultVariable).Select(v => v.Name));
+
+            if (before != after)
+            {
+                differences.Add($"projected variables [{before}] became [{after}]");
+            }
+
+            // Filters are re-emitted through dotNetRDF's own serialization, which is not always
+            // faithful: FILTER(!(?r < 3)) comes back as FILTER(!?r < 3), i.e. (!?r) < 3, and it
+            // reparses cleanly. Comparing the expression trees structurally is what turns that
+            // upstream defect into a refusal instead of a quietly different answer.
+            List<string> filtersBefore = FilterSignatures(original.RootGraphPattern);
+
+            // The overlay adds its own FILTER NOT EXISTS guard for every fully ground pattern, so
+            // those have to come out of the comparison. It is safe to drop all of them because a
+            // caller's own EXISTS / NOT EXISTS is refused outright - anything matching here is ours.
+            List<string> filtersAfter = FilterSignatures(check.RootGraphPattern)
+                .Where(signature => !signature.StartsWith("NOT EXISTS(", StringComparison.Ordinal))
+                .ToList();
+
+            if (!filtersBefore.SequenceEqual(filtersAfter))
+            {
+                differences.Add(
+                    "a FILTER expression did not survive re-serialization: [" +
+                    string.Join(" | ", filtersBefore) + "] became [" + string.Join(" | ", filtersAfter) + "]");
+            }
+
+            // HAVING and the projection expressions are not re-emitted by this class - they come from
+            // dotNetRDF's serialization of the head and the solution modifiers, which is reused
+            // verbatim. So they cannot be repaired here, only checked: a negation inside one is
+            // mangled exactly as it is inside a filter, and would otherwise pass unnoticed.
+            string havingBefore = SparqlExpressionWriter.Signature(original.Having?.Expression);
+            string havingAfter = SparqlExpressionWriter.Signature(check.Having?.Expression);
+
+            if (havingBefore != havingAfter)
+            {
+                differences.Add($"the HAVING expression {havingBefore} became {havingAfter}");
+            }
+
+            string projectionsBefore = ProjectionSignatures(original);
+            string projectionsAfter = ProjectionSignatures(check);
+
+            if (projectionsBefore != projectionsAfter)
+            {
+                differences.Add($"a projected expression changed: [{projectionsBefore}] became [{projectionsAfter}]");
+            }
+
+            if (differences.Count > 0)
+            {
+                throw new NotSupportedException(
+                    "This query cannot be run against a layered model: rewriting it to honour the " +
+                    "baseline/additions/removals overlay changed part of it that had to be preserved (" +
+                    string.Join("; ", differences) + "). Re-serializing a query relies on dotNetRDF, which is not " +
+                    "faithful in every case - notably a negation wrapped around a comparison, where " +
+                    "!(?x < 1) comes back as !?x < 1 and still parses. Trinity serializes FILTER and BIND " +
+                    "expressions itself to avoid that, but a projection or a HAVING clause is reused from " +
+                    "dotNetRDF's own output and cannot be repaired here, only detected. Rephrasing the " +
+                    "expression avoids it (here, ?x >= 1).\nOriginal: " + queryString + "\nRewritten: " + rewritten);
+            }
+        }
+
+        /// <summary>
+        /// Every filter attached to a group, from both places dotNetRDF can hold one.
+        /// </summary>
+        private static IEnumerable<VDS.RDF.Query.Filters.ISparqlFilter> Filters(DnrQuery.Patterns.GraphPattern pattern)
+        {
+            if (pattern.IsFiltered && pattern.Filter != null)
+            {
+                yield return pattern.Filter;
+            }
+
+            foreach (VDS.RDF.Query.Filters.ISparqlFilter filter in pattern.UnplacedFilters)
+            {
+                yield return filter;
+            }
+        }
+
+        /// <summary>
+        /// Signatures of the projected expressions and aggregates, in projection order.
+        /// </summary>
+        private static string ProjectionSignatures(DnrQuery.SparqlQuery query)
+        {
+            var parts = new List<string>();
+
+            foreach (DnrQuery.SparqlVariable variable in query.Variables.Where(v => v.IsResultVariable))
+            {
+                if (variable.IsAggregate && variable.Aggregate != null)
+                {
+                    parts.Add(variable.Name + "=" + variable.Aggregate.Functor + "(" +
+                              SparqlExpressionWriter.Signature(variable.Aggregate.Expression) + ")");
+                }
+                else if (variable.IsProjection && variable.Projection != null)
+                {
+                    parts.Add(variable.Name + "=" + SparqlExpressionWriter.Signature(variable.Projection));
+                }
+                else
+                {
+                    parts.Add(variable.Name);
+                }
+            }
+
+            return string.Join(" | ", parts);
+        }
+
+        /// <summary>
+        /// Collects a structural signature of every FILTER expression in a pattern tree, so a
+        /// re-serialization that changed one can be detected.
+        /// </summary>
+        /// <remarks>
+        /// Sorted rather than compared in tree order: the rewrite moves filters to the end of their
+        /// group, which is semantically irrelevant but would otherwise look like a difference.
+        /// </remarks>
+        private static List<string> FilterSignatures(DnrQuery.Patterns.GraphPattern pattern)
+        {
+            var signatures = new HashSet<string>(StringComparer.Ordinal);
+
+            Collect(pattern, signatures);
+
+            // Distinct rather than a multiset: dotNetRDF can expose one filter through both
+            // GraphPattern.Filter and GraphPattern.UnplacedFilters, and a repeated filter is
+            // idempotent anyway, so a count difference carries no meaning.
+            var sorted = signatures.ToList();
+            sorted.Sort(StringComparer.Ordinal);
+
+            return sorted;
+        }
+
+        private static void Collect(DnrQuery.Patterns.GraphPattern pattern, HashSet<string> signatures)
+        {
+            if (pattern == null)
+            {
+                return;
+            }
+
+
+            foreach (ITriplePattern triplePattern in pattern.TriplePatterns)
+            {
+                switch (triplePattern)
+                {
+                    case IFilterPattern filter:
+                        signatures.Add(SparqlExpressionWriter.Signature(filter.Filter.Expression));
+                        break;
+                    case IAssignmentPattern assignment:
+                        signatures.Add(SparqlExpressionWriter.Signature(assignment.AssignExpression));
+                        break;
+                    case ISubQueryPattern subQuery:
+                        Collect(subQuery.SubQuery.RootGraphPattern, signatures);
+                        break;
+                }
+            }
+
+            foreach (IAssignmentPattern assignment in pattern.UnplacedAssignments)
+            {
+                signatures.Add(SparqlExpressionWriter.Signature(assignment.AssignExpression));
+            }
+
+            foreach (VDS.RDF.Query.Filters.ISparqlFilter filter in Filters(pattern))
+            {
+                signatures.Add(SparqlExpressionWriter.Signature(filter.Expression));
+            }
+
+            foreach (DnrQuery.Patterns.GraphPattern child in pattern.ChildGraphPatterns)
+            {
+                Collect(child, signatures);
+            }
+        }
+
+        /// <summary>
+        /// Walks one query's pattern tree and emits the rewritten SPARQL.
+        /// </summary>
+        private sealed class Walker
+        {
+            private readonly ILayeredModel _model;
+
+            private readonly StringBuilder _body = new StringBuilder();
+
+            internal Walker(ILayeredModel model)
+            {
+                _model = model;
+            }
+
+            /// <summary>
+            /// Rewrites a whole query. Only the outermost query may carry a dataset clause; a
+            /// sub-<c>SELECT</c> must not.
+            /// </summary>
+            internal string RewriteQuery(DnrQuery.SparqlQuery query, bool outermost)
+            {
+                RequireSupportedForm(query);
+
+                if (query.DefaultGraphNames.Any() || query.NamedGraphNames.Any())
+                {
+                    throw Unsupported(
+                        "the query declares its own dataset clause (FROM / FROM NAMED). A layered view defines the " +
+                        "dataset itself, so a query cannot also choose one");
+                }
+
+                // Serialize the pattern tree first; the head and solution modifiers are then taken
+                // from dotNetRDF's own serialization of the same query, which is authoritative for
+                // its own AST and saves re-implementing projection, GROUP BY, HAVING and ORDER BY.
+                var walker = new Walker(_model);
+                walker.WritePattern(query.RootGraphPattern);
+                string body = walker._body.ToString();
+
+                string normalized = query.ToString();
+                SplitAroundRootPattern(normalized, out string head, out string tail);
+
+                string dataset = outermost ? LayeredModelSparql.NamedDatasetClause(_model) : string.Empty;
+
+                var result = new StringBuilder();
+
+                result.Append(head);
+
+                if (head.Length > 0 && !head.EndsWith(" ", StringComparison.Ordinal))
+                {
+                    result.Append(' ');
+                }
+
+                result.Append(dataset).Append("WHERE ").Append(body);
+
+                if (tail.Length > 0)
+                {
+                    result.Append(' ').Append(tail);
+                }
+
+                return result.ToString().Trim();
+            }
+
+            private static void RequireSupportedForm(DnrQuery.SparqlQuery query)
+            {
+                switch (query.QueryType)
+                {
+                    case DnrQuery.SparqlQueryType.Ask:
+                    case DnrQuery.SparqlQueryType.Select:
+                    case DnrQuery.SparqlQueryType.SelectAll:
+                    case DnrQuery.SparqlQueryType.SelectAllDistinct:
+                    case DnrQuery.SparqlQueryType.SelectAllReduced:
+                    case DnrQuery.SparqlQueryType.SelectDistinct:
+                    case DnrQuery.SparqlQueryType.SelectReduced:
+                        return;
+
+                    case DnrQuery.SparqlQueryType.Construct:
+                        throw Unsupported(
+                            "CONSTRUCT: its template describes triples to build rather than to match, so the overlay " +
+                            "must not be applied there, and distinguishing the two reliably is not supported");
+
+                    case DnrQuery.SparqlQueryType.Describe:
+                    case DnrQuery.SparqlQueryType.DescribeAll:
+                        throw Unsupported(
+                            "DESCRIBE: the store decides which triples to return, so there is no graph pattern to " +
+                            "rewrite. Read whole resources with GetResource instead, which does honour the overlay");
+
+                    default:
+                        throw Unsupported($"query form {query.QueryType}");
+                }
+            }
+
+            private void WritePattern(DnrQuery.Patterns.GraphPattern pattern)
+            {
+                if (pattern.IsGraph)
+                {
+                    throw Unsupported(
+                        $"an explicit GRAPH block (GRAPH {pattern.GraphSpecifier?.Value}). A layered view is itself a " +
+                        "graph-level construct built from three graphs, so naming one of them would read past the " +
+                        "overlay - and GRAPH ?g would expose the removals graph as ordinary data");
+                }
+
+                if (pattern.IsService)
+                {
+                    throw Unsupported("a SERVICE clause: the remote endpoint knows nothing of the overlay");
+                }
+
+                if (pattern.HasInlineData && pattern.InlineData == null)
+                {
+                    throw Unsupported("an inline data block that could not be read");
+                }
+
+                _body.Append("{ ");
+
+                WriteTriplePatterns(pattern);
+                WriteChildPatterns(pattern);
+                WriteAssignments(pattern);
+                WriteFilters(pattern);
+
+                if (pattern.HasInlineData)
+                {
+                    // VALUES binds solutions directly and never touches a graph.
+                    _body.Append(pattern.InlineData.ToString()).Append(' ');
+                }
+
+                _body.Append('}');
+            }
+
+            private void WriteTriplePatterns(DnrQuery.Patterns.GraphPattern pattern)
+            {
+                var matches = new List<IMatchTriplePattern>();
+                var others = new List<ITriplePattern>();
+
+                foreach (ITriplePattern triplePattern in pattern.TriplePatterns)
+                {
+                    if (triplePattern is IMatchTriplePattern match)
+                    {
+                        matches.Add(match);
+                    }
+                    else
+                    {
+                        others.Add(triplePattern);
+                    }
+                }
+
+                // More-bound patterns first. Order inside a basic graph pattern is semantically
+                // irrelevant, but the overlay turns each pattern into a UNION containing an
+                // anti-join, and an engine that cannot reorder joins across that evaluates them as
+                // written - so a leading unbound pattern makes it materialize the whole effective
+                // graph before applying any constraint.
+                foreach (IMatchTriplePattern match in matches.OrderByDescending(BoundTermCount))
+                {
+                    _body.Append(LayeredModelSparql.Overlay(
+                        _model, Term(match.Subject), Term(match.Predicate), Term(match.Object)));
+
+                    _body.Append(' ');
+                }
+
+                foreach (ITriplePattern triplePattern in others)
+                {
+                    WriteNonMatchPattern(triplePattern);
+                }
+            }
+
+            private void WriteNonMatchPattern(ITriplePattern triplePattern)
+            {
+                switch (triplePattern)
+                {
+                    case ISubQueryPattern subQuery:
+                        _body.Append("{ ")
+                             .Append(new Walker(_model).RewriteQuery(subQuery.SubQuery, outermost: false))
+                             .Append(" } ");
+                        break;
+
+                    case IAssignmentPattern assignment:
+                        // BIND / LET: computes a value, never reads a graph. Written through our own
+                        // serializer because dotNetRDF mangles a negation here too.
+                        RequireNoGraphAccess(assignment.AssignExpression);
+                        _body.Append("BIND(")
+                             .Append(SparqlExpressionWriter.Write(assignment.AssignExpression))
+                             .Append(" AS ?").Append(assignment.VariableName).Append(") ");
+                        break;
+
+                    case BindingsPattern inlineData:
+                        _body.Append(inlineData.ToString()).Append(' ');
+                        break;
+
+                    case IFilterPattern filter:
+                        RequireNoGraphAccess(filter.Filter.Expression);
+                        _body.Append("FILTER(")
+                             .Append(SparqlExpressionWriter.Write(filter.Filter.Expression))
+                             .Append(") ");
+                        break;
+
+                    case IPropertyPathPattern _:
+                        throw Unsupported(
+                            "a property path. A path walks intermediate nodes that must themselves resolve against " +
+                            "the effective graph, and a transitive path (+ or *) has no fixed expansion to rewrite " +
+                            "into, so it cannot be handled pattern by pattern");
+
+                    case IPropertyFunctionPattern _:
+                        throw Unsupported("a property function");
+
+                    default:
+                        throw Unsupported($"a pattern of type {triplePattern.GetType().Name}");
+                }
+            }
+
+            private void WriteChildPatterns(DnrQuery.Patterns.GraphPattern pattern)
+            {
+                foreach (DnrQuery.Patterns.GraphPattern child in pattern.ChildGraphPatterns)
+                {
+                    if (child.IsUnion)
+                    {
+                        // A union is modelled as a child whose own children are the alternatives.
+                        for (int i = 0; i < child.ChildGraphPatterns.Count; i++)
+                        {
+                            if (i > 0)
+                            {
+                                _body.Append("UNION ");
+                            }
+
+                            WritePattern(child.ChildGraphPatterns[i]);
+                            _body.Append(' ');
+                        }
+
+                        continue;
+                    }
+
+                    if (child.IsExists || child.IsNotExists)
+                    {
+                        throw Unsupported("an EXISTS / NOT EXISTS graph pattern");
+                    }
+
+                    if (child.IsOptional)
+                    {
+                        _body.Append("OPTIONAL ");
+                    }
+                    else if (child.IsMinus)
+                    {
+                        _body.Append("MINUS ");
+                    }
+
+                    WritePattern(child);
+                    _body.Append(' ');
+                }
+            }
+
+            /// <summary>
+            /// Emits the BIND clauses dotNetRDF parked as "unplaced".
+            /// </summary>
+            /// <remarks>
+            /// A parser may hold an assignment in <c>UnplacedAssignments</c> rather than among the
+            /// group's triple patterns, to be positioned later during optimisation. Iterating only
+            /// <c>TriplePatterns</c> would drop it from the rewritten query - losing a binding
+            /// silently, which is worse than refusing.
+            /// </remarks>
+            private void WriteAssignments(DnrQuery.Patterns.GraphPattern pattern)
+            {
+                foreach (IAssignmentPattern assignment in pattern.UnplacedAssignments)
+                {
+                    RequireNoGraphAccess(assignment.AssignExpression);
+
+                    _body.Append("BIND(")
+                         .Append(SparqlExpressionWriter.Write(assignment.AssignExpression))
+                         .Append(" AS ?").Append(assignment.VariableName).Append(") ");
+                }
+            }
+
+            /// <summary>
+            /// Emits every filter that applies to a group, each exactly once.
+            /// </summary>
+            /// <remarks>
+            /// A filter can be reachable through both <c>Filter</c> and <c>UnplacedFilters</c>, so the
+            /// two are merged and de-duplicated by structure. Emitting one twice would be harmless -
+            /// a filter is idempotent - but omitting one would not, and de-duplicating here keeps the
+            /// round-trip comparison honest.
+            /// </remarks>
+            private void WriteFilters(DnrQuery.Patterns.GraphPattern pattern)
+            {
+                var written = new HashSet<string>();
+
+                foreach (VDS.RDF.Query.Filters.ISparqlFilter filter in Filters(pattern))
+                {
+                    RequireNoGraphAccess(filter.Expression);
+
+                    string text = SparqlExpressionWriter.Write(filter.Expression);
+
+                    if (written.Add(SparqlExpressionWriter.Signature(filter.Expression)))
+                    {
+                        _body.Append("FILTER(").Append(text).Append(") ");
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Refuses a filter expression that reads a graph of its own.
+            /// </summary>
+            /// <remarks>
+            /// <c>FILTER EXISTS { ... }</c> and <c>FILTER NOT EXISTS { ... }</c> do not appear as child
+            /// graph patterns; they are an <c>ExistsFunction</c> wrapping a <c>GraphPatternTerm</c>
+            /// inside the filter expression. Filters are re-emitted verbatim, so without this check
+            /// that nested pattern would bypass the overlay entirely and match against the raw
+            /// baseline — the removals graph would be ignored and nothing would say so.
+            /// </remarks>
+            private static void RequireNoGraphAccess(ISparqlExpression expression)
+            {
+                if (expression == null)
+                {
+                    return;
+                }
+
+                if (expression is ExistsFunction || expression is GraphPatternTerm ||
+                    expression.Type == SparqlExpressionType.GraphOperator)
+                {
+                    throw Unsupported(
+                        "a filter that matches a graph pattern of its own (EXISTS / NOT EXISTS). Filters are " +
+                        "re-emitted unchanged, so its nested pattern would read the baseline directly and ignore " +
+                        "the triples staged for removal");
+                }
+
+                foreach (ISparqlExpression argument in expression.Arguments)
+                {
+                    RequireNoGraphAccess(argument);
+                }
+            }
+
+            private static int BoundTermCount(IMatchTriplePattern match)
+            {
+                int bound = 0;
+
+                if (!(match.Subject is VariablePattern)) bound++;
+                if (!(match.Predicate is VariablePattern)) bound++;
+                if (!(match.Object is VariablePattern)) bound++;
+
+                return bound;
+            }
+
+            private static string Term(PatternItem item)
+            {
+                switch (item)
+                {
+                    case VariablePattern _:
+                    case NodeMatchPattern _:
+                    case BlankNodePattern _:
+                    case FixedBlankNodePattern _:
+                        return item.ToString();
+
+                    default:
+                        throw Unsupported($"a term of type {item.GetType().Name}");
+                }
+            }
+
+            private static NotSupportedException Unsupported(string what)
+            {
+                return new NotSupportedException(
+                    "This query cannot be run against a layered model because it contains " + what + ". " +
+                    "The baseline/additions/removals overlay has to be applied inside every graph pattern, and this " +
+                    "form cannot be rewritten faithfully - so it is refused rather than answered with triples that " +
+                    "are staged for removal. Query the Baseline, Additions or Removals models directly, or use " +
+                    "GetResource / GetResources / ContainsResource / AsQueryable<T>(). " +
+                    "See doc/adr/0041-layered-read-views.md.");
+            }
+
+            /// <summary>
+            /// Splits dotNetRDF's serialization of a query around its root group graph pattern, so the
+            /// projection and the solution modifiers can be reused verbatim.
+            /// </summary>
+            /// <remarks>
+            /// Brace matching is literal-aware: a query may legitimately contain <c>"}"</c> inside a
+            /// string, in the projection as well as in the pattern.
+            /// </remarks>
+            private static void SplitAroundRootPattern(string query, out string head, out string tail)
+            {
+                int open = IndexOfRootBrace(query);
+
+                if (open < 0)
+                {
+                    throw Unsupported("no group graph pattern that could be rewritten");
+                }
+
+                int close = IndexOfMatchingBrace(query, open);
+
+                if (close < 0)
+                {
+                    throw Unsupported("an unbalanced group graph pattern");
+                }
+
+                head = query.Substring(0, open).TrimEnd();
+
+                // Drop the WHERE keyword; it is re-emitted with the rewritten body.
+                if (head.EndsWith("WHERE", StringComparison.OrdinalIgnoreCase))
+                {
+                    head = head.Substring(0, head.Length - "WHERE".Length).TrimEnd();
+                }
+
+                tail = query.Substring(close + 1).Trim();
+            }
+
+            private static int IndexOfRootBrace(string query)
+            {
+                for (int i = 0; i < query.Length; i++)
+                {
+                    i = SkipLiteralOrIri(query, i);
+
+                    if (i < query.Length && query[i] == '{')
+                    {
+                        return i;
+                    }
+                }
+
+                return -1;
+            }
+
+            private static int IndexOfMatchingBrace(string query, int open)
+            {
+                int depth = 0;
+
+                for (int i = open; i < query.Length; i++)
+                {
+                    i = SkipLiteralOrIri(query, i);
+
+                    if (i >= query.Length)
+                    {
+                        break;
+                    }
+
+                    if (query[i] == '{')
+                    {
+                        depth++;
+                    }
+                    else if (query[i] == '}')
+                    {
+                        depth--;
+
+                        if (depth == 0)
+                        {
+                            return i;
+                        }
+                    }
+                }
+
+                return -1;
+            }
+
+            /// <summary>
+            /// Indicates whether an IRI reference starts at <paramref name="start"/>, and if so where
+            /// its closing angle bracket is.
+            /// </summary>
+            private static bool IsIriRef(string query, int start, out int end)
+            {
+                end = start;
+
+                for (int i = start + 1; i < query.Length; i++)
+                {
+                    char c = query[i];
+
+                    if (c == '>')
+                    {
+                        end = i;
+                        return true;
+                    }
+
+                    if (char.IsWhiteSpace(c) || c == '<' || c == '"' || c == '{' ||
+                        c == '}' || c == '|' || c == '^' || c == '`')
+                    {
+                        return false;
+                    }
+                }
+
+                return false;
+            }
+
+            /// <summary>
+            /// If a literal or IRI starts at <paramref name="i"/>, returns the index of its last
+            /// character; otherwise returns <paramref name="i"/> unchanged.
+            /// </summary>
+            private static int SkipLiteralOrIri(string query, int i)
+            {
+                if (i >= query.Length)
+                {
+                    return i;
+                }
+
+                char c = query[i];
+
+                if (c == '<')
+                {
+                    // '<' is also the less-than operator, so only skip when this really is an IRI.
+                    // Per the SPARQL grammar an IRIREF runs to the next '>' and may not contain
+                    // whitespace or any of <>"{}|^`. Treating `?r < 3` as an IRI would swallow the
+                    // rest of the query, closing braces included.
+                    return IsIriRef(query, i, out int end) ? end : i;
+                }
+
+                if (c != '"' && c != '\'')
+                {
+                    return i;
+                }
+
+                string longQuote = new string(c, 3);
+                bool isLong = i + 2 < query.Length && query.Substring(i, 3) == longQuote;
+                int start = isLong ? i + 3 : i + 1;
+
+                for (int j = start; j < query.Length; j++)
+                {
+                    if (query[j] == '\\')
+                    {
+                        j++;
+                        continue;
+                    }
+
+                    if (isLong)
+                    {
+                        if (j + 2 < query.Length && query.Substring(j, 3) == longQuote)
+                        {
+                            return j + 2;
+                        }
+                    }
+                    else if (query[j] == c)
+                    {
+                        return j;
+                    }
+                }
+
+                return query.Length;
+            }
+        }
+    }
+}

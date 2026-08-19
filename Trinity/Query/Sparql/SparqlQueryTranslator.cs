@@ -2392,8 +2392,14 @@ namespace Semiodesk.Trinity.Query.Sparql
             outer.Projections.Add(new Projection(subject));
             outer.Projections.Add(new Projection(new VariableTerm("p")));
             outer.Projections.Add(new Projection(new VariableTerm("o")));
-            outer.Where.Add(new TriplePattern(subject, new VariableTerm("p"), new VariableTerm("o")));
 
+            // The selection is emitted BEFORE the wildcard ?s ?p ?o that fetches each matched
+            // resource's triples. Pattern order inside a basic graph pattern is semantically
+            // irrelevant, but it is not irrelevant to the plan: over a layered model every pattern
+            // becomes a UNION containing an anti-join, and an engine that cannot reorder joins
+            // across that evaluates them as written - so a leading wildcard makes it materialize
+            // the whole effective graph before applying any constraint. Measured at four orders of
+            // magnitude on the in-memory engine. Harmless for a plain model, which reorders freely.
             if (_limit.HasValue || _offset.HasValue || _distinct || subject != Subject)
             {
                 var inner = new SelectQuery { IsDistinct = true, Limit = _limit, Offset = _offset, Where = selection };
@@ -2416,6 +2422,8 @@ namespace Semiodesk.Trinity.Query.Sparql
 
                 outer.OrderBy.AddRange(_orderings);
             }
+
+            outer.Where.Add(new TriplePattern(subject, new VariableTerm("p"), new VariableTerm("o")));
 
             return outer;
         }
