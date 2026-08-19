@@ -55,7 +55,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 413 passed, 7 skipped (quarantined)
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 542 passed, 7 skipped (quarantined)
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 23 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -69,7 +69,7 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
 - Store integration tests (`tests/Trinity.Tests.*`) **self-provision** their server in Docker via
   Testcontainers on a random host port (ADR-0036): run `dotnet test tests/Trinity.Tests.{Virtuoso,GraphDB,Fuseki}`
   with a Docker daemon running. Excluded from the default CI job (Docker + large images). Current:
-  Virtuoso 103/108 and GraphDB 110/115 pass; Fuseki is 4/86 — a pre-existing dotNetRDF `FusekiConnector`
+  Virtuoso 175/180 and GraphDB 182/187 pass; Fuseki is 4/86 — a pre-existing dotNetRDF `FusekiConnector`
   query-endpoint bug (POSTs `/ds/query`, which the server 404s), unrelated to the container wiring.
   Virtuoso's `Int16Test`/`Uint16Test`/`UintTest` are now `Assert.Inconclusive` in `VirtuosoResourceTest`,
   alongside the pre-existing `Int64Test`/`Uint64Test` overrides for the same phenomenon: Virtuoso widens
@@ -168,6 +168,23 @@ Invariants that surprise newcomers:
   `GetValue`/`SetValue` + `GetTypes()`, now emitted by the source generator (ADR-0013). A
   `[RdfProperty]` on a non-`partial` member is not generated (and no longer woven) — it does nothing.
 - **Models are named graphs; a `ModelGroup` is itself an `IModel`** spanning several (0019).
+- **A `ModelGroup` can only union; subtraction is a separate abstraction** (0041): `ILayeredModel`
+  (`store.CreateLayeredModel(baseline, additions, removals)`) reads `(baseline − removals) ∪ additions`
+  with git-working-tree semantics — additions win on overlap, the baseline stays untouched. It is read-only,
+  and it is deliberately **not** an `IModelGroup`. The mapped reads and LINQ honour the overlay natively; caller-supplied
+  SPARQL is rewritten by `OverlayQueryRewriter` (whitelist over the dotNetRDF parse tree — property paths, `GRAPH`
+  blocks, `SERVICE`, `CONSTRUCT`/`DESCRIBE`, `FILTER EXISTS` and a caller `FROM` are **refused**), and
+  `inferenceEnabled: true` throws. Nothing silently returns unsubtracted triples. **dotNetRDF cannot serialize a
+  negated comparison faithfully** (`!(?r < 3)` → `!?r < 3`, which still parses), so `SparqlExpressionWriter` writes
+  `FILTER`/`BIND` expressions instead; `HAVING` and projected expressions come from dotNetRDF and are only checked,
+  so a negation there is refused. Every rewrite is re-parsed and compared structurally against the original.
+  Caller queries are parsed on **every** execution — see ADR-0041 for the placeholder-IRI caching optimisation
+  if that ever shows up in a profile. The SPARQL is
+  built only by `LayeredModelSparql`, whose emission rules (MINUS vs FILTER NOT EXISTS, `VALUES` before the
+  overlay, selective patterns before the wildcard) are correctness/perf requirements — see the ADR before touching them.
+  **All three graphs must be in the same store** — the overlay is one query over one dataset, so a cross-store view
+  is refused at construction (it used to fail silently in both directions); create views only via
+  `store.CreateLayeredModel`, never by constructing `LayeredModel` directly.
 - **Discovery is global static state** (0020): consumers must `MappingDiscovery.RegisterAssembly`
   / `OntologyDiscovery.AddAssembly` at startup or mapping and SPARQL prefixes silently miss.
 - **No configuration subsystem** (0011, 2.0): the `ontologies.config`/`app.config` loading,
