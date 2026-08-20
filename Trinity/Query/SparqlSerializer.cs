@@ -284,6 +284,13 @@ namespace Semiodesk.Trinity
                 return "";
             }
 
+            if (model is ILayeredModel layered)
+            {
+                // FROM would merge the three graphs into the default graph, which is union - the
+                // overlay needs them addressable by name instead.
+                return LayeredModelSparql.NamedDatasetClause(layered);
+            }
+
             if (model is IModelGroup)
             {
                 return GenerateDatasetClause(model as IModelGroup);
@@ -417,8 +424,16 @@ namespace Semiodesk.Trinity
             string from = GenerateDatasetClause(model);
             string where = query.GetRootGraphPattern();
 
+            // The inner pattern already carries the overlay - it came from the query root graph
+            // pattern - but the outer triple pattern this method adds does not, and unguarded it
+            // would fetch the paged resources triples straight from the baseline, removals
+            // included. Wrap it too.
+            string outer = model is ILayeredModel layeredModel
+                ? LayeredModelSparql.Overlay(layeredModel, variable, "?p", "?o")
+                : string.Format("{0} ?p ?o", variable);
+
             StringBuilder resultBuilder = new StringBuilder();
-            resultBuilder.AppendFormat("SELECT {0} ?p ?o {1} WHERE {{ {0} ?p ?o {{", variable, from);
+            resultBuilder.AppendFormat("SELECT {0} ?p ?o {1} WHERE {{ {2} {{", variable, from, outer);
             resultBuilder.AppendFormat("SELECT DISTINCT {0} WHERE {{ {1} }}", variable, where);
 
             if (offset != -1)

@@ -40,9 +40,37 @@ namespace Semiodesk.Trinity.Query.Sparql
     {
         private readonly StringBuilder _builder = new StringBuilder();
 
+        /// <summary>
+        /// When set, every triple pattern is emitted wrapped in this model's
+        /// <c>(baseline - removals) union additions</c> overlay instead of as a bare pattern.
+        /// </summary>
+        private readonly ILayeredModel _layered;
+
+        private SparqlQueryWriter(ILayeredModel layered = null)
+        {
+            _layered = layered;
+        }
+
         public static string Write(SparqlQueryModel query)
         {
-            var writer = new SparqlQueryWriter();
+            return Write(query, null);
+        }
+
+        /// <summary>
+        /// Serializes the query, resolving every triple pattern against <paramref name="layered"/>'s
+        /// effective graph when one is given.
+        /// </summary>
+        /// <remarks>
+        /// Wrapping happens in exactly one place - the <see cref="TriplePattern"/> arm of
+        /// <see cref="WritePattern"/> - because that is the only node kind that resolves against the
+        /// data. Groups, OPTIONAL, UNION, MINUS and sub-selects merely contain patterns, and BIND and
+        /// VALUES touch no graph at all, so they need no change and the rewrite is complete over the
+        /// AST by construction. The <c>default:</c> arm still throws, so a node type added later
+        /// cannot silently escape the overlay.
+        /// </remarks>
+        public static string Write(SparqlQueryModel query, ILayeredModel layered)
+        {
+            var writer = new SparqlQueryWriter(layered);
             writer.WriteQuery(query);
             return writer._builder.ToString().Trim();
         }
@@ -181,12 +209,20 @@ namespace Semiodesk.Trinity.Query.Sparql
             switch (pattern)
             {
                 case TriplePattern triple:
-                    WriteTerm(triple.Subject);
-                    _builder.Append(' ');
-                    WriteTerm(triple.Predicate);
-                    _builder.Append(' ');
-                    WriteTerm(triple.Object);
-                    _builder.Append(" .");
+                    if (_layered == null)
+                    {
+                        WriteTerm(triple.Subject);
+                        _builder.Append(' ');
+                        WriteTerm(triple.Predicate);
+                        _builder.Append(' ');
+                        WriteTerm(triple.Object);
+                        _builder.Append(" .");
+                    }
+                    else
+                    {
+                        _builder.Append(LayeredModelSparql.Overlay(
+                            _layered, Term(triple.Subject), Term(triple.Predicate), Term(triple.Object)));
+                    }
                     break;
                 case OptionalPattern optional:
                     _builder.Append("OPTIONAL ");
@@ -227,6 +263,16 @@ namespace Semiodesk.Trinity.Query.Sparql
                 default:
                     throw new NotSupportedException($"Unsupported graph pattern: {pattern.GetType().Name}");
             }
+        }
+
+        /// <summary>
+        /// Renders a single term to its SPARQL text, for composing into the overlay macro.
+        /// </summary>
+        private static string Term(SparqlTerm term)
+        {
+            var writer = new SparqlQueryWriter();
+            writer.WriteTerm(term);
+            return writer._builder.ToString();
         }
 
         private void WriteTerm(SparqlTerm term)

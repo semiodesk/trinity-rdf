@@ -80,11 +80,13 @@ mapped/dynamic duality, models & groups, discovery, stores, and querying.
 | [0039](0039-resource-write-semantics.md) | Commits write a per-value delta, not the whole resource | Accepted |
 | [0014](0014-ontology-generator-modernization.md) | Reimplement ontology vocabulary generation as a `dotnet tool` | Accepted |
 | [0040](0040-numeric-conversion-on-read.md) | Numeric values are widened, never narrowed, when read into a mapped property | Accepted |
+| [0041](0041-layered-read-views.md) | Layered read views: baseline + additions − removals (working-copy semantics) | Accepted |
 
 ### Proposed (revival)
 | # | Title | Status |
 |---|-------|--------|
 | [0015](0015-modernize-target-frameworks-and-ci.md) | Modernize target frameworks, build, and CI | Proposed |
+| [0042](0042-staged-writes-and-accept.md) | Staged writes: the layered view as a working copy (accept/discard, materialization, conflicts) | Proposed |
 
 ## Revival north star
 

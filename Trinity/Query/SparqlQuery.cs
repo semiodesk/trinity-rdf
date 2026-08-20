@@ -80,7 +80,16 @@ namespace Semiodesk.Trinity
                 {
                     _model = value;
 
-                    if (value is IModelGroup)
+                    if (value is ILayeredModel layered)
+                    {
+                        // A layered model addresses its graphs explicitly with GRAPH, so they must
+                        // be named rather than merged into the default graph by FROM. Merging them
+                        // would union the removals graph back in - the opposite of the intent.
+                        _preprocessor.AddNamedGraph(layered.Baseline.Uri);
+                        _preprocessor.AddNamedGraph(layered.Additions.Uri);
+                        _preprocessor.AddNamedGraph(layered.Removals.Uri);
+                    }
+                    else if (value is IModelGroup)
                     {
                         IModelGroup group = value as IModelGroup;
 
@@ -108,6 +117,17 @@ namespace Semiodesk.Trinity
         /// Indicates if the query result should be expanded using run-time inferencing.
         /// </summary>
         public bool IsInferenceEnabled { get; set; }
+
+        /// <summary>
+        /// Indicates that this query already carries an <see cref="ILayeredModel"/> overlay in its
+        /// graph patterns, and may therefore be run against a layered model.
+        /// </summary>
+        /// <remarks>
+        /// Only Trinity's own overlay-aware read paths set this. A layered model refuses any query
+        /// without it, so caller-supplied SPARQL - or a read path added later that forgets to apply
+        /// the overlay - fails loudly instead of silently returning triples staged for removal.
+        /// </remarks>
+        internal bool IsOverlayApplied { get; set; }
 
         #endregion
 

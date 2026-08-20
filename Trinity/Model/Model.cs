@@ -47,6 +47,15 @@ namespace Semiodesk.Trinity
         // The backing RDF store.
         private IStore _store;
 
+        /// <summary>
+        /// The store this model reads and writes. Used to reject compositions - such as a layered
+        /// model - that can only be evaluated within a single store's dataset.
+        /// </summary>
+        internal IStore Store
+        {
+            get { return _store; }
+        }
+
         // A handle to the generic version of the GetResource method which is being used
         // for implementing the GetResource(Uri, Type) method that supports runtime type specification.
         private MethodInfo _getResourceMethod;
