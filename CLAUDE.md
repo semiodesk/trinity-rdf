@@ -55,7 +55,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 589 passed, 7 skipped (quarantined)
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 602 passed, 7 skipped (quarantined)
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 23 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -69,7 +69,7 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
 - Store integration tests (`tests/Trinity.Tests.*`) **self-provision** their server in Docker via
   Testcontainers on a random host port (ADR-0036): run `dotnet test tests/Trinity.Tests.{Virtuoso,GraphDB,Fuseki}`
   with a Docker daemon running. Excluded from the default CI job (Docker + large images). Current:
-  Virtuoso 221/226 and GraphDB 228/233 pass; Fuseki is 4/86 — a pre-existing dotNetRDF `FusekiConnector`
+  Virtuoso 234/239 and GraphDB 241/246 pass; Fuseki is 4/86 — a pre-existing dotNetRDF `FusekiConnector`
   query-endpoint bug (POSTs `/ds/query`, which the server 404s), unrelated to the container wiring.
   Virtuoso's `Int16Test`/`Uint16Test`/`UintTest` are now `Assert.Inconclusive` in `VirtuosoResourceTest`,
   alongside the pre-existing `Int64Test`/`Uint64Test` overrides for the same phenomenon: Virtuoso widens
@@ -188,6 +188,15 @@ Invariants that surprise newcomers:
   **All three graphs must be in the same store** — the overlay is one query over one dataset, so a cross-store view
   is refused at construction (it used to fail silently in both directions); create views only via
   `store.CreateLayeredModel`, never by constructing `LayeredModel` directly.
+- **A layered view is a working copy you stage into** (0042): `Commit()` on a resource read through one
+  **stages** into the additions/removals graphs rather than writing — it was a silent no-op before — and
+  `Accept()`/`Discard()` apply or abandon. Accept applies removals before additions (additions win, as on
+  read) and **refuses** when a triple staged for removal is no longer in the baseline, because a stale
+  changeset never fails on its own: it merges, leaving two values for a single-valued property that a
+  mapped read then hides. `Accept(force: true)` overrides. Deleted values route conditionally — un-stage
+  from additions, add to removals only if the baseline holds it — which is what keeps the ancestor
+  reconstructible. Never write `WHERE { FILTER … }` with no pattern: **Virtuoso ignores a filter-only
+  WHERE** and applies the operation unconditionally.
 - **Discovery is global static state** (0020): consumers must `MappingDiscovery.RegisterAssembly`
   / `OntologyDiscovery.AddAssembly` at startup or mapping and SPARQL prefixes silently miss.
 - **No configuration subsystem** (0011, 2.0): the `ontologies.config`/`app.config` loading,

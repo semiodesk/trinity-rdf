@@ -3,11 +3,13 @@
 Date: 2026-08-20
 
 ## Status
-Proposed
+Accepted for staging, accept and discard. **Proposed** for materialization and for anything that needs a
+retained ancestor.
 
-Recorded because the reasoning below was expensive to arrive at and is easy to lose, not because the
-shape is settled. Several details are open — see *Deliberately unresolved* — and some of them touch
-parts of the system that have not been decided either.
+The staging half is built and measured: `Commit()` through a view stages, `Accept()`/`Discard()` apply
+or abandon, and the divergence precondition is in place, all verified on the in-memory store, Virtuoso
+and GraphDB. Materialization, three-way merge and changeset validation remain proposals — see
+*Deliberately unresolved*.
 
 ## Context
 
@@ -80,9 +82,24 @@ CLEAR GRAPH <additions>; CLEAR GRAPH <removals>
 path gives it. Worth stating as an invariant: additions win in both directions. Discard is the two
 `CLEAR`s alone.
 
-**Accept is not atomic on most backends.** Only Virtuoso has real transactions (ADR-0028); the others
-return `NoOpTransaction`, so a failure part-way leaves the baseline half-changed and the layers
-partly cleared.
+**Accept is atomic on all three backends, by two different mechanisms — measured.** The original
+assumption here was that it could not be, and that was wrong:
+
+| store | a multi-operation request | an explicit transaction |
+|---|---|---|
+| dotNetRDF in-memory | **atomic** — injecting a failure into the second operation rolls the first back | `NoOpTransaction`; rollback provably undoes nothing |
+| Virtuoso | unprobed — it silently succeeds on every failure that could be injected | **`VirtuosoTransaction`** — rollback *and* commit both honoured |
+| GraphDB | **atomic** — same rollback observed | `NoOpTransaction`; rollback provably undoes nothing |
+
+So `Accept()` starts a transaction unconditionally: real on Virtuoso, a no-op elsewhere where request
+atomicity already covers it. Note the corollary for the other two stores — passing a transaction there
+would give a false sense of safety, since rollback demonstrably does nothing; it is request atomicity
+that protects the operation.
+
+Worth recording separately: **Virtuoso swallows failures other stores raise.** `CLEAR` and `DROP` of an
+absent graph, `CREATE` of an existing one, and `LOAD` of an unresolvable URL all succeed silently there,
+several of which the specification makes errors absent `SILENT`. A failed `LOAD` cannot be detected on
+Virtuoso at all.
 
 ### It is a working copy, not a branch
 
@@ -225,7 +242,12 @@ documented limitation and a trap.
 ## Consequences
 
 - `resource.Commit()` works through a view with no caller change, which is what 0041 promised for reads
-  and did not deliver for writes.
+  and did not deliver for writes. It was previously a **silent no-op**, because `Attach` marked the
+  resource read-only and `Commit()` is guarded by that flag.
+- A forced accept produces a schema violation that the **mapped read layer hides**: two values land in
+  the baseline for a single-valued property, and a `PropertyMapping<T>` read collapses them to one. The
+  data is wrong where a caller would not think to look, which is the sharpest argument for the
+  precondition refusing by default.
 - Four separate problems — staleness detection, deleted-value routing, ancestor recoverability, and
   incremental maintenance — are all solved by the same decision, which is the strongest argument that it
   is the right one.
@@ -244,10 +266,8 @@ Recorded so these are not mistaken for oversights:
 - **Validation of changesets.** Whether SHACL runs over a narrow graph derived from the changeset, what
   its extent must be, and how much of a shapes graph the mapping can generate. Deliberately excluded
   here; it touches parts of the system that are themselves unsettled.
-- **Reconstruct the ancestor or freeze it.** Both are described above; the choice depends on whether the
-  staging invariant is enforced strictly enough to be relied on.
-- **Atomicity of accept** on the non-transactional stores. Possibly a compensating log, possibly a
-  documented exposure.
+- **Reconstruct the ancestor or freeze it.** Both are described above. The staging invariants are now
+  maintained by construction and asserted by tests, so reconstruction is viable; the choice remains.
 - **Additions-side conflict detection**, which needs the mapping-derived cardinality described above.
 - **Concurrent accepts** from two views over one baseline. That is branching, and needs a retained
   per-view ancestor.
