@@ -444,8 +444,14 @@ namespace Semiodesk.Trinity
         private void Attach(Resource resource)
         {
             resource.IsNew = false;
+
+            // Capturing the snapshot: IsSynchronized's setter calls CapturePersistedValues, so the
+            // effective state as just read becomes the baseline the staged delta is computed against.
             resource.IsSynchronized = true;
-            resource.IsReadOnly = true;
+
+            // Deliberately NOT read-only. Resource.Commit() is guarded by IsReadOnly, so setting it
+            // would make a caller's Commit() a silent no-op; instead it routes into UpdateResource
+            // below and stages.
             resource.SetModel(this);
         }
 
@@ -577,92 +583,450 @@ namespace Semiodesk.Trinity
 
         #endregion
 
-        #region Not supported: the view is read-only
+        #region Staged writes
 
-        private static NotSupportedException ReadOnly()
+        /// <summary>
+        /// Stages a resource's changes into the additions and removals graphs.
+        /// </summary>
+        /// <remarks>
+        /// This is what <see cref="Resource.Commit"/> routes into for a resource read through a view,
+        /// so staging needs no separate API: committing a resource whose model is a view <i>means</i>
+        /// staging it.
+        /// </remarks>
+        public void UpdateResource(Resource resource, ITransaction transaction = null)
         {
-            return new NotSupportedException(
-                "Layered models are read-only. Stage a change by writing to the Additions and Removals " +
-                "models, which are ordinary models, and the view will read the result.");
+            UpdateResources(new[] { resource }, transaction);
         }
 
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public IResource AddResource(IResource resource, ITransaction transaction = null) => throw ReadOnly();
+        /// <inheritdoc cref="UpdateResource(Resource, ITransaction)" />
+        public void UpdateResources(IEnumerable<Resource> resources, ITransaction transaction = null)
+        {
+            var staged = new List<Resource>();
+            string update = BuildStagingUpdate(resources, staged);
 
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public T AddResource<T>(T resource, ITransaction transaction = null) where T : Resource => throw ReadOnly();
+            if (update != null)
+            {
+                _store.ExecuteNonQuery(new SparqlUpdate(update), transaction);
+            }
 
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public IResource CreateResource(string format = "urn:uuid:{0}", ITransaction transaction = null) => throw ReadOnly();
+            foreach (Resource resource in staged)
+            {
+                resource.IsNew = false;
 
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public IResource CreateResource(Uri uri, ITransaction transaction = null) => throw ReadOnly();
+                // Re-snapshot, so a second Commit stages only what changed since this one.
+                resource.IsSynchronized = true;
+            }
+        }
 
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public T CreateResource<T>(string format = "urn:uuid:{0}", ITransaction transaction = null) where T : Resource => throw ReadOnly();
-
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public T CreateResource<T>(Uri uri, ITransaction transaction = null) where T : Resource => throw ReadOnly();
-
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public object CreateResource(Type type, string format = "urn:uuid:{0}", ITransaction transaction = null) => throw ReadOnly();
-
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public object CreateResource(Uri uri, Type t, ITransaction transaction = null) => throw ReadOnly();
-
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public void DeleteResource(Uri uri, ITransaction transaction = null) => throw ReadOnly();
-
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public void DeleteResource(IResource resource, ITransaction transaction = null) => throw ReadOnly();
-
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public void DeleteResources(IEnumerable<Uri> uris, ITransaction transaction = null) => throw ReadOnly();
-
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null) => throw ReadOnly();
-
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public void DeleteResources(ITransaction transaction = null, params IResource[] resources) => throw ReadOnly();
-
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public void UpdateResource(Resource resource, ITransaction transaction = null) => throw ReadOnly();
-
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public void UpdateResources(IEnumerable<Resource> resources, ITransaction transaction = null) => throw ReadOnly();
-
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public void UpdateResources(ITransaction transaction = null, params Resource[] resources) => throw ReadOnly();
-
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public void ExecuteUpdate(ISparqlUpdate update, ITransaction transaction = null) => throw ReadOnly();
-
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public void Clear() => throw ReadOnly();
-
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public bool Read(Uri url, RdfSerializationFormat format, bool update) => throw ReadOnly();
-
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public bool Read(Stream stream, RdfSerializationFormat format, bool update) => throw ReadOnly();
-
-        /// <summary>Not supported. Layered models are read-only.</summary>
-        public bool Read(string content, RdfSerializationFormat format, bool update) => throw ReadOnly();
+        /// <inheritdoc cref="UpdateResource(Resource, ITransaction)" />
+        public void UpdateResources(ITransaction transaction = null, params Resource[] resources)
+        {
+            UpdateResources(resources, transaction);
+        }
 
         /// <summary>
-        /// Not supported. Serializing the view would mean materializing the effective graph, which
-        /// is a different operation from writing a model out; write the layer models instead.
+        /// Builds the update that stages every given resource's delta, or <c>null</c> when nothing
+        /// changed.
         /// </summary>
-        public void Write(Stream stream, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false) => throw ReadOnly();
+        /// <remarks>
+        /// <para>
+        /// Routing is conditional, and this is the crux of staging rather than a detail of it. Sending
+        /// every deleted value straight to the removals graph is wrong: stage <c>name = "new"</c>, then
+        /// change it to <c>"newer"</c>, and additions would hold both while removals held <c>"new"</c> -
+        /// and additions win, so <b>both</b> values would stay visible.
+        /// </para>
+        /// <para>
+        /// So for each value the delta reports as <b>inserted</b>: drop it from removals (which restores
+        /// it from the baseline), then add it to additions only if the baseline does not already have
+        /// it. And for each value reported as <b>deleted</b>: drop it from additions, then add it to
+        /// removals only if the baseline has it.
+        /// </para>
+        /// <para>
+        /// Those guards are also what maintain <c>additions ∩ baseline = ∅</c> and
+        /// <c>removals ⊆ baseline</c> — the invariants that keep the pre-change baseline reconstructible
+        /// as <c>(effective ∖ additions) ∪ removals</c>. See ADR-0042.
+        /// </para>
+        /// </remarks>
+        private string BuildStagingUpdate(IEnumerable<Resource> resources, List<Resource> staged)
+        {
+            if (resources == null)
+            {
+                return null;
+            }
+
+            var inserted = new List<string>();
+            var deleted = new List<string>();
+
+            foreach (Resource resource in resources)
+            {
+                if (resource == null)
+                {
+                    continue;
+                }
+
+                RequireQueryableSubject(resource.Uri);
+                staged.Add(resource);
+
+                string subject = SparqlSerializer.SerializeUri(resource.Uri);
+
+                if (SparqlSerializer.TrySerializeResourceDelta(
+                        resource, IgnoreUnmappedProperties, out var removedValues, out var addedValues))
+                {
+                    foreach (string value in addedValues) inserted.Add(subject + " " + value);
+                    foreach (string value in removedValues) deleted.Add(subject + " " + value);
+                }
+                else
+                {
+                    // No snapshot to diff against: the resource has never been synchronized, so
+                    // everything it holds is an addition.
+                    foreach (string value in SparqlSerializer.SerializeValueSet(resource, IgnoreUnmappedProperties))
+                    {
+                        inserted.Add(subject + " " + value);
+                    }
+                }
+            }
+
+            if (inserted.Count == 0 && deleted.Count == 0)
+            {
+                return null;
+            }
+
+            var operations = new List<string>();
+
+            foreach (string triple in inserted)
+            {
+                // Un-stage a removal first: if that restored the value from the baseline, the third
+                // operation then takes it back out of additions again.
+                operations.Add(Delete(Removals, triple));
+
+                // Add, then retract if the baseline already has it - rather than the more obvious
+                // "insert unless the baseline has it". Virtuoso *ignores a WHERE clause consisting
+                // only of a FILTER*, so `INSERT ... WHERE { FILTER NOT EXISTS { ... } }` inserts
+                // unconditionally there, leaving a value in additions that the baseline already holds
+                // and breaking the additions-disjoint-from-baseline invariant. Every operation here
+                // carries a real pattern instead, which all three stores evaluate correctly.
+                operations.Add(string.Format("INSERT DATA {{ GRAPH {0} {{ {1} }} }}", Graph(Additions), triple));
+                operations.Add(string.Format("DELETE {{ GRAPH {0} {{ {1} }} }} WHERE {{ GRAPH {2} {{ {1} }} }}",
+                    Graph(Additions), triple, Graph(Baseline)));
+            }
+
+            foreach (string triple in deleted)
+            {
+                operations.Add(Delete(Additions, triple));
+                operations.Add(string.Format("INSERT {{ GRAPH {0} {{ {1} }} }} WHERE {{ GRAPH {2} {{ {1} }} }}",
+                    Graph(Removals), triple, Graph(Baseline)));
+            }
+
+            return string.Join("; ", operations);
+        }
+
+        /// <summary>
+        /// A guarded delete, used in preference to <c>DELETE DATA</c> so a graph that does not yet
+        /// exist is a no-op rather than an error on stores that are strict about it.
+        /// </summary>
+        private static string Delete(IModel model, string triple)
+        {
+            return string.Format("DELETE WHERE {{ GRAPH {0} {{ {1} }} }}", Graph(model), triple);
+        }
+
+        private static string Graph(IModel model)
+        {
+            return SparqlSerializer.SerializeUri(model.Uri);
+        }
+
+        #endregion
+
+        #region Accept and discard
+
+        /// <summary>
+        /// Applies the staged change to the baseline and empties both layers.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Deliberately not called <c>Commit</c>: a view owns staging, so
+        /// <see cref="Resource.Commit"/> already means "stage", and reusing the word one level up for
+        /// "push everything to the baseline" would be a trap.
+        /// </para>
+        /// <para>
+        /// Removals are applied before additions, so a triple in both survives — the same precedence
+        /// the read path gives it.
+        /// </para>
+        /// <para>
+        /// Throws if the baseline has moved on ground the change depends on, unless
+        /// <paramref name="force"/> is set. That check matters because applying a stale changeset never
+        /// fails by itself: a changeset is a set of triples and INSERT/DELETE are idempotent, so a
+        /// competing change to a single-valued property would silently leave two values behind.
+        /// </para>
+        /// </remarks>
+        /// <param name="force">Apply even if the baseline diverged.</param>
+        /// <param name="transaction">
+        /// Transaction to run in. When omitted one is started: real on Virtuoso, a no-op elsewhere,
+        /// where a multi-operation request is atomic in its own right (measured — see ADR-0042).
+        /// </param>
+        /// <exception cref="InvalidOperationException">Thrown when the baseline diverged.</exception>
+        public void Accept(bool force = false, ITransaction transaction = null)
+        {
+            if (!force && HasDiverged())
+            {
+                throw new InvalidOperationException(
+                    "The baseline has changed since this change was staged: at least one triple staged for " +
+                    "removal is no longer present in it, so the change was computed against a state that no " +
+                    "longer holds. Applying it anyway would not fail - a changeset is a set of triples and " +
+                    "INSERT/DELETE are idempotent - it would silently merge, which for a single-valued " +
+                    "property leaves two values behind. Re-read and re-stage, or pass force to apply anyway.");
+            }
+
+            string update = string.Join("; ",
+                string.Format("DELETE {{ GRAPH {0} {{ ?s ?p ?o }} }} WHERE {{ GRAPH {1} {{ ?s ?p ?o }} }}",
+                    Graph(Baseline), Graph(Removals)),
+                string.Format("INSERT {{ GRAPH {0} {{ ?s ?p ?o }} }} WHERE {{ GRAPH {1} {{ ?s ?p ?o }} }}",
+                    Graph(Baseline), Graph(Additions)),
+                string.Format("DELETE WHERE {{ GRAPH {0} {{ ?s ?p ?o }} }}", Graph(Additions)),
+                string.Format("DELETE WHERE {{ GRAPH {0} {{ ?s ?p ?o }} }}", Graph(Removals)));
+
+            RunAtomically(update, transaction);
+        }
+
+        /// <summary>
+        /// Abandons the staged change, leaving the baseline untouched.
+        /// </summary>
+        public void Discard(ITransaction transaction = null)
+        {
+            string update = string.Join("; ",
+                string.Format("DELETE WHERE {{ GRAPH {0} {{ ?s ?p ?o }} }}", Graph(Additions)),
+                string.Format("DELETE WHERE {{ GRAPH {0} {{ ?s ?p ?o }} }}", Graph(Removals)));
+
+            RunAtomically(update, transaction);
+        }
+
+        /// <summary>
+        /// Indicates whether the baseline has moved on ground the staged change depends on: a triple
+        /// staged for removal that the baseline no longer holds.
+        /// </summary>
+        /// <remarks>
+        /// O(removals) rather than O(baseline), and deliberately conservative — it also reports the
+        /// benign case where a third party already made the same removal. A version control system
+        /// complains in the analogous situation, where the context a patch assumes no longer matches.
+        /// </remarks>
+        public bool HasDiverged()
+        {
+            ISparqlQuery query = CreateOverlayQuery(string.Format(
+                "ASK {0}{{ GRAPH {1} {{ ?s ?p ?o }} FILTER NOT EXISTS {{ GRAPH {2} {{ ?s ?p ?o }} }} }}",
+                _datasetClause, Graph(Removals), Graph(Baseline)));
+
+            return ExecuteOverlayQuery(query, null).GetAnwser();
+        }
+
+        /// <summary>
+        /// Runs a multi-operation update, in a real transaction where the store has one.
+        /// </summary>
+        private void RunAtomically(string update, ITransaction transaction)
+        {
+            if (transaction != null)
+            {
+                _store.ExecuteNonQuery(new SparqlUpdate(update), transaction);
+
+                return;
+            }
+
+            ITransaction own = _store.BeginTransaction(IsolationLevel.ReadCommitted);
+
+            try
+            {
+                _store.ExecuteNonQuery(new SparqlUpdate(update), own);
+                own.Commit();
+            }
+            catch
+            {
+                own.Rollback();
+
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region Creating and deleting resources
+
+        /// <inheritdoc cref="UpdateResource(Resource, ITransaction)" />
+        public IResource AddResource(IResource resource, ITransaction transaction = null)
+        {
+            return AddResource<Resource>((Resource)resource, transaction);
+        }
+
+        /// <inheritdoc cref="UpdateResource(Resource, ITransaction)" />
+        public T AddResource<T>(T resource, ITransaction transaction = null) where T : Resource
+        {
+            T staged = CreateResource<T>(resource.Uri, transaction);
+
+            foreach (var value in resource.ListValues())
+            {
+                staged.AddPropertyToMapping(value.Item1, value.Item2, true);
+            }
+
+            staged.Commit();
+
+            return staged;
+        }
+
+        /// <summary>Creates a resource whose triples will be staged as additions when committed.</summary>
+        public IResource CreateResource(string format = "urn:uuid:{0}", ITransaction transaction = null)
+        {
+            return CreateResource<Resource>(format, transaction);
+        }
+
+        /// <inheritdoc cref="CreateResource(string, ITransaction)" />
+        public IResource CreateResource(Uri uri, ITransaction transaction = null)
+        {
+            return CreateResource<Resource>(uri, transaction);
+        }
+
+        /// <inheritdoc cref="CreateResource(string, ITransaction)" />
+        public T CreateResource<T>(string format = "urn:uuid:{0}", ITransaction transaction = null) where T : Resource
+        {
+            return CreateResource<T>(UriRef.GetGuid(format), transaction);
+        }
+
+        /// <inheritdoc cref="CreateResource(string, ITransaction)" />
+        public T CreateResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
+        {
+            return (T)CreateResource(uri, typeof(T), transaction);
+        }
+
+        /// <inheritdoc cref="CreateResource(string, ITransaction)" />
+        public object CreateResource(Type type, string format = "urn:uuid:{0}", ITransaction transaction = null)
+        {
+            return CreateResource(UriRef.GetGuid(format), type, transaction);
+        }
+
+        /// <inheritdoc cref="CreateResource(string, ITransaction)" />
+        public object CreateResource(Uri uri, Type type, ITransaction transaction = null)
+        {
+            RequireQueryableSubject(uri);
+
+            if (!typeof(Resource).IsAssignableFrom(type))
+            {
+                throw new ArgumentException($"The given type {type} does not derive from Resource.");
+            }
+
+            var resource = (Resource)Activator.CreateInstance(type, uri);
+
+            resource.IsNew = true;
+            resource.SetModel(this);
+
+            return resource;
+        }
+
+        /// <summary>
+        /// Stages the removal of every triple the view shows for this resource.
+        /// </summary>
+        /// <remarks>
+        /// Broad by design, as elsewhere in Trinity (ADR-0030): triples where the resource is the
+        /// object are staged for removal too, so a deleted resource leaves no dangling references
+        /// through the view.
+        /// </remarks>
+        public void DeleteResource(Uri uri, ITransaction transaction = null)
+        {
+            RequireQueryableSubject(uri);
+
+            string subject = SparqlSerializer.SerializeUri(uri);
+            string touches = string.Format("?s ?p ?o . FILTER (?s = {0} || ?o = {0})", subject);
+
+            string update = string.Join("; ",
+                // Anything the baseline holds for it becomes a staged removal...
+                string.Format("INSERT {{ GRAPH {0} {{ ?s ?p ?o }} }} WHERE {{ GRAPH {1} {{ {2} }} }}",
+                    Graph(Removals), Graph(Baseline), touches),
+                // ...and anything only staged as an addition is simply un-staged.
+                string.Format("DELETE {{ GRAPH {0} {{ ?s ?p ?o }} }} WHERE {{ GRAPH {0} {{ {1} }} }}",
+                    Graph(Additions), touches));
+
+            RunAtomically(update, transaction);
+        }
+
+        /// <inheritdoc cref="DeleteResource(Uri, ITransaction)" />
+        public void DeleteResource(IResource resource, ITransaction transaction = null)
+        {
+            DeleteResource(resource.Uri, transaction);
+        }
+
+        /// <inheritdoc cref="DeleteResource(Uri, ITransaction)" />
+        public void DeleteResources(IEnumerable<Uri> uris, ITransaction transaction = null)
+        {
+            foreach (Uri uri in uris)
+            {
+                DeleteResource(uri, transaction);
+            }
+        }
+
+        /// <inheritdoc cref="DeleteResource(Uri, ITransaction)" />
+        public void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null)
+        {
+            DeleteResources(resources.Select(r => (Uri)r.Uri), transaction);
+        }
+
+        /// <inheritdoc cref="DeleteResource(Uri, ITransaction)" />
+        public void DeleteResources(ITransaction transaction = null, params IResource[] resources)
+        {
+            DeleteResources(resources, transaction);
+        }
+
+        /// <summary>
+        /// Begins a transaction on the underlying store.
+        /// </summary>
+        /// <remarks>
+        /// Real only where the store provides one — Virtuoso does; the others hand back a
+        /// <c>NoOpTransaction</c> whose rollback provably undoes nothing (ADR-0028), and rely instead
+        /// on a multi-operation request being atomic in its own right.
+        /// </remarks>
+        public ITransaction BeginTransaction(IsolationLevel isolationLevel)
+        {
+            return _store.BeginTransaction(isolationLevel);
+        }
+
+        #endregion
+
+        #region Not supported
+
+        private static NotSupportedException Unsupported(string what)
+        {
+            return new NotSupportedException(
+                "A layered model cannot " + what + ". Stage changes by modifying resources read through " +
+                "the view and committing them, then Accept() or Discard() the result; or address the " +
+                "Baseline, Additions and Removals models directly, which are ordinary models.");
+        }
+
+        /// <summary>
+        /// Not supported: a caller's update cannot be routed into the layers the way a resource delta
+        /// can, because there is no way to tell which of its effects should become an addition and
+        /// which a removal.
+        /// </summary>
+        public void ExecuteUpdate(ISparqlUpdate update, ITransaction transaction = null) =>
+            throw Unsupported("run a caller-supplied SPARQL update");
+
+        /// <summary>
+        /// Not supported: ambiguous on a view. Use <see cref="Discard"/> to drop the staged change, or
+        /// clear the layer models individually.
+        /// </summary>
+        public void Clear() => throw Unsupported("be cleared");
+
+        /// <summary>Not supported. Read into the Additions or Baseline model instead.</summary>
+        public bool Read(Uri url, RdfSerializationFormat format, bool update) => throw Unsupported("be read into");
+
+        /// <inheritdoc cref="Read(Uri, RdfSerializationFormat, bool)" />
+        public bool Read(Stream stream, RdfSerializationFormat format, bool update) => throw Unsupported("be read into");
+
+        /// <inheritdoc cref="Read(Uri, RdfSerializationFormat, bool)" />
+        public bool Read(string content, RdfSerializationFormat format, bool update) => throw Unsupported("be read into");
+
+        /// <summary>
+        /// Not supported: serializing the view would mean materializing the effective graph, which is a
+        /// different operation from writing a model out.
+        /// </summary>
+        public void Write(Stream stream, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false) =>
+            throw Unsupported("be written out");
 
         /// <inheritdoc cref="Write(Stream, RdfSerializationFormat, INamespaceMap, Uri, bool)" />
-        public void Write(Stream stream, IRdfWriter formatWriter, bool leaveOpen = false) => throw ReadOnly();
-
-        /// <summary>
-        /// Not supported. A layered view spans three graphs and never writes, so there is nothing
-        /// for a transaction to scope.
-        /// </summary>
-        public ITransaction BeginTransaction(IsolationLevel isolationLevel) => throw ReadOnly();
+        public void Write(Stream stream, IRdfWriter formatWriter, bool leaveOpen = false) => throw Unsupported("be written out");
 
         #endregion
     }
