@@ -39,9 +39,8 @@ namespace Semiodesk.Trinity
         ICollection<IModel>
     #endif
     {
-        /// <summary>
-        /// The default model of this group
-        /// </summary>
-        IModel DefaultModel { get; set;  }
+        // Nothing beyond IModel and ISet<IModel>. This interface exists to name the combination -
+        // a set of models that is itself a model - not to add behaviour to it. It previously also
+        // declared a DefaultModel property that nothing ever read or assigned; see ADR-0019.
     }
 }
