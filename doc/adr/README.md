@@ -86,6 +86,7 @@ mapped/dynamic duality, models & groups, discovery, stores, and querying.
 | # | Title | Status |
 |---|-------|--------|
 | [0015](0015-modernize-target-frameworks-and-ci.md) | Modernize target frameworks, build, and CI | Proposed |
+| [0042](0042-staged-writes-and-accept.md) | Staged writes: the layered view as a working copy (accept/discard, materialization, conflicts) | Proposed |
 
 ## Revival north star
 

@@ -246,9 +246,14 @@ strict parser, so a query may be accepted by a plain `Model` and refused by a vi
 ### Read-only, and no inferencing
 
 Every mutating member throws, as `ModelGroup` does. Stage a change by writing to `Additions` and
-`Removals`, which are ordinary models. (Routing writes automatically would mean splitting the
-`WITH <graph> DELETE {…} INSERT {…}` delta that `StoreBase.TryBuildDeltaUpdate` builds so its DELETE
-half becomes an INSERT into the removals graph — a new write path in every store, deferred.)
+`Removals`, which are ordinary models.
+
+*Correction, added later:* this originally justified read-only by claiming that routing writes would mean
+"a new write path in every store". That is wrong. `SparqlSerializer.TrySerializeResourceDelta` is
+store-independent and already shared by all four write paths (ADR-0039), so staging is one update builder
+that routes its two output lists to different graphs — no per-store work. Read-only remains the right
+call for this release, but on the grounds of scope rather than cost. See
+[0042](0042-staged-writes-and-accept.md).
 
 `inferenceEnabled: true` throws. Every store's inference path defeats the overlay — GraphDB rebuilds
 the dataset as a plain model group, Virtuoso answers with a bare `DESCRIBE` that cannot carry a guard —
