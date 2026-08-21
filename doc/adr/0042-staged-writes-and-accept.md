@@ -366,6 +366,45 @@ Recorded so these are not mistaken for oversights:
   per-view ancestor.
 - **Whether `Accept()` should validate at all**, versus leaving that to the caller.
 
+## What is measured, and what is tested
+
+This ADR was written from throwaway measurement harnesses, and two review rounds found defects in code
+whose *claims* here nothing held it to. So the distinction is recorded explicitly rather than left to be
+inferred: a claim that is only measured can rot silently, and both regressions found in review were of
+exactly that kind.
+
+**Pinned by the cross-store suites** (`LayeredModelStagingTest`, `LayeredModelMaterializationTest`, and
+one subclass per backend):
+
+| claim | test |
+|---|---|
+| `Commit()` through a view stages rather than writes | `CommitThroughTheViewStagesRatherThanWrites` |
+| deleted-value routing (the crux) | `StagingTheSamePropertyTwiceLeavesOneValue`, `RestoringTheBaselineValueEmptiesBothLayers` |
+| additions win, on read and on accept | `AdditionWinsOverRemovalForTheSameTriple`, `AcceptGivesAdditionsPrecedenceJustAsReadsDo` |
+| the two staging invariants | `StagingMaintainsTheAncestorInvariants` |
+| `B₀ = (effective ∖ A) ∪ R`, exact in all three disciplined cases | `TheAncestorIsRecoverableAfterAValueChange` / `…APureAddition` / `…APureRemoval` |
+| …and lossy in both undisciplined ones | `ReAddingABaselineTripleLosesItFromTheReconstruction`, `StagingTheRemovalOfAnAbsentTripleInventsIt` |
+| all four rows of the precondition table | `AcceptRefusesWhenTheBaselineMovedUnderTheChange`, `AnUnrelatedBaselineChangeIsNotDivergence`, `AcceptAppliesTheStagedChangeAndEmptiesTheLayers`, `TheSameRemovalByAThirdPartyIsFlaggedAnyway` |
+| a forced accept merges, and mapped reads hide it | `ForcedAcceptMergesAndTheDamageIsInvisibleToMappedReads` |
+| request atomicity protects accept where the transaction is a no-op | `AFailedOperationRollsBackTheOnesBeforeIt` |
+| …and rollback there provably undoes nothing | `RollbackOnANoOpTransactionUndoesNothing`, with the Virtuoso subclass asserting the inverse |
+| a clean accept needs no rebuild; discard and a forced accept do | `ACleanAcceptLeavesTheEffectiveGraphAlreadyCorrect`, `DiscardRebuildsTheEffectiveGraphFromTheBaseline`, `AForcedAcceptRebuildsTheEffectiveGraph` |
+| staleness after an out-of-band write, repaired by `Refresh()` | `AnOutOfBandWriteGoesStaleUntilRefreshed` |
+| a short materialization is latched, not served | `AShortMaterializationRefusesEveryLaterRead` |
+| the two modes answer alike, LINQ included | `MaterializedAnswersAsTheRewritingViewDoes`, `Linq*AgreesBetweenTheModes` |
+
+**Measured but not tested**, and deliberately so:
+
+- **Virtuoso writes zero above its transaction-log limit.** The trigger is between 500,000 and 1,000,000
+  rows; no test can reach it in reasonable time. The *latch* is tested by provoking the state directly,
+  so the consequence is pinned even though the detection is not.
+- **The performance figures** (31.5 s rebuild, 0.7 ms stage, 12.5 s → 3 ms on the delete path). Timings
+  do not belong in a correctness suite, but the *shape* they justify does — bound patterns rather than a
+  filtered scan — and that shape is what the delete tests exercise.
+- **Virtuoso swallows failures other stores raise** (`CLEAR`/`DROP` of an absent graph, `CREATE` of an
+  existing one, `LOAD` of an unresolvable URL). This is Virtuoso behaviour rather than Trinity's, and it
+  is why `MultiOperationRequestIsAtomic` is overridden to `false` there — *unprobed*, not untrue.
+
 ## Related
 - [0041](0041-layered-read-views.md) — the read view this builds on, and the write-path claim it corrects
 - [0039](0039-resource-write-semantics.md) — the per-value delta that makes staging store-independent

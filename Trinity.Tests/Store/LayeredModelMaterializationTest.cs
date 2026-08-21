@@ -466,6 +466,85 @@ namespace Semiodesk.Trinity.Tests.Store
 
         #endregion
 
+        #region Which operations need a rebuild (ADR-0042)
+
+        /// <summary>
+        /// A clean <c>Accept()</c> needs no rebuild, because the baseline becomes exactly what was
+        /// materialized.
+        /// </summary>
+        /// <remarks>
+        /// ADR-0042 states this as a reasoned conclusion, and it is the one that makes accept cheap. It
+        /// is asserted here <b>without</b> calling <c>Refresh()</c>, so a wrong conclusion shows up as a
+        /// stale view rather than as a slow one.
+        /// </remarks>
+        [Test]
+        public virtual void ACleanAcceptLeavesTheEffectiveGraphAlreadyCorrect()
+        {
+            string all = "SELECT ?s ?p ?o WHERE { ?s ?p ?o }";
+            string expected = string.Join(" | ", Rows(Materialized, all));
+
+            Materialized.Accept();
+
+            Assert.IsTrue(Additions.IsEmpty, "accept empties the layers");
+            Assert.IsTrue(Removals.IsEmpty);
+
+            // No Refresh() here: the claim is that none is needed.
+            Assert.AreEqual(expected, string.Join(" | ", Rows(Materialized, all)),
+                "the baseline is now exactly what was materialized, so the graph is already in step");
+
+            Assert.AreEqual(
+                string.Join(" | ", Rows(Baseline, all)),
+                string.Join(" | ", Rows(Materialized, all)),
+                "and it agrees with the baseline it was accepted into");
+        }
+
+        /// <summary>
+        /// <c>Discard()</c> does need the full rebuild, since the effective graph reverts to the
+        /// baseline.
+        /// </summary>
+        [Test]
+        public virtual void DiscardRebuildsTheEffectiveGraphFromTheBaseline()
+        {
+            string all = "SELECT ?s ?p ?o WHERE { ?s ?p ?o }";
+            string baselineBefore = string.Join(" | ", Rows(Baseline, all));
+
+            Materialized.Discard();
+
+            Assert.IsTrue(Additions.IsEmpty);
+            Assert.IsTrue(Removals.IsEmpty);
+
+            Assert.AreEqual(baselineBefore, string.Join(" | ", Rows(Baseline, all)),
+                "discard leaves the baseline untouched");
+            Assert.AreEqual(baselineBefore, string.Join(" | ", Rows(Materialized, all)),
+                "and the effective graph has been rebuilt to match it, without the caller asking");
+        }
+
+        /// <summary>
+        /// A <b>forced</b> accept rebuilds, because the change was applied over a baseline that moved.
+        /// </summary>
+        [Test]
+        public virtual void AForcedAcceptRebuildsTheEffectiveGraph()
+        {
+            // Move the baseline under the changeset so the precondition fails.
+            Baseline.ExecuteUpdate(new SparqlUpdate(
+                "DELETE WHERE { GRAPH @g { " +
+                $"<{EX}gone> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <{EX}Thing> }} }}")
+                .Bind("@g", Baseline));
+
+            Assert.IsTrue(Materialized.HasDiverged());
+
+            Materialized.Accept(force: true);
+
+            string all = "SELECT ?s ?p ?o WHERE { ?s ?p ?o }";
+
+            Assert.AreEqual(
+                string.Join(" | ", Rows(Baseline, all)),
+                string.Join(" | ", Rows(Materialized, all)),
+                "a forced accept must leave the effective graph equal to the baseline it produced");
+        }
+
+        #endregion
+
         #region Review regressions
 
         /// <summary>
