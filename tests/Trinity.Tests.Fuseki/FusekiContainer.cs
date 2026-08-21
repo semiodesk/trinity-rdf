@@ -42,7 +42,7 @@ namespace Semiodesk.Trinity.Tests.Fuseki
     /// integration-test assembly and tears it down afterwards (ADR-0036). Testcontainers maps
     /// the container's port 3030 to a random free host port, so the server never collides with a
     /// Fuseki instance already running locally. The resulting connection string (with the mapped
-    /// port) is published on <see cref="SetupClass.ConnectionString"/> before any fixture runs.
+    /// port) is published on <see cref="ConnectionString"/> before any fixture runs.
     ///
     /// Requires a running Docker daemon. As a <c>[SetUpFixture]</c> in this namespace it runs once
     /// before, and once after, every fixture under <c>Semiodesk.Trinity.Tests.Fuseki</c>.
@@ -62,6 +62,12 @@ namespace Semiodesk.Trinity.Tests.Fuseki
         private const string User = "admin";
 
         private const string Password = "test";
+
+        /// <summary>
+        /// Connection string for the throwaway server, complete with the mapped host port. Set
+        /// before any fixture runs and read by <see cref="FusekiTestSetup"/>.
+        /// </summary>
+        public static string ConnectionString { get; private set; }
 
         private IContainer _container;
 
@@ -96,7 +102,7 @@ namespace Semiodesk.Trinity.Tests.Fuseki
             // before any fixture runs. A readiness probe has to exercise the thing under test.
             await VerifyDatasetIsQueryableAsync(host);
 
-            SetupClass.ConnectionString =
+            ConnectionString =
                 $"provider=fuseki;host={host};uid={User};pw={Password};dataset={Dataset}";
         }
 

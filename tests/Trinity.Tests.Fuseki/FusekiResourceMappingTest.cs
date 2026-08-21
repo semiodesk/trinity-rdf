@@ -26,28 +26,28 @@
 // Copyright (c) Semiodesk GmbH 2023
 
 using NUnit.Framework;
-using Semiodesk.Trinity.Store.Fuseki;
+using Semiodesk.Trinity.Tests.Store;
 
 namespace Semiodesk.Trinity.Tests.Fuseki
 {
     /// <summary>
-    /// Asserts that a Fuseki connection string reaches the Fuseki provider. This is the one thing
-    /// the shared store fixtures cannot cover, because they take the store as given.
+    /// Runs the store-independent resource-mapping suite against Fuseki.
     /// </summary>
     [TestFixture]
-    public class StoreProviderTest
+    public class FusekiResourceMappingTest : ResourceMappingTest<FusekiTestSetup>
     {
         [Test]
-        public void FusekiConfigurationStringTest()
+        public override void MappingTypeWithInferencingTest()
         {
-            StoreFactory.LoadProvider<FusekiStoreProvider>();
+            Assert.Inconclusive(
+                "Fuseki has no per-query inference switch: a reasoner-wrapped Jena dataset infers unconditionally and so cannot honour inferenceEnabled: false. Inferencing is a per-store capability a store may ignore (ADR-0022).");
+        }
 
-            using (var store = StoreFactory.CreateStore(FusekiContainer.ConnectionString))
-            {
-                Assert.IsNotNull(store);
-                Assert.IsInstanceOf<FusekiStore>(store);
-                Assert.IsTrue(store.IsReady);
-            }
+        [Test]
+        public override void MappingTypeCollectionWithInferencingTest()
+        {
+            Assert.Inconclusive(
+                "Fuseki has no per-query inference switch: a reasoner-wrapped Jena dataset infers unconditionally and so cannot honour inferenceEnabled: false. Inferencing is a per-store capability a store may ignore (ADR-0022).");
         }
     }
 }

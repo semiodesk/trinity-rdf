@@ -26,28 +26,13 @@
 // Copyright (c) Semiodesk GmbH 2023
 
 using NUnit.Framework;
-using Semiodesk.Trinity.Store.Fuseki;
+using Semiodesk.Trinity.Tests.Store;
 
 namespace Semiodesk.Trinity.Tests.Fuseki
 {
     /// <summary>
-    /// Asserts that a Fuseki connection string reaches the Fuseki provider. This is the one thing
-    /// the shared store fixtures cannot cover, because they take the store as given.
+    /// Runs the store-independent layered-model query corpus against Fuseki.
     /// </summary>
     [TestFixture]
-    public class StoreProviderTest
-    {
-        [Test]
-        public void FusekiConfigurationStringTest()
-        {
-            StoreFactory.LoadProvider<FusekiStoreProvider>();
-
-            using (var store = StoreFactory.CreateStore(FusekiContainer.ConnectionString))
-            {
-                Assert.IsNotNull(store);
-                Assert.IsInstanceOf<FusekiStore>(store);
-                Assert.IsTrue(store.IsReady);
-            }
-        }
-    }
+    public class FusekiLayeredModelQueryCorpusTest : LayeredModelQueryCorpusTest<FusekiTestSetup> { }
 }
