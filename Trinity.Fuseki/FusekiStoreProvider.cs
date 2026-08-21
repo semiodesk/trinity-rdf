@@ -49,8 +49,11 @@ namespace Semiodesk.Trinity.Store.Fuseki
                 host = config[hostKey];
             }
 
+            // Jena's conventional short name. The old default was the literal string "dataset",
+            // which no real deployment uses -- so a caller who forgot dataset= got a store wired to
+            // /dataset/data that connected, reported ready, and 404d on every query.
             string datasetKey = "dataset";
-            string dataset = "dataset";
+            string dataset = "ds";
 
             if (config.ContainsKey(datasetKey))
             {
@@ -62,7 +65,7 @@ namespace Semiodesk.Trinity.Store.Fuseki
 
             if (config.ContainsKey(userKey))
             {
-                user = config["uid"];
+                user = config[userKey];
             }
             
             string passwordKey = "pw";
@@ -73,7 +76,7 @@ namespace Semiodesk.Trinity.Store.Fuseki
                 password = config[passwordKey];
             }
 
-            if (string.IsNullOrEmpty(host))
+            if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(dataset))
             {
                 return null;
             }

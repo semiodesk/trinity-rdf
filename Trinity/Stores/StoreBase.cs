@@ -87,7 +87,9 @@ namespace Semiodesk.Trinity
         [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty")]
         public virtual bool ContainsModel(IModel model)
         {
-            return ContainsModel(model.Uri);
+            // A null model contains nothing; it is not an error. GraphDB already guarded this in its
+            // own override, so the guard belongs here rather than being repeated per store.
+            return model != null && ContainsModel(model.Uri);
         }
 
         /// <summary>

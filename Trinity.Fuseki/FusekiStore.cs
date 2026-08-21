@@ -44,10 +44,8 @@ namespace Semiodesk.Trinity.Store.Fuseki
     {
         #region Members
 
-        private SparqlUpdateParser _parser;
-        
         /// <summary>
-        ///  Handle to the Virtuoso connection.
+        /// Handle to the Fuseki connection.
         /// </summary>
         protected FusekiConnector Connector;
 
@@ -57,41 +55,55 @@ namespace Semiodesk.Trinity.Store.Fuseki
         public string Hostname { get; protected set; }
 
         /// <summary>
-        /// The username used for establishing the connection.
+        /// The name of the Fuseki dataset this store is bound to.
         /// </summary>
-        private string Dataset { get; set; }
+        public string Dataset { get; protected set; }
 
         /// <summary>
-        /// Indicates if the store is ready to be queried.
+        /// Indicates if the store is connected and awaiting queries.
         /// </summary>
-        public override bool IsReady { get; protected set; } = true;
+        public override bool IsReady => Connector != null && Connector.IsReady;
         
         #endregion
 
         #region Constructors
         
         /// <summary>
-        /// Creates a new connection to the Virtuoso storage. 
+        /// Creates a new connection to an Apache Jena Fuseki storage.
         /// </summary>
-        /// <param name="hostname">The host of the storage service.</param>
-        /// <param name="port">The service port on the storage service host.</param>
+        /// <param name="host">Base URI of the Fuseki server, e.g. <c>http://localhost:3030</c>.</param>
+        /// <param name="dataset">Name of the dataset to bind to, e.g. <c>ds</c>.</param>
         /// <param name="username">Username used to connect to storage.</param>
         /// <param name="password">Password needed to connect to storage.</param>
         public FusekiStore(string host, string dataset, string username = null, string password = null)
         {
-            Hostname = host;
-            Dataset = dataset;
-            
-            // TODO: The FusekiConnector implementation uses a non-existing query API URL for some versions of Fuseki: the URL must end with /sparql instead of /query
-            // See: https://jena.apache.org/documentation/fuseki2/soh.html
-            Connector = new FusekiConnector($"{Hostname}/{dataset}/data");
-
-            if (!string.IsNullOrEmpty(username))
+            if (string.IsNullOrEmpty(host))
             {
-                Connector.SetCredentials(username, password ?? "");
+                throw new ArgumentException("A Fuseki host is required.", nameof(host));
             }
 
-            _parser = new SparqlUpdateParser();
+            if (string.IsNullOrEmpty(dataset))
+            {
+                // Without a dataset every request 404s, and nothing about the resulting store says
+                // why -- it connects, reports ready, and fails only when queried.
+                throw new ArgumentException("A Fuseki dataset name is required.", nameof(dataset));
+            }
+
+            // Trim the trailing slash a caller may or may not supply, or the composed URL ends up
+            // with a double slash (the provider's default host carries one, a mapped container
+            // host does not).
+            Hostname = host.TrimEnd('/');
+            Dataset = dataset;
+
+            // The connector takes the Graph Store Protocol endpoint and derives the query and
+            // update endpoints from it by replacing the trailing "data", so this URL is the one
+            // it needs -- /<dataset>/query and /<dataset>/update are what Fuseki serves.
+            Connector = new FusekiConnector($"{Hostname}/{Dataset}/data");
+
+            if (!string.IsNullOrEmpty(username) || !string.IsNullOrEmpty(password))
+            {
+                Connector.SetCredentials(username ?? "", password ?? "");
+            }
         }
 
         #endregion
@@ -99,14 +111,28 @@ namespace Semiodesk.Trinity.Store.Fuseki
         #region Methods
 
 
+        /// <summary>
+        /// Adds a new model with the given URI to the store.
+        /// </summary>
+        /// <param name="uri">URI of the model.</param>
+        /// <returns>Handle to the model.</returns>
         [Obsolete("It is not necessary to create models explicitly. Use GetModel() instead, if the model does not exist, it will be created implicitly.")]
         public override IModel CreateModel(Uri uri)
         {
             return GetModel(uri);
         }
 
+        /// <summary>
+        /// Removes the model with the given URI from the store.
+        /// </summary>
+        /// <param name="uri">URI of the model.</param>
         public override void RemoveModel(Uri uri)
         {
+            if (uri == null)
+            {
+                throw new ArgumentNullException(nameof(uri));
+            }
+
             if (!Connector.DeleteSupported)
             {
                 throw new NotSupportedException("This store does not support the deletion of graphs.");
@@ -115,21 +141,15 @@ namespace Semiodesk.Trinity.Store.Fuseki
             Connector.DeleteGraph(uri);
         }
 
+        /// <summary>
+        /// Queries whether the model exists in the store.
+        /// </summary>
+        /// <param name="uri">URI of the model.</param>
+        /// <returns><c>true</c> if the store holds a graph with that URI.</returns>
         [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
         public override bool ContainsModel(Uri uri)
         {
-            if (uri != null)
-            {
-                Connector.HasGraph(uri);
-            }
-
-            return false;
-        }
-
-        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
-        public override bool ContainsModel(IModel model)
-        {
-            return ContainsModel(model.Uri);
+            return uri != null && Connector.HasGraph(uri);
         }
 
         /// <summary>
@@ -193,17 +213,22 @@ namespace Semiodesk.Trinity.Store.Fuseki
 
             Log?.Invoke(q);
 
-            //SparqlUpdateCommandSet cmds = _parser.ParseFromString(q);
-
             Connector.Update(q);
         }
 
         /// <summary>
         /// Executes a SparqlQuery on the store.
         /// </summary>
-        /// <param name="query"></param>
-        /// <param name="transaction"></param>
-        /// <returns></returns>
+        /// <remarks>
+        /// <c>query.IsInferenceEnabled</c> is ignored. Fuseki has no per-query inference switch --
+        /// a reasoner is a property of the dataset, so it applies to every query or to none -- and
+        /// ADR-0022 makes inferencing a capability a store may ignore rather than a contract.
+        /// </remarks>
+        /// <param name="query">The query to be executed.</param>
+        /// <param name="transaction">Transaction associated with this action. Ignored; Fuseki is not
+        /// transactional (see <see cref="BeginTransaction"/>).</param>
+        /// <returns>The query result, or <c>null</c> for a query form the connector does not answer
+        /// with a graph or a result set.</returns>
         public override ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
             var q = query.ToString();
@@ -221,10 +246,10 @@ namespace Semiodesk.Trinity.Store.Fuseki
         }
 
         /// <summary>
-        /// This method queries the dotNetRdf store directly.
+        /// This method queries the Fuseki store directly.
         /// </summary>
-        /// <param name="queryString"></param>
-        /// <returns></returns>
+        /// <param name="queryString">The SPARQL query to be executed.</param>
+        /// <returns>An <c>IGraph</c> or a <c>SparqlResultSet</c>, depending on the query form.</returns>
         public override object ExecuteQuery(string queryString)
         {
             Log?.Invoke(queryString);
@@ -248,9 +273,11 @@ namespace Semiodesk.Trinity.Store.Fuseki
         /// <returns>All handles to existing models.</returns>
         public override IEnumerable<IModel> ListModels()
         {
-            foreach (var graph in Connector.ListGraphs())
+            // ListGraphNames rather than the obsolete ListGraphs; it yields the names as strings
+            // (ADR-0038).
+            foreach (var graph in Connector.ListGraphNames())
             {
-                yield return new Model(this, new UriRef(graph));   
+                yield return new Model(this, new UriRef(graph));
             }
         }
 
@@ -272,7 +299,10 @@ namespace Semiodesk.Trinity.Store.Fuseki
                 
                 case RdfSerializationFormat.NQuads:
                     new NQuadsParser().Load(new GraphHandler(graph), reader); break;
-                
+
+                case RdfSerializationFormat.Trig:
+                    new TriGParser().Load(new GraphHandler(graph), reader); break;
+
                 case RdfSerializationFormat.Turtle:
                     new TurtleParser().Load(graph, reader); break;
 
@@ -416,7 +446,7 @@ namespace Semiodesk.Trinity.Store.Fuseki
                     }
                 }
             }
-            else if (url.Scheme == "http")
+            else if (url.Scheme == "http" || url.Scheme == "https")
             {
                 graph = new Graph(graphUri);
 
@@ -496,10 +526,10 @@ namespace Semiodesk.Trinity.Store.Fuseki
         }
 
         /// <summary>
-        /// 
+        /// Returns a no-op transaction handle. Fuseki is not transactional through this adapter.
         /// </summary>
-        /// <param name="isolationLevel"></param>
-        /// <returns></returns>
+        /// <param name="isolationLevel">Ignored; there is no isolation to configure.</param>
+        /// <returns>A handle whose Commit and Rollback do nothing (ADR-0028, ADR-0039).</returns>
         public override ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
             // Not transactional — the Fuseki connector exposes no transaction handle. A no-op handle is returned rather
@@ -508,53 +538,27 @@ namespace Semiodesk.Trinity.Store.Fuseki
         }
 
         /// <summary>
-        /// Creates a model group which allows for queries to be made on multiple models at once.
-        /// </summary>
-        /// <param name="models"></param>
-        /// <returns></returns>
-        public override IModelGroup CreateModelGroup(params Uri[] models)
-        {
-            List<IModel> modelList = new List<IModel>();
-
-            foreach (var x in models)
-            {
-                modelList.Add(GetModel(x));
-            }
-
-            return new ModelGroup(this, modelList);
-        }
-
-        /// <summary>
-        /// Creates a model group which allows for queries to be made on multiple models at once.
-        /// </summary>
-        /// <param name="models"></param>
-        /// <returns></returns>
-        public new IModelGroup CreateModelGroup(params IModel[] models)
-        {
-            var modelList = new List<IModel>();
-
-            // This approach might seem a bit redundant, but we want to make sure to get the model from the right store.
-            foreach (var x in models)
-            {
-                this.GetModel(x.Uri);
-            }
-
-            return new ModelGroup(this, modelList);
-        }
-
-        /// <summary>
         /// Closes the store. It is not usable after this call.
         /// </summary>
         public override void Dispose()
         {
-            IsReady = false;
+            if (Connector == null)
+            {
+                return;
+            }
+
             Connector.Dispose();
+            Connector = null;
         }
 
         /// <summary>
-        /// Gets a SPARQL query which is used to retrieve all triples about a subject that is
-        /// either referenced using a URI or blank node.
+        /// Gets a SPARQL query which is used to retrieve all triples about a subject.
         /// </summary>
+        /// <remarks>
+        /// URI subjects only. The subject is bound through <c>VALUES</c>, which admits an IRI or a
+        /// literal but never a blank node, so a blank-node subject would emit unparseable SPARQL.
+        /// Unreachable in practice: <c>Model.GetResource</c> rejects a blank id before it gets here.
+        /// </remarks>
         /// <param name="modelUri">The graph to be queried.</param>
         /// <param name="subjectUri">The subject to be described.</param>
         /// <returns>An instance of <c>ISparqlQuery</c></returns>
