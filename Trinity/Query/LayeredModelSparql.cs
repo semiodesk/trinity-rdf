@@ -104,6 +104,30 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// The overlay for an already-serialized triple.
+        /// </summary>
+        /// <remarks>
+        /// Used when synchronizing a materialized graph, where the triples are known ground values
+        /// rather than a pattern being built up term by term.
+        /// </remarks>
+        internal static string Overlay(ILayeredModel model, string triple)
+        {
+            if (model == null)
+            {
+                throw new ArgumentNullException(nameof(model));
+            }
+
+            string baselineBranch = string.Format("{{ GRAPH {0} {{ {1} }} {2} }}",
+                Graph(model.Baseline), triple, GroundGuard(model, triple));
+
+            string additionsBranch = string.Format(
+                "{{ GRAPH {0} {{ {1} }} FILTER NOT EXISTS {{ GRAPH {2} {{ {1} }} {3} }} }}",
+                Graph(model.Additions), triple, Graph(model.Baseline), GroundGuard(model, triple));
+
+            return "{ " + baselineBranch + " UNION " + additionsBranch + " }";
+        }
+
+        /// <summary>
         /// The removals guard for the baseline branch.
         /// </summary>
         /// <remarks>

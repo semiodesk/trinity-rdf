@@ -62,7 +62,15 @@ namespace Semiodesk.Trinity
         /// Thrown if the store cannot honour the overlay - see <see cref="CanHostLayeredModel"/>.
         /// </exception>
         /// <exception cref="ArgumentException">Thrown if any two URIs name the same graph.</exception>
-        public static ILayeredModel CreateLayeredModel(this IStore store, Uri baseline, Uri additions, Uri removals)
+        /// <param name="materialized">
+        /// Optional fourth graph to keep the effective triples in. When given, queries run natively
+        /// against that graph instead of being rewritten, which lifts every restriction the rewriting
+        /// mode imposes - property paths, GRAPH blocks, CONSTRUCT, DESCRIBE and inferencing all work.
+        /// The cost is a full copy of the effective triples and an initial build; see
+        /// <see cref="ILayeredModel.Materialized"/> for the staleness contract that comes with it.
+        /// The graph is built on creation, so it is ready to query when this returns.
+        /// </param>
+        public static ILayeredModel CreateLayeredModel(this IStore store, Uri baseline, Uri additions, Uri removals, Uri materialized = null)
         {
             if (store == null) throw new ArgumentNullException(nameof(store));
             if (baseline == null) throw new ArgumentNullException(nameof(baseline));
@@ -77,14 +85,24 @@ namespace Semiodesk.Trinity
                     "silently include triples staged for removal.");
             }
 
-            return new LayeredModel(store, store.GetModel(baseline), store.GetModel(additions), store.GetModel(removals));
+            var view = new LayeredModel(store, store.GetModel(baseline), store.GetModel(additions),
+                store.GetModel(removals), materialized == null ? null : store.GetModel(materialized));
+
+            if (materialized != null)
+            {
+                // Built here rather than lazily, so the view is queryable the moment it exists and a
+                // caller never reads an empty graph and mistakes it for an empty baseline.
+                view.Refresh();
+            }
+
+            return view;
         }
 
         /// <summary>
         /// Creates a read-only layered view over three existing models of the same store.
         /// </summary>
         /// <inheritdoc cref="CreateLayeredModel(IStore, Uri, Uri, Uri)" path="/remarks" />
-        public static ILayeredModel CreateLayeredModel(this IStore store, IModel baseline, IModel additions, IModel removals)
+        public static ILayeredModel CreateLayeredModel(this IStore store, IModel baseline, IModel additions, IModel removals, IModel materialized = null)
         {
             if (store == null) throw new ArgumentNullException(nameof(store));
             if (baseline == null) throw new ArgumentNullException(nameof(baseline));
@@ -95,7 +113,12 @@ namespace Semiodesk.Trinity
             RequireSameStore(store, additions, nameof(additions));
             RequireSameStore(store, removals, nameof(removals));
 
-            return store.CreateLayeredModel(baseline.Uri, additions.Uri, removals.Uri);
+            if (materialized != null)
+            {
+                RequireSameStore(store, materialized, nameof(materialized));
+            }
+
+            return store.CreateLayeredModel(baseline.Uri, additions.Uri, removals.Uri, materialized?.Uri);
         }
 
         /// <summary>

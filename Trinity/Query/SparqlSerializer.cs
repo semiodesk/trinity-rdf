@@ -294,9 +294,12 @@ namespace Semiodesk.Trinity
 
             if (model is ILayeredModel layered)
             {
-                // FROM would merge the three graphs into the default graph, which is union - the
-                // overlay needs them addressable by name instead.
-                return LayeredModelSparql.NamedDatasetClause(layered);
+                // A materialized view holds its effective triples in one ordinary graph, so a plain
+                // FROM is right. Otherwise FROM would merge the three layers into the default graph,
+                // which is union - the overlay needs them addressable by name instead.
+                return layered.IsMaterialized
+                    ? "FROM " + SerializeUri(layered.Materialized.Uri) + " "
+                    : LayeredModelSparql.NamedDatasetClause(layered);
             }
 
             if (model is IModelGroup)
@@ -436,7 +439,9 @@ namespace Semiodesk.Trinity
             // pattern - but the outer triple pattern this method adds does not, and unguarded it
             // would fetch the paged resources triples straight from the baseline, removals
             // included. Wrap it too.
-            string outer = model is ILayeredModel layeredModel
+            // A materialized view needs no guard here: its effective triples are already one graph,
+            // which the dataset clause above selects.
+            string outer = model is ILayeredModel layeredModel && !layeredModel.IsMaterialized
                 ? LayeredModelSparql.Overlay(layeredModel, variable, "?p", "?o")
                 : string.Format("{0} ?p ?o", variable);
 
