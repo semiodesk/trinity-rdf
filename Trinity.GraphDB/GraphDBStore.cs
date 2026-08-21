@@ -139,12 +139,6 @@ namespace Semiodesk.Trinity.Store.GraphDB
             return uri != null && _connector.ListGraphs().Contains(uri);
         }
 
-        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
-        public override bool ContainsModel(IModel model)
-        {
-            return model != null && ContainsModel(model.Uri);
-        }
-
         /// <summary>
         /// Updates the properties of a resource in the backing RDF store.
         /// </summary>

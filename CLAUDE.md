@@ -69,7 +69,7 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
 - Store integration tests (`tests/Trinity.Tests.*`) **self-provision** their server in Docker via
   Testcontainers on a random host port (ADR-0036): run `dotnet test tests/Trinity.Tests.{Virtuoso,GraphDB,Fuseki}`
   with a Docker daemon running. Excluded from the default CI job (Docker + large images). Current:
-  **Fuseki 248/249** (0 failed), GraphDB 241/246, Virtuoso 234/239. GraphDB's and Virtuoso's four failures
+  **Fuseki 249/250** (0 failed), GraphDB 243/248, Virtuoso 236/241. GraphDB's and Virtuoso's four failures
   each are the inferencing cases; GraphDB's are an unresolved issue there (its container *does* configure a
   ruleset), not a declared limitation like Fuseki's. Fuseki's long-standing "4/86, blocked on
   an upstream `FusekiConnector` bug" was a **misdiagnosis** (ADR-0043): the test container never created a
@@ -243,10 +243,15 @@ Invariants that surprise newcomers:
   `IModel.AsQueryable<T>()` routes to it, and it emits SPARQL strings — so it's decoupled from
   dotNetRDF's Query Builder and the 3.x upgrade won't touch it. A few LINQ-provider gaps stay quarantined.
 - **Fuseki is a first-class backend** (ADR-0043), not the experimental one the older ADRs describe. Covering
-  it found a core defect the other backends hid: the layered view's `FROM NAMED` dataset clause was emitted
+  it found three defects the other backends hid. The layered view's `FROM NAMED` dataset clause was emitted
   **twice**, because `SparqlPreprocessor` never recorded a `FROM NAMED` graph and so could not suppress the
-  duplicate. Virtuoso and GraphDB tolerate the repetition; Jena rejects it (HTTP 400). If you add a backend,
-  expect it to find things — that is the point of having more than one.
+  duplicate — Virtuoso and GraphDB tolerate the repetition, Jena rejects it (HTTP 400). Then moving the
+  `ContainsModel` test into the shared `StoreCatalogTest<T>` found that **Virtuoso answered `true` for every
+  URI** (it ran an `ASK` and counted rows, so it never read the boolean) and that the in-memory store
+  answered `true` for a null URI. `SparqlPreprocessor` keeps `DefaultGraphs` and `NamedGraphs` apart for the
+  same reason: `FROM <g>` and `FROM NAMED <g>` are independent clauses, and conflating them makes assigning
+  a model silently empty the default graph. If you add a backend, or share a per-store test, expect it to
+  find things — that is the point of having more than one.
 - **Stores** (ADR-0008/0009): `IStore`/`IModel`/`StoreFactory`; providers registered **manually**
   via `StoreFactory.LoadProvider<T>()`. The `[Export]`/`System.Composition` MEF wiring is dead code.
   `provider=stardog` references and a Stardog test project exist but there is **no Stardog provider**.

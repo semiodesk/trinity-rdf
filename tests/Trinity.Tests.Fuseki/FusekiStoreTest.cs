@@ -26,6 +26,7 @@
 // Copyright (c) Semiodesk GmbH 2023
 
 using System;
+using System.Linq;
 using NUnit.Framework;
 using Semiodesk.Trinity.Store.Fuseki;
 using Semiodesk.Trinity.Tests.Store;
@@ -34,52 +35,42 @@ namespace Semiodesk.Trinity.Tests.Fuseki
 {
     /// <summary>
     /// Store-level tests for the Fuseki adapter -- the members the shared fixtures do not reach
-    /// because they take the store as given.
+    /// because they take the store as given. The model-catalog behaviour that used to live here is
+    /// now shared across every backend in <see cref="Semiodesk.Trinity.Tests.Store.StoreCatalogTest{T}"/>.
     /// </summary>
     [TestFixture]
     public class FusekiStoreTest : StoreTest<FusekiTestSetup>
     {
         /// <summary>
-        /// <c>ContainsModel</c> had no test on any store but the in-memory one, which is how it
-        /// went unnoticed that the Fuseki override asked the server and then threw the answer away,
-        /// returning <c>false</c> unconditionally.
-        /// </summary>
-#pragma warning disable CS0618 // Type or member is obsolete
-        [Test]
-        public void ContainsModelTest()
-        {
-            var absent = BaseUri.GetUriRef("no-such-model");
-
-            Assert.IsFalse(Store.ContainsModel(absent));
-
-            var present = BaseUri.GetUriRef("contains-model-test");
-            var model = Store.GetModel(present);
-
-            model.Clear();
-
-            var resource = model.CreateResource(BaseUri.GetUriRef("r1"));
-            resource.AddProperty(new Property(BaseUri.GetUriRef("p1")), "a value");
-            resource.Commit();
-
-            Assert.IsTrue(Store.ContainsModel(present),
-                "a graph that holds a triple must be reported as present");
-            Assert.IsFalse(Store.ContainsModel(absent),
-                "an unrelated graph must still be reported as absent");
-
-            model.Clear();
-        }
-
-        /// <summary>
-        /// The obsolete overload has to agree with the one it delegates to, and must not throw on
-        /// null the way the deleted Fuseki override would have.
+        /// A dataset may hold blank-node-named graphs. They arrive from <c>ListGraphNames()</c> as
+        /// bare labels, not IRIs, so constructing a <c>UriRef</c> from one throws and kills the whole
+        /// enumeration. The obsolete <c>ListGraphs()</c> omitted them, so moving to
+        /// <c>ListGraphNames()</c> (ADR-0038) is what exposed this.
         /// </summary>
         [Test]
-        public void ContainsModelRejectsNullRatherThanThrowing()
+        public void ListModelsSkipsBlankNodeNamedGraphsRatherThanThrowing()
         {
-            Assert.IsFalse(Store.ContainsModel((Uri)null));
-            Assert.IsFalse(Store.ContainsModel((IModel)null));
+            var named = BaseUri.GetUriRef("list-models-named");
+
+            Store.ExecuteNonQuery(new SparqlUpdate(
+                $"INSERT DATA {{ GRAPH <{named}> {{ <urn:a> <urn:b> <urn:c> }} }}"));
+            Store.ExecuteNonQuery(new SparqlUpdate(
+                "INSERT DATA { GRAPH _:listModelsBlank { <urn:d> <urn:e> <urn:f> } }"));
+
+            try
+            {
+                var models = Store.ListModels().ToList();
+
+                Assert.IsTrue(models.Any(m => m.Uri.ToString() == named.ToString()),
+                    "the IRI-named graph must still be listed");
+                Assert.IsTrue(models.All(m => Uri.IsWellFormedUriString(m.Uri.ToString(), UriKind.Absolute)),
+                    "every listed model must be addressable by IRI");
+            }
+            finally
+            {
+                Store.GetModel(named).Clear();
+            }
         }
-#pragma warning restore CS0618 // Type or member is obsolete
 
         /// <summary>
         /// <c>IsReady</c> used to be a hardcoded <c>true</c>, so it stayed true after Dispose.

@@ -113,11 +113,35 @@ Two regression tests, both verified to fail when the defect is reintroduced. The
 whole time; the new one asserts the query *after* the model is assigned. That gap — unit-testing a
 fragment rather than the path — is the reusable lesson.
 
+### What sharing the `ContainsModel` test found in the other backends
+
+Moving that test out of the Fuseki fixture into a shared `StoreCatalogTest<T>` — review feedback on the
+PR — immediately found the same class of defect in two more stores. Neither was caused by this change;
+both were simply never tested.
+
+- **Virtuoso `ContainsModel(Uri)` returned `true` for every URI**, including graphs that were never
+  written. It ran `SPARQL ASK { GRAPH <g> { ?s ?p ?o } }` and then tested `result.Rows.Count > 0` — but
+  an `ASK` always returns exactly one row, the row *holding* the boolean, so the count was never zero
+  and the answer was never read. Fixed by asking a `SELECT … LIMIT 1`, for which the row count is the
+  question. This is the identical shape to the Fuseki defect below: the store was consulted and its
+  answer discarded.
+- **The in-memory store answered `true` for a null URI.** `GraphName(null)` yields `null`, and
+  dotNetRDF reads a null graph name as the *default* graph, which always exists. Every other backend
+  answered `false`. Guarded, so all four agree.
+
+The lesson is narrower than "write more tests": `ContainsModel` had a test the whole time, on the one
+backend whose implementation was trivially correct. A per-store fixture tests the store you were
+thinking about.
+
 ### Adapter defects fixed
 
 Wrong answers:
 - `ContainsModel(Uri)` called `HasGraph`, **discarded the result**, and returned `false`
-  unconditionally. It had no test on any backend but the in-memory one, which is how it survived.
+  unconditionally. It had no test on any backend but the in-memory one, which is how it survived; the
+  coverage is now shared (`StoreCatalogTest<T>`).
+- `ListModels()` threw `UriFormatException` on a dataset holding a **blank-node-named graph**, aborting
+  the enumeration instead of skipping the one graph an IRI-keyed `IModel` cannot address. The obsolete
+  `ListGraphs()` omitted such graphs, so moving to `ListGraphNames()` is what exposed it.
 - `CreateModelGroup(params IModel[])` never populated its list, so it always returned an **empty
   group** (the bug [0009](0009-supported-store-backends.md) and
   [0019](0019-models-are-named-graphs-modelgroups.md) recorded). It was declared `new` rather than
@@ -134,9 +158,13 @@ Wrong answers:
   **the same failure mode as the container bug above.** Now defaults to `ds`, and an empty dataset is
   refused at construction rather than at first query.
 
-`StoreBase.ContainsModel(IModel)` gained the null guard GraphDB had already written into its own
-override — deleting Fuseki's override otherwise inherited a `NullReferenceException`. Caught by a new
-test rather than by reading.
+`StoreBase.ContainsModel(IModel)` gained a null guard — deleting Fuseki's override otherwise inherited
+a `NullReferenceException`. Every store's override of this overload was a verbatim delegation to the
+`Uri` overload (GraphDB's guarded, Virtuoso's not), so all of them are gone and the base is now the
+single implementation. That is what makes the guard actually reach every backend: centralizing it while
+leaving Virtuoso's override in place would have fixed nothing there. The test lives in the shared
+`StoreCatalogTest<T>`, so it runs on all four stores — keeping it in the Fuseki fixture is exactly the
+gap that let the divergence persist.
 
 Dead code removed: `FusekiSparqlQueryResult` (internal, no overrides, zero references),
 `Properties/AssemblyInfo.cs` (no license header, and an `[assembly: Guid]` byte-identical to
@@ -153,7 +181,7 @@ emits.
 
 ## Consequences
 
-- **Fuseki: 4/86 → 248 passed, 0 failed, 1 skipped** (the `CanRemoveBlankNodeValuedLink` quarantine
+- **Fuseki: 4/86 → 249 passed, 0 failed, 1 skipped** (the `CanRemoveBlankNodeValuedLink` quarantine
   every backend skips). It is covered by the layered, staging, differential, query-corpus,
   write-semantics, numeric-round-trip and resource suites for the first time.
 
@@ -163,11 +191,12 @@ emits.
   *declared* inconclusive whereas GraphDB's four inferencing cases genuinely **fail** — GraphDB's
   container does configure a `rdfsplus-optimized` ruleset, so those are an unresolved issue there rather
   than a declared limitation. Worth a look, and out of scope here.
-- GraphDB (241/246) and Virtuoso (234/239) are byte-identical to their pre-change failure sets, which
-  matters because this change edits `StoreBase` and deletes per-store overrides in favour of it.
-- The in-memory suite gains the two regression tests: 604 passed, 3 failed, 7 skipped. The three
-  failures are the pre-existing `UriRef` cases that fail only on a rolled-forward .NET 10 runtime
-  (`doc/known-test-failures.md`).
+- GraphDB (243/248) and Virtuoso (236/241) keep exactly their pre-existing failure sets — the four
+  inferencing cases on each, unchanged in identity — while gaining the two shared catalog tests. That
+  matters because this change edits `StoreBase` and `dotNetRDFStore`, and deletes per-store overrides
+  in favour of the base.
+- The in-memory suite: 607 passed, 3 failed, 7 skipped. The three failures are the pre-existing
+  `UriRef` cases that fail only on a rolled-forward .NET 10 runtime (`doc/known-test-failures.md`).
 - **A Fuseki 5.x server is now required.** This is a real constraint on consumers, not just on tests.
 - The store-integration suites stay out of the default CI job, unchanged from
   [0036](0036-integration-tests-testcontainers.md). Nothing stops Fuseki regressing to 4/86 silently
@@ -189,8 +218,9 @@ a Fuseki commit:
   from an empty graph.
 - **`TryParse` is a third verbatim copy** of the same format switch; the missing TriG case was fixed
   in one copy only.
-- `ContainsModelTest` should be promoted from a per-store fixture to a shared one. Virtuoso and
-  GraphDB implement `ContainsModel` correctly today, but nothing shared holds them to it.
+- Consider a shared helper for `ListModels`: any backend reading graph names as strings has the same
+  blank-node exposure Fuseki had. Virtuoso builds its list from a SPARQL query and GraphDB overrides
+  `ListGraphs()` in its own connector, so neither goes through `ListGraphNames()` today.
 
 ## Related
 - [0036](0036-integration-tests-testcontainers.md) — the containerized suites, and the corrected 4/86

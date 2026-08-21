@@ -60,7 +60,22 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// URIs of the graphs queried or manipulated by the query.
         /// </summary>
+        /// <summary>
+        /// Graphs named by a <c>FROM</c> operand, i.e. the query's default graph.
+        /// </summary>
         public readonly HashSet<string> DefaultGraphs = new HashSet<string>();
+
+        /// <summary>
+        /// Graphs named by a <c>FROM NAMED</c> operand.
+        /// </summary>
+        /// <remarks>
+        /// Kept apart from <see cref="DefaultGraphs"/> because the two clauses are independent:
+        /// <c>FROM &lt;g&gt;</c> and <c>FROM NAMED &lt;g&gt;</c> may both appear for the same graph and
+        /// mean different things. Conflating them makes <see cref="AddGraph"/> suppress a legitimate
+        /// <c>FROM</c> as a duplicate of an unrelated <c>FROM NAMED</c>, which empties the default
+        /// graph and silently returns no rows.
+        /// </remarks>
+        public readonly HashSet<string> NamedGraphs = new HashSet<string>();
 
         /// <summary>
         /// Namespace prefixes defined in the query.
@@ -273,8 +288,8 @@ namespace Semiodesk.Trinity
 
             if (FollowsDatasetKeyword)
             {
-                // If the qualified name references a graph, add it to the list of default graphs.
-                DefaultGraphs.Add(token.Value);
+                // If the qualified name references a graph, record it under the clause it belongs to.
+                DeclaredGraphsForCurrentClause.Add(token.Value);
             }
 
             return token;
@@ -284,8 +299,8 @@ namespace Semiodesk.Trinity
         {
             if (FollowsDatasetKeyword)
             {
-                // If the URI references a graph, add it to the list of default graphs.
-                DefaultGraphs.Add(token.Value);
+                // If the URI references a graph, record it under the clause it belongs to.
+                DeclaredGraphsForCurrentClause.Add(token.Value);
             }
 
             return token;
@@ -298,18 +313,26 @@ namespace Semiodesk.Trinity
         /// <c>Token.NAMED</c> has to be accepted, not just <c>Token.FROM</c> and
         /// <c>Token.FROMNAMED</c>: the tokeniser splits <c>FROM NAMED &lt;g&gt;</c> into three tokens
         /// (FROM, NAMED, URI), so the token preceding the URI of a <c>FROM NAMED</c> clause is NAMED
-        /// and never FROMNAMED. Without this, a <c>FROM NAMED</c> graph was not recorded in
-        /// <see cref="DefaultGraphs"/>, and <see cref="AddGraph"/> - which skips a graph already in
-        /// that set - would append a second, identical dataset clause. Plain <c>FROM</c> was
-        /// unaffected, which is why only the layered read path (the one emitter of
-        /// <c>FROM NAMED</c>) ever produced a duplicate. Virtuoso and GraphDB tolerate the
-        /// repetition; Jena rejects it outright with "URI already in named graph set".
+        /// and never FROMNAMED. Without this a <c>FROM NAMED</c> graph was recorded nowhere, and
+        /// <see cref="AddGraph"/> - which skips a graph already recorded - would append a second,
+        /// identical dataset clause. Only the layered read path emits <c>FROM NAMED</c>, which is why
+        /// only it produced a duplicate. Virtuoso and GraphDB tolerate the repetition; Jena rejects it
+        /// outright with "URI already in named graph set".
         /// <c>NAMED</c> appears nowhere else in the SPARQL grammar, so accepting it is unambiguous.
         /// </remarks>
         private bool FollowsDatasetKeyword =>
             PreviousTokenType == Token.FROM ||
             PreviousTokenType == Token.FROMNAMED ||
             PreviousTokenType == Token.NAMED;
+
+        /// <summary>
+        /// The set the graph operand currently being processed belongs to: <see cref="NamedGraphs"/>
+        /// after a <c>NAMED</c> keyword, <see cref="DefaultGraphs"/> otherwise.
+        /// </summary>
+        private HashSet<string> DeclaredGraphsForCurrentClause =>
+            PreviousTokenType == Token.NAMED || PreviousTokenType == Token.FROMNAMED
+                ? NamedGraphs
+                : DefaultGraphs;
 
         private void AddPrefix(string prefix, Uri uri)
         {
@@ -339,12 +362,17 @@ namespace Semiodesk.Trinity
         {
             string u = uri.OriginalString;
 
-            if (DefaultGraphs.Contains(u))
+            // Dedupe within the clause being added, not across both: a graph already present as
+            // FROM NAMED must not suppress a FROM for the same graph, or the default graph ends up
+            // empty and the query silently returns nothing.
+            var declared = token.TokenType == Token.FROMNAMED ? NamedGraphs : DefaultGraphs;
+
+            if (declared.Contains(u))
             {
                 return;
             }
 
-            DefaultGraphs.Add(u);
+            declared.Add(u);
 
             // Try to append the dataset clause before the outermost WHERE.
             int i = Tokens.FindIndex(t => t.TokenType == Token.WHERE);

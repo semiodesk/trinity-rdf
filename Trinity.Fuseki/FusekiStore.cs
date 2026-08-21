@@ -277,6 +277,16 @@ namespace Semiodesk.Trinity.Store.Fuseki
             // (ADR-0038).
             foreach (var graph in Connector.ListGraphNames())
             {
+                // A dataset may hold blank-node-named graphs, which arrive here as bare labels
+                // ("b0") rather than IRIs. An IModel is IRI-keyed and has no way to address one, and
+                // new UriRef("b0") throws -- which would abort the whole enumeration part-way rather
+                // than skip the one graph nobody can name. The obsolete ListGraphs() omitted them
+                // silently, so the switch to ListGraphNames is what exposes this.
+                if (!Uri.IsWellFormedUriString(graph, UriKind.Absolute))
+                {
+                    continue;
+                }
+
                 yield return new Model(this, new UriRef(graph));
             }
         }

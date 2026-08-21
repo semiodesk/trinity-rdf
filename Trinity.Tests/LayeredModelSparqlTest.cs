@@ -237,30 +237,56 @@ namespace Semiodesk.Trinity.Tests
         }
 
         /// <summary>
-        /// The preprocessor has to record a <c>FROM NAMED</c> graph, not just a bare <c>FROM</c> one.
-        /// That set is what suppresses a duplicate dataset clause, so a blind spot in it is a
-        /// silently malformed query rather than a missing feature.
+        /// <c>GetDefaultModels</c> reports the <c>FROM</c> operands only. Its callers read it as
+        /// default-graph membership — <c>Model.ExecuteQuery</c> to decide whether a default graph is
+        /// already declared, <c>GraphDBStore</c> to re-emit each entry as a <c>FROM</c> — so a
+        /// <c>FROM NAMED</c> graph appearing here would be merged into the default graph.
         /// </summary>
         [Test]
-        public void DeclaredGraphsAreRecordedForFromNamedAsWellAsFrom()
+        public void DeclaredDefaultGraphsExcludeFromNamedOperands()
         {
             var named = new SparqlQuery(
                 "ASK FROM NAMED <http://example.org/g/one> FROM NAMED <http://example.org/g/two> { ?s ?p ?o }",
                 declarePrefixes: false);
 
-            CollectionAssert.AreEquivalent(
-                new[] { "http://example.org/g/one", "http://example.org/g/two" },
-                named.GetDefaultModels().ToList(),
-                "FROM NAMED graphs must be recorded");
+            CollectionAssert.IsEmpty(named.GetDefaultModels().ToList(),
+                "a query with only FROM NAMED clauses declares no default graph");
 
-            var plain = new SparqlQuery(
-                "ASK FROM <http://example.org/g/one> { ?s ?p ?o }",
+            var both = new SparqlQuery(
+                "ASK FROM <http://example.org/g/one> FROM NAMED <http://example.org/g/two> { ?s ?p ?o }",
                 declarePrefixes: false);
 
             CollectionAssert.AreEquivalent(
                 new[] { "http://example.org/g/one" },
-                plain.GetDefaultModels().ToList(),
-                "plain FROM graphs must keep being recorded");
+                both.GetDefaultModels().ToList(),
+                "only the FROM operand is a default graph");
+        }
+
+        /// <summary>
+        /// A <c>FROM NAMED</c> operand must not suppress a <c>FROM</c> for the same graph.
+        /// </summary>
+        /// <remarks>
+        /// The two clauses are independent and may both name one graph. Tracking them in a single set
+        /// — the first attempt at fixing the duplicated dataset clause — made assigning the model a
+        /// no-op for any query whose text already named that graph, leaving the default graph empty
+        /// and the query silently returning nothing. That is strictly worse than the duplicate it was
+        /// fixing, because Jena at least rejects the duplicate out loud.
+        /// </remarks>
+        [Test]
+        public void FromNamedDoesNotSuppressTheDefaultGraphClause()
+        {
+            var graph = new Uri("http://example.org/g/one");
+
+            var query = new SparqlQuery(
+                $"SELECT * FROM NAMED <{graph}> WHERE {{ ?s ?p ?o }}", declarePrefixes: false);
+
+            query.Model = _store.GetModel(graph);
+
+            string text = query.ToString();
+
+            Assert.AreEqual(1, CountOccurrences(text, $"FROM NAMED <{graph}>"), text);
+            Assert.AreEqual(1, CountOccurrences(text, $"FROM <{graph}>"),
+                "the model's default-graph clause must still be emitted:\n" + text);
         }
 
         private static int CountOccurrences(string haystack, string needle)

@@ -149,7 +149,10 @@ namespace Semiodesk.Trinity.Store
         public override bool ContainsModel(Uri uri)
 #pragma warning restore CS0809 // Obsolete member overrides non-obsolete member
         {
-            return _store.HasGraph(GraphName(uri));
+            // A null URI is not a model. dotNetRDF reads a null graph name as the default graph,
+            // which always exists, so without this the in-memory store answered "present" for null
+            // while every other backend answered "absent" (StoreCatalogTest pins the contract).
+            return uri != null && _store.HasGraph(GraphName(uri));
         }
 
         /// <summary>
