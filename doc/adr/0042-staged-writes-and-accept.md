@@ -3,13 +3,13 @@
 Date: 2026-08-20
 
 ## Status
-Accepted for staging, accept and discard. **Proposed** for materialization and for anything that needs a
-retained ancestor.
+Accepted for staging, accept, discard **and materialization**. **Proposed** for anything that needs a
+retained ancestor, and for changeset validation.
 
-The staging half is built and measured: `Commit()` through a view stages, `Accept()`/`Discard()` apply
-or abandon, and the divergence precondition is in place, all verified on the in-memory store, Virtuoso
-and GraphDB. Materialization, three-way merge and changeset validation remain proposals — see
-*Deliberately unresolved*.
+All three are built and measured on the in-memory store, Virtuoso and GraphDB: `Commit()` through a view
+stages, `Accept()`/`Discard()` apply or abandon with a divergence precondition, and an opt-in fourth
+graph holds the effective triples so queries run natively. Three-way merge and validation remain
+proposals — see *Deliberately unresolved*.
 
 ## Context
 
@@ -152,41 +152,60 @@ anyway.
 
 ### Materialization as an opt-in mode
 
-Materializing `(baseline − removals) ∪ additions` into a fourth graph lets every query run natively
-against an ordinary model. The overlay macro **is** the materialization query — one `INSERT … WHERE`
-reusing what 0041 already emits, so there is no new machinery:
+`store.CreateLayeredModel(baseline, additions, removals, materialized)` keeps
+`(baseline − removals) ∪ additions` in a fourth graph, so queries run natively against an ordinary
+graph. The overlay macro **is** the materialization query — one `INSERT … WHERE` reusing what 0041
+already emits — so there is no new machinery.
 
-```sparql
-INSERT { GRAPH <effective> { ?s ?p ?o } } WHERE { <the overlay> }
-```
+**The mode switch is two seams.** Every authored read composes its query from the dataset clause and
+from one pattern helper, so pointing both at a single graph is all it takes for the same templates to
+run natively: the clause becomes `FROM <materialized>` and the helper emits a bare triple pattern
+instead of the overlay. Caller SPARQL then skips the rewriter entirely, LINQ passes no overlay to the
+writer, and inferencing becomes possible because the store is reasoning over one ordinary graph.
 
-What it lifts, all of them 0041 refusals: **unbounded property paths** (verified — a chain whose hops
-straddle the layers resolves correctly, which no rewrite can achieve), `GRAPH` blocks, `CONSTRUCT`,
-`DESCRIBE`, `SERVICE`, **inferencing** (a store can reason over an ordinary graph), and arbitrary caller
-SPARQL with no whitelist, no `SparqlExpressionWriter` and no round-trip verification.
+What it lifts, all of them rewriting-mode refusals: **unbounded property paths** (a chain whose hops
+straddle the layers resolves correctly, which no rewrite can achieve), the bounded paths that were
+merely unimplemented, `CONSTRUCT`, `DESCRIBE`, `SERVICE`, inferencing, and arbitrary caller SPARQL with
+no whitelist, no `SparqlExpressionWriter` and no round-trip verification.
 
-What it costs: **18.1 s** to materialize 1,000,000 triples in-memory, plus a full duplicate of the
-baseline per view. Fine as opt-in, wrong as a default — which is why it is a mode and not a replacement.
-Materialization at that scale has **not** been measured on Virtuoso.
+One nuance worth knowing: the graph is selected with a plain `FROM`, so it is the query's **default**
+graph and not one of its named graphs. Patterns are written unqualified; an explicit `GRAPH <…>` block
+naming it matches nothing. That is correct SPARQL rather than a gap — a caller need not know the name.
 
-What makes it practical is that it need not be recomputed. Staging changes exactly the layer contents,
-so the effective graph can be maintained **incrementally**: a staged addition inserts, a staged removal
-deletes unless the triple is still present via additions. That is **O(changes), not O(baseline)** — pay
-18 s once at creation, then next to nothing per stage. Incremental maintenance depends on the view
-owning staging, which is the fourth reason for it.
+**Maintenance is O(changes), which is what makes the mode usable.** Measured on the in-memory store with
+a 1,000,000-triple baseline:
 
-**Staleness is silent, and that is the real objection.** Measured: stage a change, and the materialized
-graph still answers from before it while the rewriting view answers correctly, with no error either way.
-A snapshot that quietly answers from the past is exactly the failure class 0041 exists to prevent. It
-cannot be detected cheaply and reliably from outside — triple counts are unsound, since swapping one
-triple for another leaves the count unchanged, and there is no change notification (ADR-0035 removed
-`INotifyPropertyChanged`). So the mode is only defensible when the view observes every write, which is
-the same decision again.
+| operation | cost |
+|---|---|
+| full build, including verification | 31.5 s |
+| full build, unverified | 19.1 s |
+| stage a change and keep the graph in step | **0.7 ms** |
+| a native property-path query over it | 3 ms |
 
-One limit survives regardless: the view can only know about **its own** layers. A third party writing to
-the baseline leaves the materialization stale and undetectably so. That is arguably outside the
-contract — the premise is that the baseline is untouched until accept — but it is an assumption, not a
-problem solved.
+The graph is not recomputed after a stage. Each affected triple is deleted and then re-inserted **if the
+overlay says it belongs** — asking the overlay rather than deriving from the delta what should have
+happened to it. That is correct by construction and cannot drift from the read path, where a
+hand-written rule per staging case could. `Discard()` does need the full rebuild, since the effective
+graph reverts to the baseline; a clean `Accept()` needs none, because the baseline becomes exactly what
+was materialized. A **forced** accept does, since the change was applied over a baseline that had moved.
+
+**Virtuoso cannot materialize a baseline of this size in one request, and does not say so.** Measured: a
+single `INSERT … WHERE` succeeds at 500,000 rows and writes **zero** at 1,000,000, reporting success
+either way — its transaction log limit, silently hit. An empty materialized graph is indistinguishable
+from an empty baseline, so a caller would read a view asserting the data does not exist. `Refresh()`
+therefore **counts the overlay's solutions and compares** them against what landed, and throws when they
+differ, naming the limit and the `log_enable(3,1)` workaround. That verification is the reason the build
+costs 31.5 s rather than 19.1 s, and it is worth the difference. Chunked materialization would lift the
+ceiling and is a follow-up; `LIMIT`-bounded inserts were verified to work, but `LIMIT`/`OFFSET` paging
+without `ORDER BY` has no stable order, so it needs a partitioning scheme rather than naive paging.
+
+**Staleness is the standing limitation.** The view keeps the graph in step for changes made *through*
+it — staging, accept, discard. A write straight to a layer or to the baseline leaves it stale, and that
+**cannot be detected cheaply**: triple counts are unsound, since swapping one triple for another leaves
+the count unchanged, and there is no change notification (ADR-0035 removed `INotifyPropertyChanged`). So
+the contract is that the view maintains what it changes and `Refresh()` repairs the rest — the same
+assumption the baseline already carries, extended to the layers. A test pins the stale case rather than
+leaving it implied.
 
 ### Conflicts do not fail. They merge, silently
 
@@ -267,12 +286,13 @@ Recorded so these are not mistaken for oversights:
   its extent must be, and how much of a shapes graph the mapping can generate. Deliberately excluded
   here; it touches parts of the system that are themselves unsettled.
 - **Reconstruct the ancestor or freeze it.** Both are described above. The staging invariants are now
-  maintained by construction and asserted by tests, so reconstruction is viable; the choice remains.
+  maintained by construction and asserted by tests, and materialization — which reconstruction needs —
+  exists, so the approach is viable; the choice remains.
+- **Chunked materialization**, to lift the Virtuoso ceiling above its transaction log limit. Needs a
+  stable partitioning scheme, not `LIMIT`/`OFFSET` paging.
 - **Additions-side conflict detection**, which needs the mapping-derived cardinality described above.
 - **Concurrent accepts** from two views over one baseline. That is branching, and needs a retained
   per-view ancestor.
-- **Whether staging maintains the materialization incrementally or only marks it dirty**, and what a
-  stale materialized view does on read — refuse, or refresh silently.
 - **Whether `Accept()` should validate at all**, versus leaving that to the caller.
 
 ## Related

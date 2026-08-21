@@ -55,7 +55,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 602 passed, 7 skipped (quarantined)
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 624 passed, 7 skipped (quarantined)
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 23 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -69,7 +69,7 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
 - Store integration tests (`tests/Trinity.Tests.*`) **self-provision** their server in Docker via
   Testcontainers on a random host port (ADR-0036): run `dotnet test tests/Trinity.Tests.{Virtuoso,GraphDB,Fuseki}`
   with a Docker daemon running. Excluded from the default CI job (Docker + large images). Current:
-  Virtuoso 234/239 and GraphDB 241/246 pass; Fuseki is 4/86 — a pre-existing dotNetRDF `FusekiConnector`
+  Virtuoso 256/261 and GraphDB 263/268 pass; Fuseki is 4/86 — a pre-existing dotNetRDF `FusekiConnector`
   query-endpoint bug (POSTs `/ds/query`, which the server 404s), unrelated to the container wiring.
   Virtuoso's `Int16Test`/`Uint16Test`/`UintTest` are now `Assert.Inconclusive` in `VirtuosoResourceTest`,
   alongside the pre-existing `Int64Test`/`Uint64Test` overrides for the same phenomenon: Virtuoso widens
@@ -197,6 +197,13 @@ Invariants that surprise newcomers:
   from additions, add to removals only if the baseline holds it — which is what keeps the ancestor
   reconstructible. Never write `WHERE { FILTER … }` with no pattern: **Virtuoso ignores a filter-only
   WHERE** and applies the operation unconditionally.
+- **A layered view can be materialized** (0042): pass a fourth graph to `store.CreateLayeredModel(...)` and the
+  effective triples are kept there, so queries run natively — which lifts every rewriting-mode refusal, including
+  unbounded property paths and inferencing. Staging keeps it in step at **O(changes)** (0.7 ms vs a 31.5 s rebuild at
+  1M); `Discard()` and a *forced* `Accept()` rebuild, a clean `Accept()` needs none. **Virtuoso silently writes zero**
+  when one `INSERT … WHERE` exceeds its transaction log limit (fine at 500k, zero at 1M), so `Refresh()` counts and
+  compares and **throws** rather than serving an empty view. Out-of-band writes to a layer leave it stale
+  undetectably — call `Refresh()`.
 - **Discovery is global static state** (0020): consumers must `MappingDiscovery.RegisterAssembly`
   / `OntologyDiscovery.AddAssembly` at startup or mapping and SPARQL prefixes silently miss.
 - **No configuration subsystem** (0011, 2.0): the `ontologies.config`/`app.config` loading,
