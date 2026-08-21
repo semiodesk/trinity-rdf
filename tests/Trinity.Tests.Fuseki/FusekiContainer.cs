@@ -78,7 +78,13 @@ namespace Semiodesk.Trinity.Tests.Fuseki
                 // stain/jena-fuseki is used rather than secoresearch/fuseki because it serves the
                 // dataset query endpoint at /<dataset>/query, which is what dotNetRDF's
                 // FusekiConnector derives from the /<dataset>/data URL it is given.
-                .WithImage("stain/jena-fuseki:4.0.0")
+                //
+                // 5.1.0 rather than 4.0.0: Jena 4.0.0 answers HTTP 500 "Not a valid UUID string"
+                // to any query mentioning a urn:uuid: (or uuid:) IRI, because it hands the whole
+                // IRI to a UUID parser instead of just the UUID part. Since Model.CreateResource()
+                // mints urn:uuid: identifiers by default, that made a resource created without an
+                // explicit URI writable but permanently unreadable. Fixed upstream by 5.1.0.
+                .WithImage("stain/jena-fuseki:5.1.0")
                 .WithEnvironment("ADMIN_PASSWORD", Password)
                 // assignRandomHostPort: true -> a free ephemeral host port, so we never clash
                 // with a local Fuseki on 3030.
