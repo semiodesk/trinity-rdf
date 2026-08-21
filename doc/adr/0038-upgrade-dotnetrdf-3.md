@@ -60,8 +60,9 @@ Code changes:
 - `SparqlRemoteEndpoint` and `UriLoader` are obsolete-but-working; migrating them to
   `SparqlQueryClient`/`Loader` is deferred because both are async-first and `IStore` is synchronous.
 - Store pass rates are unchanged from 2.7: in-memory **384 passed / 8 skipped**, Virtuoso **90/97**,
-  GraphDB **97/101**, Fuseki **4/86**. Fuseki's pre-existing connector bug ([0009](0009-supported-store-backends.md))
-  is *not* fixed by 3.x.
+  GraphDB **97/101**, Fuseki **4/86**. The 4/86 was attributed here to a connector bug; it was in fact
+  a missing dataset in the test container, and 3.x neither caused nor fixed it — see
+  [0043](0043-fuseki-store-revival.md).
 
 ## Remaining obsolete APIs (deliberately deferred past 2.0)
 The graph-addressing overloads (`ITripleStore.HasGraph(Uri)`, `Remove(Uri)`, `GraphCollection[Uri]`) were

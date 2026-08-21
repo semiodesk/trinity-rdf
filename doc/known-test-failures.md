@@ -19,6 +19,22 @@ Of these, the three LINQ entries are an unimplemented capability or an open desi
 blank-node entry is a genuine defect** — the first quarantined case that is. No quarantined test is a
 missing LINQ translation or a datatype bug.
 
+### Store suites: what each backend skips, and why
+
+These are `Assert.Inconclusive` overrides in the per-store fixtures, not `[Ignore]`s, and each names a
+store limitation rather than a Trinity defect. The shared blank-node case above is skipped once per
+store on top of these.
+
+| Store | Skipped | Why |
+|---|---|---|
+| **Fuseki** | `TestInferencing`, `GetTypedResourcesWithInferencingTest`, `MappingTypeWithInferencingTest`, `MappingTypeCollectionWithInferencingTest` | Fuseki has **no per-query inference switch**: a Jena reasoner is a property of the dataset, so it applies to every query or to none. Giving the test dataset a reasoner would make these four pass and make `inferenceEnabled: false` quietly lie. ADR-0022 makes inferencing a capability a store may ignore; ADR-0043 records the decision |
+| **Virtuoso** | `Int64Test`, `Uint64Test`, `Int16Test`, `Uint16Test`, `UintTest`, `TimeSpanTest`, `TimeSpanResourceTest` | Virtuoso widens the small integer types into an integer box and does not support `xsd:long`/`xsd:duration`. The `Test<TValue>` helper reads the **unmapped** bag, which declares no target type to convert into (ADR-0040) |
+| **GraphDB** | — | none |
+
+Fuseki additionally requires a **5.x server**. Jena 4.x answers HTTP 500 *"Not a valid UUID string"* to
+any query naming a `urn:uuid:` IRI — which is what `Model.CreateResource()` mints by default — so on
+4.x such a resource is writable but permanently unreadable (ADR-0043).
+
 ### Why in-memory inferencing does not work (diagnosed on dotNetRDF 3.5.2)
 Three independent gaps, any one of which would be enough:
 1. **The flag is ignored.** `dotNetRDFStore` never reads `inferenceEnabled` — it accepts the parameter

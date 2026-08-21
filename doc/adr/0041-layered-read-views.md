@@ -372,8 +372,14 @@ graph, one store.
 **Verified:** in-memory 589 passed / 3 pre-existing failures / 7 skipped; Virtuoso 221 passed / 4
 pre-existing failures / 1 skipped; GraphDB 228 passed / 4 pre-existing failures / 1 skipped. In each
 case the failure set is byte-identical to the same suite at the previous commit, and the delta is
-exactly the new tests (+27 in-memory, +16 per store). Fuseki is not covered: its suite is a
-hand-written non-generic copy and the backend is 4/86 on an upstream `FusekiConnector` bug (ADR-0036).
+exactly the new tests (+27 in-memory, +16 per store). Fuseki was not covered at the time: its suite
+was a hand-written non-generic copy and the backend read as 4/86.
+
+**Fuseki is covered as of [0043](0043-fuseki-store-revival.md)**, and covering it found a defect
+none of the other backends could: the overlay's dataset clause was emitted **twice**, because the
+preprocessor never recorded a `FROM NAMED` graph and so could not suppress the second copy. Virtuoso
+and GraphDB tolerate the repetition, which is why the suites above passed; Jena rejects it outright.
+105 of Fuseki's 106 initial failures were that one bug.
 
 ## Related
 - [0019](0019-models-are-named-graphs-modelgroups.md) — models are named graphs; model groups union them

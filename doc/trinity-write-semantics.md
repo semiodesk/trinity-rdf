@@ -49,8 +49,9 @@ trap — the INSERT omitted unmapped triples while the DELETE still removed all 
 deleted unmapped properties rather than preserving them. Delta writes compute removals against the
 resource's complete value list, so the flag can now only suppress a write, never cause a delete.
 
-**Not addressed:** the aggregate/cascade state of item 3, and a Fuseki regression fixture (its test
-project has a different structure and the backend is 4/86 on an upstream connector bug).
+**Not addressed:** the aggregate/cascade state of item 3. The Fuseki regression fixture, deferred here
+because that test project had a different structure and the backend read as 4/86, exists as of
+ADR-0043 and passes.
 
 ---
 
