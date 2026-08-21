@@ -284,15 +284,24 @@ namespace Semiodesk.Trinity.Tests
                 "GetResource",
                 "GetResources",
                 "AsQueryable",
-                // Reads that deliberately refuse a caller query but are not read-only refusals.
+                // Reads that rewrite a caller query, refusing forms they cannot handle.
                 "ExecuteQuery", "GetBindings",
+                // Writes, which stage into the additions and removals graphs rather than write.
+                "AddResource", "CreateResource", "DeleteResource", "DeleteResources",
+                "UpdateResource", "UpdateResources",
+                // Delegated to the store so Accept can run in a real transaction where there is one.
+                "BeginTransaction",
             };
 
             var refused = new HashSet<string>
             {
-                "AddResource", "CreateResource", "DeleteResource", "DeleteResources",
-                "UpdateResource", "UpdateResources", "ExecuteUpdate", "Clear",
-                "Read", "Write", "BeginTransaction",
+                // Cannot be routed into the layers: there is no way to tell which of a caller update's
+                // effects should become an addition and which a removal.
+                "ExecuteUpdate",
+                // Ambiguous on a view; Discard() is the meaningful operation.
+                "Clear",
+                // A different operation from reading into or writing out a model.
+                "Read", "Write",
             };
 
             var unclassified = new List<string>();
@@ -318,17 +327,10 @@ namespace Semiodesk.Trinity.Tests
 
             var alwaysThrows = new List<TestDelegate>
             {
-                () => view.AddResource(new Resource(new Uri("urn:x"))),
-                () => view.CreateResource(new Uri("urn:x")),
-                () => view.DeleteResource(new Uri("urn:x")),
-                () => view.DeleteResources(new[] { new Uri("urn:x") }),
-                () => view.UpdateResource(new Resource(new Uri("urn:x"))),
-                () => view.UpdateResources(new[] { new Resource(new Uri("urn:x")) }),
                 () => view.ExecuteUpdate(new SparqlUpdate("CLEAR GRAPH <urn:x>")),
                 () => view.Clear(),
                 () => view.Read(new Uri("urn:x"), RdfSerializationFormat.Turtle, false),
                 () => view.Write(new System.IO.MemoryStream(), RdfSerializationFormat.Turtle),
-                () => view.BeginTransaction(System.Data.IsolationLevel.ReadCommitted),
             };
 
             foreach (TestDelegate call in alwaysThrows)

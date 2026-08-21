@@ -255,7 +255,15 @@ namespace Semiodesk.Trinity
             return true;
         }
 
-        private static HashSet<string> SerializeValueSet(IResource resource, bool ignoreUnmappedProperties)
+        /// <summary>
+        /// The resource's values as <c>predicate object</c> fragments.
+        /// </summary>
+        /// <remarks>
+        /// Internal rather than private because a layered model stages a resource that has no snapshot
+        /// yet - a newly created one - by treating every value it holds as an addition, which needs the
+        /// same fragments the delta writer compares.
+        /// </remarks>
+        internal static HashSet<string> SerializeValueSet(IResource resource, bool ignoreUnmappedProperties)
         {
             var result = new HashSet<string>(StringComparer.Ordinal);
 

@@ -528,15 +528,30 @@ namespace Semiodesk.Trinity.Tests.Store
             Assert.Throws<NotSupportedException>(() => View.AsQueryable<MappingTestClass>(inferenceEnabled: true));
         }
 
+        /// <summary>
+        /// Writes are staged rather than refused; only the operations that cannot be routed into the
+        /// layers still throw.
+        /// </summary>
+        /// <remarks>
+        /// This test asserted the read-only surface until staging landed. A caller's SPARQL update
+        /// cannot be routed, because there is no way to tell which of its effects should become an
+        /// addition and which a removal; <c>Clear</c> is ambiguous on a view (<c>Discard</c> is the
+        /// meaningful operation); and reading into or writing out a view is a different operation from
+        /// doing so to a model. Staging behaviour itself is covered by <c>LayeredModelStagingTest</c>.
+        /// </remarks>
         [Test]
-        public virtual void WritesThrow()
+        public virtual void OnlyUnroutableOperationsThrow()
         {
-            Assert.Throws<NotSupportedException>(() => View.CreateResource(R1));
-            Assert.Throws<NotSupportedException>(() => View.CreateResource<MappingTestClass>(R1));
-            Assert.Throws<NotSupportedException>(() => View.DeleteResource(R1));
-            Assert.Throws<NotSupportedException>(() => View.UpdateResource(new MappingTestClass(R1)));
-            Assert.Throws<NotSupportedException>(() => View.ExecuteUpdate(new SparqlUpdate("CLEAR GRAPH <urn:x>")));
+            Assert.Throws<NotSupportedException>(
+                () => View.ExecuteUpdate(new SparqlUpdate($"CLEAR GRAPH <{Additions.Uri}>")));
             Assert.Throws<NotSupportedException>(() => View.Clear());
+            Assert.Throws<NotSupportedException>(
+                () => View.Write(new System.IO.MemoryStream(), RdfSerializationFormat.Turtle));
+            Assert.Throws<NotSupportedException>(
+                () => View.Read(new Uri("file:///nonexistent.ttl"), RdfSerializationFormat.Turtle, false));
+
+            // And the write paths that used to throw now stage instead.
+            Assert.DoesNotThrow(() => View.CreateResource<MappingTestClass>(R2));
         }
 
         [Test]

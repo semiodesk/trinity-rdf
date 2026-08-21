@@ -82,5 +82,47 @@ namespace Semiodesk.Trinity
         /// <see cref="Baseline"/>.
         /// </summary>
         IModel Removals { get; }
+
+        /// <summary>
+        /// Applies the staged change to <see cref="Baseline"/> and empties both layers.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Deliberately not named <c>Commit</c>. A view owns staging, so
+        /// <see cref="Resource.Commit"/> on a resource read through one already means "stage"; reusing
+        /// the word here for "push everything to the baseline" would invite exactly the confusion the
+        /// two operations need to avoid.
+        /// </para>
+        /// <para>
+        /// Removals are applied before additions, so a triple in both survives — the same precedence
+        /// the read path gives it.
+        /// </para>
+        /// </remarks>
+        /// <param name="force">Apply even if the baseline diverged. See <see cref="HasDiverged"/>.</param>
+        /// <param name="transaction">
+        /// Transaction to run in; one is started when omitted.
+        /// </param>
+        /// <exception cref="System.InvalidOperationException">
+        /// Thrown when the baseline diverged and <paramref name="force"/> is not set.
+        /// </exception>
+        void Accept(bool force = false, ITransaction transaction = null);
+
+        /// <summary>
+        /// Abandons the staged change, leaving <see cref="Baseline"/> untouched.
+        /// </summary>
+        void Discard(ITransaction transaction = null);
+
+        /// <summary>
+        /// Indicates whether the baseline has moved on ground the staged change depends on — a triple
+        /// staged for removal that the baseline no longer holds.
+        /// </summary>
+        /// <remarks>
+        /// This matters because applying a stale change never fails on its own: a changeset is a set of
+        /// triples and <c>INSERT</c>/<c>DELETE</c> are idempotent, so a competing edit to a
+        /// single-valued property silently leaves two values behind rather than raising anything. The
+        /// check is O(removals) and deliberately conservative — it also reports the benign case where
+        /// someone else already made the same removal.
+        /// </remarks>
+        bool HasDiverged();
     }
 }
