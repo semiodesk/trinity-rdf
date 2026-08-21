@@ -200,6 +200,69 @@ namespace Semiodesk.Trinity.Tests
             Assert.AreEqual(3, CountOccurrences(clause, "FROM "));
         }
 
+        /// <summary>
+        /// The dataset clause must survive assignment of the model without being emitted twice.
+        /// </summary>
+        /// <remarks>
+        /// This is the whole-path version of
+        /// <see cref="DatasetClauseNamesAllThreeGraphsAndNeverMergesThem"/>, and it is the assertion
+        /// that was missing: the clause itself was always right, but every overlay read then set
+        /// <c>query.Model</c>, whose setter adds the view's three graphs through the preprocessor.
+        /// The preprocessor skips a graph it has already seen — except it never recorded a
+        /// <c>FROM NAMED</c> graph, because the tokeniser splits <c>FROM NAMED &lt;g&gt;</c> into
+        /// FROM + NAMED + URI and the check looked only for FROM and FROMNAMED. So the clause was
+        /// appended a second time. Virtuoso and GraphDB tolerate the repetition and Jena rejects it
+        /// with "URI already in named graph set", which is why this surfaced only once Fuseki ran
+        /// the layered suite.
+        /// </remarks>
+        [Test]
+        public void AssigningTheModelDoesNotRepeatTheDatasetClause()
+        {
+            var query = new SparqlQuery(
+                "ASK " + LayeredModelSparql.NamedDatasetClause(_view) + "{ ?s ?p ?o }",
+                declarePrefixes: false);
+
+            query.Model = _view;
+
+            string text = query.ToString();
+
+            Assert.AreEqual(3, CountOccurrences(text, "FROM NAMED"),
+                "each of the three graphs must be named exactly once:\n" + text);
+
+            foreach (var graph in new[] { BaseGraph, AddGraph, RemGraph })
+            {
+                Assert.AreEqual(1, CountOccurrences(text, $"<{graph}>"),
+                    $"{graph} is named more than once:\n" + text);
+            }
+        }
+
+        /// <summary>
+        /// The preprocessor has to record a <c>FROM NAMED</c> graph, not just a bare <c>FROM</c> one.
+        /// That set is what suppresses a duplicate dataset clause, so a blind spot in it is a
+        /// silently malformed query rather than a missing feature.
+        /// </summary>
+        [Test]
+        public void DeclaredGraphsAreRecordedForFromNamedAsWellAsFrom()
+        {
+            var named = new SparqlQuery(
+                "ASK FROM NAMED <http://example.org/g/one> FROM NAMED <http://example.org/g/two> { ?s ?p ?o }",
+                declarePrefixes: false);
+
+            CollectionAssert.AreEquivalent(
+                new[] { "http://example.org/g/one", "http://example.org/g/two" },
+                named.GetDefaultModels().ToList(),
+                "FROM NAMED graphs must be recorded");
+
+            var plain = new SparqlQuery(
+                "ASK FROM <http://example.org/g/one> { ?s ?p ?o }",
+                declarePrefixes: false);
+
+            CollectionAssert.AreEquivalent(
+                new[] { "http://example.org/g/one" },
+                plain.GetDefaultModels().ToList(),
+                "plain FROM graphs must keep being recorded");
+        }
+
         private static int CountOccurrences(string haystack, string needle)
         {
             int count = 0, i = 0;

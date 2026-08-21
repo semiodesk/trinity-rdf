@@ -271,16 +271,10 @@ namespace Semiodesk.Trinity
                 UsedPrefixes.Add(prefix);
             }
 
-            switch (PreviousTokenType)
+            if (FollowsDatasetKeyword)
             {
-                case Token.FROM:
-                case Token.FROMNAMED:
-                    {
-                        // If the qualified name references a graph, add it to the list of default graphs.
-                        DefaultGraphs.Add(token.Value);
-                        
-                        break;
-                    }
+                // If the qualified name references a graph, add it to the list of default graphs.
+                DefaultGraphs.Add(token.Value);
             }
 
             return token;
@@ -288,7 +282,7 @@ namespace Semiodesk.Trinity
 
         private IToken ProcessUri(IToken token)
         {
-            if (PreviousTokenType == Token.FROM || PreviousTokenType == Token.FROMNAMED)
+            if (FollowsDatasetKeyword)
             {
                 // If the URI references a graph, add it to the list of default graphs.
                 DefaultGraphs.Add(token.Value);
@@ -296,6 +290,26 @@ namespace Semiodesk.Trinity
 
             return token;
         }
+
+        /// <summary>
+        /// Indicates whether the token being processed is the graph operand of a dataset clause.
+        /// </summary>
+        /// <remarks>
+        /// <c>Token.NAMED</c> has to be accepted, not just <c>Token.FROM</c> and
+        /// <c>Token.FROMNAMED</c>: the tokeniser splits <c>FROM NAMED &lt;g&gt;</c> into three tokens
+        /// (FROM, NAMED, URI), so the token preceding the URI of a <c>FROM NAMED</c> clause is NAMED
+        /// and never FROMNAMED. Without this, a <c>FROM NAMED</c> graph was not recorded in
+        /// <see cref="DefaultGraphs"/>, and <see cref="AddGraph"/> - which skips a graph already in
+        /// that set - would append a second, identical dataset clause. Plain <c>FROM</c> was
+        /// unaffected, which is why only the layered read path (the one emitter of
+        /// <c>FROM NAMED</c>) ever produced a duplicate. Virtuoso and GraphDB tolerate the
+        /// repetition; Jena rejects it outright with "URI already in named graph set".
+        /// <c>NAMED</c> appears nowhere else in the SPARQL grammar, so accepting it is unambiguous.
+        /// </remarks>
+        private bool FollowsDatasetKeyword =>
+            PreviousTokenType == Token.FROM ||
+            PreviousTokenType == Token.FROMNAMED ||
+            PreviousTokenType == Token.NAMED;
 
         private void AddPrefix(string prefix, Uri uri)
         {
