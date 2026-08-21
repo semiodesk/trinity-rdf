@@ -242,8 +242,10 @@ Invariants that surprise newcomers:
 
 ## Conventions
 
-- Every `.cs` starts with the MIT license header block (authors Moritz Eberl / Sebastian
-  Faubel, Copyright Semiodesk GmbH). Preserve it on new files.
+- Every `.cs` starts with the MIT license header block (Copyright Semiodesk GmbH). Preserve it on new
+  files. **New files name only Moritz Eberl** in the `AUTHORS` block — Sebastian Faubel no longer
+  contributes. Existing files keep both names; the attribution was accurate when they were written, so
+  there is nothing to correct.
 - 4-space indent, Allman braces, XML-doc comments on public members. No `.editorconfig` yet.
 - Nullable/ImplicitUsings are **not** enabled repo-wide (a deliberate later pass).
 
