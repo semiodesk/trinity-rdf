@@ -93,6 +93,74 @@ namespace Semiodesk.Trinity
             return rewritten;
         }
 
+        /// <summary>
+        /// Refuses a caller query that selects graphs of its own, without otherwise constraining it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Used by a <b>materialized</b> view, which runs caller SPARQL natively and so lifts every
+        /// refusal that exists for want of a faithful rewrite - property paths, <c>CONSTRUCT</c>,
+        /// <c>DESCRIBE</c>, inferencing. Graph selection is not in that category. The effective triples
+        /// live in one ordinary graph and the view names it in the dataset clause; a caller
+        /// <c>FROM</c> is merely appended beside it, giving a union of the two, and a caller
+        /// <c>GRAPH</c> block reaches for graphs the view exists to combine. Either way the answer can
+        /// contain triples staged for removal, which is the one failure this design must not have.
+        /// </para>
+        /// <para>
+        /// The cost is that a materialized view still parses each caller query once per execution, even
+        /// though it does not rewrite it - see ADR-0041 for the placeholder-IRI caching that would
+        /// remove it if it ever shows up in a profile.
+        /// </para>
+        /// </remarks>
+        internal static void RequireNoGraphSelection(string queryString)
+        {
+            RequireNoGraphSelection(Parse(queryString));
+        }
+
+        private static void RequireNoGraphSelection(DnrQuery.SparqlQuery query)
+        {
+            if (query.DefaultGraphNames.Any() || query.NamedGraphNames.Any())
+            {
+                throw GraphSelectionUnsupported("its own dataset clause (FROM / FROM NAMED)");
+            }
+
+            RequireNoGraphSelection(query.RootGraphPattern);
+        }
+
+        private static void RequireNoGraphSelection(DnrQuery.Patterns.GraphPattern pattern)
+        {
+            if (pattern.IsGraph)
+            {
+                throw GraphSelectionUnsupported($"an explicit GRAPH block (GRAPH {pattern.GraphSpecifier?.Value})");
+            }
+
+            // A sub-SELECT carries its own pattern tree, and may not declare a dataset at all.
+            foreach (DnrQuery.Patterns.ITriplePattern triplePattern in pattern.TriplePatterns)
+            {
+                if (triplePattern is DnrQuery.Patterns.SubQueryPattern subQuery)
+                {
+                    RequireNoGraphSelection(subQuery.SubQuery);
+                }
+            }
+
+            foreach (DnrQuery.Patterns.GraphPattern child in pattern.ChildGraphPatterns)
+            {
+                RequireNoGraphSelection(child);
+            }
+        }
+
+        private static NotSupportedException GraphSelectionUnsupported(string what)
+        {
+            return new NotSupportedException(
+                "This query cannot be run against a layered model because it contains " + what + ". " +
+                "A layered view defines its own dataset - the effective triples of the baseline, additions and " +
+                "removals - so a query cannot also choose one. This is refused even on a materialized view, where " +
+                "the rewrite-shape restrictions do not apply: naming a graph reads past the view rather than " +
+                "through it, and the answer could include triples staged for removal. Query the Baseline, " +
+                "Additions or Removals models directly if that is what you want. " +
+                "See doc/adr/0041-layered-read-views.md.");
+        }
+
         private static DnrQuery.SparqlQuery Parse(string queryString)
         {
             try

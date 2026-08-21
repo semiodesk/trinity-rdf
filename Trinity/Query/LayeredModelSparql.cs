@@ -40,7 +40,7 @@ namespace Semiodesk.Trinity
     /// <remarks>
     /// Subtraction cannot be expressed in a dataset clause — <c>FROM</c> is set union and SPARQL
     /// has no inverse — so it has to sit in the graph pattern. Every triple pattern is therefore
-    /// replaced by <see cref="Overlay"/>, which resolves that one pattern against the effective
+    /// replaced by <see cref="Overlay(ILayeredModel, string, string, string)"/>, which resolves that one pattern against the effective
     /// graph.
     /// <para>
     /// The three rules below are not micro-optimisations; each was measured, and getting one

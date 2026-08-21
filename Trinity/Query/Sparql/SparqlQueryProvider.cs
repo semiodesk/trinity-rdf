@@ -64,9 +64,12 @@ namespace Semiodesk.Trinity.Query.Sparql
 
             _layered = layered != null && !layered.IsMaterialized ? layered : null;
 
-            if (layered is LayeredModel concrete)
+            // Interface-level on purpose. Consulting IsMaterialized does not require the concrete
+            // class, and testing for it would let a third-party ILayeredModel through with inferencing
+            // over a rewritten overlay - the one case ADR-0041 says cannot be approximated.
+            if (layered != null)
             {
-                concrete.RequireNoInferencing(inferenceEnabled);
+                LayeredModel.RequireNoInferencing(layered, inferenceEnabled);
             }
         }
 

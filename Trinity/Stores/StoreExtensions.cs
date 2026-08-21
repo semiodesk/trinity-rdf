@@ -101,7 +101,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Creates a read-only layered view over three existing models of the same store.
         /// </summary>
-        /// <inheritdoc cref="CreateLayeredModel(IStore, Uri, Uri, Uri)" path="/remarks" />
+        /// <inheritdoc cref="CreateLayeredModel(IStore, Uri, Uri, Uri, Uri)" path="/remarks" />
         public static ILayeredModel CreateLayeredModel(this IStore store, IModel baseline, IModel additions, IModel removals, IModel materialized = null)
         {
             if (store == null) throw new ArgumentNullException(nameof(store));
@@ -116,6 +116,19 @@ namespace Semiodesk.Trinity
             if (materialized != null)
             {
                 RequireSameStore(store, materialized, nameof(materialized));
+
+                // Without this, materialized?.Uri below hands null to the Uri overload, which reads it
+                // as "no fourth graph" and returns a rewriting view - a different mode, silently, to a
+                // caller who explicitly asked for materialization. A ModelGroup is the case that hits
+                // it: its Uri is null by design. The three required layers cannot, since the Uri
+                // overload throws on a null baseline, additions or removals.
+                if (materialized.Uri == null)
+                {
+                    throw new ArgumentException(
+                        "The materialized model does not name a single graph, so the effective triples have " +
+                        "nowhere to live. A ModelGroup spans several graphs and has no Uri of its own; pass a " +
+                        "model obtained from IStore.CreateModel or GetModel.", nameof(materialized));
+                }
             }
 
             return store.CreateLayeredModel(baseline.Uri, additions.Uri, removals.Uri, materialized?.Uri);

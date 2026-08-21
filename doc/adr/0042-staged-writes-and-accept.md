@@ -157,20 +157,41 @@ anyway.
 graph. The overlay macro **is** the materialization query — one `INSERT … WHERE` reusing what 0041
 already emits — so there is no new machinery.
 
-**The mode switch is two seams.** Every authored read composes its query from the dataset clause and
-from one pattern helper, so pointing both at a single graph is all it takes for the same templates to
-run natively: the clause becomes `FROM <materialized>` and the helper emits a bare triple pattern
-instead of the overlay. Caller SPARQL then skips the rewriter entirely, LINQ passes no overlay to the
-writer, and inferencing becomes possible because the store is reasoning over one ordinary graph.
+**The mode switch is two seams — for reads.** Every authored read composes its query from the dataset
+clause and from one pattern helper, so pointing both at a single graph is all it takes for the same
+templates to run natively: the clause becomes `FROM <materialized>` and the helper emits a bare triple
+pattern instead of the overlay. LINQ passes no overlay to the writer, and inferencing becomes possible
+because the store is reasoning over one ordinary graph.
+
+**But not every query about the view is a read of it**, and the two-seams framing hid that. A query that
+reasons over the *layers* rather than the effective triples must keep the three-graph dataset: in
+materialized mode the clause is a bare `FROM`, which leaves the named-graph set **empty**, so a
+`GRAPH <removals>` block against it matches nothing and the query silently answers as though the graph
+were empty. The divergence precondition is exactly such a query, and it was written from the effective
+clause — so on a materialized view `HasDiverged()` returned `false` for every input and `Accept()`
+applied stale changesets without complaint, disabling this ADR's central guard precisely when the caller
+had opted into the faster mode. The field is now named for what it selects rather than for where it
+goes, and the layer-level dataset is requested explicitly.
 
 What it lifts, all of them rewriting-mode refusals: **unbounded property paths** (a chain whose hops
 straddle the layers resolves correctly, which no rewrite can achieve), the bounded paths that were
 merely unimplemented, `CONSTRUCT`, `DESCRIBE`, `SERVICE`, inferencing, and arbitrary caller SPARQL with
 no whitelist, no `SparqlExpressionWriter` and no round-trip verification.
 
-One nuance worth knowing: the graph is selected with a plain `FROM`, so it is the query's **default**
-graph and not one of its named graphs. Patterns are written unqualified; an explicit `GRAPH <…>` block
-naming it matches nothing. That is correct SPARQL rather than a gap — a caller need not know the name.
+**What it does not lift: graph selection.** "Nothing is rewritten, so nothing has to be refused" holds
+only for the constructs refused *for want of a faithful rewrite*. A caller dataset clause is not one of
+them. The graph is selected with a plain `FROM`, so it is the query's **default** graph — and the
+preprocessor **appends** the caller's `FROM` beside the view's rather than replacing it, so the query
+reads the union of the two. Measured: `SELECT ?s FROM <baseline> WHERE { ?s a <Thing> }` is refused by a
+rewriting view and, before the fix, returned from a materialized one a resource whose `rdf:type` was
+staged for removal — an unsubtracted triple served out of a subtractive read-only view, which is the one
+failure this design must not have. A caller `GRAPH` block is the same argument: it reaches for the layers
+the view exists to combine. Both stay refused in **both** modes, so materialization lifts the
+rewrite-shape restrictions and nothing else.
+
+The cost is that a materialized view still **parses** each caller query once per execution, even though
+it does not rewrite it — the same per-execution parse 0041 notes, with the same placeholder-IRI caching
+available if it ever shows up in a profile.
 
 **Maintenance is O(changes), which is what makes the mode usable.** Measured on the in-memory store with
 a 1,000,000-triple baseline:
@@ -195,12 +216,20 @@ either way — its transaction log limit, silently hit. An empty materialized gr
 from an empty baseline, so a caller would read a view asserting the data does not exist. `Refresh()`
 therefore **counts the overlay's solutions and compares** them against what landed, and throws when they
 differ, naming the limit and the `log_enable(3,1)` workaround. That verification is the reason the build
-costs 31.5 s rather than 19.1 s, and it is worth the difference. Chunked materialization would lift the
+costs 31.5 s rather than 19.1 s, and it is worth the difference.
+
+The check runs **after** the truncated write is committed, and there is nothing to roll back — so
+throwing is all it can do, and throwing *once* is not enough. The failure is therefore **latched**: every
+later read is refused until a rebuild succeeds. Without the latch the view raised one exception from
+`Refresh()` and then answered every subsequent query from a graph it knew was short, which is the same
+silent wrong answer the verification exists to prevent, merely deferred by one call. Chunked materialization would lift the
 ceiling and is a follow-up; `LIMIT`-bounded inserts were verified to work, but `LIMIT`/`OFFSET` paging
 without `ORDER BY` has no stable order, so it needs a partitioning scheme rather than naive paging.
 
 **Staleness is the standing limitation.** The view keeps the graph in step for changes made *through*
-it — staging, accept, discard. A write straight to a layer or to the baseline leaves it stale, and that
+it — staging, accept, discard, **and delete**, the last of which built its own update and initially
+skipped the synchronization every other write path performs, leaving a deleted resource readable through
+the very view that deleted it. A write straight to a layer or to the baseline leaves it stale, and that
 **cannot be detected cheaply**: triple counts are unsound, since swapping one triple for another leaves
 the count unchanged, and there is no change notification (ADR-0035 removed `INotifyPropertyChanged`). So
 the contract is that the view maintains what it changes and `Refresh()` repairs the rest — the same

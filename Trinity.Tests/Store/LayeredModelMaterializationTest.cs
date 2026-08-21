@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
 
@@ -365,6 +366,180 @@ namespace Semiodesk.Trinity.Tests.Store
                 () => Store.CreateLayeredModel(Baseline.Uri, Additions.Uri, Removals.Uri, Baseline.Uri));
             Assert.Throws<ArgumentException>(
                 () => Store.CreateLayeredModel(Baseline.Uri, Additions.Uri, Removals.Uri, Additions.Uri));
+        }
+
+        #endregion
+
+        #region Review regressions
+
+        /// <summary>
+        /// The stale-changeset guard has to keep reading the layers, not the effective graph.
+        /// </summary>
+        /// <remarks>
+        /// It once composed its query from the view's own dataset clause, which in materialized mode is
+        /// a bare <c>FROM</c> and so leaves the named-graph set empty. Both of its <c>GRAPH</c> blocks
+        /// then matched nothing and it answered "no divergence" for every input, disabling the ADR-0042
+        /// precondition exactly when a caller had opted into the faster mode.
+        /// </remarks>
+        [Test]
+        public virtual void HasDivergedReadsTheLayersNotTheEffectiveGraph()
+        {
+            Assert.IsFalse(Rewriting.HasDiverged(), "the baseline still holds everything staged for removal");
+            Assert.IsFalse(Materialized.HasDiverged(), "and the two modes must agree on that");
+
+            // Someone else removes, in the baseline, a triple this changeset also stages for removal.
+            Baseline.ExecuteUpdate(new SparqlUpdate(
+                "DELETE WHERE { GRAPH @g { " +
+                $"<{EX}gone> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <{EX}Thing> }} }}")
+                .Bind("@g", Baseline));
+
+            Assert.IsTrue(Rewriting.HasDiverged(), "the removal's precondition no longer holds");
+            Assert.IsTrue(Materialized.HasDiverged(),
+                "the materialized view must detect divergence too - it is a question about the layers");
+        }
+
+        /// <summary>
+        /// Accept() must still refuse a stale changeset when the view is materialized.
+        /// </summary>
+        [Test]
+        public virtual void AcceptStillRefusesAStaleChangesetWhenMaterialized()
+        {
+            Baseline.ExecuteUpdate(new SparqlUpdate(
+                "DELETE WHERE { GRAPH @g { " +
+                $"<{EX}gone> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <{EX}Thing> }} }}")
+                .Bind("@g", Baseline));
+
+            Assert.Throws<InvalidOperationException>(() => Materialized.Accept());
+
+            Assert.DoesNotThrow(() => Materialized.Accept(force: true), "force is the documented override");
+        }
+
+        /// <summary>
+        /// A delete through the view is a change the view owns, so it owes the effective graph the same
+        /// maintenance it gives a staged update.
+        /// </summary>
+        /// <remarks>
+        /// <c>DeleteResource</c> built its own staging update and called the store directly, skipping
+        /// the synchronization every other write path performs. The resource stayed readable through the
+        /// very view that deleted it, with no signal to the caller.
+        /// </remarks>
+        [Test]
+        public virtual void DeleteThroughAMaterializedViewIsVisibleThroughIt()
+        {
+            var keep = new Uri(EX + "keep");
+
+            Assert.IsTrue(Materialized.ContainsResource(keep));
+
+            Materialized.DeleteResource(keep);
+
+            Assert.IsFalse(Materialized.ContainsResource(keep),
+                "the view that performed the delete must not still show the resource");
+            Assert.IsFalse(Rewriting.ContainsResource(keep), "and the layers agree");
+
+            Assert.AreEqual(
+                string.Join(" | ", Rows(Rewriting, "SELECT ?s ?p ?o WHERE { ?s ?p ?o }")),
+                string.Join(" | ", Rows(Materialized, "SELECT ?s ?p ?o WHERE { ?s ?p ?o }")),
+                "the effective graph is in step for every triple the delete touched");
+        }
+
+        /// <summary>
+        /// Deleting a resource that other triples point at removes those too (ADR-0030), and the
+        /// materialized graph has to follow on the object side as well.
+        /// </summary>
+        [Test]
+        public virtual void DeleteThroughAMaterializedViewFollowsTheObjectSide()
+        {
+            Materialized.DeleteResource(new Uri(EX + "b"));
+
+            Assert.AreEqual(
+                string.Join(" | ", Rows(Rewriting, $"SELECT ?s ?o WHERE {{ ?s <{EX}next> ?o }}")),
+                string.Join(" | ", Rows(Materialized, $"SELECT ?s ?o WHERE {{ ?s <{EX}next> ?o }}")),
+                "a -> b came from the baseline and b -> c from the additions; both mention b");
+        }
+
+        /// <summary>
+        /// Graph selection stays refused in both modes.
+        /// </summary>
+        /// <remarks>
+        /// Materialization lifts the refusals that exist for want of a faithful rewrite. A caller
+        /// dataset clause is not one of them: the view names the effective graph itself and the
+        /// preprocessor merely appends the caller's beside it, so the query reads the union of the two -
+        /// which served triples staged for removal out of a subtractive view.
+        /// </remarks>
+        public static IEnumerable<TestCaseData> GraphSelectingQueries()
+        {
+            yield return new TestCaseData("FROM", $"SELECT ?s FROM <{{0}}> WHERE {{{{ ?s a <{EX}Thing> }}}}");
+            yield return new TestCaseData("FROM NAMED",
+                $"SELECT ?s FROM NAMED <{{0}}> WHERE {{{{ GRAPH ?g {{{{ ?s a <{EX}Thing> }}}} }}}}");
+            yield return new TestCaseData("GRAPH block", $"SELECT ?s WHERE {{{{ GRAPH <{{0}}> {{{{ ?s a <{EX}Thing> }}}} }}}}");
+            yield return new TestCaseData("GRAPH in a sub-SELECT",
+                $"SELECT ?s WHERE {{{{ {{{{ SELECT ?s WHERE {{{{ GRAPH <{{0}}> {{{{ ?s a <{EX}Thing> }}}} }}}} }}}} }}}}");
+        }
+
+        [TestCaseSource(nameof(GraphSelectingQueries))]
+        public virtual void GraphSelectionIsRefusedInBothModes(string label, string template)
+        {
+            string sparql = string.Format(template, Baseline.Uri);
+
+            Assert.Throws<NotSupportedException>(
+                () => Rewriting.GetBindings(new SparqlQuery(sparql, declarePrefixes: false)).ToList(),
+                $"{label}: refused when rewriting");
+
+            Assert.Throws<NotSupportedException>(
+                () => Materialized.GetBindings(new SparqlQuery(sparql, declarePrefixes: false)).ToList(),
+                $"{label}: must be refused when materialized too - it reads past the view, which is not a " +
+                "rewriting limitation\n  query: " + sparql);
+        }
+
+        /// <summary>
+        /// A materialization known to be short must fail every later read, not just the rebuild.
+        /// </summary>
+        /// <remarks>
+        /// <c>VerifyMaterialized</c> throws after the truncated write is already committed, and there is
+        /// nothing to roll back - so without a latch the view threw once and then answered every
+        /// subsequent read from a graph it knew was incomplete. The failure is provoked here by setting
+        /// the flag directly: the real trigger is a store limit (Virtuoso's transaction log, somewhere
+        /// between 500,000 and 1,000,000 rows) that no test can reach in reasonable time.
+        /// </remarks>
+        [Test]
+        public virtual void AShortMaterializationRefusesEveryLaterRead()
+        {
+            FieldInfo latch = Materialized.GetType().GetField(
+                "_materializationFailed", BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.IsNotNull(latch, "the latch this test pins has been renamed or removed");
+
+            latch.SetValue(Materialized, true);
+
+            Assert.Throws<InvalidOperationException>(
+                () => Materialized.ContainsResource(new Uri(EX + "keep")),
+                "a read from a graph known to be short must fail loudly");
+            Assert.Throws<InvalidOperationException>(
+                () => Rows(Materialized, "SELECT ?s WHERE { ?s ?p ?o }").ToList(),
+                "caller SPARQL too");
+
+            Materialized.Refresh();
+
+            Assert.IsFalse((bool)latch.GetValue(Materialized), "a successful rebuild is the recovery path");
+            Assert.IsTrue(Materialized.ContainsResource(new Uri(EX + "keep")));
+        }
+
+        /// <summary>
+        /// A model that does not name a single graph cannot hold the effective triples, and asking for
+        /// one must fail rather than quietly hand back a rewriting view.
+        /// </summary>
+        [Test]
+        public virtual void AMaterializedModelMustNameOneGraph()
+        {
+            IModelGroup group = Store.CreateModelGroup(Baseline.Uri, Additions.Uri);
+
+            Assert.IsNull(group.Uri, "a ModelGroup spans several graphs, so it has no Uri of its own");
+
+            var thrown = Assert.Throws<ArgumentException>(
+                () => Store.CreateLayeredModel(Baseline, Additions, Removals, group),
+                "this used to return a rewriting view, silently ignoring the mode the caller asked for");
+
+            Assert.AreEqual("materialized", thrown.ParamName);
         }
 
         #endregion

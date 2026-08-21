@@ -198,8 +198,13 @@ Invariants that surprise newcomers:
   reconstructible. Never write `WHERE { FILTER … }` with no pattern: **Virtuoso ignores a filter-only
   WHERE** and applies the operation unconditionally.
 - **A layered view can be materialized** (0042): pass a fourth graph to `store.CreateLayeredModel(...)` and the
-  effective triples are kept there, so queries run natively — which lifts every rewriting-mode refusal, including
-  unbounded property paths and inferencing. Staging keeps it in step at **O(changes)** (0.7 ms vs a 31.5 s rebuild at
+  effective triples are kept there, so queries run natively — which lifts every refusal that existed *for want of a
+  faithful rewrite*, including unbounded property paths and inferencing. **Graph selection is not one of those and
+  stays refused in both modes**: the view's `FROM` is *appended to* a caller's rather than replacing it, so a caller
+  `FROM`/`GRAPH` reads the union of the two and serves triples staged for removal. A materialized view therefore
+  still parses each caller query, it just doesn't rewrite it. Queries that reason over the *layers* (the divergence
+  precondition) must keep the three-graph dataset — the materialized clause is a bare `FROM`, so its named-graph set
+  is empty and a `GRAPH <removals>` block against it silently matches nothing. Staging keeps it in step at **O(changes)** (0.7 ms vs a 31.5 s rebuild at
   1M); `Discard()` and a *forced* `Accept()` rebuild, a clean `Accept()` needs none. **Virtuoso silently writes zero**
   when one `INSERT … WHERE` exceeds its transaction log limit (fine at 500k, zero at 1M), so `Refresh()` counts and
   compares and **throws** rather than serving an empty view. Out-of-band writes to a layer leave it stale
