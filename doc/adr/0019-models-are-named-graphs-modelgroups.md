@@ -32,9 +32,12 @@ See `Trinity/Model/Model.cs`, `Trinity/Model/IModelGroup.cs`, `Trinity/Model/Mod
   inverse of that. Subtracting a graph needs the guard inside the graph pattern, which is a different
   abstraction — see [0041](0041-layered-read-views.md), which adds `ILayeredModel` as a sibling rather
   than extending this one.
-- `IModelGroup.DefaultModel` is **dead**: declared on the interface, auto-implemented on `ModelGroup`,
-  and never read or assigned anywhere in the repository. It records an intent that was never wired up.
-  Removing it is a breaking change to a public interface and has been left for its own change.
+- `IModelGroup.DefaultModel` was **removed**. It was declared on the interface, auto-implemented on
+  `ModelGroup`, and never read or assigned anywhere in the repository — an intent that was never wired
+  up. A caller could set it and nothing would happen, which is worse than the property not existing.
+  Removing it is a breaking change to a public interface, taken deliberately in 2.0.
+  `IModelGroup` now adds nothing to `IModel` ∪ `ISet<IModel>`: it exists to name the combination — a set
+  of models that is itself a model — rather than to add behaviour to it.
 
 ## Related
 - [0008](0008-store-model-abstraction.md), [0009](0009-supported-store-backends.md),

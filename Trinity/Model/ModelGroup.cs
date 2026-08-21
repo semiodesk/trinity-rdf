@@ -75,11 +75,6 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// The default model of this group.
-        /// </summary>
-        public IModel DefaultModel { get; set; }
-
-        /// <summary>
         /// Uri of the model group is null.
         /// </summary>
         public UriRef Uri { get { return null; } }
