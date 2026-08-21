@@ -69,7 +69,9 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
 - Store integration tests (`tests/Trinity.Tests.*`) **self-provision** their server in Docker via
   Testcontainers on a random host port (ADR-0036): run `dotnet test tests/Trinity.Tests.{Virtuoso,GraphDB,Fuseki}`
   with a Docker daemon running. Excluded from the default CI job (Docker + large images). Current:
-  **Fuseki 248/249** (0 failed), GraphDB 241/246, Virtuoso 234/239. Fuseki's long-standing "4/86, blocked on
+  **Fuseki 248/249** (0 failed), GraphDB 241/246, Virtuoso 234/239. GraphDB's and Virtuoso's four failures
+  each are the inferencing cases; GraphDB's are an unresolved issue there (its container *does* configure a
+  ruleset), not a declared limitation like Fuseki's. Fuseki's long-standing "4/86, blocked on
   an upstream `FusekiConnector` bug" was a **misdiagnosis** (ADR-0043): the test container never created a
   dataset (`FUSEKI_DATASET_1` belongs to a different image and is ignored), so every path under `/ds/*` 404d.
   It now runs the same twelve shared fixtures as GraphDB, needs **Fuseki 5.x** (Jena 4.x answers HTTP 500 to

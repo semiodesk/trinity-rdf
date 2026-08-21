@@ -7,7 +7,7 @@ Accepted (2.0).
 
 ## Context
 
-`Trinity.Fuseki` was recorded as **4/86 passing, blocked upstream**, in four places:
+`Trinity.Fuseki` was recorded as **4/86 passing, blocked upstream**, in five places:
 [0036](0036-integration-tests-testcontainers.md) ("dotNetRDF's `FusekiConnector` POSTs to `/ds/query`
 where this server rejects POST (GET works), and graph deletes 405"), [0009](0009-supported-store-backends.md),
 [0041](0041-layered-read-views.md), `README.md` ("affected by an upstream connector issue … should be
@@ -154,9 +154,15 @@ emits.
 ## Consequences
 
 - **Fuseki: 4/86 → 248 passed, 0 failed, 1 skipped** (the `CanRemoveBlankNodeValuedLink` quarantine
-  every backend skips). It is the *best*-passing backend, ahead of GraphDB (241/246) and Virtuoso
-  (234/239), and it is covered by the layered, staging, differential, query-corpus, write-semantics,
-  numeric-round-trip and resource suites for the first time.
+  every backend skips). It is covered by the layered, staging, differential, query-corpus,
+  write-semantics, numeric-round-trip and resource suites for the first time.
+
+  It is the only backend with **zero failures**, but that is not a like-for-like comparison and should
+  not be read as Fuseki being the most capable: the totals differ (249 vs GraphDB's 246 and Virtuoso's
+  239, since Fuseki also has six store-level tests of its own), and Fuseki's four inferencing cases are
+  *declared* inconclusive whereas GraphDB's four inferencing cases genuinely **fail** — GraphDB's
+  container does configure a `rdfsplus-optimized` ruleset, so those are an unresolved issue there rather
+  than a declared limitation. Worth a look, and out of scope here.
 - GraphDB (241/246) and Virtuoso (234/239) are byte-identical to their pre-change failure sets, which
   matters because this change edits `StoreBase` and deletes per-store overrides in favour of it.
 - The in-memory suite gains the two regression tests: 604 passed, 3 failed, 7 skipped. The three
