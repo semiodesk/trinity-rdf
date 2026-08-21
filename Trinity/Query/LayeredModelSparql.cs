@@ -104,11 +104,15 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// The overlay for an already-serialized triple.
+        /// The overlay for an already-serialized triple, whose terms must be <b>ground</b>.
         /// </summary>
         /// <remarks>
-        /// Used when synchronizing a materialized graph, where the triples are known ground values
-        /// rather than a pattern being built up term by term.
+        /// Used when synchronizing a materialized graph from a known set of affected triples. Ground is
+        /// a real precondition, not a description of current usage: with an opaque string this overload
+        /// cannot tell a variable from an IRI, so it guards with <c>FILTER NOT EXISTS</c>
+        /// unconditionally. That is always correct, but on a pattern that binds a variable it forgoes
+        /// the <c>MINUS</c> anti-join <see cref="Guard"/> documents as up to 18x faster. Pass a pattern
+        /// term-wise to the other overload, which can see the difference.
         /// </remarks>
         internal static string Overlay(ILayeredModel model, string triple)
         {

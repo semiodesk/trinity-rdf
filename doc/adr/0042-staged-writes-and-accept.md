@@ -189,9 +189,34 @@ failure this design must not have. A caller `GRAPH` block is the same argument: 
 the view exists to combine. Both stay refused in **both** modes, so materialization lifts the
 rewrite-shape restrictions and nothing else.
 
-The cost is that a materialized view still **parses** each caller query once per execution, even though
-it does not rewrite it — the same per-execution parse 0041 notes, with the same placeholder-IRI caching
-available if it ever shows up in a profile.
+The check is **"no graph but this one"**, not "no graph at all", and getting that distinction wrong broke
+more than it fixed. Assigning `ISparqlQuery.Model` *injects* `FROM <materialized>` into the query, so by
+the time it is serialized for the guard the view's own clause is already there and is indistinguishable
+in kind from a caller's. A blanket refusal therefore rejected **every LINQ query** on a materialized view
+— the LINQ provider assigns `Model` at construction — and made re-executing any query object fail on the
+second call, since execution mutates the query. The guard takes the effective graph's URI and refuses
+only other names.
+
+Two further consequences of doing this check by parsing:
+
+- The parse is per execution, even though nothing is rewritten — the same cost 0041 notes, with the same
+  placeholder-IRI caching available if it ever shows up in a profile.
+- **Materialized mode now requires the strict SPARQL parser to accept the query**, which it did not
+  before. Trinity's own tokeniser accepts a wider extended syntax, so a query a plain model runs can be
+  refused by a materialized view. That is a real narrowing, traded for not serving unsubtracted triples.
+
+`RootGraphPattern` is **null** for a query with no `WHERE` clause, and a bare `DESCRIBE <iri>` is the
+common case — so the walk needs a null guard, or the form materialization exists to enable is the form
+that throws `NullReferenceException`. A `SELECT … WHERE {}` and a bare `ASK {}` are *not* the same shape:
+dotNetRDF gives those an empty but non-null pattern.
+
+`EXISTS` / `NOT EXISTS` keep their pattern in the filter's **expression** tree, not in
+`ChildGraphPatterns`, so a `GRAPH` block nested in one is reached by neither the child-pattern nor the
+sub-`SELECT` walk. Left unchecked that was a *silent wrong answer* rather than a refusal: the dataset
+clause is a bare `FROM`, so the named-graph set is empty and the nested block matched nothing — the caller
+asked about a named graph and was told it was empty. Unlike rewriting mode, which refuses `EXISTS`
+outright because it cannot weave the overlay into it, a materialized view evaluates one happily; only the
+graph selection inside is refused.
 
 **Maintenance is O(changes), which is what makes the mode usable.** Measured on the in-memory store with
 a 1,000,000-triple baseline:
@@ -202,6 +227,23 @@ a 1,000,000-triple baseline:
 | full build, unverified | 19.1 s |
 | stage a change and keep the graph in step | **0.7 ms** |
 | a native property-path query over it | 3 ms |
+
+**A filtered scan is not O(changes), wherever the filter sits.** Deleting a resource affects every triple
+mentioning it on either side, and expressing that as `?s ?p ?o` with
+`FILTER (?s = <r> || ?o = <r>)` cannot be answered from an index at all — the engine enumerates the whole
+graph and tests each row. Measured on a 1,000,000-triple in-memory baseline:
+
+| shape of the re-insert | cost |
+|---|---|
+| filter outside the `UNION` | 3,891 ms |
+| filter interpolated into both branches | 3,695 ms |
+| **two bound patterns, no filter** | **0–3 ms** |
+
+Moving the filter inward — the obvious fix, since a filter outside the group lets the engine evaluate
+both branches in full first — buys 1.05x on something that needed 1000x. The subject side and the object
+side have to be *separate bound patterns*, which is what an index can answer. End to end that took
+`DeleteResource` on a 1M baseline from **12.5 s to 3 ms**. The same shape was in the staging update, not
+only in the materialized sync, so both were rewritten.
 
 The graph is not recomputed after a stage. Each affected triple is deleted and then re-inserted **if the
 overlay says it belongs** — asking the overlay rather than deriving from the delta what should have

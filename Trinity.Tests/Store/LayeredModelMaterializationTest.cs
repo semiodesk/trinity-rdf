@@ -30,6 +30,7 @@ using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
+using Semiodesk.Trinity.Tests.Linq;
 
 namespace Semiodesk.Trinity.Tests.Store
 {
@@ -107,6 +108,26 @@ namespace Semiodesk.Trinity.Tests.Store
                 $"<{EX}added> a <{EX}Thing> ; <{EX}label> 'added' ; <{EX}rank> 4 . " +
                 $"<{EX}b> <{EX}next> <{EX}c> . " +
                 "} }").Bind("@g", Additions));
+
+            // Mapped resources too, so the LINQ path can be held to the same equivalence as SPARQL:
+            // one agent in the baseline, one staged as an addition, and one whose name is staged for
+            // removal - a resource LINQ must stop selecting.
+            var kept = Baseline.CreateResource<Agent>(BaseUri.GetUriRef("mat-agent-kept"));
+            kept.FirstName = "findme";
+            kept.Commit();
+
+            var dropped = Baseline.CreateResource<Agent>(BaseUri.GetUriRef("mat-agent-dropped"));
+            dropped.FirstName = "findme";
+            dropped.Commit();
+
+            var staged = Additions.CreateResource<Agent>(BaseUri.GetUriRef("mat-agent-staged"));
+            staged.FirstName = "findme";
+            staged.Commit();
+
+            Removals.ExecuteUpdate(new SparqlUpdate(
+                "INSERT { GRAPH @removals { ?s ?p ?o } } WHERE { GRAPH @baseline { ?s ?p ?o . " +
+                $"FILTER (?s = <{BaseUri.GetUriRef("mat-agent-dropped")}> && ?p = <{FOAF.firstName}>) }} }}")
+                .Bind("@removals", Removals).Bind("@baseline", Baseline));
 
             Rewriting = Store.CreateLayeredModel(Baseline.Uri, Additions.Uri, Removals.Uri);
             Materialized = Store.CreateLayeredModel(Baseline.Uri, Additions.Uri, Removals.Uri, Effective.Uri);
@@ -370,6 +391,81 @@ namespace Semiodesk.Trinity.Tests.Store
 
         #endregion
 
+        #region The LINQ path
+
+        /// <summary>
+        /// LINQ has to answer alike in both modes, which is what the fixture's stated central assertion
+        /// means and what it did not previously cover.
+        /// </summary>
+        /// <remarks>
+        /// The absence of this test is how a total LINQ regression reached review: the graph-selection
+        /// guard could not tell the view's own injected dataset clause from a caller's, and the LINQ
+        /// provider assigns <c>Model</c> at construction, so every LINQ query on a materialized view was
+        /// refused outright.
+        /// </remarks>
+        [Test]
+        public virtual void LinqCountAgreesBetweenTheModes()
+        {
+            Assert.AreEqual(
+                Rewriting.AsQueryable<Agent>().Count(a => a.FirstName == "findme"),
+                Materialized.AsQueryable<Agent>().Count(a => a.FirstName == "findme"),
+                "the staged addition counts, the staged removal does not");
+        }
+
+        [Test]
+        public virtual void LinqWhereAgreesBetweenTheModes()
+        {
+            Assert.AreEqual(
+                string.Join(",", Rewriting.AsQueryable<Agent>()
+                    .Where(a => a.FirstName == "findme").ToList().Select(a => a.Uri.ToString()).OrderBy(u => u)),
+                string.Join(",", Materialized.AsQueryable<Agent>()
+                    .Where(a => a.FirstName == "findme").ToList().Select(a => a.Uri.ToString()).OrderBy(u => u)));
+        }
+
+        [Test]
+        public virtual void LinqEnumerationAgreesBetweenTheModes()
+        {
+            Assert.AreEqual(
+                string.Join(",", Rewriting.AsQueryable<Agent>().ToList().Select(a => a.Uri.ToString()).OrderBy(u => u)),
+                string.Join(",", Materialized.AsQueryable<Agent>().ToList().Select(a => a.Uri.ToString()).OrderBy(u => u)));
+        }
+
+        /// <summary>
+        /// Executing a query object twice must give the same answer twice.
+        /// </summary>
+        /// <remarks>
+        /// Execution <i>mutates</i> the query - assigning <c>Model</c> injects the view's dataset clause
+        /// - so a guard that refuses any dataset clause is not idempotent: the first call succeeded and
+        /// the second threw.
+        /// </remarks>
+        [Test]
+        public virtual void AQueryObjectCanBeExecutedTwice()
+        {
+            var query = new SparqlQuery($"SELECT ?s WHERE {{ ?s a <{EX}Thing> }}", declarePrefixes: false);
+
+            int first = Materialized.GetBindings(query).Count();
+            int second = Materialized.GetBindings(query).Count();
+
+            Assert.AreEqual(3, first, "keep, both and added are Things; gone had its type staged for removal");
+            Assert.AreEqual(first, second, "the guard has to accept the view's own injected clause, so it is idempotent");
+        }
+
+        /// <summary>
+        /// A caller may assign <see cref="ISparqlQuery.Model"/> themselves - the setter is public.
+        /// </summary>
+        [Test]
+        public virtual void ACallerMayAssignTheModelItself()
+        {
+            var query = new SparqlQuery($"SELECT ?s WHERE {{ ?s a <{EX}Thing> }}", declarePrefixes: false)
+            {
+                Model = Materialized
+            };
+
+            Assert.AreEqual(3, Materialized.GetBindings(query).Count());
+        }
+
+        #endregion
+
         #region Review regressions
 
         /// <summary>
@@ -468,18 +564,18 @@ namespace Semiodesk.Trinity.Tests.Store
         /// </remarks>
         public static IEnumerable<TestCaseData> GraphSelectingQueries()
         {
-            yield return new TestCaseData("FROM", $"SELECT ?s FROM <{{0}}> WHERE {{{{ ?s a <{EX}Thing> }}}}");
+            yield return new TestCaseData("FROM", $"SELECT ?s FROM <$g> WHERE {{ ?s a <{EX}Thing> }}");
             yield return new TestCaseData("FROM NAMED",
-                $"SELECT ?s FROM NAMED <{{0}}> WHERE {{{{ GRAPH ?g {{{{ ?s a <{EX}Thing> }}}} }}}}");
-            yield return new TestCaseData("GRAPH block", $"SELECT ?s WHERE {{{{ GRAPH <{{0}}> {{{{ ?s a <{EX}Thing> }}}} }}}}");
+                $"SELECT ?s FROM NAMED <$g> WHERE {{ GRAPH ?g {{ ?s a <{EX}Thing> }} }}");
+            yield return new TestCaseData("GRAPH block", $"SELECT ?s WHERE {{ GRAPH <$g> {{ ?s a <{EX}Thing> }} }}");
             yield return new TestCaseData("GRAPH in a sub-SELECT",
-                $"SELECT ?s WHERE {{{{ {{{{ SELECT ?s WHERE {{{{ GRAPH <{{0}}> {{{{ ?s a <{EX}Thing> }}}} }}}} }}}} }}}}");
+                $"SELECT ?s WHERE {{ {{ SELECT ?s WHERE {{ GRAPH <$g> {{ ?s a <{EX}Thing> }} }} }} }}");
         }
 
         [TestCaseSource(nameof(GraphSelectingQueries))]
         public virtual void GraphSelectionIsRefusedInBothModes(string label, string template)
         {
-            string sparql = string.Format(template, Baseline.Uri);
+            string sparql = template.Replace("$g", Baseline.Uri.ToString());
 
             Assert.Throws<NotSupportedException>(
                 () => Rewriting.GetBindings(new SparqlQuery(sparql, declarePrefixes: false)).ToList(),
@@ -540,6 +636,100 @@ namespace Semiodesk.Trinity.Tests.Store
                 "this used to return a rewriting view, silently ignoring the mode the caller asked for");
 
             Assert.AreEqual("materialized", thrown.ParamName);
+        }
+
+        /// <summary>
+        /// A query with no <c>WHERE</c> clause must be handled, not crash.
+        /// </summary>
+        /// <remarks>
+        /// <c>RootGraphPattern</c> is null for a bare <c>DESCRIBE &lt;iri&gt;</c>, and the guard walked
+        /// straight into it. The form materialization exists to enable was the form that threw a
+        /// <see cref="NullReferenceException"/> - a worse diagnostic than the rewriting mode it improves
+        /// on.
+        /// </remarks>
+        public static IEnumerable<TestCaseData> PatternlessQueries()
+        {
+            yield return new TestCaseData("bare DESCRIBE", $"DESCRIBE <{EX}keep>");
+            yield return new TestCaseData("DESCRIBE of a staged addition", $"DESCRIBE <{EX}added>");
+            yield return new TestCaseData("empty WHERE", "SELECT ?s WHERE { }");
+            yield return new TestCaseData("bare ASK", "ASK { }");
+        }
+
+        [TestCaseSource(nameof(PatternlessQueries))]
+        public virtual void AQueryWithoutAPatternDoesNotCrash(string label, string sparql)
+        {
+            Assert.DoesNotThrow(
+                () => Materialized.ExecuteQuery(new SparqlQuery(sparql, declarePrefixes: false)),
+                $"{label}: no pattern means no graph selection to find\n  query: {sparql}");
+        }
+
+        /// <summary>
+        /// A bare <c>DESCRIBE</c> is one of the forms materialization advertises as newly working.
+        /// </summary>
+        [Test]
+        public virtual void ABareDescribeReturnsTheEffectiveTriples()
+        {
+            var described = Materialized.GetResources(
+                new SparqlQuery($"DESCRIBE <{EX}gone>", declarePrefixes: false)).ToList();
+
+            Assert.AreEqual(1, described.Count);
+            Assert.IsFalse(
+                described[0].ListValues(new Property(
+                    new Uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"))).Any(),
+                "gone's type is staged for removal, so DESCRIBE must not report it");
+        }
+
+        /// <summary>
+        /// A <c>GRAPH</c> block nested in a <c>FILTER EXISTS</c> is graph selection too.
+        /// </summary>
+        /// <remarks>
+        /// dotNetRDF keeps an <c>EXISTS</c> pattern in the filter's expression tree rather than in
+        /// <c>ChildGraphPatterns</c>, so the walk reached neither. Unchecked, it was a <i>silent wrong
+        /// answer</i> rather than a refusal: the dataset clause is a bare <c>FROM</c>, so the named-graph
+        /// set is empty and the nested block matched nothing - the caller asked about a named graph and
+        /// was told it was empty.
+        /// </remarks>
+        public static IEnumerable<TestCaseData> GraphInsideAFilter()
+        {
+            yield return new TestCaseData("FILTER EXISTS",
+                $"SELECT ?s WHERE {{ ?s a <{EX}Thing> . FILTER EXISTS {{ GRAPH <$g> {{ ?s ?p ?o }} }} }}");
+            yield return new TestCaseData("FILTER NOT EXISTS",
+                $"SELECT ?s WHERE {{ ?s a <{EX}Thing> . FILTER NOT EXISTS {{ GRAPH <$g> {{ ?s ?p ?o }} }} }}");
+            yield return new TestCaseData("GRAPH ?g inside a filter",
+                $"SELECT ?s WHERE {{ ?s a <{EX}Thing> . FILTER EXISTS {{ GRAPH ?g {{ ?s ?p ?o }} }} }}");
+            yield return new TestCaseData("nested one level deeper",
+                $"SELECT ?s WHERE {{ ?s a <{EX}Thing> . FILTER (!EXISTS {{ GRAPH <$g> {{ ?s ?p ?o }} }}) }}");
+            yield return new TestCaseData("BIND of an EXISTS",
+                $"SELECT ?s WHERE {{ ?s a <{EX}Thing> . BIND(EXISTS {{ GRAPH <$g> {{ ?s ?p ?o }} }} AS ?x) }}");
+        }
+
+        [TestCaseSource(nameof(GraphInsideAFilter))]
+        public virtual void GraphSelectionInsideAFilterIsRefused(string label, string template)
+        {
+            string sparql = template.Replace("$g", Additions.Uri.ToString());
+
+            Assert.Throws<NotSupportedException>(
+                () => Materialized.GetBindings(new SparqlQuery(sparql, declarePrefixes: false)).ToList(),
+                $"{label}: a GRAPH block in a filter expression is graph selection too, and answering it " +
+                "from an empty named-graph set is a silent wrong answer\n  query: " + sparql);
+        }
+
+        /// <summary>
+        /// An <c>EXISTS</c> that names no graph is fine on a materialized view - it is an ordinary
+        /// graph, so there is nothing to weave an overlay into.
+        /// </summary>
+        [Test]
+        public virtual void AFilterExistsWithoutAGraphBlockIsAllowedWhenMaterialized()
+        {
+            string sparql = $"SELECT ?s WHERE {{ ?s a <{EX}Thing> . FILTER EXISTS {{ ?s <{EX}rank> ?r }} }}";
+
+            Assert.AreEqual("s=added | s=both | s=keep",
+                string.Join(" | ", Rows(Materialized, sparql)),
+                "materialization lifts the EXISTS refusal, which is a rewrite-shape restriction");
+
+            Assert.Throws<NotSupportedException>(
+                () => Rewriting.GetBindings(new SparqlQuery(sparql, declarePrefixes: false)).ToList(),
+                "and rewriting mode still refuses it, which is the difference between the modes");
         }
 
         #endregion

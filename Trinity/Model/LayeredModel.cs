@@ -587,7 +587,9 @@ namespace Semiodesk.Trinity
             // view exists to combine, for the same reason.
             if (IsMaterialized)
             {
-                OverlayQueryRewriter.RequireNoGraphSelection(query.ToString());
+                // The view's own graph is passed in, not merely "refuse any dataset clause": assigning
+                // ISparqlQuery.Model injects FROM <effective>, so ToString() already carries it.
+                OverlayQueryRewriter.RequireNoGraphSelection(query.ToString(), Materialized.Uri);
 
                 return ExecuteOverlayQuery(query, transaction, inferenceEnabled);
             }
@@ -948,29 +950,48 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Brings the materialized graph back in step for every triple matching a pattern, used where
-        /// the change is expressed as a pattern rather than as a list of ground triples.
+        /// Brings the materialized graph back in step for every triple mentioning a resource, on either
+        /// the subject or the object side.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// Asks the overlay what should remain, exactly as the ground-triple sibling does, rather than
-        /// deriving the outcome from the operation. For a delete the overlay happens to hold nothing
-        /// for the resource afterwards, but hard-coding that would be a rule that can drift from the
-        /// read path, and this cannot.
+        /// deriving the outcome from the operation. For a delete the overlay happens to hold nothing for
+        /// the resource afterwards, but hard-coding that would be a rule that can drift from the read
+        /// path, and this cannot.
+        /// </para>
+        /// <para>
+        /// <b>Two bound patterns rather than one filtered scan</b>, which is the difference between
+        /// O(changes) and O(baseline). <c>?s ?p ?o</c> with
+        /// <c>FILTER (?s = &lt;r&gt; || ?o = &lt;r&gt;)</c> cannot be answered from an index at all - the
+        /// engine enumerates every triple and tests each one - and where the filter sits makes almost no
+        /// difference. Measured on a 1,000,000-triple in-memory baseline: 3,891 ms with the filter
+        /// outside the union, 3,695 ms interpolated into both branches, and <b>0-3 ms</b> as two bound
+        /// patterns. See ADR-0042.
+        /// </para>
         /// </remarks>
-        private void SynchronizeMaterialized(string pattern, string filter, ITransaction transaction)
+        private void SynchronizeMaterializedFor(string subject, ITransaction transaction)
         {
             if (!IsMaterialized)
             {
                 return;
             }
 
-            string update = string.Join("; ",
-                string.Format("DELETE {{ GRAPH {0} {{ {1} }} }} WHERE {{ GRAPH {0} {{ {1} . {2} }} }}",
-                    Graph(Materialized), pattern, filter),
-                string.Format("INSERT {{ GRAPH {0} {{ {1} }} }} WHERE {{ {2} {3} }}",
-                    Graph(Materialized), pattern, LayeredModelSparql.Overlay(this, pattern + " ."), filter));
+            var operations = new List<string>();
 
-            RunAtomically(update, transaction);
+            // Subject side, then object side (ADR-0030: a delete is broad by design). A self-referring
+            // triple matches both, which is harmless - a graph is a set, so the insert and the delete
+            // are both idempotent.
+            foreach ((string s, string o) in new[] { (subject, "?o"), ("?s", subject) })
+            {
+                string triple = string.Concat(s, " ?p ", o);
+
+                operations.Add(string.Format("DELETE WHERE {{ GRAPH {0} {{ {1} }} }}", Graph(Materialized), triple));
+                operations.Add(string.Format("INSERT {{ GRAPH {0} {{ {1} }} }} WHERE {{ {2} }}",
+                    Graph(Materialized), triple, LayeredModelSparql.Overlay(this, s, "?p", o)));
+            }
+
+            RunAtomically(string.Join("; ", operations), transaction);
         }
 
         /// <summary>
@@ -1216,24 +1237,30 @@ namespace Semiodesk.Trinity
             RequireQueryableSubject(uri);
 
             string subject = SparqlSerializer.SerializeUri(uri);
-            string filter = string.Format("FILTER (?s = {0} || ?o = {0})", subject);
-            string touches = "?s ?p ?o . " + filter;
+            var operations = new List<string>();
 
-            string update = string.Join("; ",
+            // Bound patterns, not one scan filtered to ?s = <r> || ?o = <r>. A filter over ?s ?p ?o
+            // cannot use an index, so that shape is O(baseline) per delete - measured at ~4 s against a
+            // 1,000,000-triple in-memory baseline where the bound form is under 3 ms.
+            foreach ((string s, string o) in new[] { (subject, "?o"), ("?s", subject) })
+            {
+                string triple = string.Concat(s, " ?p ", o);
+
                 // Anything the baseline holds for it becomes a staged removal...
-                string.Format("INSERT {{ GRAPH {0} {{ ?s ?p ?o }} }} WHERE {{ GRAPH {1} {{ {2} }} }}",
-                    Graph(Removals), Graph(Baseline), touches),
+                operations.Add(string.Format("INSERT {{ GRAPH {0} {{ {1} }} }} WHERE {{ GRAPH {2} {{ {1} }} }}",
+                    Graph(Removals), triple, Graph(Baseline)));
                 // ...and anything only staged as an addition is simply un-staged.
-                string.Format("DELETE {{ GRAPH {0} {{ ?s ?p ?o }} }} WHERE {{ GRAPH {0} {{ {1} }} }}",
-                    Graph(Additions), touches));
+                operations.Add(string.Format("DELETE {{ GRAPH {0} {{ {1} }} }} WHERE {{ GRAPH {0} {{ {1} }} }}",
+                    Graph(Additions), triple));
+            }
 
-            RunAtomically(update, transaction);
+            RunAtomically(string.Join("; ", operations), transaction);
 
             // A delete is a change made through the view like any other, so the view owes the
             // materialized graph the same maintenance it gives a staged update. Without this a
             // deleted resource stays readable through the very view that deleted it, and nothing
             // tells the caller - Refresh() is documented as being for out-of-band writes.
-            SynchronizeMaterialized("?s ?p ?o", filter, transaction);
+            SynchronizeMaterializedFor(subject, transaction);
         }
 
         /// <inheritdoc cref="DeleteResource(Uri, ITransaction)" />

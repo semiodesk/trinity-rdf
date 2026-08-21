@@ -201,11 +201,16 @@ Invariants that surprise newcomers:
   effective triples are kept there, so queries run natively — which lifts every refusal that existed *for want of a
   faithful rewrite*, including unbounded property paths and inferencing. **Graph selection is not one of those and
   stays refused in both modes**: the view's `FROM` is *appended to* a caller's rather than replacing it, so a caller
-  `FROM`/`GRAPH` reads the union of the two and serves triples staged for removal. A materialized view therefore
-  still parses each caller query, it just doesn't rewrite it. Queries that reason over the *layers* (the divergence
+  `FROM`/`GRAPH` reads the union of the two and serves triples staged for removal — including one nested in a
+  `FILTER EXISTS`, which dotNetRDF keeps in the filter's *expression* tree where a child-pattern walk never
+  reaches it. The check is **"no graph but this one"**: assigning `ISparqlQuery.Model` injects `FROM <effective>`,
+  so refusing every dataset clause breaks all of LINQ and makes re-execution non-idempotent. A materialized view
+  therefore still parses each caller query — which also means the **strict** parser must accept it, so Trinity's
+  wider extended syntax is refused there, and a pattern-less query (`DESCRIBE <iri>`) has a null root pattern. Queries that reason over the *layers* (the divergence
   precondition) must keep the three-graph dataset — the materialized clause is a bare `FROM`, so its named-graph set
   is empty and a `GRAPH <removals>` block against it silently matches nothing. Staging keeps it in step at **O(changes)** (0.7 ms vs a 31.5 s rebuild at
-  1M); `Discard()` and a *forced* `Accept()` rebuild, a clean `Accept()` needs none. **Virtuoso silently writes zero**
+  1M) — but only via **bound patterns**: `?s ?p ?o` plus `FILTER (?s = <r> || ?o = <r>)` cannot use an index, so
+  that shape is O(baseline) wherever the filter sits (measured 3.9 s / 3.7 s / 3 ms; `DeleteResource` 12.5 s → 3 ms); `Discard()` and a *forced* `Accept()` rebuild, a clean `Accept()` needs none. **Virtuoso silently writes zero**
   when one `INSERT … WHERE` exceeds its transaction log limit (fine at 500k, zero at 1M), so `Refresh()` counts and
   compares and **throws** rather than serving an empty view. Out-of-band writes to a layer leave it stale
   undetectably — call `Refresh()`.
