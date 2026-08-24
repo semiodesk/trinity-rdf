@@ -82,8 +82,8 @@ Two smaller decisions ride along:
   in-memory **397 passed / 0 failed / 7 skipped**, Virtuoso **99 passed / 7 pre-existing failures**,
   GraphDB **106 passed / 4 pre-existing failures**. The pre-existing failures are unchanged in identity,
   not merely in count — the four inferencing cases on both stores, plus three integer-datatype cases on
-  Virtuoso. Fuseki has no fixture: different test structure, and the backend is 4/86 on an upstream
-  connector bug.
+  Virtuoso. Fuseki had no fixture at the time: different test structure, and the backend read as 4/86.
+  It is covered as of [0043](0043-fuseki-store-revival.md), where the write-semantics fixture passes.
 
 ## Related
 - [0029](0029-resource-commit-rollback-change-tracking.md), [0016](0016-resource-centric-not-triple-centric.md),

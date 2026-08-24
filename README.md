@@ -164,8 +164,10 @@ Graphs are read and written in the usual serializations — Turtle, TriG, N-Trip
 and JSON-LD — via `store.Read(...)`/`store.Write(...)`, with `store.LoadGraphs(...)` as a thin
 helper for seeding schema or background graphs at startup.
 
-> The Fuseki backend is functional but currently affected by an upstream connector issue and
-> should be considered experimental in this release.
+> The Fuseki backend runs the same store test suite as Virtuoso and GraphDB and passes it in full.
+> It needs Fuseki 5.1.0 or newer: Jena 4.x answers HTTP 500 to any query mentioning a `urn:uuid:`
+> IRI, which is what `Model.CreateResource()` mints by default. Inferencing is not supported —
+> Fuseki has no per-query inference switch.
 
 ## Why RDF
 

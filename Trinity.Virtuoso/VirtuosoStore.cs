@@ -188,7 +188,12 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             {
                 using (ITransaction transaction = this.BeginTransaction(IsolationLevel.ReadCommitted))
                 {
-                    string query = string.Format("SPARQL ASK {{ GRAPH <{0}> {{ ?s ?p ?o . }} }}", uri.AbsoluteUri);
+                    // SELECT, not ASK. An ASK always returns exactly one row -- the row *holding* the
+                    // boolean -- so the Rows.Count > 0 test below answered true for every URI,
+                    // including graphs that were never written. A SELECT with LIMIT 1 returns no rows
+                    // when the graph is absent or empty, which is what the row count is asking.
+                    string query = string.Format(
+                        "SPARQL SELECT ?s WHERE {{ GRAPH <{0}> {{ ?s ?p ?o . }} }} LIMIT 1", uri.AbsoluteUri);
 
                     using (var result = ExecuteQuery(query, transaction))
                     {
@@ -198,12 +203,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             }
 
             return false;
-        }
-
-        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
-        public override bool ContainsModel(IModel model)
-        {
-            return ContainsModel(model.Uri);
         }
 
         public override IModel GetModel(Uri uri)

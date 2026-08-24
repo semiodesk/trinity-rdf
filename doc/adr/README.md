@@ -81,6 +81,7 @@ mapped/dynamic duality, models & groups, discovery, stores, and querying.
 | [0014](0014-ontology-generator-modernization.md) | Reimplement ontology vocabulary generation as a `dotnet tool` | Accepted |
 | [0040](0040-numeric-conversion-on-read.md) | Numeric values are widened, never narrowed, when read into a mapped property | Accepted |
 | [0041](0041-layered-read-views.md) | Layered read views: baseline + additions − removals (working-copy semantics) | Accepted |
+| [0043](0043-fuseki-store-revival.md) | Reviving the Fuseki store: the 4/86 was a missing dataset, not a connector bug | Accepted |
 
 ### Proposed (revival)
 | # | Title | Status |

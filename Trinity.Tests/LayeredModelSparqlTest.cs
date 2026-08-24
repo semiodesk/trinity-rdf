@@ -200,6 +200,95 @@ namespace Semiodesk.Trinity.Tests
             Assert.AreEqual(3, CountOccurrences(clause, "FROM "));
         }
 
+        /// <summary>
+        /// The dataset clause must survive assignment of the model without being emitted twice.
+        /// </summary>
+        /// <remarks>
+        /// This is the whole-path version of
+        /// <see cref="DatasetClauseNamesAllThreeGraphsAndNeverMergesThem"/>, and it is the assertion
+        /// that was missing: the clause itself was always right, but every overlay read then set
+        /// <c>query.Model</c>, whose setter adds the view's three graphs through the preprocessor.
+        /// The preprocessor skips a graph it has already seen — except it never recorded a
+        /// <c>FROM NAMED</c> graph, because the tokeniser splits <c>FROM NAMED &lt;g&gt;</c> into
+        /// FROM + NAMED + URI and the check looked only for FROM and FROMNAMED. So the clause was
+        /// appended a second time. Virtuoso and GraphDB tolerate the repetition and Jena rejects it
+        /// with "URI already in named graph set", which is why this surfaced only once Fuseki ran
+        /// the layered suite.
+        /// </remarks>
+        [Test]
+        public void AssigningTheModelDoesNotRepeatTheDatasetClause()
+        {
+            var query = new SparqlQuery(
+                "ASK " + LayeredModelSparql.NamedDatasetClause(_view) + "{ ?s ?p ?o }",
+                declarePrefixes: false);
+
+            query.Model = _view;
+
+            string text = query.ToString();
+
+            Assert.AreEqual(3, CountOccurrences(text, "FROM NAMED"),
+                "each of the three graphs must be named exactly once:\n" + text);
+
+            foreach (var graph in new[] { BaseGraph, AddGraph, RemGraph })
+            {
+                Assert.AreEqual(1, CountOccurrences(text, $"<{graph}>"),
+                    $"{graph} is named more than once:\n" + text);
+            }
+        }
+
+        /// <summary>
+        /// <c>GetDefaultModels</c> reports the <c>FROM</c> operands only. Its callers read it as
+        /// default-graph membership — <c>Model.ExecuteQuery</c> to decide whether a default graph is
+        /// already declared, <c>GraphDBStore</c> to re-emit each entry as a <c>FROM</c> — so a
+        /// <c>FROM NAMED</c> graph appearing here would be merged into the default graph.
+        /// </summary>
+        [Test]
+        public void DeclaredDefaultGraphsExcludeFromNamedOperands()
+        {
+            var named = new SparqlQuery(
+                "ASK FROM NAMED <http://example.org/g/one> FROM NAMED <http://example.org/g/two> { ?s ?p ?o }",
+                declarePrefixes: false);
+
+            CollectionAssert.IsEmpty(named.GetDefaultModels().ToList(),
+                "a query with only FROM NAMED clauses declares no default graph");
+
+            var both = new SparqlQuery(
+                "ASK FROM <http://example.org/g/one> FROM NAMED <http://example.org/g/two> { ?s ?p ?o }",
+                declarePrefixes: false);
+
+            CollectionAssert.AreEquivalent(
+                new[] { "http://example.org/g/one" },
+                both.GetDefaultModels().ToList(),
+                "only the FROM operand is a default graph");
+        }
+
+        /// <summary>
+        /// A <c>FROM NAMED</c> operand must not suppress a <c>FROM</c> for the same graph.
+        /// </summary>
+        /// <remarks>
+        /// The two clauses are independent and may both name one graph. Tracking them in a single set
+        /// — the first attempt at fixing the duplicated dataset clause — made assigning the model a
+        /// no-op for any query whose text already named that graph, leaving the default graph empty
+        /// and the query silently returning nothing. That is strictly worse than the duplicate it was
+        /// fixing, because Jena at least rejects the duplicate out loud.
+        /// </remarks>
+        [Test]
+        public void FromNamedDoesNotSuppressTheDefaultGraphClause()
+        {
+            var graph = new Uri("http://example.org/g/one");
+
+            var query = new SparqlQuery(
+                $"SELECT * FROM NAMED <{graph}> WHERE {{ ?s ?p ?o }}", declarePrefixes: false);
+
+            query.Model = _store.GetModel(graph);
+
+            string text = query.ToString();
+
+            Assert.AreEqual(1, CountOccurrences(text, $"FROM NAMED <{graph}>"), text);
+            Assert.AreEqual(1, CountOccurrences(text, $"FROM <{graph}>"),
+                "the model's default-graph clause must still be emitted:\n" + text);
+        }
+
         private static int CountOccurrences(string haystack, string needle)
         {
             int count = 0, i = 0;

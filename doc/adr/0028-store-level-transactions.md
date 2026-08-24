@@ -17,7 +17,7 @@ and an `OnFinishedTransaction` event. Store write methods (`UpdateResource`, `De
 
 ## Consequences
 - A familiar transaction model where the backend supports it (e.g. Virtuoso).
-- **Support is uneven and undiscoverable**: Fuseki and GraphDB `BeginTransaction` return
+- **Support is uneven and undiscoverable**: Fuseki and GraphDB `BeginTransaction` returned
   `null` (no transactions), consistent with the absence of a capability model
   ([0022](0022-store-capabilities-and-istore-extension.md)). Callers must know their store.
 

@@ -87,7 +87,10 @@ namespace Semiodesk.Trinity
         [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty")]
         public virtual bool ContainsModel(IModel model)
         {
-            return ContainsModel(model.Uri);
+            // A null model contains nothing; it is not an error. Every store's override of this
+            // overload was a verbatim delegation to the Uri overload, so they are gone and this is
+            // the single implementation -- which is what makes the guard reach all of them.
+            return model != null && ContainsModel(model.Uri);
         }
 
         /// <summary>

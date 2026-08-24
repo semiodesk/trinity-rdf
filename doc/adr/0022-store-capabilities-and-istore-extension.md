@@ -26,7 +26,7 @@ implementation, rather than modeling capabilities explicitly.
 ## Consequences
 - Minimal, uniform contract; adding a backend is straightforward.
 - Requesting a capability a store lacks (inferencing, transactions) fails or silently no-ops
-  with **no discoverable signal** — e.g. Fuseki/GraphDB `BeginTransaction` return `null`
+  with **no discoverable signal** — e.g. Fuseki/GraphDB `BeginTransaction` returned `null`
   ([0009](0009-supported-store-backends.md)).
 - No way to write portable code that adapts to store features, and no place to assert them in tests.
 

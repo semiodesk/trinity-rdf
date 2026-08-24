@@ -25,29 +25,35 @@
 //
 // Copyright (c) Semiodesk GmbH 2023
 
-using NUnit.Framework;
 using Semiodesk.Trinity.Store.Fuseki;
+using Semiodesk.Trinity.Tests.Store;
 
 namespace Semiodesk.Trinity.Tests.Fuseki
 {
-    /// <summary>
-    /// Asserts that a Fuseki connection string reaches the Fuseki provider. This is the one thing
-    /// the shared store fixtures cannot cover, because they take the store as given.
-    /// </summary>
-    [TestFixture]
-    public class StoreProviderTest
+    // These tests were created with Apache Jena Fuseki 4.0.0.
+
+    // The Fuseki server is started automatically for this assembly by the FusekiContainer
+    // [SetUpFixture] via Testcontainers (Docker), which also creates the 'ds' in-memory dataset.
+    // No manually-provisioned server is required — just a running Docker daemon (ADR-0036).
+    public class FusekiTestSetup : IStoreTestSetup
     {
-        [Test]
-        public void FusekiConfigurationStringTest()
+        #region Members
+
+        public UriRef BaseUri => new UriRef("http://localhost:3030/ds/");
+
+        // Points at the Dockerized Fuseki started by the FusekiContainer [SetUpFixture] on a
+        // random host port, with the 'ds' dataset already created (ADR-0036).
+        public string ConnectionString => FusekiContainer.ConnectionString;
+
+        #endregion
+
+        #region Methods
+
+        public void LoadProvider()
         {
             StoreFactory.LoadProvider<FusekiStoreProvider>();
-
-            using (var store = StoreFactory.CreateStore(FusekiContainer.ConnectionString))
-            {
-                Assert.IsNotNull(store);
-                Assert.IsInstanceOf<FusekiStore>(store);
-                Assert.IsTrue(store.IsReady);
-            }
         }
+
+        #endregion
     }
 }
