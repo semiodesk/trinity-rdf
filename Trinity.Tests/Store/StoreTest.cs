@@ -53,6 +53,9 @@ namespace Semiodesk.Trinity.Tests.Store
             
             Store = StoreFactory.CreateStore(ConnectionString);
             TestOntologies.LoadInto(Store);
+
+            // Anything that has to see the seeded schema rather than an empty store.
+            environment.AfterSeed(Store);
             
             // Wait until the inference engine has loaded the ontologies..
             Thread.Sleep(1000);

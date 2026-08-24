@@ -335,7 +335,13 @@ namespace Semiodesk.Trinity.Tests.Store
             
             Assert.LessOrEqual(1, result.GetResources().Count());
 
-            query = new SparqlQuery("SELECT ?date WHERE { ?m rdf:type nco:ContactMedium ; nco:creator @hans ; dc:date ?date . } ORDER BY ASC(?date)")
+            // DISTINCT because the assertion below counts contact media, not derivations. Under
+            // inferencing `?m rdf:type nco:ContactMedium` is entailed rather than stated, and SPARQL
+            // SELECT is a bag: a store that back-chains (Virtuoso) yields one solution per derivation
+            // path and returned 8, where one that materializes (GraphDB) returned 3. Neither is wrong,
+            // so the query has to say which it means. The three media have distinct dates, so DISTINCT
+            // collapses only the duplicates.
+            query = new SparqlQuery("SELECT DISTINCT ?date WHERE { ?m rdf:type nco:ContactMedium ; nco:creator @hans ; dc:date ?date . } ORDER BY ASC(?date)")
                 .Bind("@hans", _hans);
             
             result = Model1.ExecuteQuery(query, true);

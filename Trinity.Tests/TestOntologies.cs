@@ -30,7 +30,7 @@ using System;
 namespace Semiodesk.Trinity.Tests
 {
     /// <summary>
-    /// Seeds a store with the standard test ontology graphs (rdf, rdfs, owl, foaf and a small
+    /// Seeds a store with the standard test ontology graphs (rdf, rdfs, owl, foaf, nco and a small
     /// example ontology). Replaces the retired <c>ontologies.config</c> auto-loading
     /// (<c>InitializeFromConfiguration()</c>, ADR-0011): the setups now register vocab via
     /// <see cref="OntologyDiscovery"/> and seed the schema graphs with an explicit
@@ -51,6 +51,12 @@ namespace Semiodesk.Trinity.Tests
                 (new Uri("http://www.w3.org/2002/07/owl#"),              "Ontologies/owl.n3"),
                 (new Uri("http://xmlns.com/foaf/0.1/"),                  "Ontologies/foaf.rdf"),
                 (new Uri("http://www.example.com/myontology"),           "Ontologies/space test ontology.ttl"),
+                // nco carries the class hierarchy the inferencing tests reason over -- notably
+                // nco:PersonContact rdfs:subClassOf nco:Contact. The per-store setups this replaced
+                // all loaded it; the shared version did not, so every backend with a working
+                // reasoner still answered 0 and the tests read as "inferencing is broken here".
+                (new Uri("http://www.semanticdesktop.org/ontologies/2007/03/22/nco#"),
+                                                                         "Ontologies/nco.trig"),
             });
         }
     }
