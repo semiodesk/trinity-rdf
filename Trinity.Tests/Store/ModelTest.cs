@@ -553,17 +553,56 @@ namespace Semiodesk.Trinity.Tests.Store
             Assert.IsFalse(Model1.IsEmpty);
 
             Model1.Clear();
-            
-            Assert.IsTrue(Model1.Read(rdf.Namespace, RdfSerializationFormat.RdfXml, false));
-            Assert.IsFalse(Model1.IsEmpty);
-
-            Model1.Clear();
 
             file = new FileInfo(Path.Combine("Models", "test-tmo.trig"));
             fileUri = file.ToUriRef();
             
             Assert.Throws(typeof(ArgumentException), () => { Model1.Read(fileUri, RdfSerializationFormat.Trig, false); });
 
+        }
+
+        /// <summary>
+        /// Reading a graph from an <c>http</c> URL rather than a file.
+        /// </summary>
+        /// <remarks>
+        /// Split out of <see cref="ReadTest"/> and made tolerant of the fetch failing, because it
+        /// reaches a third party — <c>w3.org</c> — over the public internet. That was survivable while
+        /// the store suites were local and serial; running them as a CI matrix has three jobs request
+        /// the same URL at the same moment, and w3.org answers 503. A remote outage or a rate limit is
+        /// not a defect in this repository, and a test that reddens CI for one teaches people to
+        /// ignore CI. The assertion still runs, and still fails, whenever the fetch actually succeeds.
+        /// </remarks>
+        [Test]
+        public virtual void ReadFromUrlTest()
+        {
+            try
+            {
+                Assert.IsTrue(Model1.Read(rdf.Namespace, RdfSerializationFormat.RdfXml, false));
+            }
+            catch (Exception e) when (IsNetworkFailure(e))
+            {
+                Assert.Inconclusive(
+                    $"Could not fetch <{rdf.Namespace}>: {e.GetType().Name}: {e.Message}. "
+                    + "The remote vocabulary is unreachable, which is not a defect here.");
+            }
+
+            Assert.IsFalse(Model1.IsEmpty);
+        }
+
+        /// <summary>
+        /// Distinguishes "the network or the remote host let us down" from a genuine read failure.
+        /// </summary>
+        private static bool IsNetworkFailure(Exception e)
+        {
+            for (var current = e; current != null; current = current.InnerException)
+            {
+                if (current is System.Net.WebException || current is System.Net.Http.HttpRequestException)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         [Test]
