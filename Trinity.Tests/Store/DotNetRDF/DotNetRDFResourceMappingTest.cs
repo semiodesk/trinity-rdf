@@ -37,24 +37,20 @@ namespace Semiodesk.Trinity.Tests.DotNetRDF
         public override void MappingTypeWithInferencingTest()
         {
             Assert.Inconclusive(
-                "Inference is not reachable from the in-memory store as the tests configure it. "
-                + "dotNetRDF does have reasoners (RdfsReasoner, SkosReasoner -- materializing, and "
-                + "limited to RDFS/SKOS), and dotNetRDFStore wires one up when the connection string "
-                + "carries schema=; these tests use plain provider=dotnetrdf. Even wired, Trinity "
-                + "writes via SPARQL UPDATE, which bypasses materialization. See "
-                + "doc/known-test-failures.md.");
+                "The in-memory store does not implement inferencing. dotNetRDF ships reasoners and "
+                + "dotNetRDFStore holds one, but the feature was never finished: the flag is not read, "
+                + "no reasoner is created for a plain provider=dotnetrdf store, and writes go through "
+                + "SPARQL UPDATE, which bypasses materialization. See doc/known-test-failures.md.");
         }
 
         [Test]
         public override void MappingTypeCollectionWithInferencingTest()
         {
             Assert.Inconclusive(
-                "Inference is not reachable from the in-memory store as the tests configure it. "
-                + "dotNetRDF does have reasoners (RdfsReasoner, SkosReasoner -- materializing, and "
-                + "limited to RDFS/SKOS), and dotNetRDFStore wires one up when the connection string "
-                + "carries schema=; these tests use plain provider=dotnetrdf. Even wired, Trinity "
-                + "writes via SPARQL UPDATE, which bypasses materialization. See "
-                + "doc/known-test-failures.md.");
+                "The in-memory store does not implement inferencing. dotNetRDF ships reasoners and "
+                + "dotNetRDFStore holds one, but the feature was never finished: the flag is not read, "
+                + "no reasoner is created for a plain provider=dotnetrdf store, and writes go through "
+                + "SPARQL UPDATE, which bypasses materialization. See doc/known-test-failures.md.");
         }
     }
 }
