@@ -147,10 +147,11 @@ under their own names and survive re-reading, which `MultiGraphTrigTest<T>` now 
 
 - **Inferencing is now genuinely covered on two backends.** Before this, no suite anywhere exercised a
   working reasoner, though for three different reasons:
-  - **The in-memory store does not implement inferencing.** dotNetRDF ships reasoners and
-    `dotNetRDFStore` holds one, but the feature was started and never finished: the flag is never
-    read, no reasoner is created for the way these tests build the store, and the write path bypasses
-    materialization regardless. Half-wired parts are not support. The three-gap diagnosis is in
+  - **The in-memory store did not implement inferencing.** dotNetRDF ships reasoners and
+    `dotNetRDFStore` held one, but the feature was started and never finished — the flag was never
+    read, no reasoner was created for the way the tests build the store, and the write path bypassed
+    materialization anyway. Half-wired parts are not support. Finished in
+    [0045](0045-in-memory-rdfs-inferencing.md); the three-gap diagnosis is in
     `doc/known-test-failures.md`.
   - **Fuseki** cannot switch inference per query at all ([0043](0043-fuseki-store-revival.md)).
   - **Virtuoso and GraphDB** were both misconfigured, which is what this ADR fixes.
