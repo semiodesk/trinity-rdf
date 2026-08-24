@@ -31,6 +31,12 @@ store on top of these.
 | **Virtuoso** | `Int64Test`, `Uint64Test`, `Int16Test`, `Uint16Test`, `UintTest`, `TimeSpanTest`, `TimeSpanResourceTest` | Virtuoso widens the small integer types into an integer box and does not support `xsd:long`/`xsd:duration`. The `Test<TValue>` helper reads the **unmapped** bag, which declares no target type to convert into (ADR-0040) |
 | **GraphDB** | — | none |
 
+**No store suite has a failing test.** Virtuoso and GraphDB each carried four *failing* inferencing
+tests until ADR-0044; both turned out to be provisioning gaps — Virtuoso's rule set was declared only
+in the `ontologies.config` that ADR-0011 retired, and GraphDB's reasoner had no `nco` class hierarchy
+to work from because the shared `TestOntologies` never seeded it. Fuseki's four remain inconclusive
+because it genuinely cannot switch inference per query.
+
 Fuseki additionally requires a **5.x server**. Jena 4.x answers HTTP 500 *"Not a valid UUID string"* to
 any query naming a `urn:uuid:` IRI — which is what `Model.CreateResource()` mints by default — so on
 4.x such a resource is writable but permanently unreadable (ADR-0043).

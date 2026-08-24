@@ -28,19 +28,11 @@
 using NUnit.Framework;
 using Semiodesk.Trinity.Tests.Store;
 
-namespace Semiodesk.Trinity.Tests.DotNetRDF
+namespace Semiodesk.Trinity.Tests.Fuseki
 {
+    /// <summary>
+    /// Runs the multi-graph TriG suite against this backend.
+    /// </summary>
     [TestFixture]
-    public class DotNetRDFSparqlQueryTest : SparqlQueryTest<DotNetRDFTestSetup>
-    {
-        [Test]
-        public override void TestInferencing()
-        {
-            Assert.Inconclusive(
-                "The in-memory store does not implement inferencing. dotNetRDF ships reasoners and "
-                + "dotNetRDFStore holds one, but the feature was never finished: the flag is not read, "
-                + "no reasoner is created for a plain provider=dotnetrdf store, and writes go through "
-                + "SPARQL UPDATE, which bypasses materialization. See doc/known-test-failures.md.");
-        }
-    }
+    public class FusekiMultiGraphTrigTest : MultiGraphTrigTest<FusekiTestSetup> { }
 }

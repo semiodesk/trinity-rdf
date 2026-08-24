@@ -432,14 +432,17 @@ namespace Semiodesk.Trinity.Store.GraphDB
                         var store = new TripleStore();
                         store.LoadFromFile(path, new TriGParser());
 
-                        foreach (var g in store.Graphs)
+                        // See the matching comment in FusekiStore.Read for why each graph is written
+                        // under its own name, why BaseUri has to be set, and why unnamed triples go to
+                        // graphUri rather than being dropped.
+                        foreach (var target in GroupByTargetGraph(store, graphUri))
                         {
-                            if (!update && exists)
+                            if (!update && _connector.ListGraphs().Contains(target.Uri))
                             {
-                                _connector.DeleteGraph(graphUri);
+                                _connector.DeleteGraph(target.Uri);
                             }
 
-                            _connector.SaveGraph(g);
+                            _connector.SaveGraph(target.Graph);
                         }
                     }
                     else
@@ -479,6 +482,8 @@ namespace Semiodesk.Trinity.Store.GraphDB
 
             return null;
         }
+
+
 
         /// <summary>
         /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.

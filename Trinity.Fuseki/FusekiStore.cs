@@ -435,14 +435,29 @@ namespace Semiodesk.Trinity.Store.Fuseki
                         TripleStore s = new TripleStore();
                         s.LoadFromFile(path, new TriGParser());
 
-                        foreach (Graph g in s.Graphs)
+                        // A TriG file names its own graphs; graphUri names the *file*, not each graph
+                        // inside it. Three things follow:
+                        //
+                        //  - The delete has to target the graph being written. Deleting graphUri once
+                        //    per iteration meant the second graph's turn wiped what the first wrote.
+                        //  - BaseUri has to be set per graph. The connector derives its target from it
+                        //    (ADR-0038), so leaving it null sent every graph to the *default* graph,
+                        //    where the last one silently overwrote the rest.
+                        //  - Triples carrying no graph name of their own have no home of their own, so
+                        //    they go to the graph the caller asked for. Dropping them would lose data
+                        //    silently, which is the failure mode this whole change is about.
+                        //
+                        // Graphs are grouped by target first: two of them can share one (a file with
+                        // both unnamed triples and a graph named graphUri), and writing twice would
+                        // have the second replace the first.
+                        foreach (var target in GroupByTargetGraph(s, graphUri))
                         {
-                            if (!update && exists)
+                            if (!update && Connector.HasGraph(target.Uri))
                             {
-                                Connector.DeleteGraph(graphUri);
+                                Connector.DeleteGraph(target.Uri);
                             }
 
-                            Connector.SaveGraph(g);
+                            Connector.SaveGraph(target.Graph);
                         }
                     }
                     else
@@ -482,6 +497,8 @@ namespace Semiodesk.Trinity.Store.Fuseki
 
             return null;
         }
+
+
 
         /// <summary>
         /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.

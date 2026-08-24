@@ -36,13 +36,21 @@ namespace Semiodesk.Trinity.Tests.DotNetRDF
         [Test]
         public override void MappingTypeWithInferencingTest()
         {
-            Assert.Inconclusive("dotNetRDF store does not support inference.");
+            Assert.Inconclusive(
+                "The in-memory store does not implement inferencing. dotNetRDF ships reasoners and "
+                + "dotNetRDFStore holds one, but the feature was never finished: the flag is not read, "
+                + "no reasoner is created for a plain provider=dotnetrdf store, and writes go through "
+                + "SPARQL UPDATE, which bypasses materialization. See doc/known-test-failures.md.");
         }
 
         [Test]
         public override void MappingTypeCollectionWithInferencingTest()
         {
-            Assert.Inconclusive("dotNetRDF store does not support inference.");
+            Assert.Inconclusive(
+                "The in-memory store does not implement inferencing. dotNetRDF ships reasoners and "
+                + "dotNetRDFStore holds one, but the feature was never finished: the flag is not read, "
+                + "no reasoner is created for a plain provider=dotnetrdf store, and writes go through "
+                + "SPARQL UPDATE, which bypasses materialization. See doc/known-test-failures.md.");
         }
     }
 }

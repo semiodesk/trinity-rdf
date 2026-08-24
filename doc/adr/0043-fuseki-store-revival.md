@@ -188,9 +188,10 @@ emits.
   It is the only backend with **zero failures**, but that is not a like-for-like comparison and should
   not be read as Fuseki being the most capable: the totals differ (249 vs GraphDB's 246 and Virtuoso's
   239, since Fuseki also has six store-level tests of its own), and Fuseki's four inferencing cases are
-  *declared* inconclusive whereas GraphDB's four inferencing cases genuinely **fail** — GraphDB's
-  container does configure a `rdfsplus-optimized` ruleset, so those are an unresolved issue there rather
-  than a declared limitation. Worth a look, and out of scope here.
+  *declared* inconclusive whereas GraphDB's four inferencing cases genuinely **fail**. This ADR called
+  those "an unresolved issue there"; [0044](0044-store-suites-green-and-in-ci.md) found the actual cause
+  — the shared `TestOntologies` never seeded the `nco` class hierarchy its reasoner would reason over —
+  and fixed it, along with Virtuoso's missing rule set. All three backends are green as of 0044.
 - GraphDB (243/248) and Virtuoso (236/241) keep exactly their pre-existing failure sets — the four
   inferencing cases on each, unchanged in identity — while gaining the two shared catalog tests. That
   matters because this change edits `StoreBase` and `dotNetRDFStore`, and deletes per-store overrides
