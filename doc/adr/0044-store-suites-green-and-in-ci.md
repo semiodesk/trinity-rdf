@@ -100,7 +100,15 @@ it is fixed here rather than deferred again. Three things were wrong in the TriG
   to read into. The first attempt at this fix skipped them, which would silently lose data from any
   TriG mixing unnamed triples with named ones — and `Read` returns the same URI either way, so the
   caller could not tell. `nco.trig` has no such triples, which is precisely why nothing in the suite
-  would have caught it. Graphs are grouped by target before writing, since two can share one.
+  would have caught it.
+- Graphs are **grouped by target and merged** before writing, because two of them can resolve to one
+  target — a file whose unnamed triples and one of its named graphs both belong in `graphUri`.
+  `SaveGraph` is a PUT on these connectors, so writing twice would leave only the second: half the
+  file gone, silently.
+
+The routing lives in `StoreBase.GroupByTargetGraph`, not in each backend. It was written twice,
+identically, and two copies of a routing rule drift into triples landing in the wrong graph on one
+backend only — the hardest version of this bug to notice.
 
 This is also the answer to "is GraphDB's 4→0 real, or an artifact of seed order?" — it is real. GraphDB's
 `exists` is computed from `ListGraphs()`, which never reported `nco#` because `nco#` was never created,
@@ -122,14 +130,15 @@ under their own names and survive re-reading, which `MultiGraphTrigTest<T>` now 
   | suite | before | after |
   |---|---|---|
   | Virtuoso | 236 / **4** / 1 = 241 | **241 / 0 / 1 = 242** |
-  | GraphDB | 243 / **4** / 1 = 248 | **250 / 0 / 1 = 251** |
-  | Fuseki | 249 / 0 / 1 = 250 | 252 / 0 / 1 = 253 |
+  | GraphDB | 243 / **4** / 1 = 248 | **251 / 0 / 1 = 252** |
+  | Fuseki | 249 / 0 / 1 = 250 | 253 / 0 / 1 = 254 |
   | in-memory *(.NET 10)* | 607 / 3 / 7 = 617 | 608 / 3 / 7 = 618 |
   | in-memory *(.NET 9)* | 610 / 0 / 7 = 617 | **611 / 0 / 7 = 618** |
   | generator / vocabulary | 23 / 29 | 23 / 29 |
 
   The "after" counts are higher than the "before" ones by more than the fixes: `MultiGraphTrigTest<T>`
-  and `ReadFromUrlTest` were added during review.
+  (three cases) and `ReadFromUrlTest` were added during review, which is also why this table was
+  rewritten three times before it settled.
 
   **The in-memory row depends on the runtime, not on this change.** The assembly targets net8.0; rolled
   forward onto .NET 10 the three `UriRef` equality tests fail, onto .NET 9 they pass. Both rows are true

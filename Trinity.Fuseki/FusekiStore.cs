@@ -499,41 +499,6 @@ namespace Semiodesk.Trinity.Store.Fuseki
         }
 
 
-        /// <summary>
-        /// Groups the graphs parsed from a TriG file by the graph they should be written to, merging
-        /// any that share a target.
-        /// </summary>
-        /// <remarks>
-        /// A graph carrying its own name is written under that name. Triples carrying none go to
-        /// <paramref name="graphUri"/>, the graph the caller asked to read into: they have no home of
-        /// their own, and silently discarding them would be data loss the caller cannot detect, since
-        /// <c>Read</c> returns the same URI either way.
-        /// </remarks>
-        /// <param name="store">The parsed TriG content.</param>
-        /// <param name="graphUri">Target for triples with no graph name of their own.</param>
-        private static IEnumerable<(Uri Uri, IGraph Graph)> GroupByTargetGraph(ITripleStore store, Uri graphUri)
-        {
-            var targets = new Dictionary<string, (Uri Uri, IGraph Graph)>();
-
-            foreach (var parsed in store.Graphs)
-            {
-                var target = (parsed.Name as IUriNode)?.Uri ?? graphUri;
-
-                if (!targets.TryGetValue(target.OriginalString, out var entry))
-                {
-                    // Named with the target so the graph is self-describing; BaseUri because that is
-                    // what the connector actually reads when deciding where to write (ADR-0038).
-                    IGraph merged = new Graph(new UriNode(target)) { BaseUri = target };
-
-                    entry = (target, merged);
-                    targets[target.OriginalString] = entry;
-                }
-
-                entry.Graph.Merge(parsed);
-            }
-
-            return targets.Values;
-        }
 
         /// <summary>
         /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.

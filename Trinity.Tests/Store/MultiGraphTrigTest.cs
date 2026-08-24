@@ -113,6 +113,47 @@ namespace Semiodesk.Trinity.Tests.Store
             }
         }
 
+        /// <summary>
+        /// Two graphs in one file that resolve to the same target are merged, not written twice.
+        /// </summary>
+        /// <remarks>
+        /// This is the case that justifies grouping by target instead of writing each parsed graph as
+        /// it comes: a file whose unnamed triples and one of its named graphs both belong in
+        /// <c>graphUri</c>. <c>SaveGraph</c> is a PUT on these connectors, so writing twice leaves only
+        /// the second — half the file gone, silently.
+        ///
+        /// <see cref="UnnamedTrigTriplesGoToTheGraphTheCallerNamed"/> does not cover it: its two graphs
+        /// have distinct targets, so the merge never runs and removing the grouping would still pass.
+        /// </remarks>
+        [Test]
+        public virtual void TrigGraphsSharingATargetAreMergedNotOverwritten()
+        {
+            var target = BaseUri.GetUriRef("trig-shared-target");
+            var subject = BaseUri.GetUriRef("trig-shared-subject");
+
+            // The inner graph is named with the *same* URI the caller passes, so the unnamed triple and
+            // the named one both resolve to `target`.
+            var trig = $"<{subject}> <http://example.org/p1> \"unnamed\" .\n"
+                     + $"<{target}> {{ <{subject}> <http://example.org/p2> \"named\" }}\n";
+
+            var file = Path.Combine(Path.GetTempPath(), $"trinity-trig-{Guid.NewGuid():N}.trig");
+
+            File.WriteAllText(file, trig);
+
+            try
+            {
+                Store.Read(target, new Uri(file), RdfSerializationFormat.Trig, false);
+
+                Assert.AreEqual(2, Count(target),
+                    "both triples must survive; writing the two graphs separately would leave one");
+            }
+            finally
+            {
+                File.Delete(file);
+                Store.GetModel(target).Clear();
+            }
+        }
+
         private bool HasAxiom()
         {
             var query = new SparqlQuery(
