@@ -10,3 +10,6 @@ Documentation/log.txt
 **/.vs/**
 **/.idea/**
 artifacts/**
+# Test run output (dotnet test --logger trx)
+TestResults/
+*.trx
