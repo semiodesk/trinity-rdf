@@ -92,10 +92,21 @@ backends a change breaks, not whether any does.
   The three in-memory failures are the pre-existing `UriRef` cases that fail only on a rolled-forward
   .NET 10 runtime (`doc/known-test-failures.md`); the test projects target net8.0 and CI installs it.
 
-- **Inferencing is now genuinely covered on two backends.** Before this, no suite anywhere exercised
-  a working reasoner: the in-memory store has none ([0022](0022-store-capabilities-and-istore-extension.md)),
-  Fuseki cannot switch one per query ([0043](0043-fuseki-store-revival.md)), and Virtuoso and GraphDB
-  were both misconfigured. The `inferenceEnabled` flag was, in effect, untested.
+- **Inferencing is now genuinely covered on two backends.** Before this, no suite anywhere exercised a
+  working reasoner, though for three different reasons:
+  - **The in-memory store is not short of a reasoner.** dotNetRDF ships `RdfsReasoner`,
+    `StaticRdfsReasoner`, `SkosReasoner` and an OWL wrapper — materialization-based and limited to
+    RDFS/SKOS, but present, and *not* dropped in 3.x; `Trinity.csproj` references
+    `dotNetRdf.Inferencing` precisely for it, and `dotNetRDFStore` wires one up when the connection
+    string carries `schema=`. What is missing is the wiring in these tests (they use plain
+    `provider=dotnetrdf`) and, deeper, a write path that would feed it: dotNetRDF materializes on
+    `Add`, whereas Trinity writes through `LeviathanUpdateProcessor`, which bypasses the inference
+    engine. See the three-gap diagnosis in `doc/known-test-failures.md`.
+  - **Fuseki** cannot switch inference per query at all ([0043](0043-fuseki-store-revival.md)).
+  - **Virtuoso and GraphDB** were both misconfigured, which is what this ADR fixes.
+
+  So `inferenceEnabled` was, in effect, untested — not because nothing could reason, but because
+  nothing that could was reachable from a test.
 
 - **`IStoreTestSetup` gains a member.** It is a default-implemented interface method, so the other
   setups are untouched, but the contract is no longer three members.
