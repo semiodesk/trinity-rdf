@@ -64,8 +64,10 @@ dotNetRDF's `FusekiConnector` targets.) The long-standing copy-paste bug in the 
   241/243, and Fuseki is now green at 248/0 on the shared generic fixtures. The lesson is in the
   readiness bullet above: a probe that does not exercise the thing under test cannot fail when the
   thing under test is missing.
-- These suites stay out of the **default** CI job (Docker availability + large image pulls). They
-  could be enabled in a separate CI job/matrix later (GitHub Actions ubuntu runners provide Docker).
+- These suites stayed out of the **default** CI job (Docker availability + large image pulls). They now
+  run in a separate `stores` matrix job, exactly as anticipated here — see
+  [0044](0044-store-suites-green-and-in-ci.md): GitHub-hosted Linux runners ship Docker, and standard
+  runners are free on a public repository.
 - New test dependency on a Docker daemon; if absent, the `[SetUpFixture]` fails fast with a clear
   Testcontainers error.
 

@@ -53,8 +53,8 @@ jobs:
       - name: Verify committed vocabularies are current
         run: dotnet run --project Trinity.Vocabulary.Cli/Trinity.Vocabulary.Cli.csproj -c Release --no-build -- Trinity.Tests/Ontologies/vocabularies.json --check
 
-      # Only the in-memory suites run in CI; the store-integration projects
-      # (Virtuoso/Fuseki/GraphDB) need live servers and are excluded.
+      # The store-integration projects run in the separate `stores` job below, which provisions
+      # their servers in Docker. This job stays fast so PR feedback stays fast.
       - name: Test
         run: |
           dotnet test Trinity.Tests/Trinity.Tests.csproj -c Release --no-build
@@ -74,3 +74,48 @@ jobs:
         with:
           name: nupkg
           path: ./artifacts/*.nupkg
+
+  # Store-integration suites (ADR-0036). These self-provision Virtuoso, GraphDB and Fuseki in Docker
+  # via Testcontainers, so they need a Docker daemon -- which ubuntu-latest has preinstalled.
+  #
+  # ADR-0036 kept these out of CI on the grounds of "Docker availability + large image pulls". Both
+  # objections are answered: GitHub-hosted Linux runners ship Docker, and this repository is public,
+  # so standard runners cost nothing. They were also red at the time and are green now (ADR-0044).
+  #
+  # A matrix rather than one job, so each backend pulls only its own image, they run in parallel, and
+  # a failure names the store in the check title rather than hiding in a combined log.
+  stores:
+    name: stores (${{ matrix.store }})
+    runs-on: ubuntu-latest
+    strategy:
+      # One store failing should not cancel the others -- the interesting question is usually
+      # "which backends does this break?", not "does anything break?".
+      fail-fast: false
+      matrix:
+        store: [ Fuseki, GraphDB, Virtuoso ]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore tests/Trinity.Tests.${{ matrix.store }}/Trinity.Tests.${{ matrix.store }}.csproj
+
+      - name: Build
+        run: dotnet build tests/Trinity.Tests.${{ matrix.store }}/Trinity.Tests.${{ matrix.store }}.csproj -c Release --no-restore
+
+      # Testcontainers pulls the pinned image and binds the service port to a random free host port,
+      # so nothing here depends on the runner's port availability.
+      - name: Test
+        run: dotnet test tests/Trinity.Tests.${{ matrix.store }}/Trinity.Tests.${{ matrix.store }}.csproj -c Release --no-build --logger "trx;LogFileName=${{ matrix.store }}.trx"
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-results-${{ matrix.store }}
+          path: tests/Trinity.Tests.${{ matrix.store }}/TestResults/*.trx
+          if-no-files-found: warn
