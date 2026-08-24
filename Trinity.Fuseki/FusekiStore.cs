@@ -436,33 +436,28 @@ namespace Semiodesk.Trinity.Store.Fuseki
                         s.LoadFromFile(path, new TriGParser());
 
                         // A TriG file names its own graphs; graphUri names the *file*, not each graph
-                        // inside it. Two things follow, and both used to be wrong here:
+                        // inside it. Three things follow:
                         //
                         //  - The delete has to target the graph being written. Deleting graphUri once
-                        //    per iteration meant the second graph's turn wiped what the first had just
-                        //    written.
+                        //    per iteration meant the second graph's turn wiped what the first wrote.
                         //  - BaseUri has to be set per graph. The connector derives its target from it
                         //    (ADR-0038), so leaving it null sent every graph to the *default* graph,
-                        //    where the last one silently overwrote the rest. Measured on nco.trig:
-                        //    542 triples written, then replaced by the 12 of nco_metadata#.
+                        //    where the last one silently overwrote the rest.
+                        //  - Triples carrying no graph name of their own have no home of their own, so
+                        //    they go to the graph the caller asked for. Dropping them would lose data
+                        //    silently, which is the failure mode this whole change is about.
                         //
-                        // The non-TriG branch below already assigns BaseUri for exactly this reason.
-                        foreach (Graph g in s.Graphs)
+                        // Graphs are grouped by target first: two of them can share one (a file with
+                        // both unnamed triples and a graph named graphUri), and writing twice would
+                        // have the second replace the first.
+                        foreach (var target in GroupByTargetGraph(s, graphUri))
                         {
-                            if (!(g.Name is IUriNode graphName))
+                            if (!update && Connector.HasGraph(target.Uri))
                             {
-                                // An unnamed graph in the file has no addressable home in the store.
-                                continue;
+                                Connector.DeleteGraph(target.Uri);
                             }
 
-                            g.BaseUri = graphName.Uri;
-
-                            if (!update && Connector.HasGraph(graphName.Uri))
-                            {
-                                Connector.DeleteGraph(graphName.Uri);
-                            }
-
-                            Connector.SaveGraph(g);
+                            Connector.SaveGraph(target.Graph);
                         }
                     }
                     else
@@ -501,6 +496,43 @@ namespace Semiodesk.Trinity.Store.Fuseki
             }
 
             return null;
+        }
+
+
+        /// <summary>
+        /// Groups the graphs parsed from a TriG file by the graph they should be written to, merging
+        /// any that share a target.
+        /// </summary>
+        /// <remarks>
+        /// A graph carrying its own name is written under that name. Triples carrying none go to
+        /// <paramref name="graphUri"/>, the graph the caller asked to read into: they have no home of
+        /// their own, and silently discarding them would be data loss the caller cannot detect, since
+        /// <c>Read</c> returns the same URI either way.
+        /// </remarks>
+        /// <param name="store">The parsed TriG content.</param>
+        /// <param name="graphUri">Target for triples with no graph name of their own.</param>
+        private static IEnumerable<(Uri Uri, IGraph Graph)> GroupByTargetGraph(ITripleStore store, Uri graphUri)
+        {
+            var targets = new Dictionary<string, (Uri Uri, IGraph Graph)>();
+
+            foreach (var parsed in store.Graphs)
+            {
+                var target = (parsed.Name as IUriNode)?.Uri ?? graphUri;
+
+                if (!targets.TryGetValue(target.OriginalString, out var entry))
+                {
+                    // Named with the target so the graph is self-describing; BaseUri because that is
+                    // what the connector actually reads when deciding where to write (ADR-0038).
+                    IGraph merged = new Graph(new UriNode(target)) { BaseUri = target };
+
+                    entry = (target, merged);
+                    targets[target.OriginalString] = entry;
+                }
+
+                entry.Graph.Merge(parsed);
+            }
+
+            return targets.Values;
         }
 
         /// <summary>

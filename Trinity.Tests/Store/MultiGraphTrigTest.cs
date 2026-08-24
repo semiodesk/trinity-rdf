@@ -26,6 +26,7 @@
 // Copyright (c) Semiodesk GmbH 2023
 
 using System;
+using System.IO;
 using System.Linq;
 using NUnit.Framework;
 
@@ -69,6 +70,47 @@ namespace Semiodesk.Trinity.Tests.Store
             Assert.IsTrue(HasAxiom(),
                 "re-reading the file must not delete the graph an earlier iteration just wrote");
             Assert.Greater(Count(NcoMetadata), 0, "...nor the other way round");
+        }
+
+        /// <summary>
+        /// Triples that carry no graph name of their own land in the graph the caller named, rather
+        /// than being dropped.
+        /// </summary>
+        /// <remarks>
+        /// The first fix for the multi-graph defect skipped every graph whose name was not an IRI,
+        /// which includes a TriG file's default graph -- so a file mixing unnamed triples with named
+        /// ones lost the unnamed ones silently, and <c>Read</c> returned the same URI either way.
+        /// nco.trig happens to name both of its graphs, so nothing in the suite would have noticed.
+        /// </remarks>
+        [Test]
+        public virtual void UnnamedTrigTriplesGoToTheGraphTheCallerNamed()
+        {
+            var target = BaseUri.GetUriRef("trig-default-graph");
+            var subject = BaseUri.GetUriRef("trig-unnamed-subject");
+            var named = new Uri("http://example.org/trig/named");
+
+            var trig = $"<{subject}> <http://example.org/p> \"unnamed\" .\n"
+                     + $"<{named}> {{ <{subject}> <http://example.org/p> \"named\" }}\n";
+
+            var file = Path.Combine(Path.GetTempPath(), $"trinity-trig-{Guid.NewGuid():N}.trig");
+
+            File.WriteAllText(file, trig);
+
+            try
+            {
+                Store.Read(target, new Uri(file), RdfSerializationFormat.Trig, false);
+
+                Assert.AreEqual(1, Count(target),
+                    "triples with no graph of their own belong to the graph the caller named");
+                Assert.AreEqual(1, Count(named),
+                    "...and the named graph still goes under its own name");
+            }
+            finally
+            {
+                File.Delete(file);
+                Store.GetModel(target).Clear();
+                Store.GetModel(named).Clear();
+            }
         }
 
         private bool HasAxiom()

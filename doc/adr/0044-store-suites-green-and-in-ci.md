@@ -80,8 +80,13 @@ backends a change breaks, not whether any does.
 ### Seeding a multi-graph TriG file exposed a defect in the read path
 
 `nco.trig` declares **two** named graphs — `nco#` (542 triples, including the class hierarchy) and
-`nco_metadata#` (12). Seeding it made a defect that ADR-0043 had listed as a deliberate follow-up into a
-live one, so it is fixed here rather than deferred again. Two things were wrong in the TriG branch of
+`nco_metadata#` (12). Both are *explicitly* named, but only one is easy to see: `nco_metadata#` uses an
+absolute IRI label while `nco#` uses a **prefixed name** (`nco: { … }`), so a grep for `^<http…> {`
+finds one and suggests the other block is the file's unnamed default graph. It is not, and the
+distinction matters — see the third rule below.
+
+Seeding this file made a defect that ADR-0043 had listed as a deliberate follow-up into a live one, so
+it is fixed here rather than deferred again. Three things were wrong in the TriG branch of
 `Read(Uri, Uri, …)`, in both `FusekiStore` and `GraphDBStore`:
 
 - The delete targeted the caller's `graphUri` once **per iteration**, not the graph being written, so
@@ -91,6 +96,11 @@ live one, so it is fixed here rather than deferred again. Two things were wrong 
   silently overwrote the rest. Measured on Fuseki before the fix: the store ended up with 12 triples in
   the default graph and **nothing** under `<nco#>`. The non-TriG branch had always assigned `BaseUri`
   for exactly this reason.
+- Triples carrying **no graph name of their own** are written to `graphUri`, the graph the caller asked
+  to read into. The first attempt at this fix skipped them, which would silently lose data from any
+  TriG mixing unnamed triples with named ones — and `Read` returns the same URI either way, so the
+  caller could not tell. `nco.trig` has no such triples, which is precisely why nothing in the suite
+  would have caught it. Graphs are grouped by target before writing, since two can share one.
 
 This is also the answer to "is GraphDB's 4→0 real, or an artifact of seed order?" — it is real. GraphDB's
 `exists` is computed from `ListGraphs()`, which never reported `nco#` because `nco#` was never created,
@@ -105,16 +115,26 @@ under their own names and survive re-reading, which `MultiGraphTrigTest<T>` now 
 
 - **The whole suite is green**, on every backend:
 
+  Totals included, so the next drift is self-evident: `passed / failed / skipped = total`. Measured on
+  the branch as merged, not when this table was first written — it went stale twice inside the PR as
+  tests were added, which is the argument for showing the total.
+
   | suite | before | after |
   |---|---|---|
-  | Virtuoso | 236 passed / 4 failed | **240 passed / 0 failed** |
-  | GraphDB | 243 passed / 4 failed | **247 passed / 0 failed** |
-  | Fuseki | 249 passed / 0 failed | 249 passed / 0 failed |
-  | in-memory | 607 passed / 3 failed | 607 passed / 3 failed |
+  | Virtuoso | 236 / **4** / 1 = 241 | **241 / 0 / 1 = 242** |
+  | GraphDB | 243 / **4** / 1 = 248 | **250 / 0 / 1 = 251** |
+  | Fuseki | 249 / 0 / 1 = 250 | 252 / 0 / 1 = 253 |
+  | in-memory *(.NET 10)* | 607 / 3 / 7 = 617 | 608 / 3 / 7 = 618 |
+  | in-memory *(.NET 9)* | 610 / 0 / 7 = 617 | **611 / 0 / 7 = 618** |
   | generator / vocabulary | 23 / 29 | 23 / 29 |
 
-  The three in-memory failures are the pre-existing `UriRef` cases that fail only on a rolled-forward
-  .NET 10 runtime (`doc/known-test-failures.md`); the test projects target net8.0 and CI installs it.
+  The "after" counts are higher than the "before" ones by more than the fixes: `MultiGraphTrigTest<T>`
+  and `ReadFromUrlTest` were added during review.
+
+  **The in-memory row depends on the runtime, not on this change.** The assembly targets net8.0; rolled
+  forward onto .NET 10 the three `UriRef` equality tests fail, onto .NET 9 they pass. Both rows are true
+  and neither is a defect here — CI installs the net8.0 runtime, so it sees neither
+  (`doc/known-test-failures.md`).
 
 - **Inferencing is now genuinely covered on two backends.** Before this, no suite anywhere exercised a
   working reasoner, though for three different reasons:
