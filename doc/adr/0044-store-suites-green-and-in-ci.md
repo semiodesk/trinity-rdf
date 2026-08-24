@@ -77,6 +77,30 @@ job, a matrix over the three backends so each pulls only its own image, they run
 failure names the store in the check title. `fail-fast: false`, because the useful question is which
 backends a change breaks, not whether any does.
 
+### Seeding a multi-graph TriG file exposed a defect in the read path
+
+`nco.trig` declares **two** named graphs — `nco#` (542 triples, including the class hierarchy) and
+`nco_metadata#` (12). Seeding it made a defect that ADR-0043 had listed as a deliberate follow-up into a
+live one, so it is fixed here rather than deferred again. Two things were wrong in the TriG branch of
+`Read(Uri, Uri, …)`, in both `FusekiStore` and `GraphDBStore`:
+
+- The delete targeted the caller's `graphUri` once **per iteration**, not the graph being written, so
+  the second graph's turn deleted what the first had just written.
+- `BaseUri` was never assigned per graph. The connector derives its target from it
+  ([0038](0038-upgrade-dotnetrdf-3.md)), so every graph went to the **default** graph and the last one
+  silently overwrote the rest. Measured on Fuseki before the fix: the store ended up with 12 triples in
+  the default graph and **nothing** under `<nco#>`. The non-TriG branch had always assigned `BaseUri`
+  for exactly this reason.
+
+This is also the answer to "is GraphDB's 4→0 real, or an artifact of seed order?" — it is real. GraphDB's
+`exists` is computed from `ListGraphs()`, which never reported `nco#` because `nco#` was never created,
+so the delete never fired; the axioms reached the repository's default graph and GraphDB reasons
+repository-wide. Verified directly against a live server, where `nco:PersonContact rdfs:subClassOf
+nco:Contact` came back along with GraphDB's own materialized entailments. After the fix the graphs land
+under their own names and survive re-reading, which `MultiGraphTrigTest<T>` now pins on both backends.
+
+### Polymorphism is gated behind the flag
+
 ## Consequences
 
 - **The whole suite is green**, on every backend:

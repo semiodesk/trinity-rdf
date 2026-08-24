@@ -108,8 +108,8 @@ jobs:
       - name: Build
         run: dotnet build tests/Trinity.Tests.${{ matrix.store }}/Trinity.Tests.${{ matrix.store }}.csproj -c Release --no-restore
 
-      # Testcontainers pulls the pinned image and binds the service port to a random free host port,
-      # so nothing here depends on the runner's port availability.
+      # Testcontainers pulls the pinned image (all three are pinned to a version tag) and binds the
+      # service port to a random free host port, so nothing here depends on the runner's ports.
       - name: Test
         run: dotnet test tests/Trinity.Tests.${{ matrix.store }}/Trinity.Tests.${{ matrix.store }}.csproj -c Release --no-build --logger "trx;LogFileName=${{ matrix.store }}.trx"
 

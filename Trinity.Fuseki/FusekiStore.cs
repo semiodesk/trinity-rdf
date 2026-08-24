@@ -435,11 +435,31 @@ namespace Semiodesk.Trinity.Store.Fuseki
                         TripleStore s = new TripleStore();
                         s.LoadFromFile(path, new TriGParser());
 
+                        // A TriG file names its own graphs; graphUri names the *file*, not each graph
+                        // inside it. Two things follow, and both used to be wrong here:
+                        //
+                        //  - The delete has to target the graph being written. Deleting graphUri once
+                        //    per iteration meant the second graph's turn wiped what the first had just
+                        //    written.
+                        //  - BaseUri has to be set per graph. The connector derives its target from it
+                        //    (ADR-0038), so leaving it null sent every graph to the *default* graph,
+                        //    where the last one silently overwrote the rest. Measured on nco.trig:
+                        //    542 triples written, then replaced by the 12 of nco_metadata#.
+                        //
+                        // The non-TriG branch below already assigns BaseUri for exactly this reason.
                         foreach (Graph g in s.Graphs)
                         {
-                            if (!update && exists)
+                            if (!(g.Name is IUriNode graphName))
                             {
-                                Connector.DeleteGraph(graphUri);
+                                // An unnamed graph in the file has no addressable home in the store.
+                                continue;
+                            }
+
+                            g.BaseUri = graphName.Uri;
+
+                            if (!update && Connector.HasGraph(graphName.Uri))
+                            {
+                                Connector.DeleteGraph(graphName.Uri);
                             }
 
                             Connector.SaveGraph(g);

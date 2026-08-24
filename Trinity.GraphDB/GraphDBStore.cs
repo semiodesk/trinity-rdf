@@ -432,11 +432,22 @@ namespace Semiodesk.Trinity.Store.GraphDB
                         var store = new TripleStore();
                         store.LoadFromFile(path, new TriGParser());
 
+                        // See the matching comment in FusekiStore.Read: graphUri names the file, not
+                        // the graphs inside it. The delete has to target the graph being written, and
+                        // BaseUri has to be set per graph or the connector sends them all to the
+                        // default graph (ADR-0038).
                         foreach (var g in store.Graphs)
                         {
-                            if (!update && exists)
+                            if (!(g.Name is IUriNode graphName))
                             {
-                                _connector.DeleteGraph(graphUri);
+                                continue;
+                            }
+
+                            g.BaseUri = graphName.Uri;
+
+                            if (!update && _connector.ListGraphs().Contains(graphName.Uri))
+                            {
+                                _connector.DeleteGraph(graphName.Uri);
                             }
 
                             _connector.SaveGraph(g);

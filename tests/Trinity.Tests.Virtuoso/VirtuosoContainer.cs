@@ -26,6 +26,7 @@
 // Copyright (c) Semiodesk GmbH 2015-2020
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DotNet.Testcontainers.Builders;
@@ -54,18 +55,23 @@ namespace Semiodesk.Trinity.Tests.Virtuoso
         private const string RuleSet = "urn:semiodesk/test/ruleset";
 
         /// <summary>
-        /// Schema graphs the rule set draws its axioms from. These are the graphs
-        /// <see cref="TestOntologies"/> seeds, and the same set the retired
-        /// <c>ontologies.config</c> declared for this rule set.
+        /// Schema graphs the rule set draws its axioms from: every graph
+        /// <see cref="TestOntologies.Graphs"/> seeds.
         /// </summary>
-        private static readonly string[] RuleSetGraphs =
-        {
-            "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-            "http://www.w3.org/2000/01/rdf-schema#",
-            "http://www.w3.org/2002/07/owl#",
-            "http://xmlns.com/foaf/0.1/",
-            "http://www.semanticdesktop.org/ontologies/2007/03/22/nco#"
-        };
+        /// <remarks>
+        /// Derived rather than restated. A rule set built over a graph nobody seeded resolves fine and
+        /// entails nothing, so drift between this list and the seed list would degrade inferencing to
+        /// zero rows silently -- the failure this container exists to prevent. Deriving it means adding
+        /// a schema graph to the suite cannot leave the rule set behind.
+        /// </remarks>
+        private static IEnumerable<string> RuleSetGraphs =>
+            TestOntologies.Graphs.Select(g => g.Graph.OriginalString);
+
+        /// <summary>
+        /// How many times to try isql before giving up. The readiness strategy matches a log line, not
+        /// an accepted connection.
+        /// </summary>
+        private const int IsqlAttempts = 5;
 
         private static IContainer _instance;
 
@@ -78,7 +84,9 @@ namespace Semiodesk.Trinity.Tests.Virtuoso
         public async Task StartAsync()
         {
             _container = new ContainerBuilder()
-                .WithImage("openlink/virtuoso-opensource-7:latest")
+                // Pinned, like the GraphDB and Fuseki images. This job runs on every pull request
+                // now, so an upstream push to :latest could redden a branch that changed nothing.
+                .WithImage("openlink/virtuoso-opensource-7:7.2.14")
                 .WithEnvironment("DBA_PASSWORD", "dba")
                 // assignRandomHostPort: true -> a free ephemeral host port, so we never clash
                 // with a local Virtuoso on 1111.
@@ -125,6 +133,10 @@ namespace Semiodesk.Trinity.Tests.Virtuoso
             }
 
             CreateRuleSetAsync(_instance).GetAwaiter().GetResult();
+
+            // The schema is loaded by now, so this is the point at which "the rule set works" is a
+            // checkable claim rather than an assumption.
+            VerifyRuleSetEntailsAsync(_instance).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -137,16 +149,96 @@ namespace Semiodesk.Trinity.Tests.Virtuoso
             var statements = string.Concat(
                 RuleSetGraphs.Select(g => $"rdfs_rule_set('{RuleSet}', '{g}');"));
 
-            var result = await container.ExecAsync(
-                new[] { "isql", "1111", "dba", "dba", $"exec={statements}" });
+            AssertSucceeded(await IsqlAsync(container, statements),
+                $"create the Virtuoso inference rule set '{RuleSet}'");
+        }
 
-            if (result.ExitCode != 0)
+        /// <summary>
+        /// Asserts that the rule set actually entails something, rather than merely resolving.
+        /// </summary>
+        /// <remarks>
+        /// Registering a rule set over graphs that hold no axioms is not an error: the name resolves,
+        /// queries compile, and every <c>inferenceEnabled</c> query silently returns nothing. That is
+        /// the exact state this class exists to prevent, and no exit code distinguishes it -- so the
+        /// check has to be an entailment the schema guarantees. nco declares
+        /// <c>nco:PersonContact rdfs:subClassOf nco:Contact</c>, so with the rule set in force
+        /// PersonContact must have Contact among its superclasses.
+        /// </remarks>
+        private static async Task VerifyRuleSetEntailsAsync(IContainer container)
+        {
+            const string query =
+                "SPARQL DEFINE input:inference '" + RuleSet + "' "
+                + "SELECT ?o WHERE { <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact> "
+                + "<http://www.w3.org/2000/01/rdf-schema#subClassOf> ?o . };";
+
+            var result = await IsqlAsync(container, query);
+
+            AssertSucceeded(result, $"query the Virtuoso inference rule set '{RuleSet}'");
+
+            if ((result.Stdout ?? string.Empty).IndexOf("nco#Contact", StringComparison.Ordinal) < 0)
             {
                 throw new InvalidOperationException(
-                    $"Could not create the Virtuoso inference rule set '{RuleSet}': isql exited " +
-                    $"{result.ExitCode}. Every inferenceEnabled query in this assembly would fail " +
-                    $"to compile without it.{Environment.NewLine}{result.Stderr}{result.Stdout}");
+                    $"The Virtuoso inference rule set '{RuleSet}' resolves but entails nothing: "
+                    + "nco:PersonContact did not come back with nco:Contact among its superclasses. "
+                    + "Every inferenceEnabled query in this assembly would silently return no rows."
+                    + $"{Environment.NewLine}{result.Stdout}");
             }
+        }
+
+        /// <summary>
+        /// Runs a statement through <c>isql</c>, retrying briefly while the server refuses connections.
+        /// </summary>
+        /// <remarks>
+        /// The wait strategy matches the "Server online at 1111" log line, which says the banner was
+        /// printed -- not that the listener accepts connections. Without a retry a slow container fails
+        /// <c>[OneTimeSetUp]</c> and takes the whole assembly down, reading as "Virtuoso is broken"
+        /// rather than "the container was not ready yet".
+        /// </remarks>
+        private static async Task<ExecResult> IsqlAsync(IContainer container, string statements)
+        {
+            ExecResult result = default;
+
+            for (var attempt = 1; attempt <= IsqlAttempts; attempt++)
+            {
+                result = await container.ExecAsync(
+                    new[] { "isql", "1111", "dba", "dba", $"exec={statements}" });
+
+                if (result.ExitCode == 0 && !HasSqlError(result))
+                {
+                    return result;
+                }
+
+                if (attempt < IsqlAttempts)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2));
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// <c>isql exec=</c> reports SQL errors on stdout and still exits 0, so the exit code alone
+        /// cannot tell success from failure.
+        /// </summary>
+        private static bool HasSqlError(ExecResult result)
+        {
+            var output = (result.Stdout ?? string.Empty) + (result.Stderr ?? string.Empty);
+
+            return output.IndexOf("*** Error", StringComparison.OrdinalIgnoreCase) >= 0
+                || output.IndexOf("SQLState", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static void AssertSucceeded(ExecResult result, string what)
+        {
+            if (result.ExitCode == 0 && !HasSqlError(result))
+            {
+                return;
+            }
+
+            throw new InvalidOperationException(
+                $"Could not {what}: isql exited {result.ExitCode}."
+                + $"{Environment.NewLine}{result.Stderr}{result.Stdout}");
         }
 
         [OneTimeTearDown]
