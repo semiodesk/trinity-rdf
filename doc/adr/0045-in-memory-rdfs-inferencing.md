@@ -94,9 +94,38 @@ where the equivalent default-graph query returned 1 — the silent wrong answer 
 prevent, reached through the door the refusal was built to close.
 
 Enumerating the places a `GRAPH` can hide is a game that loses to the next SPARQL feature, so the walker
-now descends the pattern kinds it knows can contain another pattern and **throws on any kind it has not
-been taught about**. Filter expressions are walked through `Arguments`, with `ExistsFunction` — the only
+descends the pattern kinds it knows can contain another pattern and **throws on any kind it has not been
+taught about**. Filter expressions are walked through `Arguments`, with `ExistsFunction` — the only
 SPARQL 1.1 expression form carrying a group graph pattern — descended into wherever it is nested.
+
+**And it walks every expression the query carries, not only its filters.** A parsed query holds
+expressions in five places, and an `EXISTS` can hide in any of them:
+
+| slot | reached via |
+|---|---|
+| filters, `EXISTS`, `MINUS`, `OPTIONAL`, subqueries | `RootGraphPattern` |
+| `BIND` / `LET` | `IAssignmentPattern.AssignExpression` |
+| projections, including aggregates | `Variables[].Projection` / `.Aggregate` |
+| `GROUP BY` | `GroupBy.Expression`, following `Child` |
+| `HAVING` | `Having.Expression` |
+| `ORDER BY` | `OrderBy.Expression`, following `Child` |
+
+Walking only the pattern tree left four of those unvisited, and the result was **demonstrably wrong, not
+merely unchecked**. One query could prove a triple in its `WHERE` clause and deny it in a `BIND` on the
+next line:
+
+```sparql
+SELECT ?s (EXISTS { GRAPH <m1> { ?s a <C2> } } AS ?viaGraph)
+          (EXISTS {              ?s a <C2>   } AS ?viaDefault)
+WHERE     {                      ?s a <C2>   }          # inferred: matches r1
+
+  s=r1   viaGraph=false   viaDefault=true               # same question, opposite answers
+```
+
+This is the half of the [0041](0041-layered-read-views.md) parallel that did not carry over on the first
+attempt: `OverlayQueryRewriter` refuses a negation in `HAVING`, in projections, in `GROUP BY` and in
+`ORDER BY` precisely because those come from dotNetRDF and are only *checked*, never rewritten. The same
+slots, for the same reason, needed the same treatment here.
 
 ### Entailments are recomputed per query, not cached
 
@@ -134,8 +163,8 @@ something this change should decide by side effect.
 
   | runtime | before | after |
   |---|---|---|
-  | .NET 10 | 608 / 3 / 7 = 618 | **639 / 3 / 3 = 645** |
-  | .NET 9 | 611 / 0 / 7 = 618 | **642 / 0 / 3 = 645** |
+  | .NET 10 | 608 / 3 / 7 = 618 | **651 / 3 / 3 = 657** |
+  | .NET 9 | 611 / 0 / 7 = 618 | **654 / 0 / 3 = 657** |
 
   The row depends on the runtime, not on this change: the assembly targets net8.0, and rolled forward
   onto .NET 10 the three `UriRef` equality tests fail while onto .NET 9 they pass. CI installs the

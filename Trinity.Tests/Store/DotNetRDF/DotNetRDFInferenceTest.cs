@@ -212,6 +212,7 @@ namespace Semiodesk.Trinity.Tests.DotNetRDF
         [TestCase("?s ?p ?o . MINUS {{ GRAPH <{0}> {{ ?s a <{1}> }} }}", TestName = "MINUS")]
         [TestCase("{{ ?s a <{1}> }} UNION {{ GRAPH <{0}> {{ ?s a <{1}> }} }}", TestName = "UNION")]
         [TestCase("?s ?p ?o . FILTER(EXISTS {{ GRAPH <{0}> {{ ?s a <{1}> }} }} || true)", TestName = "EXISTS nested in an expression")]
+        [TestCase("?s a <{1}> . BIND(EXISTS {{ GRAPH <{0}> {{ ?s a <{1}> }} }} AS ?v)", TestName = "BIND")]
         public void NamedGraphAccessIsRefusedWhereverItHides(string where)
         {
             var resource = Model1.CreateResource(BaseUri.GetUriRef("inference-hidden-graph"));
@@ -227,6 +228,40 @@ namespace Semiodesk.Trinity.Tests.DotNetRDF
         }
 
         /// <summary>
+        /// A <c>GRAPH</c> hiding in a projection, <c>HAVING</c> or <c>ORDER BY</c> expression is
+        /// refused too — the walker visits every expression a query carries, not only its filters.
+        /// </summary>
+        /// <remarks>
+        /// These four slots were unvisited while the pattern tree was fully walked, and the result was
+        /// demonstrably wrong rather than merely unchecked: a single query could prove <c>?s a C2</c>
+        /// in its <c>WHERE</c> clause and deny it in a <c>BIND</c> on the next line, because the
+        /// <c>EXISTS</c> read the named graph where entailments never land.
+        ///
+        /// This is the half of the ADR-0041 parallel that did not carry over the first time:
+        /// <c>OverlayQueryRewriter</c> refuses <c>HAVING</c>, projections, <c>GROUP BY</c> and
+        /// <c>ORDER BY</c> it cannot verify for exactly this reason.
+        /// </remarks>
+        [TestCase("SELECT ?s (EXISTS {{ GRAPH <{0}> {{ ?s a <{1}> }} }} AS ?v) WHERE {{ ?s a <{1}> }}", TestName = "projection")]
+        [TestCase("SELECT ?s WHERE {{ ?s a <{1}> }} GROUP BY ?s HAVING(EXISTS {{ GRAPH <{0}> {{ ?s a <{1}> }} }})", TestName = "HAVING")]
+        [TestCase("SELECT ?s WHERE {{ ?s a <{1}> }} ORDER BY (EXISTS {{ GRAPH <{0}> {{ ?s a <{1}> }} }})", TestName = "ORDER BY")]
+        // Grouping by an expression means the grouped variable cannot also be projected, so this one
+        // projects the aggregate instead -- the naive form is rejected by the SPARQL parser, not by us.
+        [TestCase("SELECT (COUNT(*) AS ?n) WHERE {{ ?s a <{1}> }} GROUP BY (EXISTS {{ GRAPH <{0}> {{ ?s a <{1}> }} }})", TestName = "GROUP BY")]
+        [TestCase("SELECT (SUM(IF(EXISTS {{ GRAPH <{0}> {{ ?s a <{1}> }} }}, 1, 0)) AS ?n) WHERE {{ ?s a <{1}> }}", TestName = "inside an aggregate")]
+        public void NamedGraphAccessIsRefusedInEveryExpressionSlot(string queryText)
+        {
+            var resource = Model1.CreateResource(BaseUri.GetUriRef("inference-expr-slot"));
+            resource.AddProperty(rdf.type, nco.PersonContact);
+            resource.Commit();
+
+            var query = new SparqlQuery(string.Format(queryText, Model1.Uri, nco.Contact.Uri));
+
+            Assert.Throws<NotSupportedException>(
+                () => Model1.ExecuteQuery(query, true).GetBindings().ToList(),
+                "a GRAPH in any expression the query carries must be refused");
+        }
+
+        /// <summary>
         /// The refusal must not swallow ordinary queries: the walker refuses what it does not
         /// recognise, so a whitelist that is too narrow would reject perfectly good SPARQL.
         /// </summary>
@@ -239,6 +274,7 @@ namespace Semiodesk.Trinity.Tests.DotNetRDF
         [TestCase("VALUES ?s {{ <http://example.org/nobody> }} ?s a <{1}>", TestName = "VALUES")]
         [TestCase("?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>/<http://www.w3.org/2000/01/rdf-schema#subClassOf>* <{1}>", TestName = "property path")]
         [TestCase("?s ?p ?o . FILTER NOT EXISTS {{ ?s a <http://example.org/None> }}", TestName = "NOT EXISTS without GRAPH")]
+        [TestCase("?s a <{1}> . BIND(EXISTS {{ ?s a <{1}> }} AS ?v)", TestName = "BIND with EXISTS, no GRAPH")]
         public void OrdinaryQueriesAreStillAnswered(string where)
         {
             var resource = Model1.CreateResource(BaseUri.GetUriRef("inference-ordinary"));
@@ -250,6 +286,30 @@ namespace Semiodesk.Trinity.Tests.DotNetRDF
 
             Assert.DoesNotThrow(() => Model1.ExecuteQuery(query, true).GetBindings().ToList(),
                 "the whitelist must not reject ordinary SPARQL");
+        }
+
+        /// <summary>
+        /// The newly walked slots must still accept ordinary projections, grouping and ordering.
+        /// </summary>
+        /// <remarks>
+        /// Walking more of the query means more chances to refuse something legitimate. These are the
+        /// forms the walker now visits that it did not before.
+        /// </remarks>
+        [TestCase("SELECT ?s (COUNT(?s) AS ?n) WHERE {{ ?s a <{1}> }} GROUP BY ?s", TestName = "aggregate projection")]
+        [TestCase("SELECT ?s WHERE {{ ?s a <{1}> }} GROUP BY ?s HAVING(COUNT(?s) > 0)", TestName = "HAVING on an aggregate")]
+        [TestCase("SELECT ?s WHERE {{ ?s a <{1}> }} ORDER BY ?s", TestName = "ORDER BY a variable")]
+        [TestCase("SELECT ?s WHERE {{ ?s a <{1}> }} ORDER BY DESC(STR(?s)) LIMIT 10", TestName = "ORDER BY an expression, with LIMIT")]
+        [TestCase("SELECT (STR(?s) AS ?t) WHERE {{ ?s a <{1}> }}", TestName = "projection expression")]
+        public void OrdinaryProjectionGroupingAndOrderingAreStillAnswered(string queryText)
+        {
+            var resource = Model1.CreateResource(BaseUri.GetUriRef("inference-ordinary-slot"));
+            resource.AddProperty(rdf.type, nco.PersonContact);
+            resource.Commit();
+
+            var query = new SparqlQuery(string.Format(queryText, Model1.Uri, nco.Contact.Uri));
+
+            Assert.DoesNotThrow(() => Model1.ExecuteQuery(query, true).GetBindings().ToList(),
+                "walking more of the query must not mean refusing more of it");
         }
 
         /// <summary>

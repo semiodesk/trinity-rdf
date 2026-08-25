@@ -31,6 +31,7 @@ using System.Linq;
 using VDS.RDF;
 using VDS.RDF.Query;
 using VDS.RDF.Query.Inference;
+using VDS.RDF.Query.Aggregates;
 using VDS.RDF.Query.Expressions;
 using VDS.RDF.Query.Expressions.Functions.Sparql.Boolean;
 using VDS.RDF.Query.Patterns;
@@ -161,6 +162,30 @@ namespace Semiodesk.Trinity.Store
             }
 
             RequireNoNamedGraphAccess(query.RootGraphPattern);
+
+            // A query carries expressions in five places, and a GRAPH can hide inside an EXISTS in any
+            // of them. Walking only the pattern tree left four of the five unvisited: a projection
+            // (SELECT (EXISTS { GRAPH ... } AS ?v)), HAVING, ORDER BY, and BIND -- which reaches the
+            // pattern tree but whose expression was skipped. The result was not merely unchecked, it
+            // was wrong: one query could prove a triple in its WHERE clause and deny it in a BIND on
+            // the next line, because the EXISTS read the named graph where entailments never land.
+            foreach (var variable in query.Variables)
+            {
+                RequireNoNamedGraphAccess(variable.Projection);
+                RequireNoNamedGraphAccess(variable.Aggregate);
+            }
+
+            for (var grouping = query.GroupBy; grouping != null; grouping = grouping.Child)
+            {
+                RequireNoNamedGraphAccess(grouping.Expression);
+            }
+
+            RequireNoNamedGraphAccess(query.Having?.Expression);
+
+            for (var ordering = query.OrderBy; ordering != null; ordering = ordering.Child)
+            {
+                RequireNoNamedGraphAccess(ordering.Expression);
+            }
         }
 
         private static void RequireNoNamedGraphAccess(GraphPattern pattern)
@@ -219,11 +244,15 @@ namespace Semiodesk.Trinity.Store
                     RequireNoNamedGraphAccess(nested);
                     break;
 
-                // Kinds that match, bind or supply values, and cannot contain a graph pattern.
+                case IAssignmentPattern assignment:
+                    // BIND(... AS ?v): the value expression can hold an EXISTS.
+                    RequireNoNamedGraphAccess(assignment.AssignExpression);
+                    break;
+
+                // Kinds that match or supply values, and cannot contain a graph pattern.
                 case IMatchTriplePattern _:
                 case IPropertyPathPattern _:
                 case IPropertyFunctionPattern _:
-                case IAssignmentPattern _:
                 case BindingsPattern _:
                     break;
 
@@ -243,6 +272,24 @@ namespace Semiodesk.Trinity.Store
         /// group graph pattern; everything else is reached by recursing through
         /// <see cref="ISparqlExpression.Arguments"/>, which covers it however deeply it is nested.
         /// </remarks>
+        /// <summary>
+        /// Walks an aggregate's expression: <c>SUM(IF(EXISTS { ... }, 1, 0))</c> is legal SPARQL.
+        /// </summary>
+        private static void RequireNoNamedGraphAccess(ISparqlAggregate aggregate)
+        {
+            if (aggregate == null)
+            {
+                return;
+            }
+
+            RequireNoNamedGraphAccess(aggregate.Expression);
+
+            foreach (var argument in aggregate.Arguments)
+            {
+                RequireNoNamedGraphAccess(argument);
+            }
+        }
+
         private static void RequireNoNamedGraphAccess(ISparqlExpression expression)
         {
             if (expression == null)
