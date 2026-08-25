@@ -71,14 +71,32 @@ record of the `FROM` operands. That record is raw token text, which is *relative
 a `BASE` declaration — so reading it turned a query that worked with the flag off into a
 `UriFormatException` the moment inference was switched on.
 
-### Queries that address a graph by name are refused
+### Queries that address a graph by name are refused, and the check is a whitelist
 
 Entailments are added to the query's **default** graph. A pattern inside `GRAPH <g>` reads `g` itself,
 which holds only asserted triples, so such a query would come back non-inferred while reporting success.
-`inferenceEnabled: true` with `GRAPH` or `FROM NAMED` therefore throws `NotSupportedException` — the same
-choice a layered view makes for a query it cannot rewrite faithfully ([0041](0041-layered-read-views.md)).
-Silently answering it would be the exact defect this ADR exists to remove, wearing the costume of a
-feature that works.
+`inferenceEnabled: true` with `GRAPH`, `FROM NAMED` or `SERVICE` therefore throws
+`NotSupportedException` — the same choice a layered view makes for a query it cannot rewrite faithfully
+([0041](0041-layered-read-views.md)). Silently answering it would be the exact defect this ADR exists to
+remove, wearing the costume of a feature that works.
+
+**The check refuses what it does not recognise**, which is the discipline `OverlayQueryRewriter` arrived
+at for the same reason. The first version walked only `ChildGraphPatterns`. That reaches `OPTIONAL`,
+`MINUS` and `UNION` — and misses two places a `GRAPH` can hide:
+
+| where the `GRAPH` sits | why the shallow walk missed it |
+|---|---|
+| inside a **subquery** | the pattern hangs off a `SubQueryPattern` in `TriplePatterns` |
+| inside **`FILTER EXISTS`** | the pattern hangs off the filter *expression*, not the pattern tree |
+
+Both were accepted and answered non-inferred. The subquery case is the sharp one: it returned 0 rows
+where the equivalent default-graph query returned 1 — the silent wrong answer the refusal exists to
+prevent, reached through the door the refusal was built to close.
+
+Enumerating the places a `GRAPH` can hide is a game that loses to the next SPARQL feature, so the walker
+now descends the pattern kinds it knows can contain another pattern and **throws on any kind it has not
+been taught about**. Filter expressions are walked through `Arguments`, with `ExistsFunction` — the only
+SPARQL 1.1 expression form carrying a group graph pattern — descended into wherever it is nested.
 
 ### Entailments are recomputed per query, not cached
 
@@ -116,8 +134,8 @@ something this change should decide by side effect.
 
   | runtime | before | after |
   |---|---|---|
-  | .NET 10 | 608 / 3 / 7 = 618 | **623 / 3 / 3 = 629** |
-  | .NET 9 | 611 / 0 / 7 = 618 | **626 / 0 / 3 = 629** |
+  | .NET 10 | 608 / 3 / 7 = 618 | **639 / 3 / 3 = 645** |
+  | .NET 9 | 611 / 0 / 7 = 618 | **642 / 0 / 3 = 645** |
 
   The row depends on the runtime, not on this change: the assembly targets net8.0, and rolled forward
   onto .NET 10 the three `UriRef` equality tests fail while onto .NET 9 they pass. CI installs the
@@ -151,7 +169,9 @@ something this change should decide by side effect.
   that would survive being generalised to a large backend.
 - **Entailments are computed per model graph.** A query spanning a model group materializes each member
   separately, so an entailment that would only follow from two graphs *together* is not derived.
-- **`GRAPH` and `FROM NAMED` are refused**, not supported, when the flag is set — see above.
+- **`GRAPH`, `FROM NAMED` and `SERVICE` are refused**, not supported, when the flag is set — as is any
+  pattern kind the whitelist has not been taught, which will include genuinely answerable queries using
+  SPARQL features added later. That is the deliberate direction to fail in.
 - **Recomputed on every inferred query.** No caching, deliberately.
 
 ## Related

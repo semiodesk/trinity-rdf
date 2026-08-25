@@ -196,6 +196,63 @@ namespace Semiodesk.Trinity.Tests.DotNetRDF
         }
 
         /// <summary>
+        /// A <c>GRAPH</c> is refused wherever it hides, not only at the top level.
+        /// </summary>
+        /// <remarks>
+        /// The first walker recursed only through child graph patterns. That reaches <c>OPTIONAL</c>,
+        /// <c>MINUS</c> and <c>UNION</c>, but a subquery's pattern hangs off a <c>SubQueryPattern</c>
+        /// in <c>TriplePatterns</c> and a <c>FILTER EXISTS</c> pattern hangs off the filter
+        /// expression — so both were accepted and answered non-inferred. The subquery case is the
+        /// dangerous one: it returned 0 rows where the equivalent default-graph query returned 1.
+        /// </remarks>
+        [TestCase("{{ SELECT ?s WHERE {{ GRAPH <{0}> {{ ?s a <{1}> }} }} }}", TestName = "subquery")]
+        [TestCase("?s ?p ?o . FILTER EXISTS {{ GRAPH <{0}> {{ ?s a <{1}> }} }}", TestName = "FILTER EXISTS")]
+        [TestCase("?s ?p ?o . FILTER NOT EXISTS {{ GRAPH <{0}> {{ ?s a <{1}> }} }}", TestName = "FILTER NOT EXISTS")]
+        [TestCase("?s ?p ?o . OPTIONAL {{ GRAPH <{0}> {{ ?s a <{1}> }} }}", TestName = "OPTIONAL")]
+        [TestCase("?s ?p ?o . MINUS {{ GRAPH <{0}> {{ ?s a <{1}> }} }}", TestName = "MINUS")]
+        [TestCase("{{ ?s a <{1}> }} UNION {{ GRAPH <{0}> {{ ?s a <{1}> }} }}", TestName = "UNION")]
+        [TestCase("?s ?p ?o . FILTER(EXISTS {{ GRAPH <{0}> {{ ?s a <{1}> }} }} || true)", TestName = "EXISTS nested in an expression")]
+        public void NamedGraphAccessIsRefusedWhereverItHides(string where)
+        {
+            var resource = Model1.CreateResource(BaseUri.GetUriRef("inference-hidden-graph"));
+            resource.AddProperty(rdf.type, nco.PersonContact);
+            resource.Commit();
+
+            var query = new SparqlQuery(
+                "SELECT ?s WHERE { " + string.Format(where, Model1.Uri, nco.Contact.Uri) + " }");
+
+            Assert.Throws<NotSupportedException>(
+                () => Model1.ExecuteQuery(query, true).GetBindings().ToList(),
+                "a GRAPH anywhere in the query must be refused, not answered uninferred");
+        }
+
+        /// <summary>
+        /// The refusal must not swallow ordinary queries: the walker refuses what it does not
+        /// recognise, so a whitelist that is too narrow would reject perfectly good SPARQL.
+        /// </summary>
+        [TestCase("?s a <{1}>", TestName = "plain pattern")]
+        [TestCase("?s a <{1}> . FILTER(BOUND(?s))", TestName = "FILTER")]
+        [TestCase("?s a <{1}> . OPTIONAL {{ ?s <http://example.org/p> ?o }}", TestName = "OPTIONAL")]
+        [TestCase("{{ ?s a <{1}> }} UNION {{ ?s a <{1}> }}", TestName = "UNION")]
+        [TestCase("{{ SELECT ?s WHERE {{ ?s a <{1}> }} }}", TestName = "subquery")]
+        [TestCase("?s a <{1}> . BIND(1 AS ?n)", TestName = "BIND")]
+        [TestCase("VALUES ?s {{ <http://example.org/nobody> }} ?s a <{1}>", TestName = "VALUES")]
+        [TestCase("?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>/<http://www.w3.org/2000/01/rdf-schema#subClassOf>* <{1}>", TestName = "property path")]
+        [TestCase("?s ?p ?o . FILTER NOT EXISTS {{ ?s a <http://example.org/None> }}", TestName = "NOT EXISTS without GRAPH")]
+        public void OrdinaryQueriesAreStillAnswered(string where)
+        {
+            var resource = Model1.CreateResource(BaseUri.GetUriRef("inference-ordinary"));
+            resource.AddProperty(rdf.type, nco.PersonContact);
+            resource.Commit();
+
+            var query = new SparqlQuery(
+                "SELECT ?s WHERE { " + string.Format(where, Model1.Uri, nco.Contact.Uri) + " }");
+
+            Assert.DoesNotThrow(() => Model1.ExecuteQuery(query, true).GetBindings().ToList(),
+                "the whitelist must not reject ordinary SPARQL");
+        }
+
+        /// <summary>
         /// A query naming no graph is answered the same way with the flag and without it.
         /// </summary>
         /// <remarks>

@@ -31,6 +31,8 @@ using System.Linq;
 using VDS.RDF;
 using VDS.RDF.Query;
 using VDS.RDF.Query.Inference;
+using VDS.RDF.Query.Expressions;
+using VDS.RDF.Query.Expressions.Functions.Sparql.Boolean;
 using VDS.RDF.Query.Patterns;
 
 // Semiodesk.Trinity has its own SparqlQuery; this file means dotNetRDF's parsed one throughout.
@@ -133,34 +135,139 @@ namespace Semiodesk.Trinity.Store
         /// Refuses a query that reaches a graph by name while inference is requested.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// Entailments are added to the query's <i>default</i> graph. A pattern inside
         /// <c>GRAPH &lt;g&gt;</c> reads <c>g</c> itself, which holds only asserted triples, so such a
         /// query would come back non-inferred while reporting success — the silent wrong answer this
         /// whole design exists to remove. Refusing is the same choice a layered view makes for a query
         /// it cannot rewrite faithfully (ADR-0041).
+        /// </para>
+        /// <para>
+        /// <b>Whitelist, not blacklist</b> — the discipline <c>OverlayQueryRewriter</c> arrived at for
+        /// the same reason. The first version of this walker recursed only through child graph
+        /// patterns, which reaches <c>OPTIONAL</c>, <c>MINUS</c> and <c>UNION</c> but not a subquery
+        /// (whose pattern hangs off a <c>SubQueryPattern</c> in <c>TriplePatterns</c>) nor a
+        /// <c>FILTER EXISTS</c> (whose pattern hangs off the filter expression). A <c>GRAPH</c> in
+        /// either position was accepted and answered non-inferred. Enumerating the places a
+        /// <c>GRAPH</c> can hide is a game that loses to the next SPARQL feature, so anything the
+        /// walker does not positively recognise is refused instead.
+        /// </para>
         /// </remarks>
         private static void RequireNoNamedGraphAccess(ParsedQuery query)
         {
-            if (!query.NamedGraphNames.Any() && !ReadsANamedGraph(query.RootGraphPattern))
+            if (query.NamedGraphNames.Any())
+            {
+                Refuse("the query declares FROM NAMED");
+            }
+
+            RequireNoNamedGraphAccess(query.RootGraphPattern);
+        }
+
+        private static void RequireNoNamedGraphAccess(GraphPattern pattern)
+        {
+            if (pattern == null)
             {
                 return;
             }
 
-            throw new NotSupportedException(
-                "Inferencing is not supported for queries that address a graph by name (GRAPH or "
-                + "FROM NAMED). Entailments are added to the query's default graph, so a pattern "
-                + "reading a named graph would silently return non-inferred results. Query the model "
-                + "through its default graph instead, or run without inferenceEnabled.");
-        }
-
-        private static bool ReadsANamedGraph(GraphPattern pattern)
-        {
-            if (pattern == null)
+            if (pattern.IsGraph)
             {
-                return false;
+                Refuse("the query reads a named graph with GRAPH");
             }
 
-            return pattern.IsGraph || pattern.ChildGraphPatterns.Any(ReadsANamedGraph);
+            if (pattern.IsService)
+            {
+                Refuse("the query delegates to a remote endpoint with SERVICE");
+            }
+
+            foreach (var child in pattern.ChildGraphPatterns)
+            {
+                RequireNoNamedGraphAccess(child);
+            }
+
+            foreach (var triplePattern in pattern.TriplePatterns)
+            {
+                RequireNoNamedGraphAccess(triplePattern);
+            }
+
+            RequireNoNamedGraphAccess(pattern.Filter?.Expression);
+
+            foreach (var filter in pattern.UnplacedFilters)
+            {
+                RequireNoNamedGraphAccess(filter.Expression);
+            }
+        }
+
+        /// <summary>
+        /// Descends the pattern kinds that can contain another pattern, and refuses any kind this
+        /// walker has not been taught about.
+        /// </summary>
+        private static void RequireNoNamedGraphAccess(ITriplePattern triplePattern)
+        {
+            switch (triplePattern)
+            {
+                case ISubQueryPattern subQuery:
+                    // A subquery carries a whole query, dataset clause included.
+                    RequireNoNamedGraphAccess(subQuery.SubQuery);
+                    break;
+
+                case IFilterPattern filter:
+                    RequireNoNamedGraphAccess(filter.Filter?.Expression);
+                    break;
+
+                case GraphPattern nested:
+                    RequireNoNamedGraphAccess(nested);
+                    break;
+
+                // Kinds that match, bind or supply values, and cannot contain a graph pattern.
+                case IMatchTriplePattern _:
+                case IPropertyPathPattern _:
+                case IPropertyFunctionPattern _:
+                case IAssignmentPattern _:
+                case BindingsPattern _:
+                    break;
+
+                default:
+                    Refuse(
+                        $"the query uses a pattern this store cannot check for named-graph access "
+                        + $"({triplePattern.GetType().Name})");
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Walks a filter expression for a pattern hiding inside it.
+        /// </summary>
+        /// <remarks>
+        /// <c>EXISTS</c> / <c>NOT EXISTS</c> is the only SPARQL 1.1 expression form that carries a
+        /// group graph pattern; everything else is reached by recursing through
+        /// <see cref="ISparqlExpression.Arguments"/>, which covers it however deeply it is nested.
+        /// </remarks>
+        private static void RequireNoNamedGraphAccess(ISparqlExpression expression)
+        {
+            if (expression == null)
+            {
+                return;
+            }
+
+            if (expression is ExistsFunction exists)
+            {
+                RequireNoNamedGraphAccess(exists.Pattern);
+            }
+
+            foreach (var argument in expression.Arguments)
+            {
+                RequireNoNamedGraphAccess(argument);
+            }
+        }
+
+        private static void Refuse(string what)
+        {
+            throw new NotSupportedException(
+                $"Inferencing is not supported here: {what}. Entailments are added to the query's "
+                + "default graph, so a pattern reading a named graph would silently return "
+                + "non-inferred results. Query the model through its default graph instead, or run "
+                + "without inferenceEnabled.");
         }
 
         /// <summary>
