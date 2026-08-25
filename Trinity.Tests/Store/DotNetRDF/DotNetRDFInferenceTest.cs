@@ -28,6 +28,7 @@
 using System;
 using System.Linq;
 using NUnit.Framework;
+using VDS.RDF.Query;
 using Semiodesk.Trinity.Ontologies;
 using Semiodesk.Trinity.Tests.Store;
 
@@ -106,39 +107,124 @@ namespace Semiodesk.Trinity.Tests.DotNetRDF
         }
 
         /// <summary>
-        /// The graphs holding entailments belong to the store, not the caller, so they must not appear
-        /// as models.
+        /// Entailments must not be visible to a query that did not ask for them — including one that
+        /// enumerates graphs.
         /// </summary>
+        /// <remarks>
+        /// An earlier design cached entailment graphs inside the store. <c>ListModels</c> and
+        /// <c>ContainsModel</c> filtered them out, but a raw <c>GRAPH ?g</c> query did not, so internal
+        /// bookkeeping and its entailed triples became visible to callers who had switched inference
+        /// off. Entailments now live in a per-query dataset and never enter the store at all.
+        /// </remarks>
         [Test]
-        public void InferenceGraphsAreNotModels()
+        public void EntailmentsAreNeverVisibleToAQueryThatDidNotAskForThem()
         {
             var resource = Model1.CreateResource(BaseUri.GetUriRef("inference-hidden"));
             resource.AddProperty(rdf.type, nco.PersonContact);
             resource.Commit();
 
-            // Force the entailments to be materialized.
-            Model1.GetResources<Contact>(true).ToList();
+            // Force entailments to be computed at least once.
+            Assert.IsNotEmpty(Model1.GetResources<Contact>(true).ToList());
 
-            var models = Store.ListModels().Select(m => m.Uri.ToString()).ToList();
+            var graphs = ((Semiodesk.Trinity.Store.dotNetRDFStore)Store)
+                .ExecuteQuery("SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } }") as SparqlResultSet;
+
+            var names = graphs.Select(r => r["g"]?.ToString() ?? string.Empty).ToList();
 
             CollectionAssert.IsEmpty(
-                models.Where(m => m.StartsWith("urn:semiodesk:trinity:inferred:", StringComparison.Ordinal)).ToList(),
-                "inference graphs must not be listed as models:\n" + string.Join("\n", models));
+                names.Where(n => n.StartsWith("urn:semiodesk:trinity:", StringComparison.Ordinal)).ToList(),
+                "no internal graph may be visible to a caller:\n" + string.Join("\n", names));
+
+            CollectionAssert.IsEmpty(Store.ListModels()
+                .Select(m => m.Uri.ToString())
+                .Where(n => n.StartsWith("urn:semiodesk:trinity:", StringComparison.Ordinal)).ToList(),
+                "nor listed as a model");
         }
 
         /// <summary>
-        /// Inference must not widen a query that named no graph into one that names several.
+        /// A query whose dataset clause uses <c>BASE</c> must not break when inference is switched on.
         /// </summary>
+        /// <remarks>
+        /// The first implementation read Trinity's own record of the <c>FROM</c> operands, which is the
+        /// raw token text: with a <c>BASE</c> declaration that text is relative, and constructing a URI
+        /// from it threw. Enabling inference turned a working query into a crash. The parsed query's
+        /// resolved graph names are used instead.
+        /// </remarks>
         [Test]
-        public void QueryWithoutADatasetIsUnaffectedByTheFlag()
+        public void RelativeDatasetClauseSurvivesTheFlag()
+        {
+            var resource = Model1.CreateResource(BaseUri.GetUriRef("inference-relative"));
+            resource.AddProperty(rdf.type, nco.PersonContact);
+            resource.Commit();
+
+            var query = new SparqlQuery(
+                $"BASE <{Model1.Uri}> SELECT ?s WHERE {{ ?s a <{nco.PersonContact.Uri}> }}");
+
+            var withoutInference = Model1.ExecuteQuery(query).GetBindings().Count();
+
+            Assert.AreEqual(1, withoutInference);
+
+            Assert.DoesNotThrow(() => Model1.ExecuteQuery(query, true).GetBindings().ToList(),
+                "a relative dataset clause must not crash when inference is enabled");
+        }
+
+        /// <summary>
+        /// A query that reaches a graph by name is refused rather than answered without inference.
+        /// </summary>
+        /// <remarks>
+        /// Entailments are added to the query's default graph, so a pattern inside <c>GRAPH &lt;g&gt;</c>
+        /// reads only asserted triples. Answering it would report success while silently returning a
+        /// non-inferred result — the failure this whole design exists to remove — so it throws instead
+        /// (the choice a layered view makes for a query it cannot rewrite faithfully, ADR-0041).
+        /// </remarks>
+        [Test]
+        public void QueryingANamedGraphWithInferenceIsRefusedRatherThanAnsweredUninferred()
+        {
+            var resource = Model1.CreateResource(BaseUri.GetUriRef("inference-named"));
+            resource.AddProperty(rdf.type, nco.PersonContact);
+            resource.Commit();
+
+            var graph = new SparqlQuery(
+                $"SELECT ?s WHERE {{ GRAPH <{Model1.Uri}> {{ ?s a <{nco.Contact.Uri}> }} }}");
+
+            Assert.Throws<NotSupportedException>(
+                () => Model1.ExecuteQuery(graph, true).GetBindings().ToList(),
+                "GRAPH with inference must refuse, not answer uninferred");
+
+            // ...and the same query without the flag is untouched.
+            Assert.DoesNotThrow(() => Model1.ExecuteQuery(graph).GetBindings().ToList());
+        }
+
+        /// <summary>
+        /// A query naming no graph is answered the same way with the flag and without it.
+        /// </summary>
+        /// <remarks>
+        /// Executed through the store rather than through a model: <c>Model.ExecuteQuery</c> injects a
+        /// <c>FROM</c> for the model, so a test written against it never has the empty dataset it
+        /// claims to exercise — the earlier version of this test asserted only <c>DoesNotThrow</c> and
+        /// would have passed either way. Widening such a query would <i>narrow</i> it from the whole
+        /// store to one graph, so inference deliberately does nothing.
+        /// </remarks>
+        [Test]
+        public void QueryNamingNoGraphIsAnsweredIdenticallyWithAndWithoutTheFlag()
         {
             var resource = Model1.CreateResource(BaseUri.GetUriRef("inference-nodataset"));
             resource.AddProperty(rdf.type, nco.PersonContact);
             resource.Commit();
 
-            var query = new SparqlQuery("SELECT ?s WHERE { ?s ?p ?o . }");
+            var text = $"SELECT ?s WHERE {{ ?s a <{nco.Contact.Uri}> }}";
 
-            Assert.DoesNotThrow(() => Model1.ExecuteQuery(query, true).GetBindings().ToList());
+            var plain = Store.ExecuteQuery(new SparqlQuery(text)).GetBindings().Count();
+
+            var inferred = Store.ExecuteQuery(
+                new SparqlQuery(text) { IsInferenceEnabled = true }).GetBindings().Count();
+
+            // Both read the store's default graph, which the models do not write to -- so the count
+            // itself is not the point. That it does not *change* is: widening a query that named no
+            // graph would restrict it to one, and switching inference on must never do that.
+            Assert.AreEqual(plain, inferred,
+                "with no graph named there is nothing to widen, so the answer must not change");
         }
+
     }
 }

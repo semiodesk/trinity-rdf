@@ -58,11 +58,10 @@ namespace Semiodesk.Trinity.Store
         SparqlUpdateParser _parser;
 
         /// <summary>
-        /// Materializes RDFS entailments into side graphs so <c>inferenceEnabled</c> can be honoured
-        /// per query. See <see cref="RdfsInferenceCache"/> for why they cannot live in the model graph.
+        /// Computes RDFS entailments per query so <c>inferenceEnabled</c> can be honoured. See
+        /// <see cref="RdfsEntailment"/> for why they never enter this store.
         /// </summary>
-        readonly RdfsInferenceCache _inference;
-
+        readonly RdfsEntailment _inference;
 
         #endregion
 
@@ -78,12 +77,12 @@ namespace Semiodesk.Trinity.Store
             _updateProcessor = new LeviathanUpdateProcessor(_store);
             _queryProcessor = new LeviathanQueryProcessor(_store);
             _parser = new SparqlUpdateParser();
-            _inference = new RdfsInferenceCache(_store);
+            _inference = new RdfsEntailment(_store);
 
             // No AddInferenceEngine here, deliberately. It materializes entailments back into the
             // graph being added, which would make them visible to queries that asked for no
             // inference -- and it only ever fires on Add, so it never saw anything Trinity wrote
-            // through SPARQL UPDATE anyway. RdfsInferenceCache does the reasoning instead.
+            // through SPARQL UPDATE anyway. RdfsEntailment does the reasoning instead.
             if (schemes != null)
             {
                 foreach (string s in schemes)
@@ -94,9 +93,6 @@ namespace Semiodesk.Trinity.Store
                     _store.Add(LoadSchema(file.FullName));
                 }
 
-                // The schema graphs are part of the store now, so the reasoner has to be rebuilt
-                // before the next inferred query.
-                _inference.Invalidate();
             }
         }
 
@@ -143,8 +139,6 @@ namespace Semiodesk.Trinity.Store
 
             if (_store.HasGraph(name))
                 _store.Remove(name);
-
-            _inference.Invalidate();
         }
 
         /// <summary>
@@ -161,9 +155,7 @@ namespace Semiodesk.Trinity.Store
             // A null URI is not a model. dotNetRDF reads a null graph name as the default graph,
             // which always exists, so without this the in-memory store answered "present" for null
             // while every other backend answered "absent" (StoreCatalogTest pins the contract).
-            return uri != null
-                && !RdfsInferenceCache.IsInferenceGraph(uri)
-                && _store.HasGraph(GraphName(uri));
+            return uri != null && _store.HasGraph(GraphName(uri));
         }
 
         /// <summary>
@@ -180,9 +172,6 @@ namespace Semiodesk.Trinity.Store
             SparqlUpdateCommandSet cmds = _parser.ParseFromString(q);
 
             _updateProcessor.ProcessCommandSet(cmds);
-
-            // An UPDATE does not say which graph it touched, so every entailment is now suspect.
-            _inference.Invalidate();
         }
 
         /// <summary>
@@ -196,7 +185,7 @@ namespace Semiodesk.Trinity.Store
             string q = query.ToString();
 
             object results = query.IsInferenceEnabled
-                ? ExecuteQueryWithInference(q, query.GetDefaultModels())
+                ? ExecuteQueryWithInference(q)
                 : ExecuteQuery(q);
 
             if (results is IGraph)
@@ -237,23 +226,19 @@ namespace Semiodesk.Trinity.Store
         /// <c>FROM</c>. A query that names no graph is left alone: adding one would narrow it from the
         /// whole store to a single graph, which is the opposite of what enabling inference should do.
         /// </remarks>
-        private object ExecuteQueryWithInference(string queryString, IEnumerable<string> defaultGraphs)
+        private object ExecuteQueryWithInference(string queryString)
         {
             Log?.Invoke(queryString);
 
             var query = new SparqlQueryParser().ParseFromString(queryString);
 
-            foreach (var graph in defaultGraphs)
-            {
-                var inferred = _inference.EnsureCurrent(new Uri(graph));
+            // The entailments live in a throwaway dataset, never in _store, so a query that asked for
+            // no inference cannot see them -- not even one enumerating GRAPH ?g.
+            var dataset = _inference.Apply(query);
 
-                if (inferred != null)
-                {
-                    query.AddDefaultGraph(inferred);
-                }
-            }
-
-            return _queryProcessor.ProcessQuery(query);
+            return dataset == null
+                ? _queryProcessor.ProcessQuery(query)
+                : new LeviathanQueryProcessor(dataset).ProcessQuery(query);
         }
 
         /// <summary>
@@ -282,7 +267,7 @@ namespace Semiodesk.Trinity.Store
                 // 3.x: a graph is named by an IRefNode (URI or blank node); only URI-named graphs
                 // are addressable as models. Inference graphs are ours, not the caller's, so they are
                 // not models either.
-                if (graph.Name is IUriNode name && !RdfsInferenceCache.IsInferenceGraph(graph.Name))
+                if (graph.Name is IUriNode name)
                 {
                     yield return new Model(this, new UriRef(name.Uri));
                 }
@@ -350,8 +335,6 @@ namespace Semiodesk.Trinity.Store
 
                 _store.Add(graph, update);
 
-                _inference.Invalidate();
-
                 return graphUri;
             }
         }
@@ -379,8 +362,6 @@ namespace Semiodesk.Trinity.Store
                 }
 
                 _store.Add(graph, update);
-
-                _inference.Invalidate();
 
                 if (!leaveOpen)
                     stream.Close();
@@ -431,7 +412,6 @@ namespace Semiodesk.Trinity.Store
 
                             _store.Add(g, update);
 
-                            _inference.Invalidate();
                         }
                     }
                     else
@@ -456,8 +436,6 @@ namespace Semiodesk.Trinity.Store
                 }
 
                 _store.Add(graph, update);
-
-                _inference.Invalidate();
 
                 return graphUri;
             }

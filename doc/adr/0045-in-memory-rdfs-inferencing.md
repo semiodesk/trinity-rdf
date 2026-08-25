@@ -39,9 +39,9 @@ inferenceEnabled: false  ->  FROM <g>                    (byte-identical to prev
 inferenceEnabled: true   ->  FROM <g> FROM <inferred(g)>
 ```
 
-`RdfsInferenceCache` (`Trinity/Stores/dotNetRDF/RdfsInferenceCache.cs`) owns the side graphs, named
-`urn:semiodesk:trinity:inferred:{escaped model URI}`. They are filtered out of `ListModels` and
-`ContainsModel`: they are the store's, not the caller's.
+`RdfsEntailment` (`Trinity/Stores/dotNetRDF/RdfsEntailment.cs`) computes them **per query, into a
+throwaway dataset** that merely references the store's existing graphs, and discards it when the query
+returns. Nothing is ever added to the store.
 
 **Why not `AddInferenceEngine`, the obvious answer.** It writes entailments back into the graph they
 came from, so they become visible to *every* query — and a store that does that cannot answer
@@ -66,12 +66,37 @@ cannot silently redefine the ontology.
 add a `FROM`. A query naming no graph is left alone — adding one would narrow it from the whole store to
 a single graph, the opposite of what enabling inference should do.
 
-### Invalidation is coarse, deliberately
+The graphs to widen come from the parsed query's **resolved** `DefaultGraphNames`, not from Trinity's own
+record of the `FROM` operands. That record is raw token text, which is *relative* when the query carries
+a `BASE` declaration — so reading it turned a query that worked with the flag off into a
+`UriFormatException` the moment inference was switched on.
 
-Any write drops every materialized graph; the next inferred query recomputes. A SPARQL UPDATE does not
-say which graph it touched, and guessing wrong serves stale entailments — a silent wrong answer, the
-thing this ADR exists to remove. The store is in-memory and used for tests and development, so
-recomputation is cheap. Making invalidation finer is an optimisation, not a correctness fix.
+### Queries that address a graph by name are refused
+
+Entailments are added to the query's **default** graph. A pattern inside `GRAPH <g>` reads `g` itself,
+which holds only asserted triples, so such a query would come back non-inferred while reporting success.
+`inferenceEnabled: true` with `GRAPH` or `FROM NAMED` therefore throws `NotSupportedException` — the same
+choice a layered view makes for a query it cannot rewrite faithfully ([0041](0041-layered-read-views.md)).
+Silently answering it would be the exact defect this ADR exists to remove, wearing the costume of a
+feature that works.
+
+### Entailments are recomputed per query, not cached
+
+The first implementation cached entailment graphs *inside* the store and invalidated coarsely on every
+write. Review found that this bought speed at the cost of three defects, all of them the silent kind:
+
+- the cached graphs were visible to any query enumerating `GRAPH ?g`, so internal bookkeeping and its
+  entailed triples leaked into queries that had switched inference **off** — `ListModels` and
+  `ContainsModel` filtered them, raw SPARQL did not;
+- a failure midway through materialization **latched permanently**, because the model was marked
+  materialized before the work succeeded, so every later inferred query for it silently ran uninferred;
+- a *read* mutated shared state, so a concurrent invalidation could remove graphs from under an
+  in-flight query.
+
+Computing per query removes all three by construction, and removes the invalidation problem with them.
+The cost is recomputation, which for an in-memory store used in tests and development is the cheaper
+trade. If it ever shows up in a profile, the fix is a cache keyed on a store version — but it has to be
+a cache that cannot be observed, which is what the first attempt got wrong.
 
 ### Polymorphism is gated behind the flag
 
@@ -91,8 +116,8 @@ something this change should decide by side effect.
 
   | runtime | before | after |
   |---|---|---|
-  | .NET 10 | 608 / 3 / 7 = 618 | **621 / 3 / 3 = 627** |
-  | .NET 9 | 611 / 0 / 7 = 618 | **624 / 0 / 3 = 627** |
+  | .NET 10 | 608 / 3 / 7 = 618 | **623 / 3 / 3 = 629** |
+  | .NET 9 | 611 / 0 / 7 = 618 | **626 / 0 / 3 = 629** |
 
   The row depends on the runtime, not on this change: the assembly targets net8.0, and rolled forward
   onto .NET 10 the three `UriRef` equality tests fail while onto .NET 9 they pass. CI installs the
@@ -126,6 +151,8 @@ something this change should decide by side effect.
   that would survive being generalised to a large backend.
 - **Entailments are computed per model graph.** A query spanning a model group materializes each member
   separately, so an entailment that would only follow from two graphs *together* is not derived.
+- **`GRAPH` and `FROM NAMED` are refused**, not supported, when the flag is set — see above.
+- **Recomputed on every inferred query.** No caching, deliberately.
 
 ## Related
 - [0022](0022-store-capabilities-and-istore-extension.md) — the per-query flag, and the claim this corrects
