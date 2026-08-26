@@ -27,6 +27,8 @@
 
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Semiodesk.Trinity.Tests
 {
@@ -71,6 +73,113 @@ namespace Semiodesk.Trinity.Tests
             Assert.AreNotEqual(u7, u8);
             Assert.IsFalse(u7.Equals(u8));
             Assert.IsFalse(u7 == u8);
+        }
+
+        /// <summary>
+        /// The consumer-facing symptom, and the one nothing covered before: generic collections do not
+        /// call Equals(object). They use EqualityComparer&lt;T&gt;.Default, which prefers IEquatable&lt;T&gt;
+        /// -- and .NET 10 added IEquatable&lt;Uri&gt; to System.Uri itself. Without UriRef implementing it
+        /// too, every Dictionary, HashSet, Contains and Distinct in Trinity and in consumer code silently
+        /// started comparing fragment-blind on that runtime, with no recompile involved.
+        /// </summary>
+        [Test]
+        public void FragmentDistinctUrisStayDistinctInGenericCollections()
+        {
+            // Declared Uri, not UriRef: that is the case the interface has to carry, because the
+            // == operators below cannot help once the static type is Uri.
+            Uri u0 = new UriRef("http://semiodesk.com/ontologies/ppo#a");
+            Uri u1 = new UriRef("http://semiodesk.com/ontologies/ppo#b");
+            Uri u2 = new UriRef("http://semiodesk.com/ontologies/ppo");
+
+            Assert.IsFalse(EqualityComparer<Uri>.Default.Equals(u0, u1),
+                "EqualityComparer<Uri>.Default must honour the fragment.");
+            Assert.IsFalse(EqualityComparer<Uri>.Default.Equals(u0, u2));
+
+            var set = new HashSet<Uri> { u0, u1, u2 };
+
+            Assert.AreEqual(3, set.Count, "Three distinct resources must occupy three slots.");
+            Assert.IsTrue(set.Contains(new UriRef("http://semiodesk.com/ontologies/ppo#a")));
+            Assert.IsFalse(set.Contains(new UriRef("http://semiodesk.com/ontologies/ppo#c")));
+
+            var map = new Dictionary<Uri, string> { { u0, "a" }, { u1, "b" }, { u2, "none" } };
+
+            Assert.AreEqual(3, map.Count);
+            Assert.AreEqual("a", map[new UriRef("http://semiodesk.com/ontologies/ppo#a")]);
+
+            Assert.AreEqual(3, new[] { u0, u1, u2, u0, u1 }.Distinct().Count());
+        }
+
+        /// <summary>
+        /// Pins the Equals/GetHashCode contract. The old implementation branched on the *argument's*
+        /// IsBlankId in Equals but on 'this' in GetHashCode, so symmetry and hash agreement held only
+        /// incidentally -- through short-circuit evaluation rather than by construction. Both methods
+        /// now decide from the same operands, and this test is what keeps that true.
+        /// </summary>
+        [Test]
+        public void EqualityIsSymmetricAndAgreesWithGetHashCode()
+        {
+            var blank = new UriRef("_:b0", true);
+            var absolute = new UriRef("http://semiodesk.com/ontologies/ppo#a");
+            var sameAbsolute = new UriRef("http://semiodesk.com/ontologies/ppo#a");
+
+            Assert.AreEqual(blank.Equals(absolute), absolute.Equals(blank),
+                "A blank identifier compared against an absolute URI must answer the same both ways.");
+            Assert.IsFalse(blank.Equals(absolute));
+
+            Assert.IsTrue(absolute.Equals(sameAbsolute));
+            Assert.IsTrue(sameAbsolute.Equals(absolute));
+            Assert.AreEqual(absolute.GetHashCode(), sameAbsolute.GetHashCode(),
+                "Equal values must hash equally.");
+
+            // A blank identifier is relative, so reaching Fragment would throw. Equality must not.
+            Assert.DoesNotThrow(() => blank.Equals(absolute));
+            Assert.DoesNotThrow(() => absolute.Equals(blank));
+
+            var set = new HashSet<UriRef> { blank, absolute };
+
+            Assert.AreEqual(2, set.Count);
+            Assert.IsTrue(set.Contains(new UriRef("_:b0", true)));
+        }
+
+        /// <summary>
+        /// Copying a blank identifier through the Uri constructor used to throw (a blank label is not a
+        /// valid absolute URI) and, before that, would have dropped the flag that makes it blank.
+        /// </summary>
+        [Test]
+        public void CopyingPreservesBlankIdentity()
+        {
+            var blank = new UriRef("_:b0", true);
+            var copy = new UriRef(blank);
+
+            Assert.IsTrue(copy.IsBlankId);
+            Assert.AreEqual(blank, copy);
+            Assert.AreEqual(blank.GetHashCode(), copy.GetHashCode());
+        }
+
+        /// <summary>
+        /// The runtime half of the TRIN007 enforcement. The generator only sees the partial properties
+        /// it emits, but mappings can also be declared by hand (ADR-0018) and those reach the runtime
+        /// with no diagnostic at all -- so PropertyMapping&lt;T&gt; refuses System.Uri itself, in Release
+        /// builds too.
+        /// </summary>
+        [Test]
+        public void PropertyMappingRefusesRawUriAndAcceptsUriRef()
+        {
+            var property = new Property(new UriRef("http://example.org/test#homepage"));
+
+            var error = Assert.Throws<ArgumentException>(
+                () => new PropertyMapping<Uri>("Homepage", property));
+
+            Assert.That(error.Message, Does.Contain("Homepage").And.Contain("UriRef"),
+                "The message has to name the property: it surfaces at assembly registration, not at the property.");
+
+            Assert.DoesNotThrow(() => new PropertyMapping<UriRef>("Homepage", property));
+            Assert.DoesNotThrow(
+                () => new PropertyMapping<List<UriRef>>("Homepages", property, new List<UriRef>()));
+
+            // The element type is what gets stored, so a collection of raw URIs has the same defect.
+            Assert.Throws<ArgumentException>(
+                () => new PropertyMapping<List<Uri>>("Homepages", property, new List<Uri>()));
         }
 
         [Test]

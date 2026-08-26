@@ -11,3 +11,4 @@ TRIN003 | Trinity.Mapping | Warning | Mapped type is nested; mapping is only gen
 TRIN004 | Trinity.Mapping | Warning | Mapped class does not derive from Semiodesk.Trinity.Resource
 TRIN005 | Trinity.Mapping | Warning | Mapped class has no accessible constructor taking a single Uri
 TRIN006 | Trinity.Mapping | Warning | URI belongs to a generated vocabulary but is not one of its terms
+TRIN007 | Trinity.Mapping | Warning | Mapped property uses System.Uri, whose equality ignores the fragment; use UriRef

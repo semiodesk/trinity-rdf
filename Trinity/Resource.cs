@@ -420,7 +420,13 @@ namespace Semiodesk.Trinity
         {
             IResource r = other as Resource;
 
-            return r != null && r.Uri == Uri;
+            // Compared as strings rather than with ==, for two reasons. Uri.Equals ignores the
+            // fragment (RFC 3986), and many RDF vocabularies identify terms by one; and == binds
+            // statically, so it silently stops honouring UriRef the moment either operand is
+            // declared Uri. This also matches GetHashCode below, which already hashes
+            // OriginalString -- before this, Equals and GetHashCode disagreed.
+            return r != null && r.Uri != null && Uri != null
+                && Uri.OriginalString.Equals(r.Uri.OriginalString);
         }
 
         /// <summary>
@@ -448,7 +454,11 @@ namespace Semiodesk.Trinity
 
             if (property.Uri.OriginalString == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
             {
-                Uri uri;
+                // Declared UriRef, not Uri: rdf:type IRIs are overwhelmingly fragment IRIs
+                // (...#Person), and with a Uri-typed operand this comparison binds to
+                // Uri.operator == and dedupes two distinct classes into one, silently dropping
+                // the second type.
+                UriRef uri;
 
                 if(value is IResource)
                 {
@@ -456,7 +466,7 @@ namespace Semiodesk.Trinity
                 }
                 else if(value is Uri)
                 {
-                    uri = value as Uri;
+                    uri = (value as Uri).ToUriRef();
                 }
                 else
                 {
@@ -474,7 +484,9 @@ namespace Semiodesk.Trinity
             if (propertyMapping != null)
             {
                 // yes, so we try to set or add it
-                if (fromModel && value is IResource && propertyMapping.DataType != typeof(Uri) && propertyMapping.GenericType != typeof(Uri) )
+                if (fromModel && value is IResource
+                    && !typeof(Uri).IsAssignableFrom(propertyMapping.DataType)
+                    && !typeof(Uri).IsAssignableFrom(propertyMapping.GenericType))
                 {
                     // we generate the resource from the model, so we cache all mapped resources
                     ResourceCache.CacheValue(propertyMapping, (value as IResource).Uri);

@@ -283,7 +283,13 @@ namespace Semiodesk.Trinity.Query.Sparql
                     _builder.Append('?').Append(variable.Name);
                     break;
                 case IriTerm iri:
-                    _builder.Append('<').Append(iri.Value.AbsoluteUri).Append('>');
+                    // Delegated to the same routine the write path uses, rather than writing
+                    // AbsoluteUri here. Two reasons: AbsoluteUri normalizes percent-encoding case,
+                    // dot-segments, default ports and host casing, so a resource written under its
+                    // OriginalString could not be found by a query built from the same Uri; and it
+                    // throws on a relative URI, which is what a blank node identifier is -- naming
+                    // one in a query used to crash. SerializeUri emits those bare, as SPARQL wants.
+                    _builder.Append(SparqlSerializer.SerializeUri(iri.Value));
                     break;
                 case RdfTypeTerm _:
                     _builder.Append('a');
@@ -306,7 +312,7 @@ namespace Semiodesk.Trinity.Query.Sparql
             }
             else if (literal.Datatype != null)
             {
-                _builder.Append("^^<").Append(literal.Datatype.AbsoluteUri).Append('>');
+                _builder.Append("^^<").Append(literal.Datatype.OriginalString).Append('>');
             }
         }
 

@@ -306,19 +306,19 @@ namespace Semiodesk.Trinity.Tests
             set { SetValue(resPropertyMapping, value); }
         }
 
-        protected PropertyMapping<ObservableCollection<Uri>> uriTestMapping =
-            new PropertyMapping<ObservableCollection<Uri>>("uriTest", to.uriTest, new ObservableCollection<Uri>());
+        protected PropertyMapping<ObservableCollection<UriRef>> uriTestMapping =
+            new PropertyMapping<ObservableCollection<UriRef>>("uriTest", to.uriTest, new ObservableCollection<UriRef>());
 
-        public ObservableCollection<Uri> uriTest
+        public ObservableCollection<UriRef> uriTest
         {
             get { return GetValue(uriTestMapping); }
             set { SetValue(uriTestMapping, value); }
         }
 
-        protected PropertyMapping<Uri> uniqueUriTestMapping =
-            new PropertyMapping<Uri>("uniqueUriTest", to.uniqueUriTest);
+        protected PropertyMapping<UriRef> uniqueUriTestMapping =
+            new PropertyMapping<UriRef>("uniqueUriTest", to.uniqueUriTest);
 
-        public Uri uniqueUriTest
+        public UriRef uniqueUriTest
         {
             get { return GetValue(uniqueUriTestMapping); }
             set { SetValue(uniqueUriTestMapping, value); }

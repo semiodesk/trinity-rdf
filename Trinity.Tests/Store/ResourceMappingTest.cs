@@ -713,11 +713,11 @@ namespace Semiodesk.Trinity.Tests.Store
             // Test if ListValues works
             Assert.AreEqual(0, actual.ListValues(to.uniqueUriTest).Count());
 
-            r1.uriTest.Add(new Uri("urn:test#myUri1"));
-            r1.uriTest.Add(new Uri("urn:test#myUri2"));
-            r1.uriTest.Add(new Uri("urn:test3"));
-            r1.uriTest.Add(new Uri("urn:test/my#Uri4"));
-            r1.uriTest.Add(new Uri("urn:test#5"));
+            r1.uriTest.Add(new UriRef("urn:test#myUri1"));
+            r1.uriTest.Add(new UriRef("urn:test#myUri2"));
+            r1.uriTest.Add(new UriRef("urn:test3"));
+            r1.uriTest.Add(new UriRef("urn:test/my#Uri4"));
+            r1.uriTest.Add(new UriRef("urn:test#5"));
             r1.Commit();
 
             actual = Model1.GetResource<MappingTestClass>(_r1);

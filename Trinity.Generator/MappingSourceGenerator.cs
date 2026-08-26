@@ -90,6 +90,11 @@ namespace Semiodesk.Trinity.Generator
                     context.ReportDiagnostic(result.Diagnostic.ToDiagnostic());
                 }
 
+                if (result.MappedTypeIsRawUri is not null)
+                {
+                    context.ReportDiagnostic(result.MappedTypeIsRawUri.ToDiagnostic());
+                }
+
                 if (result.Info is not PropertyInfo property)
                 {
                     continue;
@@ -223,12 +228,28 @@ namespace Semiodesk.Trinity.Generator
 
         private static string? GetCollectionConcreteType(ITypeSymbol type)
         {
-            if (type is not INamedTypeSymbol named || !named.IsGenericType || named.TypeArguments.Length != 1)
+            string? container = GetCollectionContainer(type);
+
+            if (container is null)
             {
                 return null;
             }
 
-            string element = named.TypeArguments[0].ToDisplayString(TypeFormat);
+            string element = ((INamedTypeSymbol)type).TypeArguments[0].ToDisplayString(TypeFormat);
+
+            return container + "<" + element + ">";
+        }
+
+        /// <summary>
+        /// The concrete collection type to instantiate for a mapped collection property, without its
+        /// type argument, or <c>null</c> if the type is not a recognized collection.
+        /// </summary>
+        private static string? GetCollectionContainer(ITypeSymbol type)
+        {
+            if (type is not INamedTypeSymbol named || !named.IsGenericType || named.TypeArguments.Length != 1)
+            {
+                return null;
+            }
 
             switch (named.OriginalDefinition.ToDisplayString())
             {
@@ -238,14 +259,33 @@ namespace Semiodesk.Trinity.Generator
                 case "System.Collections.Generic.IEnumerable<T>":
                 case "System.Collections.Generic.IReadOnlyList<T>":
                 case "System.Collections.Generic.IReadOnlyCollection<T>":
-                    return "global::System.Collections.Generic.List<" + element + ">";
+                    return "global::System.Collections.Generic.List";
                 case "System.Collections.ObjectModel.ObservableCollection<T>":
-                    return "global::System.Collections.ObjectModel.ObservableCollection<" + element + ">";
+                    return "global::System.Collections.ObjectModel.ObservableCollection";
                 case "System.Collections.ObjectModel.Collection<T>":
-                    return "global::System.Collections.ObjectModel.Collection<" + element + ">";
+                    return "global::System.Collections.ObjectModel.Collection";
                 default:
                     return null;
             }
+        }
+
+        /// <summary>
+        /// Indicates whether a mapped property stores <c>System.Uri</c> values, either directly or as
+        /// the element type of a mapped collection.
+        /// </summary>
+        /// <remarks>
+        /// Matched on exact identity rather than derivation, which is the point: <see cref="Uri"/> is
+        /// wrong for RDF identity and <c>UriRef</c>, which derives from it, is the fix. A check phrased
+        /// as "assignable to Uri" would flag the fix as well as the defect.
+        /// </remarks>
+        private static bool IsRawUri(ITypeSymbol type)
+        {
+            ITypeSymbol candidate = GetCollectionContainer(type) is null
+                ? type
+                : ((INamedTypeSymbol)type).TypeArguments[0];
+
+            return candidate.Name == "Uri"
+                && candidate.ContainingNamespace?.ToDisplayString() == "System";
         }
 
         private static bool IsTopLevel(INamedTypeSymbol? type) => type is not null && type.ContainingType is null;
@@ -327,10 +367,17 @@ namespace Semiodesk.Trinity.Generator
         /// properties but no <c>[RdfClass]</c> is still told it needs to be partial. Without it, such a
         /// class produces only per-property warnings and never names the class itself.
         /// </remarks>
+        /// <remarks>
+        /// <paramref name="MappedTypeIsRawUri"/> is separate from <paramref name="Diagnostic"/> because
+        /// it is the only property-level diagnostic that does not suppress the mapping: the generated
+        /// code is fine, the declared type is not. Reporting it through <paramref name="Diagnostic"/>
+        /// would mean returning early and dropping a mapping that ought to be emitted.
+        /// </remarks>
         private sealed record PropertyResult(
             PropertyInfo? Info,
             DiagnosticInfo? Diagnostic,
-            DiagnosticInfo? ContainingClassNotPartial);
+            DiagnosticInfo? ContainingClassNotPartial,
+            DiagnosticInfo? MappedTypeIsRawUri = null);
 
         /// <summary>The outcome of inspecting one <c>[RdfClass]</c> declaration.</summary>
         /// <remarks>
@@ -497,6 +544,10 @@ namespace Semiodesk.Trinity.Generator
 
                 INamedTypeSymbol type = prop.ContainingType;
 
+                DiagnosticInfo? mappedTypeIsRawUri = IsRawUri(prop.Type)
+                    ? new DiagnosticInfo(MappingDiagnostics.MappedTypeMustNotBeRawUri, location, prop.Name)
+                    : null;
+
                 return new PropertyResult(new PropertyInfo(
                     type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                     GetNamespace(type),
@@ -506,7 +557,7 @@ namespace Semiodesk.Trinity.Generator
                     uri,
                     languageInvariant,
                     GetCollectionConcreteType(prop.Type),
-                    modifiers), null, containingClassNotPartial);
+                    modifiers), null, containingClassNotPartial, mappedTypeIsRawUri);
             }
         }
 

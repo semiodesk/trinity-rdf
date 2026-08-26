@@ -171,5 +171,45 @@ namespace Semiodesk.Trinity.Tests.Query.Sparql
             StringAssert.Contains("OPTIONAL {", text);
             AssertValidSparql(text);
         }
+
+        /// <summary>
+        /// IRIs are written from OriginalString, matching the write path (SparqlSerializer.SerializeUri).
+        /// AbsoluteUri, which this used to use, normalizes percent-encoding case, dot-segments, default
+        /// ports and host casing -- so a resource stored under its original spelling could not be found
+        /// by a query built from the very same Uri.
+        /// </summary>
+        [Test]
+        public void WritesIrisExactlyAsGiven()
+        {
+            var s = new VariableTerm("s");
+            var query = new SelectQuery();
+            query.Projections.Add(new Projection(s));
+            query.Where.Add(new TriplePattern(s, RdfTypeTerm.Instance,
+                new IriTerm(new UriRef("http://example.org/a%2Fb/../c"))));
+
+            var text = SparqlQueryWriter.Write(query);
+
+            StringAssert.Contains("<http://example.org/a%2Fb/../c>", text);
+        }
+
+        /// <summary>
+        /// A blank node identifier is a relative URI, and reading AbsoluteUri on one throws. Naming a
+        /// blank node in a query used to crash for that reason; SPARQL wants the bare label anyway.
+        /// </summary>
+        [Test]
+        public void WritesBlankNodeIdentifiersWithoutThrowing()
+        {
+            var query = new SelectQuery();
+            query.Projections.Add(new Projection(new VariableTerm("p")));
+            query.Where.Add(new TriplePattern(
+                new IriTerm(new UriRef("_:b0", true)), new VariableTerm("p"), new VariableTerm("o")));
+
+            string text = null;
+
+            Assert.DoesNotThrow(() => text = SparqlQueryWriter.Write(query));
+            StringAssert.Contains("_:b0", text);
+            Assert.IsFalse(text.Contains("<_:b0>"), "A blank node label must not be wrapped in angle brackets.");
+            AssertValidSparql(text);
+        }
     }
 }

@@ -176,13 +176,41 @@ namespace Semiodesk.Trinity
         #region Methods
 
         /// <summary>
+        /// Finds the nearest ancestor of <paramref name="type"/> that is a key in
+        /// <paramref name="registry"/>, or <c>null</c> if there is none.
+        /// </summary>
+        /// <remarks>
+        /// The type registries below are keyed on exact type identity, which silently excludes every
+        /// subclass. That made <see cref="UriRef"/> -- the type ADR-0025 tells callers to prefer for
+        /// resource identity -- unserializable, because <c>obj.GetType()</c> returns the subclass.
+        /// Walking to the registered base type fixes that for any present or future subclass, rather
+        /// than for <see cref="UriRef"/> specifically.
+        /// </remarks>
+        private static Type ResolveRegisteredType<TValue>(Type type, Dictionary<Type, TValue> registry)
+        {
+            for (Type candidate = type; candidate != null; candidate = candidate.BaseType)
+            {
+                if (registry.ContainsKey(candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Provides the XML Schema type URI for a given .NET type.
         /// </summary>
         /// <param name="type">A .NET type object.</param>
         /// <returns>A XML Schema type URI.</returns>
         public static Uri GetXsdTypeUri(Type type)
         {
-            return NativeToXsd[type];
+            Type registered = ResolveRegisteredType(type, NativeToXsd);
+
+            // Indexing with the original type when nothing matched keeps the KeyNotFoundException
+            // callers already handle, and keeps it naming the type that was actually asked for.
+            return NativeToXsd[registered ?? type];
         }
 
         /// <summary>
@@ -192,7 +220,7 @@ namespace Semiodesk.Trinity
         /// <returns><c>true</c> if there is a XML schema type, <c>false</c> otherwise.</returns>
         public static bool HasXsdTypeUri(Type type)
         {
-            return NativeToXsd.ContainsKey(type);
+            return ResolveRegisteredType(type, NativeToXsd) != null;
         }
 
         /// <summary>
@@ -224,10 +252,11 @@ namespace Semiodesk.Trinity
         public static string SerializeObject(object obj)
         {
             Type type = obj.GetType();
+            Type registered = ResolveRegisteredType(type, Serializers);
 
-            if (Serializers.ContainsKey(type))
+            if (registered != null)
             {
-                return Serializers[type](obj);
+                return Serializers[registered](obj);
             }
             else if (type.GetInterface("IResource") != null)
             {

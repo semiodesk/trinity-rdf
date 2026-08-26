@@ -128,6 +128,7 @@ someone migrating a large model wants the whole list from one build:
 | `TRIN004` | a mapped class does not derive from `Resource` |
 | `TRIN005` | a mapped class has no accessible `(Uri)` constructor, so `Activator.CreateInstance(type, uri)` cannot materialize it when reading |
 | `TRIN006` | a URI belongs to a **generated** vocabulary but is not one of its terms — a typo. Only vocabularies marked `[GeneratedCode("trinity-vocab", …)]` are trusted, since only those list every term; an unknown namespace is never reported |
+| `TRIN007` | a mapped property is typed `System.Uri` (or is a collection of them) instead of `UriRef` — `Uri` equality ignores the fragment. **The one diagnostic that does not mean "nothing was generated"**: the mapping is emitted, the declared type is wrong. Matched on exact type identity, so `UriRef` — which derives from `Uri` — is not flagged. `PropertyMapping<T>` **throws** for `System.Uri` at runtime (Release too), which is what catches hand-written mappings the generator never sees |
 
 The generator handles scalars, collections (seeded with a default instance), language-invariant
 strings, resource references, multiple `[RdfClass]`, and inheritance (including `GetTypes`-only
@@ -225,6 +226,17 @@ Invariants that surprise newcomers:
 - **SPARQL reuses registered ontology prefixes** (0024): `foaf:name` needs no `PREFIX` line.
 - **URI identity is fragment-aware** (0025): use `UriRef`, not raw `Uri` — .NET's `Uri.Equals`
   ignores the fragment, which is wrong for RDF. Blank nodes/URNs have their own identity.
+  This is a **rule, not a preference**, and overriding `Equals` was never enough to enforce it.
+  **.NET 10 added `IEquatable<Uri>` to `System.Uri`**, and `EqualityComparer<T>.Default` prefers it —
+  so every `HashSet<Uri>`/`Dictionary<Uri,…>`/`Contains`/`Distinct` bypassed `UriRef.Equals` and went
+  fragment-blind, without a recompile, because the core is netstandard2.0. `UriRef` now implements
+  `IEquatable<Uri>` and declares `==`/`!=` (operators bind **statically**, so `Equals` alone never
+  covered them). **One hazard cannot be fixed**: `Uri a = someUriRef; a == b` still binds to
+  `Uri.operator ==`. Hence `TRIN007` plus the `PropertyMapping<T>` throw. Internal identity collections
+  are typed `UriRef` (`ResourceCache`, the LINQ translator's type constraints, `RdfClass/RdfPropertyAttribute.MappedUri`);
+  everything keyed on `Uri.OriginalString` was left alone — it is fragment-safe already.
+  **Run the suite on .NET 8, 9 and 10** (`DOTNET_ROLL_FORWARD=LatestPatch|Major|LatestMajor`) — passing
+  on one runtime is exactly what let this hide for a release.
 - **`Commit()` writes a per-value delta, not the whole resource** (0039): it diffs against a snapshot
   taken whenever `IsSynchronized` became true, so concurrent writers touching different values no longer
   erase each other. It still **does not cascade** (0029) — linked resources you changed must be committed

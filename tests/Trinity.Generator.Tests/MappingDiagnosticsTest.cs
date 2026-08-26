@@ -228,9 +228,92 @@ namespace Semiodesk.Trinity.Generator.Tests
 
                     [RdfProperty(""http://example.org/related"")]
                     public partial List<Thing> Related { get; set; }
+
+                    [RdfProperty(""http://example.org/homepage"")]
+                    public partial UriRef Homepage { get; set; }
+
+                    [RdfProperty(""http://example.org/seeAlso"")]
+                    public partial List<UriRef> SeeAlso { get; set; }
                 }");
 
             Assert.IsEmpty(diagnostics, "A correctly authored mapped class must produce no diagnostics.");
+        }
+
+        /// <summary>
+        /// System.Uri.Equals ignores the fragment, so a Uri-typed mapping conflates resources that RDF
+        /// treats as distinct. Unlike the other property diagnostics this one does not suppress the
+        /// mapping -- the generated code is correct, the declared type is not.
+        /// </summary>
+        [Test]
+        public void ReportsMappedPropertyTypedAsRawUri()
+        {
+            var diagnostics = Run(@"
+                using System;
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/homepage"")]
+                    public partial Uri Homepage { get; set; }
+                }");
+
+            Assert.AreEqual("TRIN007", SingleId(diagnostics));
+            Assert.That(Message(diagnostics), Does.Contain("Homepage").And.Contain("UriRef"));
+        }
+
+        /// <summary>
+        /// The element type is what gets stored, so a collection of raw URIs has exactly the same defect.
+        /// </summary>
+        [Test]
+        public void ReportsMappedCollectionOfRawUri()
+        {
+            var diagnostics = Run(@"
+                using System;
+                using System.Collections.Generic;
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/seeAlso"")]
+                    public partial List<Uri> SeeAlso { get; set; }
+                }");
+
+            Assert.AreEqual("TRIN007", SingleId(diagnostics));
+            Assert.That(Message(diagnostics), Does.Contain("SeeAlso").And.Contain("UriRef"));
+        }
+
+        /// <summary>
+        /// TRIN007 must not suppress emission: the mapping it warns about is still generated, so a
+        /// consumer who ignores the warning gets working code (and the runtime check in
+        /// PropertyMapping&lt;T&gt;), not a silently unmapped property.
+        /// </summary>
+        [Test]
+        public void StillGeneratesTheMappingForARawUriProperty()
+        {
+            var source = @"
+                using System;
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/homepage"")]
+                    public partial Uri Homepage { get; set; }
+                }";
+
+            var generated = Generated(source);
+
+            Assert.That(generated, Does.Contain("PropertyMapping<global::System.Uri>"),
+                "TRIN007 must warn about the declared type without suppressing the mapping.");
+            Assert.That(generated, Does.Contain("\"http://example.org/homepage\""));
         }
 
         /// <summary>
@@ -257,7 +340,17 @@ namespace Semiodesk.Trinity.Generator.Tests
 
         #region Helpers
 
-        private static ImmutableArray<Diagnostic> Run(string source)
+        private static ImmutableArray<Diagnostic> Run(string source) => Drive(source).Diagnostics;
+
+        /// <summary>
+        /// The source the generator emitted for <paramref name="source"/>, concatenated.
+        /// </summary>
+        private static string Generated(string source) =>
+            string.Join(
+                Environment.NewLine,
+                Drive(source).Compilation.SyntaxTrees.Skip(1).Select(t => t.ToString()));
+
+        private static (ImmutableArray<Diagnostic> Diagnostics, Compilation Compilation) Drive(string source)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(source,
                 new CSharpParseOptions(LanguageVersion.Latest));
@@ -274,9 +367,9 @@ namespace Semiodesk.Trinity.Generator.Tests
 
             CSharpGeneratorDriver
                 .Create(new MappingSourceGenerator())
-                .RunGeneratorsAndUpdateCompilation(compilation, out _, out var diagnostics);
+                .RunGeneratorsAndUpdateCompilation(compilation, out var updated, out var diagnostics);
 
-            return diagnostics;
+            return (diagnostics, updated);
         }
 
         private static string SingleId(ImmutableArray<Diagnostic> diagnostics)
