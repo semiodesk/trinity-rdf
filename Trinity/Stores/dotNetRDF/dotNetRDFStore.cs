@@ -57,8 +57,11 @@ namespace Semiodesk.Trinity.Store
 
         SparqlUpdateParser _parser;
 
-        RdfsReasoner _reasoner;
-
+        /// <summary>
+        /// Computes RDFS entailments per query so <c>inferenceEnabled</c> can be honoured. See
+        /// <see cref="RdfsEntailment"/> for why they never enter this store.
+        /// </summary>
+        readonly RdfsEntailment _inference;
 
         #endregion
 
@@ -74,22 +77,22 @@ namespace Semiodesk.Trinity.Store
             _updateProcessor = new LeviathanUpdateProcessor(_store);
             _queryProcessor = new LeviathanQueryProcessor(_store);
             _parser = new SparqlUpdateParser();
+            _inference = new RdfsEntailment(_store);
 
+            // No AddInferenceEngine here, deliberately. It materializes entailments back into the
+            // graph being added, which would make them visible to queries that asked for no
+            // inference -- and it only ever fires on Add, so it never saw anything Trinity wrote
+            // through SPARQL UPDATE anyway. RdfsEntailment does the reasoning instead.
             if (schemes != null)
             {
-                _reasoner = new RdfsReasoner();
-                _store.AddInferenceEngine(_reasoner);
-
                 foreach (string s in schemes)
                 {
                     var directory = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory;
                     var file = new FileInfo(Path.Combine(directory.FullName, s));
 
-                    IGraph schemaGraph = LoadSchema(file.FullName);
-
-                    _store.Add(schemaGraph);
-                    _reasoner.Initialise(schemaGraph);
+                    _store.Add(LoadSchema(file.FullName));
                 }
+
             }
         }
 
@@ -181,7 +184,9 @@ namespace Semiodesk.Trinity.Store
         {
             string q = query.ToString();
 
-            object results = ExecuteQuery(q);
+            object results = query.IsInferenceEnabled
+                ? ExecuteQueryWithInference(q)
+                : ExecuteQuery(q);
 
             if (results is IGraph)
             {
@@ -212,6 +217,31 @@ namespace Semiodesk.Trinity.Store
         }
 
         /// <summary>
+        /// Runs a query with RDFS entailments in scope, by adding each queried model's inference graph
+        /// to the query's dataset.
+        /// </summary>
+        /// <remarks>
+        /// The dataset is widened on the <b>parsed</b> query rather than by editing the query text, so
+        /// nothing has to be re-serialized and no public Trinity API has to grow a way to add a
+        /// <c>FROM</c>. A query that names no graph is left alone: adding one would narrow it from the
+        /// whole store to a single graph, which is the opposite of what enabling inference should do.
+        /// </remarks>
+        private object ExecuteQueryWithInference(string queryString)
+        {
+            Log?.Invoke(queryString);
+
+            var query = new SparqlQueryParser().ParseFromString(queryString);
+
+            // The entailments live in a throwaway dataset, never in _store, so a query that asked for
+            // no inference cannot see them -- not even one enumerating GRAPH ?g.
+            var dataset = _inference.Apply(query);
+
+            return dataset == null
+                ? _queryProcessor.ProcessQuery(query)
+                : new LeviathanQueryProcessor(dataset).ProcessQuery(query);
+        }
+
+        /// <summary>
         /// Gets a handle to a model in the store.
         /// </summary>
         /// <param name="uri">Uri of the model.</param>
@@ -235,7 +265,8 @@ namespace Semiodesk.Trinity.Store
             foreach (var graph in _store.Graphs)
             {
                 // 3.x: a graph is named by an IRefNode (URI or blank node); only URI-named graphs
-                // are addressable as models.
+                // are addressable as models. Inference graphs are ours, not the caller's, so they are
+                // not models either.
                 if (graph.Name is IUriNode name)
                 {
                     yield return new Model(this, new UriRef(name.Uri));
@@ -380,6 +411,7 @@ namespace Semiodesk.Trinity.Store
                             }
 
                             _store.Add(g, update);
+
                         }
                     }
                     else

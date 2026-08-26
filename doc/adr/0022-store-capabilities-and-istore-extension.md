@@ -18,8 +18,15 @@ implementation, rather than modeling capabilities explicitly.
 - **Inferencing is the store's responsibility.** The API surfaces only a per-query
   `inferenceEnabled` flag (`IModel.ExecuteQuery/GetResources/AsQueryable(..., bool
   inferenceEnabled = false)`, `Trinity/Model/IModel.cs`). Whether it does anything depends on
-  the store: dotNetRDF in-memory applies an `RdfsReasoner`; GraphDB uses `infer=true` and an
-  implicit model group; other stores may ignore the flag.
+  the store: GraphDB uses `infer=true` and an implicit model group; Virtuoso selects a rule set;
+  the in-memory store materializes RDFS entailments into a side graph
+  ([0045](0045-in-memory-rdfs-inferencing.md)); Fuseki ignores the flag, having no per-query
+  switch ([0043](0043-fuseki-store-revival.md)).
+
+  **This sentence used to claim the in-memory store "applies an `RdfsReasoner`". It did not** —
+  the wiring existed but the feature was unfinished and the flag was never read, so the store
+  silently answered as though inference were off. That claim is why the gap was repeatedly
+  mistaken for working support; 0045 makes it true.
 - There is **no capability model.** Trinity does not list, expose, or negotiate what a given
   store supports. Callers must know their backend.
 
