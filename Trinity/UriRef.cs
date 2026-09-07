@@ -72,14 +72,30 @@ namespace Semiodesk.Trinity
         /// Creates an UriRef from an Uri
         /// </summary>
         /// <remarks>
-        /// <see cref="UriKind.RelativeOrAbsolute"/> because a blank node identifier such as
-        /// <c>_:b0</c> is not a valid absolute URI, and <see cref="IsBlankId"/> is carried across so
-        /// copying a blank identifier does not quietly turn it into an ordinary relative URI.
+        /// <see cref="IsBlankId"/> is carried across, so copying a blank identifier does not quietly
+        /// turn it into an ordinary relative URI. A blank identifier is also the only relative form
+        /// accepted here -- see <see cref="KindOf"/>.
         /// </remarks>
         /// <param name="uri"></param>
-        public UriRef(Uri uri) : base(uri.OriginalString, UriKind.RelativeOrAbsolute)
+        public UriRef(Uri uri) : base(uri.OriginalString, KindOf(uri))
         {
             IsBlankId = uri is UriRef uriref && uriref.IsBlankId;
+        }
+
+        /// <summary>
+        /// The <see cref="UriKind"/> to construct <paramref name="uri"/> under.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="UriKind.Absolute"/> for anything but a blank node identifier, which keeps the
+        /// original behaviour of this constructor: a relative URI fails here, at the call site, with
+        /// <see cref="UriFormatException"/>. Accepting one would defer the failure to
+        /// <see cref="Uri.Fragment"/> inside <see cref="Equals(Uri)"/> or <see cref="GetHashCode"/>,
+        /// far from the code that produced it. A blank identifier such as <c>_:b0</c> is the one
+        /// legitimate relative form, and it never reaches Fragment.
+        /// </remarks>
+        private static UriKind KindOf(Uri uri)
+        {
+            return uri is UriRef uriref && uriref.IsBlankId ? UriKind.RelativeOrAbsolute : UriKind.Absolute;
         }
 
         /// <summary>

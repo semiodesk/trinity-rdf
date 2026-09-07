@@ -44,6 +44,10 @@ namespace Semiodesk.Trinity.Tests.Query.Sparql
     public partial class AlphaBeta : Resource
     {
         public AlphaBeta(Uri uri) : base(uri) { }
+
+        /// <summary>A mapped resource reference, so a nested '.Uri' projection can be exercised.</summary>
+        [RdfProperty("http://example.org/frag#related")]
+        public partial AlphaBeta Related { get; set; }
     }
 
     /// <summary>
@@ -143,6 +147,31 @@ namespace Semiodesk.Trinity.Tests.Query.Sparql
             Assert.AreEqual(1, uris.Count);
             Assert.AreEqual("http://example.org/frag#p", uris[0].OriginalString);
             Assert.IsInstanceOf<UriRef>(uris[0], "The projected identifier must be fragment-aware.");
+        }
+
+        /// <summary>
+        /// The same for a *nested* identifier (ChainKind.Uri rather than ChainKind.Subject). That case
+        /// declared its column as typeof(Uri) while converting the row to node.Type, so the projection
+        /// threw InvalidCastException: Unable to cast 'System.Uri' to 'UriRef'.
+        /// </summary>
+        [Test]
+        public void ProjectsANestedIdentifier()
+        {
+            AlphaBeta target = _model.CreateResource<AlphaBeta>(new UriRef("http://example.org/frag#t"));
+            target.Commit();
+
+            AlphaBeta source = _model.CreateResource<AlphaBeta>(new UriRef("http://example.org/frag#s"));
+            source.Related = target;
+            source.Commit();
+
+            var uris = _model.AsQueryable<AlphaBeta>()
+                .Where(x => x.Uri == new UriRef("http://example.org/frag#s"))
+                .Select(x => x.Related.Uri)
+                .ToList();
+
+            Assert.AreEqual(1, uris.Count);
+            Assert.AreEqual("http://example.org/frag#t", uris[0].OriginalString);
+            Assert.IsInstanceOf<UriRef>(uris[0]);
         }
     }
 }

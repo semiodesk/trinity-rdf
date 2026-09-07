@@ -418,6 +418,12 @@ namespace Semiodesk.Trinity
         /// <returns><c>true</c> if the URIs of the compared objects are equal, <c>false</c> otherwise.</returns>
         public override bool Equals(object other)
         {
+            // Reflexive even when Uri is null -- it has a public setter, so it can be.
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
             IResource r = other as Resource;
 
             // Compared as strings rather than with ==, for two reasons. Uri.Equals ignores the

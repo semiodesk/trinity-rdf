@@ -372,6 +372,13 @@ namespace Semiodesk.Trinity
 
                         return;
                     }
+                    else if (_genericType == typeof(UriRef) && value is Uri uriItem)
+                    {
+                        list.Add(uriItem.ToUriRef());
+                        _isUnsetValue = false;
+
+                        return;
+                    }
                 }
             }
             else
@@ -395,6 +402,17 @@ namespace Semiodesk.Trinity
                 else if (typeof(Uri).IsAssignableFrom(_dataType) && typeof(Resource).IsAssignableFrom(t))
                 {
                     _value = (T) (object)(value as Resource).Uri;
+                    _isUnsetValue = false;
+
+                    return;
+                }
+                // A plain Uri arriving at a UriRef mapping. Callers reach the unmapped surface with
+                // raw Uri values -- IResource.AddProperty(property, Uri) takes one -- and TRIN007 plus
+                // the constructor check now force every mapping to UriRef, so without this the value
+                // would land in the unmapped bag and the mapped getter would return null.
+                else if (_dataType == typeof(UriRef) && value is Uri uriValue)
+                {
+                    _value = (T) (object)uriValue.ToUriRef();
                     _isUnsetValue = false;
 
                     return;
@@ -519,7 +537,12 @@ namespace Semiodesk.Trinity
             }
             else
             {
-                return (mappingType.IsAssignableFrom(type) || typeof(Resource).IsAssignableFrom(mappingType) && typeof(Resource).IsAssignableFrom(type) || (typeof(Uri).IsAssignableFrom(mappingType) && typeof(Resource).IsAssignableFrom(type)) );
+                return (mappingType.IsAssignableFrom(type)
+                    || typeof(Resource).IsAssignableFrom(mappingType) && typeof(Resource).IsAssignableFrom(type)
+                    || (typeof(Uri).IsAssignableFrom(mappingType) && typeof(Resource).IsAssignableFrom(type))
+                    // A plain Uri widens into a UriRef mapping; SetOrAddMappedValue performs the
+                    // conversion, and this gate must agree with it or the value never reaches it.
+                    || (mappingType == typeof(UriRef) && typeof(Uri).IsAssignableFrom(type)));
             }
         }
 

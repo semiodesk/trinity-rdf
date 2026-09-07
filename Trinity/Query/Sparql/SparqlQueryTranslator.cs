@@ -2028,14 +2028,15 @@ namespace Semiodesk.Trinity.Query.Sparql
                     case ChainKind.Count:
                         return Column(_translator.BindCount(_translator._rootScope, chain.Chain, chain.ElementType).Variable, false, typeof(int), node.Type);
 
-                    // IsAssignableFrom, not exact identity: Resource.Uri is declared UriRef, so
-                    // 'select x.Uri' has node.Type == typeof(UriRef) and an exact test never matched --
-                    // the projection fell through to "Unsupported projection: x.Uri".
+                    // node.Type, not typeof(Uri), in both cases: Resource.Uri is declared UriRef, so
+                    // an exact typeof(Uri) test never matched ('select x.Uri' fell through to
+                    // "Unsupported projection"), and declaring the column as Uri while converting the
+                    // row to node.Type casts a Uri to UriRef and throws.
                     case ChainKind.Subject when typeof(Uri).IsAssignableFrom(node.Type):
                         return Column(_translator._rootScope.Subject, false, node.Type, node.Type);
 
                     case ChainKind.Uri:
-                        return Column(_translator.BindChain(_translator._rootScope, chain.Chain, false).Variable, false, typeof(Uri), node.Type);
+                        return Column(_translator.BindChain(_translator._rootScope, chain.Chain, false).Variable, false, node.Type, node.Type);
 
                     default:
                         return null;

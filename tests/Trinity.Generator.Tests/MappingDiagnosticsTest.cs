@@ -289,9 +289,11 @@ namespace Semiodesk.Trinity.Generator.Tests
         }
 
         /// <summary>
-        /// TRIN007 must not suppress emission: the mapping it warns about is still generated, so a
-        /// consumer who ignores the warning gets working code (and the runtime check in
-        /// PropertyMapping&lt;T&gt;), not a silently unmapped property.
+        /// TRIN007 must not suppress emission, unlike every other property diagnostic: the declared
+        /// type is wrong, the generated code is not. What the consumer then gets is the runtime refusal
+        /// from PropertyMapping&lt;T&gt; -- which surfaces at MappingDiscovery.AddMappingClass -- rather
+        /// than a property that is silently unmapped and a query that silently returns nothing. Loud
+        /// beats silent; that is the whole point of the warning/throw pair.
         /// </summary>
         [Test]
         public void StillGeneratesTheMappingForARawUriProperty()

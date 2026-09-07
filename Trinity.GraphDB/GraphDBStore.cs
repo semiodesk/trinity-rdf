@@ -520,9 +520,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// <returns></returns>
         public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false)
         {
-            var graphs = _connector.ListGraphs();
-            
-            if (!graphs.Contains(graphUri)) return;
+            if (!ContainsGraph(graphUri)) return;
             
             var graph = new Graph(graphUri);
                 

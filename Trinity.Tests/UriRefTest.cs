@@ -182,6 +182,43 @@ namespace Semiodesk.Trinity.Tests
                 () => new PropertyMapping<List<Uri>>("Homepages", property, new List<Uri>()));
         }
 
+        /// <summary>
+        /// Migrating a mapping to UriRef -- which TRIN007 and the constructor check now require -- must
+        /// not break callers who hand it a plain Uri. The unmapped surface takes raw Uri values
+        /// (IResource.AddProperty(Property, Uri) is a public overload), so without a widening the value
+        /// would be refused by the mapping, land in the unmapped bag, and the mapped getter would
+        /// quietly return null.
+        /// </summary>
+        [Test]
+        public void APlainUriWidensIntoAUriRefMapping()
+        {
+            var property = new Property(new UriRef("http://example.org/test#homepage"));
+            var scalar = (IPropertyMapping)new PropertyMapping<UriRef>("Homepage", property);
+
+            Assert.IsTrue(scalar.IsValueCompatible(new Uri("http://example.org/x#a")),
+                "The gate has to accept what the setter can convert.");
+
+            scalar.SetOrAddMappedValue(new Uri("http://example.org/x#a"));
+
+            var stored = ((PropertyMapping<UriRef>)scalar).GetValue();
+
+            Assert.IsNotNull(stored, "The value must reach the mapping, not the unmapped bag.");
+            Assert.AreEqual("http://example.org/x#a", stored.OriginalString);
+            Assert.IsInstanceOf<UriRef>(stored, "It must be stored fragment-aware, not as a plain Uri.");
+
+            var list = (IPropertyMapping)new PropertyMapping<List<UriRef>>(
+                "Homepages", property, new List<UriRef>());
+
+            Assert.IsTrue(list.IsValueCompatible(new Uri("http://example.org/y#b")));
+
+            list.SetOrAddMappedValue(new Uri("http://example.org/y#b"));
+
+            var storedList = ((PropertyMapping<List<UriRef>>)list).GetValue();
+
+            Assert.AreEqual(1, storedList.Count);
+            Assert.AreEqual("http://example.org/y#b", storedList[0].OriginalString);
+        }
+
         [Test]
         public void ToStringTest()
         {
