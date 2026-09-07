@@ -71,8 +71,8 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all three green** — Fuseki 314/315, GraphDB 312/313, Virtuoso
-  301/302 (0 failed each; the 1 skipped is the shared blank-node quarantine).
+  hiccup cannot redden it. Current: **all three green** — Fuseki 316/317, GraphDB 314/315, Virtuoso
+  303/304 (0 failed each; the 1 skipped is the shared blank-node quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
   limitations**: Virtuoso's rule set was declared only in the `ontologies.config` that ADR-0011 retired,
