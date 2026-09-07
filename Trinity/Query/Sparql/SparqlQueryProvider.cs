@@ -58,11 +58,18 @@ namespace Semiodesk.Trinity.Query.Sparql
         {
             _model = model ?? throw new ArgumentNullException(nameof(model));
             _inferenceEnabled = inferenceEnabled;
-            _layered = model as ILayeredModel;
+            // Only a rewriting view needs the overlay woven into each pattern. A materialized one is
+            // an ordinary graph as far as the writer is concerned, selected by the dataset clause.
+            var layered = model as ILayeredModel;
 
-            if (_layered != null)
+            _layered = layered != null && !layered.IsMaterialized ? layered : null;
+
+            // Interface-level on purpose. Consulting IsMaterialized does not require the concrete
+            // class, and testing for it would let a third-party ILayeredModel through with inferencing
+            // over a rewritten overlay - the one case ADR-0041 says cannot be approximated.
+            if (layered != null)
             {
-                LayeredModel.RequireNoInferencing(inferenceEnabled);
+                LayeredModel.RequireNoInferencing(layered, inferenceEnabled);
             }
         }
 

@@ -40,7 +40,7 @@ namespace Semiodesk.Trinity
     /// <remarks>
     /// Subtraction cannot be expressed in a dataset clause — <c>FROM</c> is set union and SPARQL
     /// has no inverse — so it has to sit in the graph pattern. Every triple pattern is therefore
-    /// replaced by <see cref="Overlay"/>, which resolves that one pattern against the effective
+    /// replaced by <see cref="Overlay(ILayeredModel, string, string, string)"/>, which resolves that one pattern against the effective
     /// graph.
     /// <para>
     /// The three rules below are not micro-optimisations; each was measured, and getting one
@@ -99,6 +99,34 @@ namespace Semiodesk.Trinity
                 "{{ GRAPH {0} {{ {1} }} FILTER NOT EXISTS {{ GRAPH {2} {{ {1} }} {3} }} }}",
                 Graph(model.Additions), triple, Graph(model.Baseline),
                 GroundGuard(model, triple));
+
+            return "{ " + baselineBranch + " UNION " + additionsBranch + " }";
+        }
+
+        /// <summary>
+        /// The overlay for an already-serialized triple, whose terms must be <b>ground</b>.
+        /// </summary>
+        /// <remarks>
+        /// Used when synchronizing a materialized graph from a known set of affected triples. Ground is
+        /// a real precondition, not a description of current usage: with an opaque string this overload
+        /// cannot tell a variable from an IRI, so it guards with <c>FILTER NOT EXISTS</c>
+        /// unconditionally. That is always correct, but on a pattern that binds a variable it forgoes
+        /// the <c>MINUS</c> anti-join <see cref="Guard"/> documents as up to 18x faster. Pass a pattern
+        /// term-wise to the other overload, which can see the difference.
+        /// </remarks>
+        internal static string Overlay(ILayeredModel model, string triple)
+        {
+            if (model == null)
+            {
+                throw new ArgumentNullException(nameof(model));
+            }
+
+            string baselineBranch = string.Format("{{ GRAPH {0} {{ {1} }} {2} }}",
+                Graph(model.Baseline), triple, GroundGuard(model, triple));
+
+            string additionsBranch = string.Format(
+                "{{ GRAPH {0} {{ {1} }} FILTER NOT EXISTS {{ GRAPH {2} {{ {1} }} {3} }} }}",
+                Graph(model.Additions), triple, Graph(model.Baseline), GroundGuard(model, triple));
 
             return "{ " + baselineBranch + " UNION " + additionsBranch + " }";
         }

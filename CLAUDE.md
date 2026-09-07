@@ -55,7 +55,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 7 skipped (quarantined); 0 failed on net8.0
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 3 skipped (quarantined); 0 failed on net8.0
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 23 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -71,8 +71,8 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all three green** — Fuseki 249/250, GraphDB 247/248, Virtuoso
-  240/241 (0 failed each; the 1 skipped is the shared blank-node quarantine).
+  hiccup cannot redden it. Current: **all three green** — Fuseki 316/317, GraphDB 314/315, Virtuoso
+  303/304 (0 failed each; the 1 skipped is the shared blank-node quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
   limitations**: Virtuoso's rule set was declared only in the `ontologies.config` that ADR-0011 retired,
@@ -212,6 +212,23 @@ Invariants that surprise newcomers:
   from additions, add to removals only if the baseline holds it — which is what keeps the ancestor
   reconstructible. Never write `WHERE { FILTER … }` with no pattern: **Virtuoso ignores a filter-only
   WHERE** and applies the operation unconditionally.
+- **A layered view can be materialized** (0042): pass a fourth graph to `store.CreateLayeredModel(...)` and the
+  effective triples are kept there, so queries run natively — which lifts every refusal that existed *for want of a
+  faithful rewrite*, including unbounded property paths and inferencing. **Graph selection is not one of those and
+  stays refused in both modes**: the view's `FROM` is *appended to* a caller's rather than replacing it, so a caller
+  `FROM`/`GRAPH` reads the union of the two and serves triples staged for removal — including one nested in a
+  `FILTER EXISTS`, which dotNetRDF keeps in the filter's *expression* tree where a child-pattern walk never
+  reaches it. The check is **"no graph but this one"**: assigning `ISparqlQuery.Model` injects `FROM <effective>`,
+  so refusing every dataset clause breaks all of LINQ and makes re-execution non-idempotent. A materialized view
+  therefore still parses each caller query — which also means the **strict** parser must accept it, so Trinity's
+  wider extended syntax is refused there, and a pattern-less query (`DESCRIBE <iri>`) has a null root pattern. Queries that reason over the *layers* (the divergence
+  precondition) must keep the three-graph dataset — the materialized clause is a bare `FROM`, so its named-graph set
+  is empty and a `GRAPH <removals>` block against it silently matches nothing. Staging keeps it in step at **O(changes)** (0.7 ms vs a 31.5 s rebuild at
+  1M) — but only via **bound patterns**: `?s ?p ?o` plus `FILTER (?s = <r> || ?o = <r>)` cannot use an index, so
+  that shape is O(baseline) wherever the filter sits (measured 3.9 s / 3.7 s / 3 ms; `DeleteResource` 12.5 s → 3 ms); `Discard()` and a *forced* `Accept()` rebuild, a clean `Accept()` needs none. **Virtuoso silently writes zero**
+  when one `INSERT … WHERE` exceeds its transaction log limit (fine at 500k, zero at 1M), so `Refresh()` counts and
+  compares and **throws** rather than serving an empty view. Out-of-band writes to a layer leave it stale
+  undetectably — call `Refresh()`.
 - **Discovery is global static state** (0020): consumers must `MappingDiscovery.RegisterAssembly`
   / `OntologyDiscovery.AddAssembly` at startup or mapping and SPARQL prefixes silently miss.
   `AddMappingClasses` attempts **every** class and reports the failures together as an

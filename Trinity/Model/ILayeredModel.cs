@@ -84,6 +84,54 @@ namespace Semiodesk.Trinity
         IModel Removals { get; }
 
         /// <summary>
+        /// The graph holding the effective triples, when the view is materialized; otherwise
+        /// <c>null</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A materialized view keeps <c>(baseline − removals) ∪ additions</c> in a fourth graph, so
+        /// queries run natively against an ordinary graph. That lifts every restriction the rewriting
+        /// mode has to impose — property paths, <c>GRAPH</c> blocks, <c>CONSTRUCT</c>, <c>DESCRIBE</c>
+        /// and inferencing all simply work, because there is no overlay to apply and therefore nothing
+        /// to refuse.
+        /// </para>
+        /// <para>
+        /// <b>It is a snapshot, and the view can only keep it current for changes made through the
+        /// view.</b> Staging keeps it in step at O(changes); accept and discard likewise. But a write
+        /// straight to <see cref="Baseline"/>, <see cref="Additions"/> or <see cref="Removals"/> leaves
+        /// it stale, and that <b>cannot be detected cheaply</b> — triple counts are unsound, since
+        /// swapping one triple for another leaves the count unchanged, and there is no change
+        /// notification. Call <see cref="Refresh"/> when the contract has been broken deliberately.
+        /// This is the same assumption the baseline already carries: it is expected to stay untouched
+        /// until the change is accepted.
+        /// </para>
+        /// <para>
+        /// Queries are scoped to this graph with a plain <c>FROM</c>, so it is the <i>default</i> graph
+        /// of the query and not one of its named graphs. Patterns are written unqualified, as against
+        /// any model; an explicit <c>GRAPH &lt;…&gt;</c> block naming this graph matches nothing, which
+        /// is correct SPARQL rather than a gap. A caller need not know the graph's name.
+        /// </para>
+        /// </remarks>
+        IModel Materialized { get; }
+
+        /// <summary>
+        /// Indicates whether this view keeps its effective triples in a <see cref="Materialized"/>
+        /// graph.
+        /// </summary>
+        bool IsMaterialized { get; }
+
+        /// <summary>
+        /// Rebuilds <see cref="Materialized"/> from the three layers.
+        /// </summary>
+        /// <remarks>
+        /// O(baseline), so this is the cost the mode exists to avoid paying repeatedly — needed once
+        /// when the view is materialized, and again only if something changed a layer or the baseline
+        /// behind the view's back.
+        /// </remarks>
+        /// <exception cref="System.NotSupportedException">Thrown if the view is not materialized.</exception>
+        void Refresh(ITransaction transaction = null);
+
+        /// <summary>
         /// Applies the staged change to <see cref="Baseline"/> and empties both layers.
         /// </summary>
         /// <remarks>

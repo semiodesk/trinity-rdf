@@ -82,12 +82,21 @@ namespace Semiodesk.Trinity
 
                     if (value is ILayeredModel layered)
                     {
-                        // A layered model addresses its graphs explicitly with GRAPH, so they must
-                        // be named rather than merged into the default graph by FROM. Merging them
-                        // would union the removals graph back in - the opposite of the intent.
-                        _preprocessor.AddNamedGraph(layered.Baseline.Uri);
-                        _preprocessor.AddNamedGraph(layered.Additions.Uri);
-                        _preprocessor.AddNamedGraph(layered.Removals.Uri);
+                        if (layered.IsMaterialized)
+                        {
+                            // Materialized: the effective triples are an ordinary graph, so a plain
+                            // FROM is exactly right and no GRAPH scoping is involved.
+                            _preprocessor.AddDefaultGraph(layered.Materialized.Uri);
+                        }
+                        else
+                        {
+                            // A layered model addresses its graphs explicitly with GRAPH, so they must
+                            // be named rather than merged into the default graph by FROM. Merging them
+                            // would union the removals graph back in - the opposite of the intent.
+                            _preprocessor.AddNamedGraph(layered.Baseline.Uri);
+                            _preprocessor.AddNamedGraph(layered.Additions.Uri);
+                            _preprocessor.AddNamedGraph(layered.Removals.Uri);
+                        }
                     }
                     else if (value is IModelGroup)
                     {

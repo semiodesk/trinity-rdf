@@ -29,6 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using VDS.RDF;
 using VDS.RDF.Query.Expressions;
 using VDS.RDF.Query.Expressions.Functions.Sparql.Boolean;
 using VDS.RDF.Query.Expressions.Primary;
@@ -93,6 +94,180 @@ namespace Semiodesk.Trinity
             return rewritten;
         }
 
+        /// <summary>
+        /// Refuses a caller query that selects graphs of its own, without otherwise constraining it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Used by a <b>materialized</b> view, which runs caller SPARQL natively and so lifts every
+        /// refusal that exists for want of a faithful rewrite - property paths, <c>CONSTRUCT</c>,
+        /// <c>DESCRIBE</c>, inferencing. Graph selection is not in that category. The effective triples
+        /// live in one ordinary graph and the view names it in the dataset clause; a caller
+        /// <c>FROM</c> is merely appended beside it, giving a union of the two, and a caller
+        /// <c>GRAPH</c> block reaches for graphs the view exists to combine. Either way the answer can
+        /// contain triples staged for removal, which is the one failure this design must not have.
+        /// </para>
+        /// <para>
+        /// <paramref name="effectiveGraph"/> is therefore required, not optional: the check is
+        /// "no graph but this one", not "no graph at all". Assigning
+        /// <see cref="ISparqlQuery.Model"/> injects <c>FROM &lt;effectiveGraph&gt;</c> into the query,
+        /// so by the time it is serialized for parsing here the view's own clause is present and
+        /// indistinguishable in kind from a caller's.
+        /// </para>
+        /// <para>
+        /// The cost is that a materialized view still parses each caller query once per execution, even
+        /// though it does not rewrite it - see ADR-0041 for the placeholder-IRI caching that would
+        /// remove it if it ever shows up in a profile.
+        /// </para>
+        /// </remarks>
+        internal static void RequireNoGraphSelection(string queryString, Uri effectiveGraph)
+        {
+            if (effectiveGraph == null)
+            {
+                throw new ArgumentNullException(nameof(effectiveGraph));
+            }
+
+            RequireNoGraphSelection(Parse(queryString), effectiveGraph, outermost: true);
+        }
+
+        private static void RequireNoGraphSelection(DnrQuery.SparqlQuery query, Uri effectiveGraph, bool outermost)
+        {
+            // The view's own clause has to be accepted, not just any clause refused. Assigning
+            // ISparqlQuery.Model injects FROM <effective>, and ToString() - which is what gets parsed
+            // here - therefore already carries it. The LINQ provider assigns Model at construction, and
+            // executing a query object mutates it, so a blanket refusal broke every LINQ query and made
+            // re-executing any query object fail on the second call.
+            foreach (IRefNode name in query.DefaultGraphNames)
+            {
+                if (!IsGraph(name, effectiveGraph))
+                {
+                    throw GraphSelectionUnsupported($"a dataset clause of its own (FROM <{Name(name)}>)");
+                }
+            }
+
+            // Materialized mode never injects a named graph, so any of these is the caller's. A
+            // sub-SELECT may not carry a dataset clause at all.
+            if (query.NamedGraphNames.Any())
+            {
+                throw GraphSelectionUnsupported(
+                    $"a dataset clause of its own (FROM NAMED <{Name(query.NamedGraphNames.First())}>)");
+            }
+
+            if (!outermost && query.DefaultGraphNames.Any())
+            {
+                throw GraphSelectionUnsupported("a dataset clause on a sub-SELECT");
+            }
+
+            // Null for a query with no WHERE clause - a bare DESCRIBE <iri> is the common case. No
+            // pattern means there is no graph selection to find.
+            if (query.RootGraphPattern != null)
+            {
+                RequireNoGraphSelection(query.RootGraphPattern, effectiveGraph);
+            }
+        }
+
+        private static void RequireNoGraphSelection(DnrQuery.Patterns.GraphPattern pattern, Uri effectiveGraph)
+        {
+            if (pattern.IsGraph)
+            {
+                throw GraphSelectionUnsupported($"an explicit GRAPH block (GRAPH {pattern.GraphSpecifier?.Value})");
+            }
+
+            // A sub-SELECT carries its own pattern tree, and may not declare a dataset at all.
+            foreach (DnrQuery.Patterns.ITriplePattern triplePattern in pattern.TriplePatterns)
+            {
+                if (triplePattern is DnrQuery.Patterns.SubQueryPattern subQuery)
+                {
+                    RequireNoGraphSelection(subQuery.SubQuery, effectiveGraph, outermost: false);
+                }
+            }
+
+            // FILTER EXISTS / NOT EXISTS holds its pattern in the filter's *expression* tree, not in
+            // ChildGraphPatterns, so a GRAPH block nested in one is reached by neither loop. Left
+            // unchecked it was a silent wrong answer rather than a refusal: the dataset clause is a
+            // bare FROM, so the named-graph set is empty and the nested GRAPH matched nothing - the
+            // caller asked about a named graph and was told it was empty.
+            foreach (VDS.RDF.Query.Filters.ISparqlFilter filter in Filters(pattern))
+            {
+                RequireNoGraphSelectionInExpression(filter.Expression, effectiveGraph);
+            }
+
+            foreach (DnrQuery.Patterns.IAssignmentPattern assignment in pattern.UnplacedAssignments)
+            {
+                RequireNoGraphSelectionInExpression(assignment.AssignExpression, effectiveGraph);
+            }
+
+            foreach (DnrQuery.Patterns.ITriplePattern triplePattern in pattern.TriplePatterns)
+            {
+                if (triplePattern is DnrQuery.Patterns.IAssignmentPattern inlineAssignment)
+                {
+                    RequireNoGraphSelectionInExpression(inlineAssignment.AssignExpression, effectiveGraph);
+                }
+                else if (triplePattern is DnrQuery.Patterns.FilterPattern inlineFilter)
+                {
+                    RequireNoGraphSelectionInExpression(inlineFilter.Filter.Expression, effectiveGraph);
+                }
+            }
+
+            foreach (DnrQuery.Patterns.GraphPattern child in pattern.ChildGraphPatterns)
+            {
+                RequireNoGraphSelection(child, effectiveGraph);
+            }
+        }
+
+        /// <summary>
+        /// Walks an expression for the graph patterns <c>EXISTS</c> / <c>NOT EXISTS</c> carry.
+        /// </summary>
+        /// <remarks>
+        /// Unlike rewriting mode, which refuses these outright because it cannot weave the overlay into
+        /// them, a materialized view is happy to evaluate one - it is an ordinary graph. Only the graph
+        /// selection inside has to be refused, so this recurses into the pattern rather than rejecting
+        /// the expression.
+        /// </remarks>
+        private static void RequireNoGraphSelectionInExpression(ISparqlExpression expression, Uri effectiveGraph)
+        {
+            if (expression == null)
+            {
+                return;
+            }
+
+            if (expression is ExistsFunction exists && exists.Pattern != null)
+            {
+                RequireNoGraphSelection(exists.Pattern, effectiveGraph);
+            }
+            else if (expression is GraphPatternTerm term && term.Pattern != null)
+            {
+                RequireNoGraphSelection(term.Pattern, effectiveGraph);
+            }
+
+            foreach (ISparqlExpression argument in expression.Arguments)
+            {
+                RequireNoGraphSelectionInExpression(argument, effectiveGraph);
+            }
+        }
+
+        private static bool IsGraph(IRefNode name, Uri expected)
+        {
+            return name is IUriNode uri && uri.Uri.Equals(expected);
+        }
+
+        private static string Name(IRefNode name)
+        {
+            return name is IUriNode uri ? uri.Uri.ToString() : name?.ToString() ?? "?";
+        }
+
+        private static NotSupportedException GraphSelectionUnsupported(string what)
+        {
+            return new NotSupportedException(
+                "This query cannot be run against a layered model because it contains " + what + ". " +
+                "A layered view defines its own dataset - the effective triples of the baseline, additions and " +
+                "removals - and names it itself, so a query cannot also choose one. This is refused even on a " +
+                "materialized view, where the rewrite-shape restrictions do not apply: naming another graph reads " +
+                "past the view rather than through it, and the answer could include triples staged for removal. " +
+                "Query the Baseline, Additions or Removals models directly if that is what you want. " +
+                "See doc/adr/0041-layered-read-views.md.");
+        }
+
         private static DnrQuery.SparqlQuery Parse(string queryString)
         {
             try
@@ -102,10 +277,12 @@ namespace Semiodesk.Trinity
             catch (Exception ex)
             {
                 throw new NotSupportedException(
-                    "The query could not be parsed, so it cannot be rewritten to honour the layered " +
-                    "baseline/additions/removals overlay. Note that Trinity's own tokenizer accepts a " +
-                    "wider, extended syntax than the strict SPARQL parser used here, so a query may be " +
-                    "accepted by a plain model and refused by a layered one. Parser error: " + ex.Message, ex);
+                    "The query could not be parsed, so it cannot be checked against the layered view's " +
+                    "baseline/additions/removals overlay - which means either rewriting it to honour the overlay, " +
+                    "or, on a materialized view, confirming it selects no graph of its own. Note that Trinity's " +
+                    "own tokenizer accepts a wider, extended syntax than the strict SPARQL parser used here, so a " +
+                    "query may be accepted by a plain model and refused by a layered one. Parser error: " +
+                    ex.Message, ex);
             }
         }
 

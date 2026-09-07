@@ -59,7 +59,19 @@ namespace Semiodesk.Trinity
         /// Cached <c>FROM NAMED</c> clause. The three graphs are fixed for the lifetime of the
         /// view, so unlike a model group's dataset clause this never needs invalidating.
         /// </summary>
-        private readonly string _datasetClause;
+        /// <summary>
+        /// Selects the graph(s) an authored read resolves patterns against: the three layers in
+        /// rewriting mode, the single effective graph when materialized.
+        /// </summary>
+        /// <remarks>
+        /// Named for what it selects, not for where it goes, because it is only correct for a query
+        /// whose patterns are wrapped in <see cref="Overlay(string, string, string)"/>. A query that
+        /// reasons over the <i>layers</i> - <see cref="HasDiverged"/> is the one - must use
+        /// <see cref="LayeredModelSparql.NamedDatasetClause"/> instead: in materialized mode this
+        /// clause is a bare <c>FROM</c>, which leaves the named-graph set empty, so a
+        /// <c>GRAPH &lt;removals&gt;</c> block against it can never match.
+        /// </remarks>
+        private readonly string _effectiveDatasetClause;
 
         /// <inheritdoc />
         public IModel Baseline { get; }
@@ -69,6 +81,20 @@ namespace Semiodesk.Trinity
 
         /// <inheritdoc />
         public IModel Removals { get; }
+
+        /// <inheritdoc />
+        public IModel Materialized { get; }
+
+        /// <inheritdoc />
+        public bool IsMaterialized => Materialized != null;
+
+        /// <summary>
+        /// Set when <see cref="VerifyMaterialized"/> found the materialized graph short. Latched,
+        /// because the store already committed the truncated write and there is nothing to roll back:
+        /// without it the view throws once from <see cref="Refresh"/> and every later read quietly
+        /// answers from a graph known to be incomplete.
+        /// </summary>
+        private bool _materializationFailed;
 
         /// <summary>
         /// All unmapped properties will be ignored for update and thus deleted.
@@ -95,7 +121,7 @@ namespace Semiodesk.Trinity
             get
             {
                 ISparqlQuery query = CreateOverlayQuery(
-                    "ASK " + _datasetClause + "{ " + Overlay("?s", "?p", "?o") + " }");
+                    "ASK " + _effectiveDatasetClause + "{ " + Overlay("?s", "?p", "?o") + " }");
 
                 return !ExecuteOverlayQuery(query, null).GetAnwser();
             }
@@ -123,18 +149,35 @@ namespace Semiodesk.Trinity
         /// Thrown if any two of the three models are the same graph. Overlapping layers would make
         /// the view's result depend on evaluation order rather than on the staged change.
         /// </exception>
-        internal LayeredModel(IStore store, IModel baseline, IModel additions, IModel removals)
+        /// <param name="materialized">
+        /// Optional fourth graph holding the effective triples. When given, reads run natively against
+        /// it instead of through the overlay.
+        /// </param>
+        internal LayeredModel(IStore store, IModel baseline, IModel additions, IModel removals, IModel materialized = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             Baseline = baseline ?? throw new ArgumentNullException(nameof(baseline));
             Additions = additions ?? throw new ArgumentNullException(nameof(additions));
             Removals = removals ?? throw new ArgumentNullException(nameof(removals));
+            Materialized = materialized;
 
             RequireDistinct(baseline, additions, nameof(baseline), nameof(additions));
             RequireDistinct(baseline, removals, nameof(baseline), nameof(removals));
             RequireDistinct(additions, removals, nameof(additions), nameof(removals));
 
-            _datasetClause = LayeredModelSparql.NamedDatasetClause(this);
+            if (materialized != null)
+            {
+                RequireDistinct(baseline, materialized, nameof(baseline), nameof(materialized));
+                RequireDistinct(additions, materialized, nameof(additions), nameof(materialized));
+                RequireDistinct(removals, materialized, nameof(removals), nameof(materialized));
+            }
+
+            // The two seams that make the mode switch cheap: every authored read composes its query
+            // from this clause and from Overlay() below, so pointing both at one ordinary graph is all
+            // it takes for the same templates to run natively against the effective triples.
+            _effectiveDatasetClause = materialized == null
+                ? LayeredModelSparql.NamedDatasetClause(this)
+                : "FROM " + SparqlSerializer.SerializeUri(materialized.Uri) + " ";
 
             foreach (MethodInfo methodInfo in GetType().GetMethods())
             {
@@ -165,11 +208,18 @@ namespace Semiodesk.Trinity
         #region Overlay query construction
 
         /// <summary>
-        /// Wraps one triple pattern in the overlay.
+        /// One triple pattern, resolved against the effective graph.
         /// </summary>
+        /// <remarks>
+        /// In rewriting mode that means the overlay. In materialized mode the effective graph already
+        /// exists as an ordinary graph, so the pattern is just a pattern — which is the whole point of
+        /// the mode: no overlay to apply means nothing to refuse.
+        /// </remarks>
         private string Overlay(string subject, string predicate, string @object)
         {
-            return LayeredModelSparql.Overlay(this, subject, predicate, @object);
+            return IsMaterialized
+                ? string.Concat(subject, " ", predicate, " ", @object, " .")
+                : LayeredModelSparql.Overlay(this, subject, predicate, @object);
         }
 
         /// <summary>
@@ -186,10 +236,14 @@ namespace Semiodesk.Trinity
         /// <see cref="ExecuteQuery(ISparqlQuery, bool, ITransaction)"/> because the overlay is
         /// already in the query's graph patterns.
         /// </summary>
-        private ISparqlQueryResult ExecuteOverlayQuery(ISparqlQuery query, ITransaction transaction)
+        private ISparqlQueryResult ExecuteOverlayQuery(ISparqlQuery query, ITransaction transaction, bool inferenceEnabled = false)
         {
+            RequireUsableMaterialization();
+
             query.Model = this;
-            query.IsInferenceEnabled = false;
+
+            // Only meaningful when materialized: the store is then reasoning over one ordinary graph.
+            query.IsInferenceEnabled = inferenceEnabled && IsMaterialized;
 
             return _store.ExecuteQuery(query, transaction);
         }
@@ -210,7 +264,7 @@ namespace Semiodesk.Trinity
             var queryString = new StringBuilder();
 
             queryString.Append("SELECT DISTINCT ?s ?p ?o ");
-            queryString.Append(_datasetClause);
+            queryString.Append(_effectiveDatasetClause);
             queryString.Append("WHERE { ");
             queryString.Append(LayeredModelSparql.BindSubjects("?s", uris));
             queryString.Append(Overlay("?s", "?p", "?o"));
@@ -253,7 +307,7 @@ namespace Semiodesk.Trinity
         {
             RequireQueryableSubject(uri);
 
-            ISparqlQuery query = CreateOverlayQuery("ASK " + _datasetClause + "{ " +
+            ISparqlQuery query = CreateOverlayQuery("ASK " + _effectiveDatasetClause + "{ " +
                 Overlay(SparqlSerializer.SerializeUri(uri), "?p", "?o") + " }");
 
             return ExecuteOverlayQuery(query, transaction).GetAnwser();
@@ -403,7 +457,7 @@ namespace Semiodesk.Trinity
             var queryString = new StringBuilder();
 
             queryString.Append("SELECT DISTINCT ?s ?p ?o ");
-            queryString.Append(_datasetClause);
+            queryString.Append(_effectiveDatasetClause);
             queryString.Append("WHERE { ");
 
             foreach (Class type in instance.GetTypes())
@@ -416,7 +470,7 @@ namespace Semiodesk.Trinity
             queryString.Append(" }");
 
             ISparqlQueryResult result = ExecuteOverlayQuery(
-                CreateOverlayQuery(queryString.ToString()), transaction);
+                CreateOverlayQuery(queryString.ToString()), transaction, inferenceEnabled);
 
             return Materialize(result.GetResources<T>());
         }
@@ -435,7 +489,8 @@ namespace Semiodesk.Trinity
         {
             RequireNoInferencing(inferenceEnabled);
 
-            return new Query.Sparql.TrinityQueryable<T>(new Query.Sparql.SparqlQueryProvider(this, false));
+            return new Query.Sparql.TrinityQueryable<T>(
+                new Query.Sparql.SparqlQueryProvider(this, inferenceEnabled && IsMaterialized));
         }
 
         /// <summary>
@@ -521,6 +576,24 @@ namespace Semiodesk.Trinity
                 return ExecuteOverlayQuery(query, transaction);
             }
 
+            // Materialized: the effective graph is an ordinary graph, so a caller's query runs against
+            // it unchanged. Every refusal that exists for want of a faithful rewrite is lifted -
+            // property paths, CONSTRUCT, DESCRIBE and inferencing all simply work.
+            //
+            // Graph selection is the exception, and stays refused in both modes. It is not a rewriting
+            // limitation: the view names the effective graph in its own dataset clause, and a caller
+            // FROM is appended beside it rather than replacing it, so the query would read the union of
+            // the two - including triples staged for removal. A GRAPH block reaches for the layers the
+            // view exists to combine, for the same reason.
+            if (IsMaterialized)
+            {
+                // The view's own graph is passed in, not merely "refuse any dataset clause": assigning
+                // ISparqlQuery.Model injects FROM <effective>, so ToString() already carries it.
+                OverlayQueryRewriter.RequireNoGraphSelection(query.ToString(), Materialized.Uri);
+
+                return ExecuteOverlayQuery(query, transaction, inferenceEnabled);
+            }
+
             // ToString() substitutes the @parameters, which the strict SPARQL parser the rewriter
             // uses would otherwise reject. The caller's query object is left untouched.
             ISparqlQuery rewritten = CreateOverlayQuery(OverlayQueryRewriter.Rewrite(this, query.ToString()));
@@ -569,9 +642,21 @@ namespace Semiodesk.Trinity
         /// mechanics, entailment over a subtracted graph is not something any of the store
         /// reasoners defines. So this is refused rather than approximated.
         /// </remarks>
-        internal static void RequireNoInferencing(bool inferenceEnabled)
+        internal void RequireNoInferencing(bool inferenceEnabled)
         {
-            if (inferenceEnabled)
+            RequireNoInferencing(this, inferenceEnabled);
+        }
+
+        /// <inheritdoc cref="RequireNoInferencing(bool)" />
+        /// <remarks>
+        /// Static and interface-typed so any <see cref="ILayeredModel"/> implementation is held to it,
+        /// not just this class. <see cref="ILayeredModel.IsMaterialized"/> is all the check needs.
+        /// </remarks>
+        internal static void RequireNoInferencing(ILayeredModel model, bool inferenceEnabled)
+        {
+            // A materialized view can be reasoned over: it is one ordinary graph, and the store's
+            // inference path has nothing to defeat.
+            if (inferenceEnabled && !model.IsMaterialized)
             {
                 throw new NotSupportedException(
                     "Inferencing is not supported on a layered model. The stores' inference paths cannot " +
@@ -602,11 +687,16 @@ namespace Semiodesk.Trinity
         public void UpdateResources(IEnumerable<Resource> resources, ITransaction transaction = null)
         {
             var staged = new List<Resource>();
-            string update = BuildStagingUpdate(resources, staged);
+            var affected = new List<string>();
+            string update = BuildStagingUpdate(resources, staged, affected);
 
             if (update != null)
             {
                 _store.ExecuteNonQuery(new SparqlUpdate(update), transaction);
+
+                // The view owns this change, so it can keep the materialized graph in step for exactly
+                // the triples it touched. That is the whole reason staging belongs to the view.
+                SynchronizeMaterialized(affected, transaction);
             }
 
             foreach (Resource resource in staged)
@@ -647,7 +737,7 @@ namespace Semiodesk.Trinity
         /// as <c>(effective ∖ additions) ∪ removals</c>. See ADR-0042.
         /// </para>
         /// </remarks>
-        private string BuildStagingUpdate(IEnumerable<Resource> resources, List<Resource> staged)
+        private string BuildStagingUpdate(IEnumerable<Resource> resources, List<Resource> staged, List<string> affected)
         {
             if (resources == null)
             {
@@ -691,6 +781,9 @@ namespace Semiodesk.Trinity
                 return null;
             }
 
+            affected.AddRange(inserted);
+            affected.AddRange(deleted);
+
             var operations = new List<string>();
 
             foreach (string triple in inserted)
@@ -732,6 +825,201 @@ namespace Semiodesk.Trinity
         private static string Graph(IModel model)
         {
             return SparqlSerializer.SerializeUri(model.Uri);
+        }
+
+        #endregion
+
+        #region Materialization
+
+        /// <summary>
+        /// Rebuilds the materialized graph from the three layers.
+        /// </summary>
+        /// <remarks>
+        /// O(baseline), so this is the expensive operation the mode exists to avoid paying repeatedly.
+        /// It is needed when the view is first materialized, and whenever something changed a layer or
+        /// the baseline behind the view's back — see the staleness note on
+        /// <see cref="ILayeredModel.Materialized"/>.
+        /// </remarks>
+        public void Refresh(ITransaction transaction = null)
+        {
+            RequireMaterialized();
+
+            string update = string.Join("; ",
+                string.Format("DELETE WHERE {{ GRAPH {0} {{ ?s ?p ?o }} }}", Graph(Materialized)),
+                string.Format("INSERT {{ GRAPH {0} {{ ?s ?p ?o }} }} WHERE {{ {1} }}",
+                    Graph(Materialized), LayeredModelSparql.Overlay(this, "?s", "?p", "?o")));
+
+            // Optimistic: the rebuild is the recovery path, so a view latched as failed has to be
+            // able to run the verification queries that would clear it.
+            _materializationFailed = false;
+
+            RunAtomically(update, transaction);
+
+            VerifyMaterialized();
+        }
+
+        /// <summary>
+        /// Confirms the rebuild actually wrote what the overlay says the effective graph contains.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Not defensive padding. <b>Virtuoso silently inserts nothing</b> when a single
+        /// <c>INSERT … WHERE</c> exceeds its transaction log limit: measured, the same statement
+        /// succeeds at 500,000 rows and writes zero at 1,000,000, reporting success either way. An
+        /// empty materialized graph is indistinguishable from an empty baseline, so a caller would read
+        /// a view that says the data does not exist.
+        /// </para>
+        /// <para>
+        /// Counting the overlay's solutions is O(baseline), which is proportionate for an operation
+        /// that is already O(baseline) and happens once. The two counts must match exactly, because the
+        /// overlay's branches are disjoint by construction and so each effective triple yields exactly
+        /// one solution.
+        /// </para>
+        /// </remarks>
+        private void VerifyMaterialized()
+        {
+            long expected = CountOf(string.Format("SELECT (COUNT(*) AS ?n) {0}WHERE {{ {1} }}",
+                LayeredModelSparql.NamedDatasetClause(this),
+                LayeredModelSparql.Overlay(this, "?s", "?p", "?o")));
+
+            long actual = CountOf(string.Format("SELECT (COUNT(*) AS ?n) FROM {0} WHERE {{ ?s ?p ?o }}",
+                Graph(Materialized)));
+
+            if (expected == actual)
+            {
+                return;
+            }
+
+            // Latch before throwing. RunAtomically already committed the short graph, so every read
+            // from here on would be answered from it; only another Refresh can clear this.
+            _materializationFailed = true;
+
+            throw new InvalidOperationException(
+                $"Materializing this view wrote {actual:N0} triples where the overlay says there are " +
+                $"{expected:N0}. The store accepted the update and reported success, so this is a limit " +
+                "it did not report rather than a malformed request - Virtuoso, for one, silently writes " +
+                "nothing when a single INSERT ... WHERE exceeds its transaction log limit, which it does " +
+                "somewhere between 500,000 and 1,000,000 rows. An empty or short materialized graph " +
+                "cannot be told apart from a small baseline, so it is reported rather than served. " +
+                "Either use the rewriting mode for a baseline this size, or raise the store's limit - on " +
+                "Virtuoso, log_enable(3,1) disables transaction logging for bulk updates.");
+        }
+
+        private long CountOf(string sparql)
+        {
+            var bindings = ExecuteOverlayQuery(CreateOverlayQuery(sparql), null).GetBindings().FirstOrDefault();
+
+            return bindings == null || !bindings.Any() ? 0 : Convert.ToInt64(bindings.First().Value);
+        }
+
+        /// <summary>
+        /// Brings the materialized graph back in step for a known set of triples.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// O(changes) rather than O(baseline), which is what makes the mode practical: the full rebuild
+        /// is paid once, and every subsequent stage costs only the triples it touched.
+        /// </para>
+        /// <para>
+        /// Each triple is deleted and then re-inserted <i>if the overlay says it belongs</i>, rather
+        /// than by working out from the delta what should have happened to it. Asking the overlay is
+        /// correct by construction and cannot drift from the read path; a hand-derived rule for each of
+        /// the four staging cases could.
+        /// </para>
+        /// </remarks>
+        private void SynchronizeMaterialized(IEnumerable<string> triples, ITransaction transaction)
+        {
+            if (!IsMaterialized)
+            {
+                return;
+            }
+
+            var operations = new List<string>();
+
+            foreach (string triple in triples)
+            {
+                operations.Add(string.Format("DELETE WHERE {{ GRAPH {0} {{ {1} }} }}", Graph(Materialized), triple));
+                operations.Add(string.Format("INSERT {{ GRAPH {0} {{ {1} }} }} WHERE {{ {2} }}",
+                    Graph(Materialized), triple, LayeredModelSparql.Overlay(this, triple)));
+            }
+
+            if (operations.Count > 0)
+            {
+                RunAtomically(string.Join("; ", operations), transaction);
+            }
+        }
+
+        /// <summary>
+        /// Brings the materialized graph back in step for every triple mentioning a resource, on either
+        /// the subject or the object side.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Asks the overlay what should remain, exactly as the ground-triple sibling does, rather than
+        /// deriving the outcome from the operation. For a delete the overlay happens to hold nothing for
+        /// the resource afterwards, but hard-coding that would be a rule that can drift from the read
+        /// path, and this cannot.
+        /// </para>
+        /// <para>
+        /// <b>Two bound patterns rather than one filtered scan</b>, which is the difference between
+        /// O(changes) and O(baseline). <c>?s ?p ?o</c> with
+        /// <c>FILTER (?s = &lt;r&gt; || ?o = &lt;r&gt;)</c> cannot be answered from an index at all - the
+        /// engine enumerates every triple and tests each one - and where the filter sits makes almost no
+        /// difference. Measured on a 1,000,000-triple in-memory baseline: 3,891 ms with the filter
+        /// outside the union, 3,695 ms interpolated into both branches, and <b>0-3 ms</b> as two bound
+        /// patterns. See ADR-0042.
+        /// </para>
+        /// </remarks>
+        private void SynchronizeMaterializedFor(string subject, ITransaction transaction)
+        {
+            if (!IsMaterialized)
+            {
+                return;
+            }
+
+            var operations = new List<string>();
+
+            // Subject side, then object side (ADR-0030: a delete is broad by design). A self-referring
+            // triple matches both, which is harmless - a graph is a set, so the insert and the delete
+            // are both idempotent.
+            foreach ((string s, string o) in new[] { (subject, "?o"), ("?s", subject) })
+            {
+                string triple = string.Concat(s, " ?p ", o);
+
+                operations.Add(string.Format("DELETE WHERE {{ GRAPH {0} {{ {1} }} }}", Graph(Materialized), triple));
+                operations.Add(string.Format("INSERT {{ GRAPH {0} {{ {1} }} }} WHERE {{ {2} }}",
+                    Graph(Materialized), triple, LayeredModelSparql.Overlay(this, s, "?p", o)));
+            }
+
+            RunAtomically(string.Join("; ", operations), transaction);
+        }
+
+        /// <summary>
+        /// Refuses to answer from a materialized graph that is known to be incomplete.
+        /// </summary>
+        private void RequireUsableMaterialization()
+        {
+            if (!_materializationFailed)
+            {
+                return;
+            }
+
+            throw new InvalidOperationException(
+                "This view's materialized graph is known to be incomplete: a previous rebuild wrote " +
+                "fewer triples than the overlay contains and the store reported success anyway. Reading " +
+                "from it would silently omit data, so it is refused until Refresh() succeeds. See the " +
+                "exception from that rebuild for the store limit involved.");
+        }
+
+        private void RequireMaterialized()
+        {
+            if (!IsMaterialized)
+            {
+                throw new NotSupportedException(
+                    "This view is not materialized. Create one with the materialized graph parameter of " +
+                    "IStore.CreateLayeredModel to get a fourth graph holding the effective triples, which " +
+                    "lets queries run natively against it.");
+            }
         }
 
         #endregion
@@ -785,6 +1073,14 @@ namespace Semiodesk.Trinity
                 string.Format("DELETE WHERE {{ GRAPH {0} {{ ?s ?p ?o }} }}", Graph(Removals)));
 
             RunAtomically(update, transaction);
+
+            // After a clean accept the baseline holds exactly what the materialized graph already held,
+            // so it needs no rebuild. After a forced one it does not: the change was applied over a
+            // baseline that had moved, so the effective graph is no longer what was materialized.
+            if (force && IsMaterialized)
+            {
+                Refresh(transaction);
+            }
         }
 
         /// <summary>
@@ -797,6 +1093,13 @@ namespace Semiodesk.Trinity
                 string.Format("DELETE WHERE {{ GRAPH {0} {{ ?s ?p ?o }} }}", Graph(Removals)));
 
             RunAtomically(update, transaction);
+
+            // Discard drops the layers, so the effective graph reverts to the baseline - which is not
+            // what was materialized. Unlike accept, this always needs the rebuild.
+            if (IsMaterialized)
+            {
+                Refresh(transaction);
+            }
         }
 
         /// <summary>
@@ -810,9 +1113,13 @@ namespace Semiodesk.Trinity
         /// </remarks>
         public bool HasDiverged()
         {
+            // The layers, never the effective graph: this asks whether the baseline still holds what
+            // the changeset assumes, which is a question about the layers themselves. In materialized
+            // mode _effectiveDatasetClause is a bare FROM with no named graphs, so both GRAPH blocks
+            // below would match nothing and the guard would silently answer "no divergence".
             ISparqlQuery query = CreateOverlayQuery(string.Format(
                 "ASK {0}{{ GRAPH {1} {{ ?s ?p ?o }} FILTER NOT EXISTS {{ GRAPH {2} {{ ?s ?p ?o }} }} }}",
-                _datasetClause, Graph(Removals), Graph(Baseline)));
+                LayeredModelSparql.NamedDatasetClause(this), Graph(Removals), Graph(Baseline)));
 
             return ExecuteOverlayQuery(query, null).GetAnwser();
         }
@@ -930,17 +1237,30 @@ namespace Semiodesk.Trinity
             RequireQueryableSubject(uri);
 
             string subject = SparqlSerializer.SerializeUri(uri);
-            string touches = string.Format("?s ?p ?o . FILTER (?s = {0} || ?o = {0})", subject);
+            var operations = new List<string>();
 
-            string update = string.Join("; ",
+            // Bound patterns, not one scan filtered to ?s = <r> || ?o = <r>. A filter over ?s ?p ?o
+            // cannot use an index, so that shape is O(baseline) per delete - measured at ~4 s against a
+            // 1,000,000-triple in-memory baseline where the bound form is under 3 ms.
+            foreach ((string s, string o) in new[] { (subject, "?o"), ("?s", subject) })
+            {
+                string triple = string.Concat(s, " ?p ", o);
+
                 // Anything the baseline holds for it becomes a staged removal...
-                string.Format("INSERT {{ GRAPH {0} {{ ?s ?p ?o }} }} WHERE {{ GRAPH {1} {{ {2} }} }}",
-                    Graph(Removals), Graph(Baseline), touches),
+                operations.Add(string.Format("INSERT {{ GRAPH {0} {{ {1} }} }} WHERE {{ GRAPH {2} {{ {1} }} }}",
+                    Graph(Removals), triple, Graph(Baseline)));
                 // ...and anything only staged as an addition is simply un-staged.
-                string.Format("DELETE {{ GRAPH {0} {{ ?s ?p ?o }} }} WHERE {{ GRAPH {0} {{ {1} }} }}",
-                    Graph(Additions), touches));
+                operations.Add(string.Format("DELETE {{ GRAPH {0} {{ {1} }} }} WHERE {{ GRAPH {0} {{ {1} }} }}",
+                    Graph(Additions), triple));
+            }
 
-            RunAtomically(update, transaction);
+            RunAtomically(string.Join("; ", operations), transaction);
+
+            // A delete is a change made through the view like any other, so the view owes the
+            // materialized graph the same maintenance it gives a staged update. Without this a
+            // deleted resource stays readable through the very view that deleted it, and nothing
+            // tells the caller - Refresh() is documented as being for out-of-band writes.
+            SynchronizeMaterializedFor(subject, transaction);
         }
 
         /// <inheritdoc cref="DeleteResource(Uri, ITransaction)" />

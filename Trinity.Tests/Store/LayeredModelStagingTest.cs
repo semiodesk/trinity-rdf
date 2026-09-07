@@ -26,6 +26,8 @@
 // Copyright (c) Semiodesk GmbH 2026
 
 using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
@@ -85,7 +87,11 @@ namespace Semiodesk.Trinity.Tests.Store
             Removals.Clear();
         }
 
-        private MappingTestClass GivenBaseline(UriRef uri, string value)
+        /// <summary>
+        /// A resource in the baseline with one mapped value. Protected so a backend subclass overriding
+        /// a store-specific expectation can build the same starting point.
+        /// </summary>
+        protected MappingTestClass GivenBaselineValue(UriRef uri, string value)
         {
             var resource = Baseline.CreateResource<MappingTestClass>(uri);
             resource.uniqueStringTest = value;
@@ -117,7 +123,7 @@ namespace Semiodesk.Trinity.Tests.Store
         [Test]
         public virtual void CommitThroughTheViewStagesRatherThanWrites()
         {
-            GivenBaseline(R1, "original");
+            GivenBaselineValue(R1, "original");
 
             var seen = View.GetResource<MappingTestClass>(R1);
             seen.uniqueStringTest = "staged";
@@ -140,7 +146,7 @@ namespace Semiodesk.Trinity.Tests.Store
         [Test]
         public virtual void StagingTheSamePropertyTwiceLeavesOneValue()
         {
-            GivenBaseline(R1, "original");
+            GivenBaselineValue(R1, "original");
 
             var first = View.GetResource<MappingTestClass>(R1);
             first.uniqueStringTest = "staged once";
@@ -162,7 +168,7 @@ namespace Semiodesk.Trinity.Tests.Store
         [Test]
         public virtual void RestoringTheBaselineValueEmptiesBothLayers()
         {
-            GivenBaseline(R1, "original");
+            GivenBaselineValue(R1, "original");
 
             var changed = View.GetResource<MappingTestClass>(R1);
             changed.uniqueStringTest = "temporary";
@@ -183,8 +189,8 @@ namespace Semiodesk.Trinity.Tests.Store
         [Test]
         public virtual void StagingMaintainsTheAncestorInvariants()
         {
-            GivenBaseline(R1, "original");
-            GivenBaseline(R2, "second");
+            GivenBaselineValue(R1, "original");
+            GivenBaselineValue(R2, "second");
 
             var a = View.GetResource<MappingTestClass>(R1);
             a.uniqueStringTest = "changed";
@@ -222,7 +228,7 @@ namespace Semiodesk.Trinity.Tests.Store
         [Test]
         public virtual void DeleteResourceThroughTheViewStagesRemovals()
         {
-            GivenBaseline(R1, "original");
+            GivenBaselineValue(R1, "original");
 
             View.DeleteResource(R1);
 
@@ -237,7 +243,7 @@ namespace Semiodesk.Trinity.Tests.Store
         [Test]
         public virtual void AcceptAppliesTheStagedChangeAndEmptiesTheLayers()
         {
-            GivenBaseline(R1, "original");
+            GivenBaselineValue(R1, "original");
 
             var changed = View.GetResource<MappingTestClass>(R1);
             changed.uniqueStringTest = "accepted";
@@ -254,7 +260,7 @@ namespace Semiodesk.Trinity.Tests.Store
         [Test]
         public virtual void DiscardLeavesTheBaselineUntouched()
         {
-            GivenBaseline(R1, "original");
+            GivenBaselineValue(R1, "original");
 
             var changed = View.GetResource<MappingTestClass>(R1);
             changed.uniqueStringTest = "abandoned";
@@ -275,7 +281,7 @@ namespace Semiodesk.Trinity.Tests.Store
         [Test]
         public virtual void AcceptGivesAdditionsPrecedenceJustAsReadsDo()
         {
-            GivenBaseline(R1, "original");
+            GivenBaselineValue(R1, "original");
 
             // Stage the baseline triple for removal and, separately, right back as an addition.
             Removals.ExecuteUpdate(new SparqlUpdate(
@@ -301,7 +307,7 @@ namespace Semiodesk.Trinity.Tests.Store
         [Test]
         public virtual void AcceptRefusesWhenTheBaselineMovedUnderTheChange()
         {
-            GivenBaseline(R1, "original");
+            GivenBaselineValue(R1, "original");
 
             var changed = View.GetResource<MappingTestClass>(R1);
             changed.uniqueStringTest = "mine";
@@ -339,7 +345,7 @@ namespace Semiodesk.Trinity.Tests.Store
         [Test]
         public virtual void ForcedAcceptMergesAndTheDamageIsInvisibleToMappedReads()
         {
-            GivenBaseline(R1, "original");
+            GivenBaselineValue(R1, "original");
 
             var changed = View.GetResource<MappingTestClass>(R1);
             changed.uniqueStringTest = "mine";
@@ -371,8 +377,8 @@ namespace Semiodesk.Trinity.Tests.Store
         [Test]
         public virtual void AnUnrelatedBaselineChangeIsNotDivergence()
         {
-            GivenBaseline(R1, "original");
-            GivenBaseline(R2, "second");
+            GivenBaselineValue(R1, "original");
+            GivenBaselineValue(R2, "second");
 
             var changed = View.GetResource<MappingTestClass>(R1);
             changed.uniqueStringTest = "mine";
@@ -384,6 +390,278 @@ namespace Semiodesk.Trinity.Tests.Store
 
             Assert.IsFalse(View.HasDiverged(), "a change elsewhere in the baseline is not a conflict");
             Assert.DoesNotThrow(() => View.Accept());
+        }
+
+        #endregion
+
+        #region The reconstructible ancestor (ADR-0042)
+
+        /// <summary>
+        /// Every triple of a graph, as comparable strings.
+        /// </summary>
+        private static ISet<string> Triples(IModel model)
+        {
+            var query = new SparqlQuery($"SELECT ?s ?p ?o FROM <{model.Uri}> WHERE {{ ?s ?p ?o }}",
+                declarePrefixes: false);
+
+            return Rows(model.GetBindings(query));
+        }
+
+        /// <summary>The effective triples, read through the view.</summary>
+        private ISet<string> Effective()
+        {
+            return Rows(View.GetBindings(new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o }",
+                declarePrefixes: false)));
+        }
+
+        private static ISet<string> Rows(IEnumerable<BindingSet> bindings)
+        {
+            return new HashSet<string>(bindings.Select(b =>
+                string.Join("|", b.OrderBy(kv => kv.Key, StringComparer.Ordinal).Select(kv => kv.Value))));
+        }
+
+        /// <summary>
+        /// The reconstruction ADR-0042 rests on: <c>B0 = (effective \ A) u R</c>.
+        /// </summary>
+        private ISet<string> ReconstructedAncestor()
+        {
+            var reconstructed = new HashSet<string>(Effective());
+
+            reconstructed.ExceptWith(Triples(Additions));
+            reconstructed.UnionWith(Triples(Removals));
+
+            return reconstructed;
+        }
+
+        /// <summary>
+        /// The pre-change baseline is recoverable from the working copy without being stored, for every
+        /// changeset the view itself produces.
+        /// </summary>
+        /// <remarks>
+        /// ADR-0042 presents this as a measured table and the proposed branching work depends on it, but
+        /// only the two invariants underneath it were asserted - not the inversion itself. The three
+        /// disciplined cases are exact because <c>TrySerializeResourceDelta</c> records only what
+        /// changed, which is what keeps <c>A n B0 = {}</c> and <c>R subset of B0</c> true.
+        /// </remarks>
+        [Test]
+        public virtual void TheAncestorIsRecoverableAfterAValueChange()
+        {
+            GivenBaselineValue(R1, "original");
+
+            ISet<string> before = Triples(Baseline);
+
+            var staged = View.GetResource<MappingTestClass>(R1);
+            staged.uniqueStringTest = "changed";
+            staged.Commit();
+
+            CollectionAssert.IsNotEmpty(before, "precondition: the baseline is not empty");
+            CollectionAssert.AreEquivalent(before, ReconstructedAncestor(),
+                "a value change must invert exactly");
+        }
+
+        [Test]
+        public virtual void TheAncestorIsRecoverableAfterAPureAddition()
+        {
+            GivenBaselineValue(R1, "original");
+
+            ISet<string> before = Triples(Baseline);
+
+            var added = View.CreateResource<MappingTestClass>(R2);
+            added.uniqueStringTest = "brand new";
+            added.Commit();
+
+            CollectionAssert.AreEquivalent(before, ReconstructedAncestor(),
+                "a pure addition must invert exactly");
+        }
+
+        [Test]
+        public virtual void TheAncestorIsRecoverableAfterAPureRemoval()
+        {
+            GivenBaselineValue(R1, "original");
+            GivenBaselineValue(R2, "second");
+
+            ISet<string> before = Triples(Baseline);
+
+            View.DeleteResource(R2);
+
+            CollectionAssert.AreEquivalent(before, ReconstructedAncestor(),
+                "a pure removal must invert exactly");
+        }
+
+        /// <summary>
+        /// Reconstruction is lossy when the invariants are violated - which only a caller writing to the
+        /// layer graphs directly can do.
+        /// </summary>
+        /// <remarks>
+        /// The other half of ADR-0042's table, and the reason staging belongs to the view rather than to
+        /// the caller. These assert the <i>failure</i> deliberately: if reconstruction ever became exact
+        /// here, the invariants would have stopped being load-bearing and the ADR would need rewriting.
+        /// </remarks>
+        [Test]
+        public virtual void ReAddingABaselineTripleLosesItFromTheReconstruction()
+        {
+            GivenBaselineValue(R1, "original");
+
+            ISet<string> before = Triples(Baseline);
+
+            // Violates A n B0 = {} - a triple staged as an addition that the baseline already holds.
+            Additions.ExecuteUpdate(new SparqlUpdate(
+                $"INSERT {{ GRAPH <{Additions.Uri}> {{ ?s ?p ?o }} }} " +
+                $"WHERE {{ GRAPH <{Baseline.Uri}> {{ ?s ?p ?o }} }}"));
+
+            Assert.IsTrue(ReconstructedAncestor().Count < before.Count,
+                "subtracting the additions removes triples the baseline genuinely had, so the " +
+                "reconstruction is short - this is why the view must own staging");
+        }
+
+        [Test]
+        public virtual void StagingTheRemovalOfAnAbsentTripleInventsIt()
+        {
+            GivenBaselineValue(R1, "original");
+
+            ISet<string> before = Triples(Baseline);
+
+            // Violates R subset of B0 - a removal of something the baseline never held.
+            Removals.ExecuteUpdate(new SparqlUpdate(
+                "INSERT DATA { GRAPH @removals { @subject @predicate 'never there' } }")
+                .Bind("@removals", Removals)
+                .Bind("@subject", R2)
+                .Bind("@predicate", to.uniqueStringTest.Uri));
+
+            ISet<string> reconstructed = ReconstructedAncestor();
+
+            Assert.IsTrue(reconstructed.Count > before.Count,
+                "unioning the removals invents a triple the baseline never had");
+            CollectionAssert.IsSupersetOf(reconstructed, before,
+                "and it does so by addition, so nothing genuine is lost");
+        }
+
+        #endregion
+
+        #region Precondition completeness (ADR-0042)
+
+        /// <summary>
+        /// The precondition is deliberately conservative: it flags the benign case where a third party
+        /// already made the same removal.
+        /// </summary>
+        /// <remarks>
+        /// The fourth row of ADR-0042's precondition table, and the only one that was unasserted. It
+        /// matters because it is the cost of soundness - the check cannot distinguish "the baseline moved
+        /// in a way that matters" from "someone already did what I was about to do", and that is the
+        /// documented trade rather than a defect.
+        /// </remarks>
+        [Test]
+        public virtual void TheSameRemovalByAThirdPartyIsFlaggedAnyway()
+        {
+            GivenBaselineValue(R1, "original");
+
+            var staged = View.GetResource<MappingTestClass>(R1);
+            staged.uniqueStringTest = "changed";
+            staged.Commit();
+
+            Assert.IsFalse(View.HasDiverged(), "precondition: no divergence yet");
+
+            // A third party removes the very triple this changeset stages for removal.
+            Baseline.ExecuteUpdate(new SparqlUpdate(
+                "DELETE WHERE { GRAPH @baseline { @subject @predicate 'original' } }")
+                .Bind("@baseline", Baseline)
+                .Bind("@subject", R1)
+                .Bind("@predicate", to.uniqueStringTest.Uri));
+
+            Assert.IsTrue(View.HasDiverged(),
+                "conservative by design: the removal's precondition no longer holds, even though " +
+                "applying the change would still give the intended result");
+
+            Assert.Throws<InvalidOperationException>(() => View.Accept());
+            Assert.DoesNotThrow(() => View.Accept(force: true));
+
+            Assert.AreEqual("changed", Baseline.GetResource<MappingTestClass>(R1).uniqueStringTest,
+                "and the outcome was benign after all, which is the cost of soundness");
+        }
+
+        #endregion
+
+        #region Multi-operation atomicity (ADR-0042)
+
+        /// <summary>
+        /// Whether this backend rolls back a multi-operation request whose later operation fails.
+        /// </summary>
+        /// <remarks>
+        /// Overridden to <c>false</c> where the claim could not be probed rather than where it is known
+        /// to be untrue - see the Virtuoso subclass.
+        /// </remarks>
+        protected virtual bool MultiOperationRequestIsAtomic => true;
+
+        /// <summary>
+        /// <c>Accept()</c> is one multi-operation request, and ADR-0042 claims request atomicity is what
+        /// protects it on the stores whose transactions are no-ops.
+        /// </summary>
+        /// <remarks>
+        /// That claim was measured once in a throwaway harness and then relied on by the design: accept
+        /// starts a transaction unconditionally, which is real only on Virtuoso, so on the other two
+        /// backends a half-applied changeset would be silent corruption of the baseline. It belongs in
+        /// the suite, because it is a store behaviour and every store behaviour in this work has
+        /// eventually differed from the assumption.
+        /// </remarks>
+        [Test]
+        public virtual void AFailedOperationRollsBackTheOnesBeforeIt()
+        {
+            if (!MultiOperationRequestIsAtomic)
+            {
+                Assert.Inconclusive(
+                    "No failure can be injected into a multi-operation request on this backend: it " +
+                    "reports success for every candidate. Accept() relies on its real transaction here " +
+                    "instead. See ADR-0042.");
+            }
+
+            GivenBaselineValue(R1, "original");
+
+            // The first operation is valid; the second fails at runtime. LOAD of an unresolvable URL is
+            // an error per SPARQL 1.1 absent SILENT.
+            var update = new SparqlUpdate(
+                "INSERT DATA { GRAPH @g { @subject @predicate 'injected' } }; " +
+                "LOAD <http://127.0.0.1:9/does-not-resolve>")
+                .Bind("@g", Baseline)
+                .Bind("@subject", R2)
+                .Bind("@predicate", to.uniqueStringTest.Uri);
+
+            // Catch rather than Throws: the store wraps the transport failure, and which wrapper it
+            // uses is not the point of this test.
+            Assert.Catch(() => Baseline.ExecuteUpdate(update),
+                "the failing operation must surface rather than be swallowed");
+
+            Assert.IsFalse(Baseline.ContainsResource(R2),
+                "and the operation before it must have been rolled back - this is what makes Accept() " +
+                "safe on a backend whose ITransaction is a NoOpTransaction");
+        }
+
+        /// <summary>
+        /// The corollary ADR-0042 records: on these backends rollback demonstrably undoes nothing, so a
+        /// transaction gives a false sense of safety and request atomicity is what protects the write.
+        /// </summary>
+        [Test]
+        public virtual void RollbackOnANoOpTransactionUndoesNothing()
+        {
+            if (!MultiOperationRequestIsAtomic)
+            {
+                Assert.Inconclusive("This backend has a real transaction; see the Virtuoso override.");
+            }
+
+            GivenBaselineValue(R1, "original");
+
+            using (ITransaction transaction = Store.BeginTransaction(IsolationLevel.ReadCommitted))
+            {
+                Assert.IsNotNull(transaction, "ADR-0039: never null, even where it isolates nothing");
+
+                var staged = View.GetResource<MappingTestClass>(R1);
+                staged.uniqueStringTest = "changed";
+                View.UpdateResource(staged, transaction);
+
+                transaction.Rollback();
+            }
+
+            Assert.AreEqual("changed", View.GetResource<MappingTestClass>(R1).uniqueStringTest,
+                "the rollback undid nothing, which is why Accept() cannot rely on it here");
         }
 
         #endregion
