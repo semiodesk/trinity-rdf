@@ -184,6 +184,8 @@ namespace Semiodesk.Trinity
                 _genericType = null;
             }
 
+            RejectRawUriMapping(propertyName, property, _isList ? _genericType : _dataType);
+
 #if DEBUG
 
             // Test if the given type is valid
@@ -202,13 +204,26 @@ namespace Semiodesk.Trinity
                                                  typeof(TimeSpan), typeof(TimeSpan?),
                                                  typeof(System.Uri), typeof(Tuple<string, string>)};
 
-            if (!allowed.Contains(_dataType) && _dataType.GetInterface("IResource") == null && !typeof(Resource).IsAssignableFrom(_dataType))
+            // Membership in 'allowed' is exact type identity, which rejects every subclass. That
+            // used to make UriRef -- the type ADR-0025 tells callers to prefer for identity -- an
+            // invalid mapping type, so the advice could not be followed. Uri subclasses are admitted
+            // explicitly; the value paths treat them the same as Uri.
+            bool IsCompatible(Type type)
+            {
+                return type != null
+                    && (allowed.Contains(type)
+                        || typeof(Uri).IsAssignableFrom(type)
+                        || type.GetInterface("IResource") != null
+                        || typeof(Resource).IsAssignableFrom(type));
+            }
+
+            if (!IsCompatible(_dataType))
             {
                 // Test if type is an IList of a supported element type
                 if (_dataType.GetInterface("IList") != null )
                 {
                     // Test containing Type
-                    if (allowed.Contains(_genericType) || _genericType.GetInterface("IResource") != null || typeof(Resource).IsAssignableFrom(_genericType))
+                    if (IsCompatible(_genericType))
                     {
                         return;
                     }
@@ -255,6 +270,45 @@ namespace Semiodesk.Trinity
             : this(propertyName, property: null, defaultValue: defaultValue, languageInvariant: languageInvariant)
         {
             PropertyUri = propertyUri;
+        }
+
+        /// <summary>
+        /// Refuses a mapping whose value type is exactly <see cref="Uri"/> rather than
+        /// <see cref="UriRef"/>.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="Uri.Equals(object)"/> ignores the fragment (RFC 3986), so
+        /// <c>…/x#a</c> and <c>…/x#b</c> compare equal — in RDF those are two different resources.
+        /// A mapping typed <see cref="Uri"/> therefore silently conflates values, and on .NET 10,
+        /// where <see cref="Uri"/> gained <c>IEquatable&lt;Uri&gt;</c>, it does so in every generic
+        /// collection as well. <see cref="UriRef"/> is assignable to <see cref="Uri"/>, so switching
+        /// is a declaration change and nothing more.
+        ///
+        /// This backs up the generator's TRIN007: the generator only sees <c>partial</c> properties it
+        /// emits, whereas mappings can also be declared by hand (ADR-0018), and those reach the runtime
+        /// with no diagnostic at all. Unlike the compatibility check below it is not <c>#if DEBUG</c>,
+        /// because a hand-written mapping in a Release build is exactly the case the generator misses.
+        ///
+        /// The throw surfaces wrapped by <c>MappingDiscovery.AddMappingClass</c> at registration time
+        /// rather than at the property, which is why the message names the property itself.
+        /// </remarks>
+        /// <param name="propertyName">Name of the mapped .NET property.</param>
+        /// <param name="property">The RDF property being mapped.</param>
+        /// <param name="valueType">The mapped value type, or the element type for a list mapping.</param>
+        private static void RejectRawUriMapping(string propertyName, Property property, Type valueType)
+        {
+            if (valueType != typeof(Uri))
+            {
+                return;
+            }
+
+            throw new ArgumentException(string.Format(
+                "The property '{0}' mapped on RDF property '<{1}>' uses System.Uri. Use {2} instead: " +
+                "System.Uri equality ignores the fragment, so two different RDF resources that differ " +
+                "only by fragment would compare equal.",
+                propertyName,
+                property != null && property.Uri != null ? property.Uri.OriginalString : "?",
+                typeof(UriRef).FullName));
         }
 
         #endregion
@@ -311,9 +365,16 @@ namespace Semiodesk.Trinity
 
                         return;
                     }
-                    else if (_genericType == typeof(Uri) && typeof(Resource).IsAssignableFrom(t))
+                    else if (typeof(Uri).IsAssignableFrom(_genericType) && typeof(Resource).IsAssignableFrom(t))
                     {
                         list.Add((value as Resource).Uri);
+                        _isUnsetValue = false;
+
+                        return;
+                    }
+                    else if (_genericType == typeof(UriRef) && value is Uri uriItem)
+                    {
+                        list.Add(uriItem.ToUriRef());
                         _isUnsetValue = false;
 
                         return;
@@ -338,9 +399,20 @@ namespace Semiodesk.Trinity
 
                     return;
                 }
-                else if (_dataType == typeof(Uri) && typeof(Resource).IsAssignableFrom(t))
+                else if (typeof(Uri).IsAssignableFrom(_dataType) && typeof(Resource).IsAssignableFrom(t))
                 {
                     _value = (T) (object)(value as Resource).Uri;
+                    _isUnsetValue = false;
+
+                    return;
+                }
+                // A plain Uri arriving at a UriRef mapping. Callers reach the unmapped surface with
+                // raw Uri values -- IResource.AddProperty(property, Uri) takes one -- and TRIN007 plus
+                // the constructor check now force every mapping to UriRef, so without this the value
+                // would land in the unmapped bag and the mapped getter would return null.
+                else if (_dataType == typeof(UriRef) && value is Uri uriValue)
+                {
+                    _value = (T) (object)uriValue.ToUriRef();
                     _isUnsetValue = false;
 
                     return;
@@ -371,15 +443,44 @@ namespace Semiodesk.Trinity
         {
             if (_isList)
             {
-                if (value.GetType().IsAssignableFrom(_genericType))
+                // _genericType.IsAssignableFrom(value's type), not the reverse. The test used to be
+                // inverted, and it failed in both directions.
+                //
+                // The one that mattered: it *rejected subclasses*, which is the ordinary polymorphic
+                // case. Person.Interests is List<Resource>, so removing any Resource subclass through
+                // the mapped interface threw "Provided argument value was not of type Resource". The
+                // collection's own List<T>.Remove does not come through here, which is why the existing
+                // tests never saw it.
+                //
+                // The other: it accepted *supertypes* -- a value that cannot possibly be in the list --
+                // which then reached IList.Remove, where the internal type check drops the call. That
+                // is a silent no-op, and a following Commit() re-persists the value the caller asked to
+                // delete. Refused below instead, matching the scalar branch and this method's own
+                // fallthrough.
+                if (_genericType.IsAssignableFrom(value.GetType()))
                 {
                     ((IList)_value).Remove(value);
+                    return;
+                }
+                // Symmetric with SetOrAddMappedValue: a plain Uri widens into a UriRef collection.
+                // Without this, a value that could be added could not be removed again.
+                else if (_genericType == typeof(UriRef) && value is Uri uriItem)
+                {
+                    ((IList)_value).Remove(uriItem.ToUriRef());
                     return;
                 }
             }
             else
             {
                 if (typeof(T).IsAssignableFrom(value.GetType()))
+                {
+                    _value = default(T);
+                    _isUnsetValue = true;
+                    return;
+                }
+                // As above: the add path widens a plain Uri into a UriRef mapping, so the remove path
+                // has to accept the same value or the property can be set but never cleared.
+                else if (_dataType == typeof(UriRef) && value is Uri)
                 {
                     _value = default(T);
                     _isUnsetValue = true;
@@ -465,7 +566,12 @@ namespace Semiodesk.Trinity
             }
             else
             {
-                return (mappingType.IsAssignableFrom(type) || typeof(Resource).IsAssignableFrom(mappingType) && typeof(Resource).IsAssignableFrom(type) || (typeof(Uri).IsAssignableFrom(mappingType) && typeof(Resource).IsAssignableFrom(type)) );
+                return (mappingType.IsAssignableFrom(type)
+                    || typeof(Resource).IsAssignableFrom(mappingType) && typeof(Resource).IsAssignableFrom(type)
+                    || (typeof(Uri).IsAssignableFrom(mappingType) && typeof(Resource).IsAssignableFrom(type))
+                    // A plain Uri widens into a UriRef mapping; SetOrAddMappedValue performs the
+                    // conversion, and this gate must agree with it or the value never reaches it.
+                    || (mappingType == typeof(UriRef) && typeof(Uri).IsAssignableFrom(type)));
             }
         }
 

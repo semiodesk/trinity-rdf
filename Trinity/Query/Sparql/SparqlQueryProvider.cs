@@ -291,6 +291,13 @@ namespace Semiodesk.Trinity.Query.Sparql
                 return value;
             }
 
+            // A binding carries a plain Uri, but resource identity is UriRef (ADR-0025). Uri is not
+            // IConvertible, so ChangeType cannot bridge the two and 'select x.Uri' would fail here.
+            if (type == typeof(UriRef) && value is Uri uri)
+            {
+                return uri.ToUriRef();
+            }
+
             return Convert.ChangeType(value, type, CultureInfo.InvariantCulture);
         }
 

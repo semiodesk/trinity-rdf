@@ -128,11 +128,42 @@ namespace Semiodesk.Trinity
         /// Adds a collection of mapped classes to the registration.
         /// </summary>
         /// <param name="list"></param>
+        /// <remarks>
+        /// One failing class must not stop the batch. Aborting leaves every class ordered after it
+        /// unregistered, and an unregistered mapping raises no error at all — resources read from a
+        /// store come back as base <see cref="Resource"/> instances, which is the silent failure this
+        /// registry exists to prevent. Which classes survived would also depend on
+        /// <c>Assembly.GetTypes()</c> ordering. So every class is attempted, and all failures are
+        /// reported together — the same reasoning as the generator's mapping diagnostics, where someone
+        /// migrating a large model wants the whole list from one run rather than one item per run.
+        /// </remarks>
         public static void AddMappingClasses(IList<Type> list)
         {
+            List<Exception> failures = null;
+
             foreach (Type o in list)
             {
-                AddMappingClass(o);
+                try
+                {
+                    AddMappingClass(o);
+                }
+                catch (Exception e)
+                {
+                    if (failures == null)
+                    {
+                        failures = new List<Exception>();
+                    }
+
+                    failures.Add(e);
+                }
+            }
+
+            if (failures != null)
+            {
+                throw new AggregateException(
+                    "One or more mapped classes could not be registered. Every other class in the batch " +
+                    "was registered normally; see the inner exceptions for each failure.",
+                    failures);
             }
         }
 
@@ -258,11 +289,16 @@ namespace Semiodesk.Trinity
             var name = asm.GetName().FullName;
             if (RegisteredAssemblies.Contains(name))
                 return;
-            RegisteredAssemblies.Add(name);
 
             IList<Type> l = GetMappingClasses(asm);
 
             AddMappingClasses(l);
+
+            // Marked only once registration actually succeeded. Recording it first made a retry after
+            // a failure a silent no-op, so a caller who fixed the offending class and called again got
+            // an early return and a half-registered assembly. AddMappingClass already ignores
+            // duplicates, so re-running the scan is harmless.
+            RegisteredAssemblies.Add(name);
         }
 
         private static IList<Type> GetMappingClasses(Assembly asm)

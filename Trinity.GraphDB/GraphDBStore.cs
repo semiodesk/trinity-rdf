@@ -136,7 +136,30 @@ namespace Semiodesk.Trinity.Store.GraphDB
         [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
         public override bool ContainsModel(Uri uri)
         {
-            return uri != null && _connector.ListGraphs().Contains(uri);
+            return ContainsGraph(uri);
+        }
+
+        /// <summary>
+        /// Indicates whether the store holds a graph with the given name.
+        /// </summary>
+        /// <remarks>
+        /// Not <c>ListGraphs().Contains(uri)</c>: that resolves to
+        /// <c>EqualityComparer&lt;Uri&gt;.Default</c>, which ignores the fragment (and does so
+        /// unconditionally on .NET 10), so two graphs differing only by fragment would be treated as
+        /// one. <see cref="UriRef"/> compares fragments -- see ADR-0025.
+        /// </remarks>
+        /// <param name="graphUri">Name of the graph to look for.</param>
+        /// <returns><c>true</c> if the store holds the graph, <c>false</c> otherwise.</returns>
+        private bool ContainsGraph(Uri graphUri)
+        {
+            if (graphUri == null)
+            {
+                return false;
+            }
+
+            UriRef target = graphUri.ToUriRef();
+
+            return _connector.ListGraphs().Any(g => target.Equals(g));
         }
 
         /// <summary>
@@ -336,7 +359,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// <returns></returns>
         public override Uri Read(string content, Uri graphUri, RdfSerializationFormat format, bool update)
         {
-            var exists = _connector.ListGraphs().Contains(graphUri);
+            var exists = ContainsGraph(graphUri);
             
             using (var reader = new StringReader(content))
             {
@@ -369,7 +392,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// <returns></returns>
         public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update, bool leaveOpen = false)
         {
-            var exists = _connector.ListGraphs().Contains(graphUri);
+            var exists = ContainsGraph(graphUri);
             
             using (TextReader reader = new StreamReader(stream))
             {
@@ -410,7 +433,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
         {
             IGraph graph = null;
             
-            var exists = _connector.ListGraphs().Contains(graphUri);
+            var exists = ContainsGraph(graphUri);
 
             if (url.AbsoluteUri.StartsWith("file:"))
             {
@@ -437,7 +460,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
                         // graphUri rather than being dropped.
                         foreach (var target in GroupByTargetGraph(store, graphUri))
                         {
-                            if (!update && _connector.ListGraphs().Contains(target.Uri))
+                            if (!update && ContainsGraph(target.Uri))
                             {
                                 _connector.DeleteGraph(target.Uri);
                             }
@@ -497,9 +520,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// <returns></returns>
         public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false)
         {
-            var graphs = _connector.ListGraphs();
-            
-            if (!graphs.Contains(graphUri)) return;
+            if (!ContainsGraph(graphUri)) return;
             
             var graph = new Graph(graphUri);
                 
@@ -528,7 +549,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// <returns></returns>
         public override void Write(Stream stream, Uri graphUri, IRdfWriter formatWriter, bool leaveOpen = false)
         {
-            if (!_connector.ListGraphs().Contains(graphUri)) return;
+            if (!ContainsGraph(graphUri)) return;
             
             IGraph graph = new Graph(graphUri);
             

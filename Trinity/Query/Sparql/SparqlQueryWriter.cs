@@ -28,6 +28,7 @@
 using System;
 using System.Linq;
 using System.Text;
+using Semiodesk.Trinity.Extensions;
 
 namespace Semiodesk.Trinity.Query.Sparql
 {
@@ -283,7 +284,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                     _builder.Append('?').Append(variable.Name);
                     break;
                 case IriTerm iri:
-                    _builder.Append('<').Append(iri.Value.AbsoluteUri).Append('>');
+                    WriteIri(iri.Value);
                     break;
                 case RdfTypeTerm _:
                     _builder.Append('a');
@@ -296,6 +297,35 @@ namespace Semiodesk.Trinity.Query.Sparql
             }
         }
 
+        /// <summary>
+        /// Writes an IRI term.
+        /// </summary>
+        /// <remarks>
+        /// OriginalString rather than AbsoluteUri, matching the write path
+        /// (<see cref="SparqlSerializer.SerializeUri"/>): AbsoluteUri normalizes percent-encoding case,
+        /// dot-segments, default ports and host casing, so a resource stored under its original
+        /// spelling could not be found by a query built from the very same Uri.
+        ///
+        /// Blank node identifiers are refused outright. There is no way to name one in a query: SPARQL
+        /// reads a bare <c>_:b0</c> in a triple pattern as a fresh non-distinguished variable, so the
+        /// pattern silently matches everything, and rejects the label in a FILTER as a parse error --
+        /// while the bracketed <c>&lt;_:b0&gt;</c> is a relative IRI reference the parser will not
+        /// resolve. Refusing is the only option that neither crashes obscurely (AbsoluteUri throws on
+        /// the relative URI a blank identifier is) nor answers the wrong question.
+        /// </remarks>
+        private void WriteIri(Uri value)
+        {
+            if (value.IsBlankId() || value.OriginalString.StartsWith("_:"))
+            {
+                throw new NotSupportedException(
+                    $"Blank node identifiers cannot be named in a query: <{value.OriginalString}>. " +
+                    "SPARQL treats a blank node label in a pattern as a variable matching every value, " +
+                    "so the query would silently return the wrong result.");
+            }
+
+            _builder.Append('<').Append(value.OriginalString).Append('>');
+        }
+
         private void WriteLiteral(LiteralTerm literal)
         {
             _builder.Append('"').Append(Escape(literal.Value)).Append('"');
@@ -306,7 +336,7 @@ namespace Semiodesk.Trinity.Query.Sparql
             }
             else if (literal.Datatype != null)
             {
-                _builder.Append("^^<").Append(literal.Datatype.AbsoluteUri).Append('>');
+                _builder.Append("^^<").Append(literal.Datatype.OriginalString).Append('>');
             }
         }
 

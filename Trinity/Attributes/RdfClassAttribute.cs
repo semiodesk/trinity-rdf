@@ -39,7 +39,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// The Uri of the type.
         /// </summary>
-        public readonly Uri MappedUri;
+        public readonly UriRef MappedUri;
 
         #endregion
 
@@ -51,7 +51,7 @@ namespace Semiodesk.Trinity
         /// <param name="uriString">The uri of the RDF class for this mapping.</param>
         public RdfClassAttribute(string uriString)
         {
-            MappedUri = new Uri(uriString);
+            MappedUri = new UriRef(uriString);
         }
 
        

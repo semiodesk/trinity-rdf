@@ -79,6 +79,31 @@ namespace Semiodesk.Trinity.Tests
         {
         }
 
+        /// <summary>
+        /// A class that fails to register must not take the rest of the batch down with it. It used to:
+        /// AddMappingClass rethrows, the loop had no guard, and every class ordered after the offender
+        /// stayed unregistered -- which raises no error at all, it just makes queries return base
+        /// Resource instances. Which classes survived depended on Assembly.GetTypes() ordering.
+        ///
+        /// This became reachable when PropertyMapping&lt;T&gt; started refusing System.Uri: the throw
+        /// fires from an instance field initializer, so a single un-migrated mapping anywhere in an
+        /// assembly silently truncated its registration, and TRIN007 being only a warning meant the
+        /// build still succeeded.
+        /// </summary>
+        [Test]
+        public void ReportsEveryFailingClassRatherThanStoppingAtTheFirst()
+        {
+            // Neither is a Resource, so each fails in AddMappingClass; neither is picked up by an
+            // assembly scan, so nothing else in this suite is affected.
+            var error = Assert.Throws<AggregateException>(
+                () => MappingDiscovery.AddMappingClasses(new List<Type> { typeof(string), typeof(int) }));
+
+            Assert.AreEqual(2, error.InnerExceptions.Count,
+                "The loop must attempt every class; stopping at the first hides the rest.");
+            Assert.That(error.InnerExceptions.Select(e => e.Message),
+                Has.Some.Contains("String").And.Some.Contains("Int32"));
+        }
+
         [Test]
         public void TestGetRdfClasses()
         {

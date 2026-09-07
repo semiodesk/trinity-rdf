@@ -927,7 +927,9 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         {
             IModel model = resources.First().Model;
 
-            if (resources.Any(x => x.Model.Uri != model.Uri))
+            // object.Equals rather than !=: it dispatches to UriRef.Equals, so the fragment counts,
+            // and it tolerates the null Uri a ModelGroup reports -- which != also did.
+            if (resources.Any(x => !Equals(x.Model.Uri, model.Uri)))
             {
                 throw new NotSupportedException();
             }

@@ -67,13 +67,16 @@ inferred triples on write. Deciding it would resolve all three remaining quarant
 (returned 1 of N resources), `ProjectionTest` (emitted invalid SPARQL) and `SelectAdditionalFrom`
 (the multiple-`from` query form) now pass and are no longer `[Ignore]`d.
 
-### Note: three URI-equality tests fail on the .NET 10 *runtime*
-`UriRefTest.EqualsTest`, `ResourceTest.Equal` and `ResourceTest.ResourceConstructorTest` pass on the
-targeted **net8.0** runtime (Windows and Linux alike) but fail if the same assembly is rolled forward
-onto the .NET 10 runtime — a URI with a fragment then compares *equal* to the same URI without one,
-which is exactly what `UriRef` exists to prevent (ADR-0025). Not currently reachable: the test projects
-target net8.0 and CI installs that runtime explicitly. Worth investigating before retargeting the tests
-to a newer TFM.
+**Resolved — the three URI-equality tests that failed on the .NET 10 runtime (ADR-0025 amendment):**
+`UriRefTest.EqualsTest`, `ResourceTest.Equal` and `ResourceTest.ResourceConstructorTest` passed on
+net8.0 but failed when the same assembly was rolled forward onto .NET 10, where a URI with a fragment
+compared *equal* to the same URI without one. This was **not** a test-runner artifact and was **not**
+unreachable, as this note previously claimed: .NET 10 added `IEquatable<Uri>` to `System.Uri`, and
+`EqualityComparer<T>.Default` prefers it over the `object` overload, so it bypassed `UriRef.Equals`
+entirely. `Trinity` targets netstandard2.0, so any consumer *running* on .NET 10 got fragment-blind
+identity without recompiling anything. `UriRef` now implements `IEquatable<Uri>` and declares
+`operator ==`/`!=`. The suite is run under `DOTNET_ROLL_FORWARD=LatestPatch|Major|LatestMajor` —
+.NET 8, 9 and 10 — because passing on one runtime is what let this hide.
 
 **Resolved by fixing the `DateTime` deserializer (ADR-0026):**
 `CanSelectDateTimeWithBinaryExpression` — a stored UTC `DateTime` read back one hour off in UTC+1

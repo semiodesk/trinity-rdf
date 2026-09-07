@@ -39,7 +39,12 @@ namespace Semiodesk.Trinity
 
         public IModel Model;
 
-        protected Dictionary<IPropertyMapping, HashSet<Uri>> Cache = new Dictionary<IPropertyMapping, HashSet<Uri>>();
+        // UriRef rather than Uri, deliberately. This set decides whether a lazily-loaded link has
+        // already been resolved, so it is hashed and probed on the read path. A HashSet<Uri> uses
+        // EqualityComparer<Uri>.Default, which on .NET 10 compares fragment-blind -- two links that
+        // differ only by fragment would collapse into one, and the Remove below would miss and
+        // leave the resource unresolved. Typing the element makes that structural (ADR-0025).
+        protected Dictionary<IPropertyMapping, HashSet<UriRef>> Cache = new Dictionary<IPropertyMapping, HashSet<UriRef>>();
 
         #endregion
 
@@ -56,32 +61,32 @@ namespace Semiodesk.Trinity
             Cache.Clear();
         }
 
-        public void CacheValues(IPropertyMapping mapping, IEnumerable<Uri> values)
+        public void CacheValues(IPropertyMapping mapping, IEnumerable<UriRef> values)
         {
             if (!Cache.ContainsKey(mapping))
             {
-                Cache[mapping] = new HashSet<Uri>(values);
+                Cache[mapping] = new HashSet<UriRef>(values);
             }
             else
             {
-                HashSet<Uri> cache = Cache[mapping];
+                HashSet<UriRef> cache = Cache[mapping];
 
-                foreach (Uri value in values)
+                foreach (UriRef value in values)
                 {
                     cache.Add(value);
                 }
             }
         }
 
-        public void CacheValue(IPropertyMapping mapping, Uri value)
+        public void CacheValue(IPropertyMapping mapping, UriRef value)
         {
             if (!Cache.ContainsKey(mapping))
             {
-                Cache[mapping] = new HashSet<Uri>() { value };
+                Cache[mapping] = new HashSet<UriRef>() { value };
             }
             else
             {
-                HashSet<Uri> cache = Cache[mapping];
+                HashSet<UriRef> cache = Cache[mapping];
 
                 cache.Add(value);
             }
@@ -102,7 +107,7 @@ namespace Semiodesk.Trinity
 
             Type baseType = (mapping.IsList) ? mapping.GenericType : mapping.DataType;
 
-            HashSet<Uri> cachedUris = Cache[mapping];
+            HashSet<UriRef> cachedUris = Cache[mapping];
 
             if (!mapping.IsList && cachedUris.Count > 1)
             {
@@ -174,7 +179,7 @@ namespace Semiodesk.Trinity
         /// <param name="mapping"></param>
         /// <param name="uri"></param>
         /// <returns></returns>
-        public bool HasCachedValues(IPropertyMapping mapping, Uri uri)
+        public bool HasCachedValues(IPropertyMapping mapping, UriRef uri)
         {
             return Cache.ContainsKey(mapping) ? Cache[mapping].Contains(uri) : false;
         }
@@ -184,12 +189,12 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="uri"></param>
         /// <returns></returns>
-        public bool HasCachedValue(Uri uri)
+        public bool HasCachedValue(UriRef uri)
         {
             return Cache.Values.Any(set => set.Contains(uri));
         }
 
-        public IEnumerable<Uri> ListCachedValues(IPropertyMapping mapping)
+        public IEnumerable<UriRef> ListCachedValues(IPropertyMapping mapping)
         {
             return Cache[mapping];
         }
