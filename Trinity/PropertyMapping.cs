@@ -444,9 +444,19 @@ namespace Semiodesk.Trinity
             if (_isList)
             {
                 // _genericType.IsAssignableFrom(value's type), not the reverse. The test used to be
-                // inverted, which let a value that cannot possibly be in the list reach IList.Remove --
-                // and Remove type-checks internally and drops the call. That is a silent no-op, and a
-                // following Commit() then re-persists the value the caller asked to delete.
+                // inverted, and it failed in both directions.
+                //
+                // The one that mattered: it *rejected subclasses*, which is the ordinary polymorphic
+                // case. Person.Interests is List<Resource>, so removing any Resource subclass through
+                // the mapped interface threw "Provided argument value was not of type Resource". The
+                // collection's own List<T>.Remove does not come through here, which is why the existing
+                // tests never saw it.
+                //
+                // The other: it accepted *supertypes* -- a value that cannot possibly be in the list --
+                // which then reached IList.Remove, where the internal type check drops the call. That
+                // is a silent no-op, and a following Commit() re-persists the value the caller asked to
+                // delete. Refused below instead, matching the scalar branch and this method's own
+                // fallthrough.
                 if (_genericType.IsAssignableFrom(value.GetType()))
                 {
                     ((IList)_value).Remove(value);

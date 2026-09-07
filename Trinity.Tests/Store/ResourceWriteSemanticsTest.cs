@@ -324,6 +324,47 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         /// <summary>
+        /// Removing a mapped collection value through the unmapped interface, with a value of a
+        /// *subclass* of the element type -- Person.Interests is List&lt;Resource&gt;, so a Person is
+        /// the ordinary polymorphic case.
+        ///
+        /// This is the direction the inverted type guard in RemoveOrResetValue actually broke. The test
+        /// it had (removing through List&lt;T&gt;.Remove on the collection itself) never enters
+        /// RemoveOrResetValue at all, so the mapped-interface path was uncovered: the guard asked
+        /// value.GetType().IsAssignableFrom(_genericType), and Person.IsAssignableFrom(Resource) is
+        /// false, so every subclass instance was refused outright.
+        /// </summary>
+        [Test]
+        public void RemovesACollectionValueOfASubclassThroughTheMappedInterface()
+        {
+            var personUri = BaseUri.GetUriRef("subtype-remove-person");
+            var interestUri = BaseUri.GetUriRef("subtype-remove-interest");
+
+            var interest = Model1.CreateResource<Person>(interestUri);
+            interest.FirstName = "Interest";
+            interest.Commit();
+
+            var person = Model1.CreateResource<Person>(personUri);
+            person.FirstName = "Person";
+            person.AddProperty(foaf.interest, interest);
+            person.Commit();
+
+            var loaded = Model1.GetResource<Person>(personUri);
+
+            Assert.AreEqual(1, loaded.Interests.Count, "Precondition: the link was written.");
+
+            // A Person into a List<Resource> mapping: the everyday polymorphic case, which used to
+            // throw "Provided argument value was not of type Semiodesk.Trinity.Resource".
+            Assert.DoesNotThrow(() => person.RemoveProperty(foaf.interest, interest));
+
+            person.Commit();
+
+            var reloaded = Model1.GetResource<Person>(personUri);
+
+            Assert.AreEqual(0, reloaded.Interests.Count, "The removal must reach the store.");
+        }
+
+        /// <summary>
         /// The baseline the delta must not break: removing a value has to actually delete the triple,
         /// not merely stop writing it.
         /// </summary>

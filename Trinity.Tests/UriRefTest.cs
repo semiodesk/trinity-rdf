@@ -252,11 +252,16 @@ namespace Semiodesk.Trinity.Tests
         }
 
         /// <summary>
-        /// The inverted guard's actual failure shape, and a deliberate behaviour change. It tested
-        /// <c>value.GetType().IsAssignableFrom(_genericType)</c>, which passes whenever the value's type
-        /// is a *supertype* of the element type -- an instance that can never be in the collection.
-        /// IList.Remove then type-checked internally and dropped the call, so the caller got silence.
-        /// It is now refused, consistent with the scalar branch and with this method's own fallthrough.
+        /// The narrow tightening half of the inverted-guard correction. The old test,
+        /// <c>value.GetType().IsAssignableFrom(_genericType)</c>, passed whenever the value's type was a
+        /// *supertype* of the element type -- an instance that can never be in the collection --
+        /// and IList.Remove then dropped the call silently. It is now refused, consistent with the
+        /// scalar branch and this method's own fallthrough.
+        ///
+        /// The same inversion's larger half went the other way: it rejected *subclasses*, the ordinary
+        /// polymorphic case. That is covered by
+        /// <c>ResourceWriteSemanticsTest.RemovesACollectionValueOfASubclassThroughTheMappedInterface</c>,
+        /// which runs against every store.
         /// </summary>
         [Test]
         public void RemovingAValueThatCannotBeInTheCollectionIsReported()
