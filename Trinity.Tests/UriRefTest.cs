@@ -219,6 +219,58 @@ namespace Semiodesk.Trinity.Tests
             Assert.AreEqual("http://example.org/y#b", storedList[0].OriginalString);
         }
 
+        /// <summary>
+        /// The counterpart to <see cref="APlainUriWidensIntoAUriRefMapping"/>. A value that can be
+        /// added must be removable with the same argument, or a property can be set and never cleared.
+        /// The scalar path threw "Provided argument value was not of type UriRef"; the collection path
+        /// was worse -- its type guard was inverted, so a plain Uri passed it and reached
+        /// IList.Remove, which type-checks internally and drops the call. Silent, and a following
+        /// Commit() re-persists the value the caller asked to delete.
+        /// </summary>
+        [Test]
+        public void APlainUriCanAlsoBeRemovedFromAUriRefMapping()
+        {
+            var property = new Property(new UriRef("http://example.org/test#homepage"));
+
+            var scalar = (IPropertyMapping)new PropertyMapping<UriRef>("Homepage", property);
+            scalar.SetOrAddMappedValue(new Uri("http://example.org/x#a"));
+
+            Assert.DoesNotThrow(() => scalar.RemoveOrResetValue(new Uri("http://example.org/x#a")));
+            Assert.IsNull(((PropertyMapping<UriRef>)scalar).GetValue());
+
+            var list = (IPropertyMapping)new PropertyMapping<List<UriRef>>(
+                "Homepages", property, new List<UriRef>());
+            list.SetOrAddMappedValue(new Uri("http://example.org/y#b"));
+
+            var values = ((PropertyMapping<List<UriRef>>)list).GetValue();
+
+            Assert.AreEqual(1, values.Count, "Precondition: the value was added.");
+
+            list.RemoveOrResetValue(new Uri("http://example.org/y#b"));
+
+            Assert.AreEqual(0, values.Count, "Removal must actually remove, not silently do nothing.");
+        }
+
+        /// <summary>
+        /// The inverted guard's actual failure shape, and a deliberate behaviour change. It tested
+        /// <c>value.GetType().IsAssignableFrom(_genericType)</c>, which passes whenever the value's type
+        /// is a *supertype* of the element type -- an instance that can never be in the collection.
+        /// IList.Remove then type-checked internally and dropped the call, so the caller got silence.
+        /// It is now refused, consistent with the scalar branch and with this method's own fallthrough.
+        /// </summary>
+        [Test]
+        public void RemovingAValueThatCannotBeInTheCollectionIsReported()
+        {
+            var property = new Property(new UriRef("http://example.org/test#related"));
+            var list = (IPropertyMapping)new PropertyMapping<List<Property>>(
+                "Related", property, new List<Property>());
+
+            // A Resource is not a Property, so it cannot be in this collection. The old guard let it
+            // through because Resource.IsAssignableFrom(Property) is true.
+            Assert.Throws<Exception>(
+                () => list.RemoveOrResetValue(new Resource(new UriRef("http://example.org/test#r"))));
+        }
+
         [Test]
         public void ToStringTest()
         {

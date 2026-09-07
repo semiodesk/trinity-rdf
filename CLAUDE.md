@@ -214,6 +214,11 @@ Invariants that surprise newcomers:
   WHERE** and applies the operation unconditionally.
 - **Discovery is global static state** (0020): consumers must `MappingDiscovery.RegisterAssembly`
   / `OntologyDiscovery.AddAssembly` at startup or mapping and SPARQL prefixes silently miss.
+  `AddMappingClasses` attempts **every** class and reports the failures together as an
+  `AggregateException`; it must never abort the batch, because an unregistered mapping raises no error
+  at all — resources just come back as base `Resource` — and which classes survived would depend on
+  `Assembly.GetTypes()` ordering. `RegisterAssembly` marks the assembly registered only *after* the
+  batch succeeds, so a retry after fixing the offender is not an early-return no-op.
 - **No configuration subsystem** (0011, 2.0): the `ontologies.config`/`app.config` loading,
   `InitializeFromConfiguration`, and `CreateStoreFromConfiguration` are gone. Seed schema/background
   graphs with `store.Read` / the thin `store.LoadGraphs(...)` helper, register vocab via

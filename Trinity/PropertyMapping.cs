@@ -443,15 +443,34 @@ namespace Semiodesk.Trinity
         {
             if (_isList)
             {
-                if (value.GetType().IsAssignableFrom(_genericType))
+                // _genericType.IsAssignableFrom(value's type), not the reverse. The test used to be
+                // inverted, which let a value that cannot possibly be in the list reach IList.Remove --
+                // and Remove type-checks internally and drops the call. That is a silent no-op, and a
+                // following Commit() then re-persists the value the caller asked to delete.
+                if (_genericType.IsAssignableFrom(value.GetType()))
                 {
                     ((IList)_value).Remove(value);
+                    return;
+                }
+                // Symmetric with SetOrAddMappedValue: a plain Uri widens into a UriRef collection.
+                // Without this, a value that could be added could not be removed again.
+                else if (_genericType == typeof(UriRef) && value is Uri uriItem)
+                {
+                    ((IList)_value).Remove(uriItem.ToUriRef());
                     return;
                 }
             }
             else
             {
                 if (typeof(T).IsAssignableFrom(value.GetType()))
+                {
+                    _value = default(T);
+                    _isUnsetValue = true;
+                    return;
+                }
+                // As above: the add path widens a plain Uri into a UriRef mapping, so the remove path
+                // has to accept the same value or the property can be set but never cleared.
+                else if (_dataType == typeof(UriRef) && value is Uri)
                 {
                     _value = default(T);
                     _isUnsetValue = true;
