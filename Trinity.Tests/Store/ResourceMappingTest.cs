@@ -713,17 +713,64 @@ namespace Semiodesk.Trinity.Tests.Store
             // Test if ListValues works
             Assert.AreEqual(0, actual.ListValues(to.uniqueUriTest).Count());
 
-            r1.uriTest.Add(new Uri("urn:test#myUri1"));
-            r1.uriTest.Add(new Uri("urn:test#myUri2"));
-            r1.uriTest.Add(new Uri("urn:test3"));
-            r1.uriTest.Add(new Uri("urn:test/my#Uri4"));
-            r1.uriTest.Add(new Uri("urn:test#5"));
+            r1.uriTest.Add(new UriRef("urn:test#myUri1"));
+            r1.uriTest.Add(new UriRef("urn:test#myUri2"));
+            r1.uriTest.Add(new UriRef("urn:test3"));
+            r1.uriTest.Add(new UriRef("urn:test/my#Uri4"));
+            r1.uriTest.Add(new UriRef("urn:test#5"));
             r1.Commit();
 
             actual = Model1.GetResource<MappingTestClass>(_r1);
             
             Assert.AreEqual(r1.uriTest.Count, actual.uriTest.Count);
         }
+        /// <summary>
+        /// The mapped properties are typed UriRef, which TRIN007 and the PropertyMapping check require.
+        /// Callers still reach the unmapped surface with a plain System.Uri — AddProperty/RemoveProperty
+        /// both take one — so a raw Uri has to add *and* remove against a UriRef mapping. Removal was the
+        /// half that broke: the scalar path threw, and the collection path silently did nothing, which
+        /// the Commit() below would then undo by re-persisting the value.
+        /// </summary>
+        [Test]
+        public virtual void AddRemovePlainUriAgainstUriRefMappingTest()
+        {
+            var plain = new Uri(_r2.OriginalString);
+
+            var r1 = Model1.CreateResource<MappingTestClass>(_r1);
+            r1.AddProperty(to.uniqueUriTest, plain);
+            r1.Commit();
+
+            var actual = Model1.GetResource<MappingTestClass>(_r1);
+
+            Assert.IsNotNull(actual.uniqueUriTest, "A plain Uri must reach the mapped property, not the unmapped bag.");
+            Assert.AreEqual(_r2.OriginalString, actual.uniqueUriTest.OriginalString);
+
+            r1.RemoveProperty(to.uniqueUriTest, plain);
+            r1.Commit();
+
+            actual = Model1.GetResource<MappingTestClass>(_r1);
+
+            Assert.IsNull(actual.uniqueUriTest, "Removal must persist; a silent no-op is re-committed.");
+            Assert.AreEqual(0, actual.ListValues(to.uniqueUriTest).Count());
+
+            // The collection half, where the failure was silent rather than loud.
+            var item = new Uri("urn:test#plain1");
+
+            r1.AddProperty(to.uriTest, item);
+            r1.Commit();
+
+            actual = Model1.GetResource<MappingTestClass>(_r1);
+
+            Assert.AreEqual(1, actual.uriTest.Count);
+
+            r1.RemoveProperty(to.uriTest, item);
+            r1.Commit();
+
+            actual = Model1.GetResource<MappingTestClass>(_r1);
+
+            Assert.AreEqual(0, actual.uriTest.Count, "Removal from a mapped collection must not silently do nothing.");
+        }
+
         [Test]
         public virtual void TimeZoneTest()
         {

@@ -171,5 +171,65 @@ namespace Semiodesk.Trinity.Tests.Query.Sparql
             StringAssert.Contains("OPTIONAL {", text);
             AssertValidSparql(text);
         }
+
+        /// <summary>
+        /// IRIs are written from OriginalString, matching the write path (SparqlSerializer.SerializeUri).
+        /// AbsoluteUri, which this used to use, normalizes percent-encoding case, dot-segments, default
+        /// ports and host casing -- so a resource stored under its original spelling could not be found
+        /// by a query built from the very same Uri.
+        /// </summary>
+        [Test]
+        public void WritesIrisExactlyAsGiven()
+        {
+            var s = new VariableTerm("s");
+            var query = new SelectQuery();
+            query.Projections.Add(new Projection(s));
+            query.Where.Add(new TriplePattern(s, RdfTypeTerm.Instance,
+                new IriTerm(new UriRef("http://example.org/a%2Fb/../c"))));
+
+            var text = SparqlQueryWriter.Write(query);
+
+            StringAssert.Contains("<http://example.org/a%2Fb/../c>", text);
+        }
+
+        /// <summary>
+        /// A blank node identifier cannot be named in a query at all, so the writer refuses one rather
+        /// than emitting something that parses. A bare <c>_:b0</c> in a triple pattern is a fresh
+        /// non-distinguished variable -- it parses, and matches every value, which is a wrong answer
+        /// rather than an error. In a FILTER the label is a parse error, and the bracketed
+        /// <c>&lt;_:b0&gt;</c> is an unresolvable relative IRI reference. Both verified against
+        /// dotNetRDF's parser.
+        /// </summary>
+        [Test]
+        public void RefusesBlankNodeIdentifiers()
+        {
+            var query = new SelectQuery();
+            query.Projections.Add(new Projection(new VariableTerm("p")));
+            query.Where.Add(new TriplePattern(
+                new IriTerm(new UriRef("_:b0", true)), new VariableTerm("p"), new VariableTerm("o")));
+
+            var error = Assert.Throws<NotSupportedException>(() => SparqlQueryWriter.Write(query));
+
+            Assert.That(error.Message, Does.Contain("_:b0"));
+        }
+
+        /// <summary>
+        /// The bare-label form a naive fix would emit parses but is not selective, which is why the
+        /// writer refuses instead. This pins the reason, so nobody "fixes" the refusal back into it.
+        /// </summary>
+        [Test]
+        public void ABareBlankNodeLabelIsNotSelective()
+        {
+            // Parses, but _:b0 here is a variable matching every subject -- not a reference to a
+            // specific blank node.
+            AssertValidSparql("SELECT ?p WHERE { _:b0 ?p ?o . }");
+
+            var parser = new SparqlQueryParser();
+
+            Assert.Throws<VDS.RDF.Parsing.RdfParseException>(
+                () => parser.ParseFromString("SELECT ?s WHERE { ?s ?p ?o . FILTER(?s = _:b0) }"));
+            Assert.Throws<VDS.RDF.Parsing.RdfParseException>(
+                () => parser.ParseFromString("SELECT ?s WHERE { ?s ?p ?o . FILTER(?s = <_:b0>) }"));
+        }
     }
 }

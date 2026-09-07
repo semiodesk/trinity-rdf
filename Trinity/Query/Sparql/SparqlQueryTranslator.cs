@@ -132,7 +132,11 @@ namespace Semiodesk.Trinity.Query.Sparql
 
         private Type _elementType;
 
-        private readonly List<Uri> _typeConstraints = new List<Uri>();
+        // UriRef, not Uri: these are rdf:type IRIs, which in most vocabularies are fragment IRIs
+        // (...#Person). List<Uri>.Contains uses EqualityComparer<Uri>.Default, so on .NET 10 the
+        // dedupe in AddTypeConstraints would treat two '#'-distinct classes as one and silently drop
+        // a class constraint from the generated query.
+        private readonly List<UriRef> _typeConstraints = new List<UriRef>();
 
         // Patterns that constrain the selected subject ?s (property bindings introduced by filters/orderings).
         private readonly GroupGraphPattern _subjectPatterns = new GroupGraphPattern();
@@ -1319,7 +1323,7 @@ namespace Semiodesk.Trinity.Query.Sparql
         /// <summary>Builds the <c>(NOT) EXISTS { ?x a &lt;T&gt; }</c> type check for a mapped type.</summary>
         private SparqlExpression TranslateTypeCheck(SparqlTerm subject, Type type, bool negate, string syntax)
         {
-            List<Uri> types = GetTypeConstraints(type).ToList();
+            List<UriRef> types = GetTypeConstraints(type).ToList();
 
             if (types.Count == 0)
             {
@@ -1329,7 +1333,7 @@ namespace Semiodesk.Trinity.Query.Sparql
 
             var group = new GroupGraphPattern();
 
-            foreach (Uri uri in types)
+            foreach (UriRef uri in types)
             {
                 group.Add(new TriplePattern(subject, RdfTypeTerm.Instance, new IriTerm(uri)));
             }
@@ -2024,11 +2028,15 @@ namespace Semiodesk.Trinity.Query.Sparql
                     case ChainKind.Count:
                         return Column(_translator.BindCount(_translator._rootScope, chain.Chain, chain.ElementType).Variable, false, typeof(int), node.Type);
 
-                    case ChainKind.Subject when node.Type == typeof(Uri):
-                        return Column(_translator._rootScope.Subject, false, typeof(Uri), node.Type);
+                    // node.Type, not typeof(Uri), in both cases: Resource.Uri is declared UriRef, so
+                    // an exact typeof(Uri) test never matched ('select x.Uri' fell through to
+                    // "Unsupported projection"), and declaring the column as Uri while converting the
+                    // row to node.Type casts a Uri to UriRef and throws.
+                    case ChainKind.Subject when typeof(Uri).IsAssignableFrom(node.Type):
+                        return Column(_translator._rootScope.Subject, false, node.Type, node.Type);
 
                     case ChainKind.Uri:
-                        return Column(_translator.BindChain(_translator._rootScope, chain.Chain, false).Variable, false, typeof(Uri), node.Type);
+                        return Column(_translator.BindChain(_translator._rootScope, chain.Chain, false).Variable, false, node.Type, node.Type);
 
                     default:
                         return null;
@@ -2464,7 +2472,7 @@ namespace Semiodesk.Trinity.Query.Sparql
 
         private void AddTypeConstraints(Type type)
         {
-            foreach (Uri uri in GetTypeConstraints(type))
+            foreach (UriRef uri in GetTypeConstraints(type))
             {
                 if (!_typeConstraints.Contains(uri))
                 {
@@ -2473,7 +2481,7 @@ namespace Semiodesk.Trinity.Query.Sparql
             }
         }
 
-        private static IEnumerable<Uri> GetTypeConstraints(Type type)
+        private static IEnumerable<UriRef> GetTypeConstraints(Type type)
         {
             object[] attributes = type.GetCustomAttributes(typeof(RdfClassAttribute), false);
 
@@ -2485,7 +2493,7 @@ namespace Semiodesk.Trinity.Query.Sparql
             return attributes.Cast<RdfClassAttribute>().Select(a => a.MappedUri);
         }
 
-        private static Uri GetPredicate(MemberExpression member)
+        private static UriRef GetPredicate(MemberExpression member)
         {
             MemberInfo info = member.Member;
 

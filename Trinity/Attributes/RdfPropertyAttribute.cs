@@ -39,7 +39,7 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Uri of the the RDF property
         /// </summary>
-        public readonly Uri MappedUri;
+        public readonly UriRef MappedUri;
 
         /// <summary>
         /// Flag determining if property is language invariant. Only valid for string or string collections.
@@ -57,7 +57,7 @@ namespace Semiodesk.Trinity
         /// <param name="languageInvariant">The mapping ignores the language setting and is always non-localized. Only valid if type or generic type is string or string collection.</param>
         public RdfPropertyAttribute(string uriString, bool languageInvariant = false)
         {
-            MappedUri = new Uri(uriString);
+            MappedUri = new UriRef(uriString);
             LanguageInvariant = languageInvariant;
         }
 
