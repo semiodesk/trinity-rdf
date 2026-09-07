@@ -22,7 +22,9 @@ Shipped/maintained backends:
 - **GraphDB** (`Trinity.GraphDB`) — functional, most recently maintained; custom connector
   over dotNetRDF's Sesame connector with `infer=true` reasoning support; no transactions.
 - **Fuseki** (`Trinity.Fuseki`) — functional via dotNetRDF's Fuseki connector; no
-  transactions; has a known `CreateModelGroup(params IModel[])` bug (builds an empty group).
+  transactions. Revived and now green on the shared store suite
+  ([0043](0043-fuseki-store-revival.md)), which also fixed the
+  `CreateModelGroup(params IModel[])` bug (it built an empty group).
 
 Stardog support was **removed** (`git`: "Removed Stardog support"). Note: test projects
 under `tests/Trinity.Tests.Stardog` and `provider=stardog` references still exist even
@@ -37,8 +39,9 @@ though there is **no Stardog provider project** — stale.
 
 ## Revival notes
 The OpenLink provider is a self-recompiled netstandard2.0 assembly (cross-platform); document
-how it is rebuilt and keep that source/recipe available. Fix the Fuseki/GraphDB transaction
-stubs and the Fuseki `CreateModelGroup` bug.
+how it is rebuilt and keep that source/recipe available. The Fuseki/GraphDB transaction stubs now
+return a `NoOpTransaction` rather than `null` ([0039](0039-resource-write-semantics.md)), and the
+Fuseki `CreateModelGroup` bug is fixed ([0043](0043-fuseki-store-revival.md)).
 Remove or resurrect Stardog explicitly.
 
 ## Related

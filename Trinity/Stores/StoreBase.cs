@@ -87,7 +87,10 @@ namespace Semiodesk.Trinity
         [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty")]
         public virtual bool ContainsModel(IModel model)
         {
-            return ContainsModel(model.Uri);
+            // A null model contains nothing; it is not an error. Every store's override of this
+            // overload was a verbatim delegation to the Uri overload, so they are gone and this is
+            // the single implementation -- which is what makes the guard reach all of them.
+            return model != null && ContainsModel(model.Uri);
         }
 
         /// <summary>
@@ -648,6 +651,48 @@ namespace Semiodesk.Trinity
         {
             foreach (var resource in resources)
                 DeleteResource(resource, transaction);
+        }
+
+        /// <summary>
+        /// Groups the graphs parsed from a TriG file by the graph they should be written to, merging
+        /// any that share a target.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Lives here rather than in each backend because it was written twice, identically, and two
+        /// copies of a routing rule drift into triples landing in the wrong graph on one backend only
+        /// -- the hardest version of this bug to notice. A new backend gets the behaviour rather than
+        /// a third copy.
+        /// </para>
+        /// A graph carrying its own name is written under that name. Triples carrying none go to
+        /// <paramref name="graphUri"/>, the graph the caller asked to read into: they have no home of
+        /// their own, and silently discarding them would be data loss the caller cannot detect, since
+        /// <c>Read</c> returns the same URI either way.
+        /// </remarks>
+        /// <param name="store">The parsed TriG content.</param>
+        /// <param name="graphUri">Target for triples with no graph name of their own.</param>
+        protected static IEnumerable<(Uri Uri, IGraph Graph)> GroupByTargetGraph(ITripleStore store, Uri graphUri)
+        {
+            var targets = new Dictionary<string, (Uri Uri, IGraph Graph)>();
+
+            foreach (var parsed in store.Graphs)
+            {
+                var target = (parsed.Name as IUriNode)?.Uri ?? graphUri;
+
+                if (!targets.TryGetValue(target.OriginalString, out var entry))
+                {
+                    // Named with the target so the graph is self-describing; BaseUri because that is
+                    // what the connector actually reads when deciding where to write (ADR-0038).
+                    IGraph merged = new Graph(new UriNode(target)) { BaseUri = target };
+
+                    entry = (target, merged);
+                    targets[target.OriginalString] = entry;
+                }
+
+                entry.Graph.Merge(parsed);
+            }
+
+            return targets.Values;
         }
 
         /// <summary>

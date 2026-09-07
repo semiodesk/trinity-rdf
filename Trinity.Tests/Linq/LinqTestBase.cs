@@ -1279,9 +1279,6 @@ namespace Semiodesk.Trinity.Tests.Linq
         }
 
         [Test]
-        [Ignore("Known: the in-memory store does not implement inferencing — it ignores the " +
-                "inferenceEnabled flag entirely (ADR-0022 permits a store to). Not a bug; an " +
-                "unimplemented capability. See doc/known-test-failures.md")]
         public void CanExecuteCollectionWithInferencingEnabled()
         {
             // Check if inferencing works on resource queries.
@@ -1300,9 +1297,6 @@ namespace Semiodesk.Trinity.Tests.Linq
         }
 
         [Test]
-        [Ignore("Known: the in-memory store does not implement inferencing — it ignores the " +
-                "inferenceEnabled flag entirely (ADR-0022 permits a store to). Not a bug; an " +
-                "unimplemented capability. See doc/known-test-failures.md")]
         public void CanExecuteScalarWithInferencingEnabled()
         {
             // See if inferencing works for boolean (ASK) queries.

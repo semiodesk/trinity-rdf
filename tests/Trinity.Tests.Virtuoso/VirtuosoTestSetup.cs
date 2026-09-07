@@ -25,6 +25,14 @@ namespace Semiodesk.Trinity.Tests.Virtuoso
             StoreFactory.LoadProvider<VirtuosoStoreProvider>();
         }
 
+        /// <summary>
+        /// Rebuilds the inference rule set now that the schema graphs hold their axioms.
+        /// </summary>
+        public void AfterSeed(IStore store)
+        {
+            VirtuosoContainer.RefreshRuleSet();
+        }
+
         #endregion
     }
 }

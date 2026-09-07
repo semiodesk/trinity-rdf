@@ -39,9 +39,9 @@ namespace Semiodesk.Trinity.Tests.Store
     /// </summary>
     /// <remarks>
     /// These run against every backend that has a fixture, because the union half of the overlay is
-    /// exactly where backends differ — an in-memory-only test would prove very little here. Fuseki
-    /// has no generic fixture (its suite is a hand-written copy and the backend is 4/86 on an
-    /// upstream connector bug), so it is not covered; see ADR-0041.
+    /// exactly where backends differ — an in-memory-only test would prove very little here. That is
+    /// not a theoretical concern: adding the Fuseki fixture (ADR-0043) found that the overlay's
+    /// dataset clause was emitted twice, which Virtuoso and GraphDB tolerate and Jena rejects.
     /// </remarks>
     [TestFixture]
     public abstract class LayeredModelTest<T> : StoreTest<T> where T : IStoreTestSetup

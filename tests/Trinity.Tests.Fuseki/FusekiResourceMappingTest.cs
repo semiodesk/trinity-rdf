@@ -23,40 +23,31 @@
 //  Moritz Eberl <moritz@semiodesk.com>
 //  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2022
+// Copyright (c) Semiodesk GmbH 2023
 
-using VDS.RDF.Query;
-using VDS.RDF;
+using NUnit.Framework;
+using Semiodesk.Trinity.Tests.Store;
 
-namespace Semiodesk.Trinity.Store.Fuseki
+namespace Semiodesk.Trinity.Tests.Fuseki
 {
     /// <summary>
-    /// The results returned from a SPARQL query.
+    /// Runs the store-independent resource-mapping suite against Fuseki.
     /// </summary>
-    internal class FusekiSparqlQueryResult : dotNetRDFQueryResult
+    [TestFixture]
+    public class FusekiResourceMappingTest : ResourceMappingTest<FusekiTestSetup>
     {
-        #region Constructors
-
-        /// <summary>
-        /// Internal constructor which parses the results returned from a given query.
-        /// </summary>
-        /// <param name="query">The executed query.</param>
-        /// <param name="store"></param>
-        /// <param name="resultSet">the results</param>
-        internal FusekiSparqlQueryResult(FusekiStore store, ISparqlQuery query, SparqlResultSet resultSet) : base(store, query, resultSet)
+        [Test]
+        public override void MappingTypeWithInferencingTest()
         {
+            Assert.Inconclusive(
+                "Fuseki has no per-query inference switch: a reasoner-wrapped Jena dataset infers unconditionally and so cannot honour inferenceEnabled: false. Inferencing is a per-store capability a store may ignore (ADR-0022).");
         }
 
-        /// <summary>
-        /// Internal constructor which parses the results returned from a given query.
-        /// </summary>
-        /// <param name="query">The executed query.</param>
-        /// <param name="store"></param>
-        /// <param name="graph">the results</param>
-        internal FusekiSparqlQueryResult(FusekiStore store, ISparqlQuery query, IGraph graph) : base(store, query, graph)
+        [Test]
+        public override void MappingTypeCollectionWithInferencingTest()
         {
+            Assert.Inconclusive(
+                "Fuseki has no per-query inference switch: a reasoner-wrapped Jena dataset infers unconditionally and so cannot honour inferenceEnabled: false. Inferencing is a per-store capability a store may ignore (ADR-0022).");
         }
-
-        #endregion
     }
 }

@@ -195,8 +195,16 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Enumerates the graphs which are declared in FROM and FROM NAMED directives at the root level.
+        /// Enumerates the graphs which are declared in FROM directives at the root level, i.e. the
+        /// query's default graph.
         /// </summary>
+        /// <remarks>
+        /// <c>FROM NAMED</c> operands are deliberately <b>not</b> included, despite what this summary
+        /// used to claim: callers treat the result as default-graph membership. <c>Model.ExecuteQuery</c>
+        /// uses it to decide whether the query already declares a default graph, and
+        /// <c>GraphDBStore</c> feeds each entry back in as a <c>FROM</c> when adding its inference
+        /// graph — including a named graph there would merge it into the default graph.
+        /// </remarks>
         /// <returns>An enumeration of URI strings.</returns>
         public IEnumerable<string> GetDefaultModels()
         {

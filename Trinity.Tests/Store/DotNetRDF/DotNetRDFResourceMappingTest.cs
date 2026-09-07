@@ -31,18 +31,5 @@ using Semiodesk.Trinity.Tests.Store;
 namespace Semiodesk.Trinity.Tests.DotNetRDF
 {
     [TestFixture]
-    public class DotNetRDFResourceMappingTest : ResourceMappingTest<DotNetRDFTestSetup>
-    {
-        [Test]
-        public override void MappingTypeWithInferencingTest()
-        {
-            Assert.Inconclusive("dotNetRDF store does not support inference.");
-        }
-
-        [Test]
-        public override void MappingTypeCollectionWithInferencingTest()
-        {
-            Assert.Inconclusive("dotNetRDF store does not support inference.");
-        }
-    }
+    public class DotNetRDFResourceMappingTest : ResourceMappingTest<DotNetRDFTestSetup> { }
 }

@@ -31,12 +31,5 @@ using Semiodesk.Trinity.Tests.Store;
 namespace Semiodesk.Trinity.Tests.DotNetRDF
 {
     [TestFixture]
-    public class DotNetRDFSparqlQueryTest : SparqlQueryTest<DotNetRDFTestSetup>
-    {
-        [Test]
-        public override void TestInferencing()
-        {
-            Assert.Inconclusive("dotNetRDF store does not support inference.");
-        }
-    }
+    public class DotNetRDFSparqlQueryTest : SparqlQueryTest<DotNetRDFTestSetup> { }
 }

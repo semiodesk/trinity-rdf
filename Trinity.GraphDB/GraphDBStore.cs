@@ -139,12 +139,6 @@ namespace Semiodesk.Trinity.Store.GraphDB
             return uri != null && _connector.ListGraphs().Contains(uri);
         }
 
-        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
-        public override bool ContainsModel(IModel model)
-        {
-            return model != null && ContainsModel(model.Uri);
-        }
-
         /// <summary>
         /// Updates the properties of a resource in the backing RDF store.
         /// </summary>
@@ -438,14 +432,17 @@ namespace Semiodesk.Trinity.Store.GraphDB
                         var store = new TripleStore();
                         store.LoadFromFile(path, new TriGParser());
 
-                        foreach (var g in store.Graphs)
+                        // See the matching comment in FusekiStore.Read for why each graph is written
+                        // under its own name, why BaseUri has to be set, and why unnamed triples go to
+                        // graphUri rather than being dropped.
+                        foreach (var target in GroupByTargetGraph(store, graphUri))
                         {
-                            if (!update && exists)
+                            if (!update && _connector.ListGraphs().Contains(target.Uri))
                             {
-                                _connector.DeleteGraph(graphUri);
+                                _connector.DeleteGraph(target.Uri);
                             }
 
-                            _connector.SaveGraph(g);
+                            _connector.SaveGraph(target.Graph);
                         }
                     }
                     else
@@ -485,6 +482,8 @@ namespace Semiodesk.Trinity.Store.GraphDB
 
             return null;
         }
+
+
 
         /// <summary>
         /// Writes a serialized graph to the given stream. See allowed <see cref="RdfSerializationFormat">formats</see>.

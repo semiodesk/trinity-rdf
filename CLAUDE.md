@@ -55,7 +55,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 624 passed, 7 skipped (quarantined)
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 7 skipped (quarantined); 0 failed on net8.0
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 23 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -68,16 +68,30 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   none are generator regressions.
 - Store integration tests (`tests/Trinity.Tests.*`) **self-provision** their server in Docker via
   Testcontainers on a random host port (ADR-0036): run `dotnet test tests/Trinity.Tests.{Virtuoso,GraphDB,Fuseki}`
-  with a Docker daemon running. Excluded from the default CI job (Docker + large images). Current:
-  Virtuoso 256/261 and GraphDB 263/268 pass; Fuseki is 4/86 — a pre-existing dotNetRDF `FusekiConnector`
-  query-endpoint bug (POSTs `/ds/query`, which the server 404s), unrelated to the container wiring.
+  with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
+  exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
+  standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
+  hiccup cannot redden it. Current: **all three green** — Fuseki 249/250, GraphDB 247/248, Virtuoso
+  240/241 (0 failed each; the 1 skipped is the shared blank-node quarantine).
+
+  The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
+  limitations**: Virtuoso's rule set was declared only in the `ontologies.config` that ADR-0011 retired,
+  and GraphDB's reasoner had no `nco` class hierarchy to reason over because the shared `TestOntologies`
+  never seeded it. Fuseki's four remain inconclusive — it has no per-query inference switch (ADR-0022).
+
+  Fuseki's long-standing "4/86, blocked on an upstream `FusekiConnector` bug" was a **misdiagnosis**
+  (ADR-0043): the test container never created a dataset (`FUSEKI_DATASET_1` belongs to a different image
+  and is ignored), so every path under `/ds/*` 404d. It now runs the same shared fixtures as GraphDB and
+  needs **Fuseki 5.x** (Jena 4.x answers HTTP 500 to any query naming a `urn:uuid:` IRI, which is what
+  `CreateResource()` mints by default).
   Virtuoso's `Int16Test`/`Uint16Test`/`UintTest` are now `Assert.Inconclusive` in `VirtuosoResourceTest`,
   alongside the pre-existing `Int64Test`/`Uint64Test` overrides for the same phenomenon: Virtuoso widens
   `xsd:short`/`xsd:unsignedShort`/`xsd:unsignedInt` into an integer box, and the `Test<TValue>` helper reads
   the *unmapped* bag and casts with `(TValue)`. Not a mapping defect — a mapped property declares a target
   type so Trinity converts into it (ADR-0040), whereas the unmapped bag declares nothing. If `ListValues`
   is ever given a CLR-type-fidelity guarantee, they must come back.
-- **CI:** `.github/workflows/ci.yml` (ubuntu, .NET 10) — restore → build → test → pack. NuGet
+- **CI:** `.github/workflows/ci.yml` (ubuntu, .NET 10) — a fast `build` job (restore → build → test →
+  pack) plus a `stores` matrix job running the three Dockerized store suites (ADR-0044). NuGet
   publishing is **manual** (no publish job).
 - Central Package Management: versions live in `Directory.Packages.props`; shared metadata +
   the single `Version` (2.0.0) in `Directory.Build.props`. Projects use versionless `PackageReference`.
@@ -253,6 +267,16 @@ Invariants that surprise newcomers:
   (own SPARQL AST → serializer → `Model.ExecuteQuery`/`GetResources`); re-linq / Remotion.Linq retired.
   `IModel.AsQueryable<T>()` routes to it, and it emits SPARQL strings — so it's decoupled from
   dotNetRDF's Query Builder and the 3.x upgrade won't touch it. A few LINQ-provider gaps stay quarantined.
+- **Fuseki is a first-class backend** (ADR-0043), not the experimental one the older ADRs describe. Covering
+  it found three defects the other backends hid. The layered view's `FROM NAMED` dataset clause was emitted
+  **twice**, because `SparqlPreprocessor` never recorded a `FROM NAMED` graph and so could not suppress the
+  duplicate — Virtuoso and GraphDB tolerate the repetition, Jena rejects it (HTTP 400). Then moving the
+  `ContainsModel` test into the shared `StoreCatalogTest<T>` found that **Virtuoso answered `true` for every
+  URI** (it ran an `ASK` and counted rows, so it never read the boolean) and that the in-memory store
+  answered `true` for a null URI. `SparqlPreprocessor` keeps `DefaultGraphs` and `NamedGraphs` apart for the
+  same reason: `FROM <g>` and `FROM NAMED <g>` are independent clauses, and conflating them makes assigning
+  a model silently empty the default graph. If you add a backend, or share a per-store test, expect it to
+  find things — that is the point of having more than one.
 - **Stores** (ADR-0008/0009): `IStore`/`IModel`/`StoreFactory`; providers registered **manually**
   via `StoreFactory.LoadProvider<T>()`. The `[Export]`/`System.Composition` MEF wiring is dead code.
   `provider=stardog` references and a Stardog test project exist but there is **no Stardog provider**.
