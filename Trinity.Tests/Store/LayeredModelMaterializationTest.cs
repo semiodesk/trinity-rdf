@@ -466,6 +466,49 @@ namespace Semiodesk.Trinity.Tests.Store
 
         #endregion
 
+        #region Inferencing (ADR-0042 lifts the refusal; ADR-0045 makes it real in memory)
+
+        /// <summary>
+        /// A materialized view accepts an inference-enabled read where a rewriting one refuses it.
+        /// </summary>
+        /// <remarks>
+        /// Store-independent, because the refusal is Trinity's rather than the store's: ADR-0041 refuses
+        /// inferencing over the overlay because no store's inference path can carry it, and ADR-0042
+        /// lifts that for a materialized view since the store is then reasoning over one ordinary graph.
+        /// Whether the store then <i>does</i> anything is its own business (ADR-0022), which is why this
+        /// asserts acceptance and not entailment.
+        /// </remarks>
+        [Test]
+        public virtual void InferenceIsRefusedRewritingButAcceptedMaterialized()
+        {
+            var query = new SparqlQuery($"SELECT ?s WHERE {{ ?s a <{EX}Thing> }}", declarePrefixes: false);
+
+            Assert.Throws<NotSupportedException>(
+                () => Rewriting.GetBindings(query, inferenceEnabled: true).ToList(),
+                "the overlay cannot be reasoned over");
+
+            Assert.DoesNotThrow(
+                () => Materialized.GetBindings(
+                    new SparqlQuery($"SELECT ?s WHERE {{ ?s a <{EX}Thing> }}", declarePrefixes: false),
+                    inferenceEnabled: true).ToList(),
+                "a materialized view is one ordinary graph, so the store's inference path has nothing " +
+                "to defeat - this is what ADR-0042 claims materialization lifts");
+        }
+
+        /// <summary>
+        /// The same, through the LINQ path, which carries the flag separately.
+        /// </summary>
+        [Test]
+        public virtual void InferenceThroughLinqIsAcceptedWhenMaterialized()
+        {
+            Assert.Throws<NotSupportedException>(
+                () => Rewriting.AsQueryable<Agent>(inferenceEnabled: true).ToList());
+
+            Assert.DoesNotThrow(() => Materialized.AsQueryable<Agent>(inferenceEnabled: true).ToList());
+        }
+
+        #endregion
+
         #region Which operations need a rebuild (ADR-0042)
 
         /// <summary>

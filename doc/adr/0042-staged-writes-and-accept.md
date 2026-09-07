@@ -392,6 +392,8 @@ one subclass per backend):
 | staleness after an out-of-band write, repaired by `Refresh()` | `AnOutOfBandWriteGoesStaleUntilRefreshed` |
 | a short materialization is latched, not served | `AShortMaterializationRefusesEveryLaterRead` |
 | the two modes answer alike, LINQ included | `MaterializedAnswersAsTheRewritingViewDoes`, `Linq*AgreesBetweenTheModes` |
+| materialization lifts the inferencing refusal | `InferenceIsRefusedRewritingButAcceptedMaterialized`, `InferenceThroughLinqIsAcceptedWhenMaterialized` |
+| entailments are computed from the *effective* triples, so a staged removal withdraws what it entailed | `EntailmentsOverAMaterializedViewHonourTheOverlay` (in-memory only — see below) |
 
 **Measured but not tested**, and deliberately so:
 
@@ -401,6 +403,12 @@ one subclass per backend):
 - **The performance figures** (31.5 s rebuild, 0.7 ms stage, 12.5 s → 3 ms on the delete path). Timings
   do not belong in a correctness suite, but the *shape* they justify does — bound patterns rather than a
   filtered scan — and that shape is what the delete tests exercise.
+- **That any given store actually reasons.** ADR-0022 leaves inferencing a per-query flag a store may
+  honour or ignore, and Fuseki has no per-query switch at all. So the shared fixture asserts only that a
+  materialized view *accepts* an inference-enabled read; that entailments follow the overlay is pinned on
+  the in-memory store, where [0045](0045-in-memory-rdfs-inferencing.md) guarantees a reasoner. Before
+  0045 that combination could not be checked on this store at all — the flag was accepted and quietly did
+  nothing — so it is a claim this ADR made and only the merge of the two made testable.
 - **Virtuoso swallows failures other stores raise** (`CLEAR`/`DROP` of an absent graph, `CREATE` of an
   existing one, `LOAD` of an unresolvable URL). This is Virtuoso behaviour rather than Trinity's, and it
   is why `MultiOperationRequestIsAtomic` is overridden to `false` there — *unprobed*, not untrue.

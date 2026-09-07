@@ -55,7 +55,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 7 skipped (quarantined); 0 failed on net8.0
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 3 skipped (quarantined); 0 failed on net8.0
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 23 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -71,8 +71,8 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all three green** — Fuseki 249/250, GraphDB 247/248, Virtuoso
-  240/241 (0 failed each; the 1 skipped is the shared blank-node quarantine).
+  hiccup cannot redden it. Current: **all three green** — Fuseki 314/315, GraphDB 312/313, Virtuoso
+  301/302 (0 failed each; the 1 skipped is the shared blank-node quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
   limitations**: Virtuoso's rule set was declared only in the `ontologies.config` that ADR-0011 retired,
