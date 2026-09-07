@@ -349,15 +349,22 @@ namespace Semiodesk.Trinity.Tests.Store
             person.AddProperty(foaf.interest, interest);
             person.Commit();
 
+            // Removed from a freshly loaded copy rather than the one that wrote it, because that is
+            // the sequence a consumer actually performs -- and it puts the read path in front of the
+            // removal, so the value being removed is one the mapping resolved from the store (lazily,
+            // via ResourceCache) rather than one it still holds from the AddProperty call.
             var loaded = Model1.GetResource<Person>(personUri);
 
             Assert.AreEqual(1, loaded.Interests.Count, "Precondition: the link was written.");
 
+            var storedInterest = loaded.Interests.First();
+
             // A Person into a List<Resource> mapping: the everyday polymorphic case, which used to
             // throw "Provided argument value was not of type Semiodesk.Trinity.Resource".
-            Assert.DoesNotThrow(() => person.RemoveProperty(foaf.interest, interest));
+            Assert.IsInstanceOf<Person>(storedInterest, "Precondition: the value is a subclass of the element type.");
+            Assert.DoesNotThrow(() => loaded.RemoveProperty(foaf.interest, storedInterest));
 
-            person.Commit();
+            loaded.Commit();
 
             var reloaded = Model1.GetResource<Person>(personUri);
 
