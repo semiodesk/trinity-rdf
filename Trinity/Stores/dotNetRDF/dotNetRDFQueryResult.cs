@@ -31,9 +31,6 @@ using System.Diagnostics;
 using System.Linq;
 using VDS.RDF;
 using VDS.RDF.Query;
-#if NET35
-using Semiodesk.Trinity.Utility;
-#endif
 
 namespace Semiodesk.Trinity.Store
 {

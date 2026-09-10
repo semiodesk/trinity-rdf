@@ -27,20 +27,15 @@
 
 using System.Collections.Generic;
 using System;
-#if NETSTANDARD2_0 
 using System.Composition;
-#elif !NET35
-using System.ComponentModel.Composition;
-#endif
+
 
 namespace Semiodesk.Trinity.Store
 {
     /// <summary>
     /// A store adapter for SPARQL protocol endpoints.
     /// </summary>
-#if ! NET35
     [Export(typeof(StoreProvider))]
-#endif
     public class SparqlEndpointStoreProvider : StoreProvider
     {
         #region Constructor

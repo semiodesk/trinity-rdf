@@ -464,11 +464,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         {
             using (TextReader reader = new StreamReader(stream))
             {
-#if !NET35
                 if (format == RdfSerializationFormat.Trig || format == RdfSerializationFormat.NQuads || format == RdfSerializationFormat.JsonLd)
-#else
-                if (format == RdfSerializationFormat.Trig)
-#endif
                 {
                     return ReadQuadFormat(reader, graph, format, update);
                 }
@@ -481,12 +477,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
         public override Uri Read(string content, Uri graph, RdfSerializationFormat format, bool update)
         {
-            
-#if !NET35
                 if (format == RdfSerializationFormat.Trig || format == RdfSerializationFormat.NQuads || format == RdfSerializationFormat.JsonLd)
-#else
-                if (format == RdfSerializationFormat.Trig)
-#endif
                 {
                     return ReadQuadFormat(content, graph, format, update);
                 }

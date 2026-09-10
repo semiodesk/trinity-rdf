@@ -32,12 +32,7 @@ namespace Semiodesk.Trinity
     /// <summary>
     /// The model group can be used to query over multiple models at once.
     /// </summary>
-    public interface IModelGroup : IModel,
-    #if !NET35
-        ISet<IModel>
-    #else
-        ICollection<IModel>
-    #endif
+    public interface IModelGroup : IModel, ISet<IModel>
     {
         // Nothing beyond IModel and ISet<IModel>. This interface exists to name the combination -
         // a set of models that is itself a model - not to add behaviour to it. It previously also

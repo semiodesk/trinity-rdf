@@ -28,9 +28,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections;
-#if NET35
-using Semiodesk.Trinity.Utility;
-#endif
 
 namespace Semiodesk.Trinity
 {

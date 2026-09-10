@@ -31,9 +31,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Semiodesk.Trinity.Ontologies;
 using Semiodesk.Trinity.Tests.Cilg;
-#if NET35
-using Semiodesk.Trinity.Utility;
-#endif
 
 namespace Semiodesk.Trinity.Tests
 {

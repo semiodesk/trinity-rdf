@@ -30,9 +30,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using NUnit.Framework;
-#if NET35
-using Semiodesk.Trinity.Utility;
-#endif
 
 // Notizen:
 // - Mapping von resource listen sollten nur einen Itemsprovider zurückliefern, welcher auch virtualisiert genutzt werden kann

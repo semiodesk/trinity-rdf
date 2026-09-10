@@ -52,7 +52,6 @@ namespace Semiodesk.Trinity
         /// NTriples <see href="http://www.w3.org/2001/sw/RDFCore/ntriples/">http://www.w3.org/2001/sw/RDFCore/ntriples/</see>
         /// </summary>
         NTriples,
-#if !NET35
         /// <summary>
         /// NQuads <see href="https://www.w3.org/TR/2014/REC-n-quads-20140225/">https://www.w3.org/TR/2014/REC-n-quads-20140225/</see>
         /// </summary>
@@ -61,7 +60,6 @@ namespace Semiodesk.Trinity
         /// NQuads <see href="https://www.w3.org/TR/2014/REC-n-quads-20140225/">https://www.w3.org/TR/2014/REC-n-quads-20140225/</see>
         /// </summary>
         GZippedNQuads,
-#endif
         /// <summary>
         /// TriG <see href="http://www.w3.org/TR/trig/">http://www.w3.org/TR/trig/</see>
         /// </summary>
@@ -82,7 +80,6 @@ namespace Semiodesk.Trinity
         /// JSON
         /// </summary>
         Json,
-#if !NET35
         /// <summary>
         /// JSON-LD <see href="https://www.w3.org/TR/json-ld/">https://www.w3.org/TR/json-ld/</see>
         /// </summary>
@@ -91,7 +88,5 @@ namespace Semiodesk.Trinity
         /// JSON-LD <see href="https://www.w3.org/TR/json-ld/">https://www.w3.org/TR/json-ld/</see>
         /// </summary>
         GZippedJsonLd
-
-#endif
     };
 }

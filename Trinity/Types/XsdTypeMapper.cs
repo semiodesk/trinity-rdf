@@ -31,9 +31,6 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Globalization;
-#if NET35
-using Semiodesk.Trinity.Utility;
-#endif
 using VDS.RDF;
 
 namespace Semiodesk.Trinity

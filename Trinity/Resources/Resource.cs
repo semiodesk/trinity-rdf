@@ -35,9 +35,6 @@ using System.Linq;
 using System.Collections;
 using Newtonsoft.Json;
 using System.Runtime.Serialization;
-#if NET35
-using Semiodesk.Trinity.Utility;
-#endif
 
 namespace Semiodesk.Trinity
 {
@@ -1077,15 +1074,10 @@ namespace Semiodesk.Trinity
 
             if (property.Uri.OriginalString == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
             {
-#if NET35
-                foreach (object type in GetTypes().Cast<object>())
-                    yield return type;
-#else
                 foreach (object type in GetTypes())
                 {
                     yield return type;
                 }
-#endif
 
                 // We do not need to add mapped values for the RDF type property.
                 yield break;

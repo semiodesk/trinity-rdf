@@ -71,8 +71,7 @@ identifiers into shared buckets; it now mixes. `Equals` and `GetHashCode` also d
 operand's `IsBlankId` decided the branch, so the contract held only through short-circuit evaluation.
 
 ## Revival notes
-The `&`-instead-of-mix hash bug this ADR originally flagged is fixed in `UriRef`, but the **same bug
-remains in `Trinity/Utility/Tuple.cs`** (`:94`, `:164`, `:241`), a NET35-era shim.
+The `&`-instead-of-mix hash bug this ADR originally flagged is fixed in `UriRef`
 
 ## Related
 - [0002](0002-attribute-based-object-mapping.md), [0016](0016-resource-centric-not-triple-centric.md)

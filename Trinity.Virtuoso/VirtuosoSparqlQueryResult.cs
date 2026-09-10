@@ -33,9 +33,6 @@ using System.Data;
 using OpenLink.Data.Virtuoso;
 using System.Globalization;
 using System.Diagnostics;
-#if NET35
-using Semiodesk.Trinity.Utility;
-#endif
 
 namespace Semiodesk.Trinity.Store.Virtuoso
 {
