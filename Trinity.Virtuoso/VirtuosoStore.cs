@@ -442,7 +442,9 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                     }
                 }
             }
-            else if (url.Scheme == "http")
+            // https as well as http: rejecting it returned null rather than raising, so loading a
+            // graph from an https URL failed silently. Fuseki already accepted both.
+            else if (url.Scheme == "http" || url.Scheme == "https")
             {
                 if (format == RdfSerializationFormat.Trig)
                 {
@@ -590,7 +592,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             {
                 using (VDS.RDF.Graph graph = new VDS.RDF.Graph(graphUri))
                 {
-                    dotNetRDFStore.TryParse(reader, graph, format);
+                    TryParse(reader, graph, format);
 
                     if (update)
                     {

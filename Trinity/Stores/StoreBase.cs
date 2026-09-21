@@ -31,6 +31,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using VDS.RDF;
+using VDS.RDF.Parsing;
+using VDS.RDF.Parsing.Handlers;
 using VDS.RDF.Writing;
 
 namespace Semiodesk.Trinity
@@ -703,6 +705,57 @@ namespace Semiodesk.Trinity
             query.Bind("@subject", subjectUri);
 
             return query;
+        }
+
+        /// <summary>
+        /// Parses a serialized graph in the given format into <paramref name="graph"/>.
+        /// </summary>
+        /// <remarks>
+        /// Lives here rather than in each backend for the same reason as
+        /// <see cref="GroupByTargetGraph"/>: it was written out once per store, and the copies drifted.
+        /// GraphDB's had no <see cref="RdfSerializationFormat.Trig"/> case, so a TriG document read
+        /// through <c>Read(string)</c> or <c>Read(Stream)</c> fell to the RDF/XML arm -- it did not
+        /// route the triples wrongly, it failed to parse them at all, on one backend only. That is the
+        /// hardest version of this bug to notice, and a fourth copy would have been a fourth chance to
+        /// reintroduce it. A new backend gets the behaviour rather than a fourth copy.
+        ///
+        /// The quad formats (NQuads, TriG, JSON-LD) can name graphs of their own. They are loaded
+        /// through a <see cref="GraphHandler"/>, which funnels every quad into <paramref name="graph"/>
+        /// regardless of the name it carried. Callers that must preserve those names read through
+        /// <see cref="GroupByTargetGraph"/> instead.
+        /// </remarks>
+        /// <param name="reader">The text reader to read from.</param>
+        /// <param name="graph">The graph to store the read triples.</param>
+        /// <param name="format">RDF format to be read.</param>
+        protected static void TryParse(TextReader reader, IGraph graph, RdfSerializationFormat format)
+        {
+            switch (format)
+            {
+                case RdfSerializationFormat.N3:
+                    new Notation3Parser().Load(graph, reader); break;
+
+                case RdfSerializationFormat.NTriples:
+                    new NTriplesParser().Load(graph, reader); break;
+
+                case RdfSerializationFormat.NQuads:
+                    new NQuadsParser().Load(new GraphHandler(graph), reader); break;
+
+                case RdfSerializationFormat.Trig:
+                    new TriGParser().Load(new GraphHandler(graph), reader); break;
+
+                case RdfSerializationFormat.Turtle:
+                    new TurtleParser().Load(graph, reader); break;
+
+                case RdfSerializationFormat.Json:
+                    new RdfJsonParser().Load(graph, reader); break;
+
+                case RdfSerializationFormat.JsonLd:
+                    new JsonLdParser().Load(new GraphHandler(graph), reader); break;
+
+                case RdfSerializationFormat.RdfXml:
+                default:
+                    new RdfXmlParser().Load(graph, reader); break;
+            }
         }
 
         #endregion

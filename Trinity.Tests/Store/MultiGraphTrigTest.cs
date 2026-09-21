@@ -154,6 +154,57 @@ namespace Semiodesk.Trinity.Tests.Store
             }
         }
 
+        /// <summary>
+        /// TriG read from a string, rather than from a URL.
+        /// </summary>
+        /// <remarks>
+        /// Every other TriG test here goes through <c>Read(Uri, Uri, ...)</c>, which routes by graph
+        /// name through <c>GroupByTargetGraph</c> and never reaches the format switch. So the switch
+        /// was uncovered, and GraphDB's copy of it had no TriG case at all -- a TriG document read
+        /// this way fell through to the RDF/XML arm and was not parsed. Sharing the switch on
+        /// <c>StoreBase</c> fixes that; this test is what would have caught it.
+        ///
+        /// Both graphs collapse into the caller's graph here, which is correct for this overload:
+        /// there is only one target, and a GraphHandler funnels every quad into it. Losing the names
+        /// is the documented behaviour; losing the triples was the defect.
+        /// </remarks>
+        [Test]
+        public virtual void TrigReadFromAStringIsParsedRatherThanSilentlyDropped()
+        {
+            var target = BaseUri.GetUriRef("trig-from-string");
+
+            const string trig =
+                "@prefix ex: <http://example.org/trig/> .\n"
+                + "ex:g1 { ex:s1 ex:p \"one\" . }\n"
+                + "ex:g2 { ex:s2 ex:p \"two\" . }\n";
+
+            Store.Read(trig, target, RdfSerializationFormat.Trig, false);
+
+            Assert.AreEqual(2, Count(target),
+                "both TriG graphs must be parsed into the caller's graph; 0 means the format switch "
+                + "never routed TriG and the document was handed to the wrong parser");
+        }
+
+        /// <summary>
+        /// The stream overload of the same path, which shares the format switch.
+        /// </summary>
+        [Test]
+        public virtual void TrigReadFromAStreamIsParsedRatherThanSilentlyDropped()
+        {
+            var target = BaseUri.GetUriRef("trig-from-stream");
+
+            const string trig =
+                "@prefix ex: <http://example.org/trig/> .\n"
+                + "ex:g3 { ex:s3 ex:p \"three\" . }\n";
+
+            using (var stream = GenerateStreamFromString(trig))
+            {
+                Store.Read(stream, target, RdfSerializationFormat.Trig, false);
+            }
+
+            Assert.AreEqual(1, Count(target), "the stream overload must parse TriG too");
+        }
+
         private bool HasAxiom()
         {
             var query = new SparqlQuery(

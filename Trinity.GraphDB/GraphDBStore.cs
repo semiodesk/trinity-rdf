@@ -315,39 +315,6 @@ namespace Semiodesk.Trinity.Store.GraphDB
             }
         }
 
-        /// <summary>
-        /// Try parse RDF from a given text reader into the store.
-        /// </summary>
-        /// <param name="reader">The text reader to read from.</param>
-        /// <param name="graph">The graph to store the read triples.</param>
-        /// <param name="format">RDF format to be read.</param>
-        public static void TryParse(TextReader reader, IGraph graph, RdfSerializationFormat format)
-        {
-            switch (format)
-            {
-                case RdfSerializationFormat.N3:
-                    new Notation3Parser().Load(graph, reader); break;
-
-                case RdfSerializationFormat.NTriples:
-                    new NTriplesParser().Load(graph, reader); break;
-                
-                case RdfSerializationFormat.NQuads:
-                    new NQuadsParser().Load(new GraphHandler(graph), reader); break;
-                
-                case RdfSerializationFormat.Turtle:
-                    new TurtleParser().Load(graph, reader); break;
-
-                case RdfSerializationFormat.Json:
-                    new RdfJsonParser().Load(graph, reader); break;
-
-                case RdfSerializationFormat.JsonLd:
-                    new JsonLdParser().Load(new GraphHandler(graph), reader); break;
-                
-                case RdfSerializationFormat.RdfXml:
-                default:
-                    new RdfXmlParser().Load(graph, reader); break;
-            }
-        }
 
         /// <summary>
         /// Loads a serialized graph from the given String into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
@@ -479,7 +446,9 @@ namespace Semiodesk.Trinity.Store.GraphDB
                     }
                 }
             }
-            else if (url.Scheme == "http")
+            // https as well as http: rejecting it returned null rather than raising, so loading a
+            // graph from an https URL failed silently. Fuseki already accepted both.
+            else if (url.Scheme == "http" || url.Scheme == "https")
             {
                 graph = new Graph(graphUri);
 
