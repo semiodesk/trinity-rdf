@@ -29,6 +29,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Text;
 using System.Web;
@@ -141,46 +142,45 @@ namespace Semiodesk.Trinity.Store.GraphDB
           parameters["infer"] = "true";
         }
 
-        var request = CreateRequest(url, accept, "POST", parameters);
-        request.ContentType = "application/x-www-form-urlencoded;charset=utf-8";
-        
-        var queryBuilder = new StringBuilder();
-        queryBuilder.Append("query=");
-        queryBuilder.Append(HttpUtility.UrlEncode(this.EscapeQuery(sparqlQuery)));
-        
-        // 3.x removed the global Options class; UTF-8 without a BOM was the default it carried.
-        using (var writer = new StreamWriter(request.GetRequestStream(), new UTF8Encoding(false)))
-        {
-          writer.Write(queryBuilder);
-          writer.Close();
-        }
+        // The HttpMethod overload, not the string one: the latter builds an HttpWebRequest and is
+        // obsolete in dotNetRDF 3.x. FormUrlEncodedContent replaces hand-encoding the body and
+        // writing it to a request stream -- it sets the content type and encodes UTF-8 without a
+        // BOM, which is what the removed global Options class used to supply.
+        var request = CreateRequest(url, accept, HttpMethod.Post, parameters);
 
-        // dotNetRDF 3.x removed Tools.HttpDebugRequest/Response (HTTP debugging is done through
-        // HttpClient logging now), so the former debug hooks are simply gone.
-        using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+        request.Content = new FormUrlEncodedContent(new[]
         {
-          var input = new StreamReader(response.GetResponseStream());
-          
+          new KeyValuePair<string, string>("query", EscapeQuery(sparqlQuery))
+        });
+
+        using (var response = HttpClient.SendAsync(request).Result)
+        {
+          if (!response.IsSuccessStatusCode)
+          {
+            throw StorageHelper.HandleHttpError(response, "querying");
+          }
+
+          var contentType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
+          var input = new StreamReader(response.Content.ReadAsStreamAsync().Result);
+
           try
           {
-            MimeTypesHelper.GetSparqlParser(response.ContentType, allowPlainTextResults).Load(resultsHandler, input);
-            response.Close();
+            MimeTypesHelper.GetSparqlParser(contentType, allowPlainTextResults).Load(resultsHandler, input);
           }
           catch (RdfParserSelectionException)
           {
-            if (response.ContentType.StartsWith("application/xml"))
+            if (contentType.StartsWith("application/xml"))
             {
               try
               {
                 MimeTypesHelper.GetSparqlParser("application/sparql-results+xml").Load(resultsHandler, input);
-                response.Close();
               }
               catch (RdfParserSelectionException)
               {
               }
             }
 
-            var parser = MimeTypesHelper.GetParser(response.ContentType);
+            var parser = MimeTypesHelper.GetParser(contentType);
             
             if (sparqlQuery1 != null && (SparqlSpecsHelper.IsSelectQuery(sparqlQuery1.QueryType) ||
                                          sparqlQuery1.QueryType == VDS.RDF.Query.SparqlQueryType.Ask))
@@ -189,8 +189,6 @@ namespace Semiodesk.Trinity.Store.GraphDB
             {
               parser.Load(rdfHandler, input);
             }
-
-            response.Close();
           }
         }
       }

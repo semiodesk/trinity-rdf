@@ -452,7 +452,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
             {
                 graph = new Graph(graphUri);
 
-                UriLoader.Load(graph, url);
+                LoadGraphFromUrl(graph, url);
 
                 // Restore the target graph: a parsed @base directive overwrites BaseUri, and
                 // dotNetRDF connectors still derive the graph they write to from BaseUri.

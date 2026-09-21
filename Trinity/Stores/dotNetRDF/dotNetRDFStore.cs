@@ -390,7 +390,7 @@ namespace Semiodesk.Trinity.Store
             {
                 graph = new Graph(graphUri);
 
-                UriLoader.Load(graph, url);
+                LoadGraphFromUrl(graph, url);
             }
 
             if (graph != null)

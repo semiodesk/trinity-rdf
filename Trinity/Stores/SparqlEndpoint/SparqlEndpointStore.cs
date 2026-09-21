@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Net;
+using System.Net.Http;
 using System.Collections.Specialized;
 using System.Web;
 using VDS.RDF.Query;
@@ -48,7 +49,12 @@ namespace Semiodesk.Trinity.Store
     {
         #region Members
 
-        SparqlRemoteEndpoint _endpoint;
+        private readonly SparqlQueryClient _endpoint;
+
+        /// <summary>
+        /// Owned by this store and disposed with it; the client does not own it.
+        /// </summary>
+        private readonly HttpClient _httpClient;
 
         /// <summary>
         /// Indicates if the store is ready to be queried.
@@ -68,12 +74,32 @@ namespace Semiodesk.Trinity.Store
 
         #region Constructor
 
+        /// <param name="endpointUri">URI of the remote SPARQL endpoint.</param>
+        /// <param name="proxy">Proxy to route requests through, if any.</param>
+        /// <param name="credentials">Credentials to authenticate with, if any.</param>
+        /// <remarks>
+        /// <see cref="SparqlQueryClient"/> rather than the obsolete <c>SparqlRemoteEndpoint</c>.
+        /// The proxy and credentials move with it: the old endpoint type carried them as its own
+        /// properties, whereas the client takes an <see cref="HttpClient"/> and they belong on that
+        /// client's handler.
+        /// </remarks>
         public SparqlEndpointStore(Uri endpointUri, IWebProxy proxy = null, NetworkCredential credentials = null)
         {
-            _endpoint = new SparqlRemoteEndpoint(endpointUri);
-            
-            _endpoint.Proxy = proxy;
-            _endpoint.Credentials = credentials;
+            var handler = new HttpClientHandler();
+
+            if (proxy != null)
+            {
+                handler.Proxy = proxy;
+                handler.UseProxy = true;
+            }
+
+            if (credentials != null)
+            {
+                handler.Credentials = credentials;
+            }
+
+            _httpClient = new HttpClient(handler);
+            _endpoint = new SparqlQueryClient(_httpClient, endpointUri);
         }
 
         #endregion
@@ -166,12 +192,15 @@ namespace Semiodesk.Trinity.Store
 
             if (query.QueryType == SparqlQueryType.Describe || query.QueryType == SparqlQueryType.Construct)
             {
-                var r = _endpoint.QueryWithResultGraph(x.ToString());
+                // GetAwaiter().GetResult() rather than .Result: IStore.ExecuteQuery is synchronous
+                // and SparqlQueryClient offers no synchronous overload, and this form surfaces the
+                // original exception instead of wrapping it in an AggregateException.
+                var r = _endpoint.QueryWithResultGraphAsync(x.ToString()).GetAwaiter().GetResult();
                 result = new SparqlEndpointQueryResult(r, query); 
             }
             else
             {
-                var r = _endpoint.QueryWithResultSet(x.ToString());
+                var r = _endpoint.QueryWithResultSetAsync(x.ToString()).GetAwaiter().GetResult();
                 result = new SparqlEndpointQueryResult(r,  query);
             }
 
@@ -208,9 +237,17 @@ namespace Semiodesk.Trinity.Store
             throw new NotSupportedException();
         }
 
+        /// <summary>
+        /// Disposes the HTTP client this store owns.
+        /// </summary>
+        /// <remarks>
+        /// This was a no-op, which was correct while the obsolete <c>SparqlRemoteEndpoint</c> held
+        /// no disposable state. <see cref="SparqlQueryClient"/> is constructed around an
+        /// <see cref="HttpClient"/> that this store creates, so it now has something to release.
+        /// </remarks>
         public void Dispose()
         {
-            return;
+            _httpClient?.Dispose();
         }
 
         public void UpdateResource(Resource resource, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)

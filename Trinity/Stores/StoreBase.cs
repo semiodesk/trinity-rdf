@@ -758,6 +758,35 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// The loader used to fetch graphs named by an http(s) URL.
+        /// </summary>
+        /// <remarks>
+        /// One instance for the process, and that is the point. <see cref="Loader"/> replaced the
+        /// static <c>UriLoader</c> dotNetRDF has deprecated, but it is an <i>instance</i> type that
+        /// owns an <see cref="System.Net.Http.HttpClient"/> -- so constructing one per call, which
+        /// is the obvious way to translate the old static call, would open a fresh connection pool
+        /// every time and exhaust sockets under load. Sharing one is what HttpClient is designed
+        /// for.
+        /// </remarks>
+        private static readonly Loader RemoteLoader = new Loader();
+
+        /// <summary>
+        /// Loads the graph published at an http(s) URL into <paramref name="graph"/>.
+        /// </summary>
+        /// <remarks>
+        /// Shared for the same reason as <see cref="TryParse"/> and
+        /// <see cref="GroupByTargetGraph"/>: this was one identical line in five backends, and the
+        /// socket-lifetime question above has one right answer that none of them should have to
+        /// rediscover.
+        /// </remarks>
+        /// <param name="graph">The graph to load into.</param>
+        /// <param name="url">URL of the document to fetch.</param>
+        protected static void LoadGraphFromUrl(IGraph graph, Uri url)
+        {
+            RemoteLoader.LoadGraph(graph, url);
+        }
+
         #endregion
     }
 }

@@ -640,7 +640,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             {
                 using (VDS.RDF.Graph g = new VDS.RDF.Graph(graph))
                 {
-                    UriLoader.Load(g, location);
+                    LoadGraphFromUrl(g, location);
 
                     manager.SaveGraph(g);
                 }
