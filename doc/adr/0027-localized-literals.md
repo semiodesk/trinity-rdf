@@ -3,7 +3,9 @@
 Date: 2026-07-13 (grounding decision, original to the design)
 
 ## Status
-Accepted — rudimentary; flagged for improvement
+Accepted — rudimentary; flagged for improvement. The replacement is designed in
+[0046](0046-localized-literals-typed-containers.md); this becomes *Superseded by 0046* when that
+lands.
 
 ## Context
 RDF supports language-tagged string literals (`"Hallo"@de`). Applications need to store and
@@ -27,5 +29,12 @@ A mapped `string` property is either language-invariant or language-tagged — d
 Introduce a proper localized-literal type and a consistent read/write API; unify with
 `XsdTypeMapper` ([0026](0026-xsd-dotnet-datatype-mapping.md)).
 
+Answered by [0046](0046-localized-literals-typed-containers.md). It also found that the
+representation is worse than recorded above — there are **four** shapes, not two (the live read path
+produces a `Tuple<string,string>` that this ADR does not name, and the `Tuple<string,CultureInfo>`
+serializer silently drops the culture) — and that the ambient `Resource.Language` switch is the root
+of nine defects, not merely an ergonomic wart.
+
 ## Related
 - [0026](0026-xsd-dotnet-datatype-mapping.md), [0017](0017-resources-open-mapped-and-dynamic.md)
+- [0046](0046-localized-literals-typed-containers.md) — the replacement design

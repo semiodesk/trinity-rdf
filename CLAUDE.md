@@ -270,7 +270,19 @@ Invariants that surprise newcomers:
 - **Query results are multi-modal** (0031): `GetResources`/`GetBindings`/`GetAnwser`(sic)/`Count` —
   pick the accessor matching the query form (with offset/limit paging).
 - **Datatype & i18n mapping** (0026/0027): `XsdTypeMapper` (culture-invariant via `XmlConvert`);
-  localized strings are rudimentary and represented inconsistently.
+  localized strings are rudimentary and represented inconsistently — **four** shapes, not the two
+  0027 names. `Resource.Language` is an ambient *mode switch*, not a filter: its setter runs
+  `ReloadLocalizedMappings`, which physically moves values between the mapped property and the
+  untyped bag, so a mapped `string` shows one language at a time and two threads reading one
+  resource in different locales corrupt each other's storage. Commits stay safe only by the unstated
+  invariant that each language sits in exactly one of the bag or the mapping. **ADR-0046 replaces
+  all of this** with `LangString` + `LocalizedString`/`LocalizedStringCollection` and deletes
+  `Resource.Language`; it is designed but not yet implemented, so the above is still what the code
+  does. Nine defects are catalogued there — notably `ListValues(Property)`/`GetValue(Property)`
+  returning `Tuple<null, lang>` for a mapped localized property, `Select(p => p.Name)` throwing on
+  tagged data, and `HasProperty(p,v,"DE")` being false after `AddProperty(p,v,"DE")`. LINQ cannot
+  express a language at all, and is inconsistent about it: `==` never matches a tagged value while
+  `Contains` does.
 
 ## Other architecture notes
 
