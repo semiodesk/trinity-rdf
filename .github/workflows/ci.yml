@@ -92,7 +92,7 @@ jobs:
       # "which backends does this break?", not "does anything break?".
       fail-fast: false
       matrix:
-        store: [ Fuseki, GraphDB, Virtuoso ]
+        store: [ Fuseki, GraphDB, Oxigraph, Virtuoso ]
     steps:
       - uses: actions/checkout@v7
 

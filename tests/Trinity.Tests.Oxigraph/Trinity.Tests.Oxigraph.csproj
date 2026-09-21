@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Title>Trinity.Test.Oxigraph</Title>
+    <Description></Description>
+    <Version>1.0.0.8</Version>
+    <AssemblyVersion>1.0.0.8</AssemblyVersion>
+    <FileVersion>1.0.0.8</FileVersion>
+    <AssemblyName>Semiodesk.Trinity.Tests.Oxigraph</AssemblyName>
+    <RootNamespace>Semiodesk.Trinity.Tests.Oxigraph</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <StartupObject></StartupObject>
+    <IsPackable>false</IsPackable>
+    <!-- Keep the existing no-op Program.Main; dotnet test runs via the VSTest host + NUnit adapter. -->
+    <GenerateProgramFile>false</GenerateProgramFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Properties\**" />
+    <EmbeddedResource Remove="Properties\**" />
+    <None Remove="Properties\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="Testcontainers" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Trinity.Oxigraph\Trinity.Oxigraph.csproj" />
+    <ProjectReference Include="..\..\Trinity.Tests\Trinity.Tests.csproj" />
+    <ProjectReference Include="..\..\Trinity\Trinity.csproj" />
+  </ItemGroup>
+
+</Project>

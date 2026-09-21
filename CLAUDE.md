@@ -35,12 +35,13 @@ post-build tooling. Read `doc/adr/README.md` for the decisions and history.
 | `Trinity.Virtuoso` | netstandard2.0 | Virtuoso backend — OpenLink provider vendored as a self-recompiled netstandard2.0 DLL (cross-platform) |
 | `Trinity.GraphDB` | netstandard2.0 | GraphDB backend |
 | `Trinity.Fuseki` | netstandard2.0 | Fuseki backend |
+| `Trinity.Oxigraph` | netstandard2.0 | Oxigraph backend — own `OxigraphConnector` over `SparqlHttpProtocolConnector` (`/store`, `/query`, `/update`) |
 | `Trinity.Vocabulary` | netstandard2.0 | Vocabulary **parse+emit engine** — reads RDF, emits the `Ontology` classes `OntologyDiscovery` reflects on (ADR-0014) |
 | `Trinity.Vocabulary.Cli` | net8.0 | `dotnet tool` front end, command `trinity-vocab`, package `Semiodesk.Trinity.Vocabulary.Tool` |
 | `Trinity.Tests` | net8.0 | NUnit in-memory suite (fully generator-driven, no weaver) |
 | `tests/Trinity.Generator.Tests` | net8.0 | Source-generator validation, incl. the TRIN diagnostics |
 | `tests/Trinity.Vocabulary.Tests` | net8.0 | Vocabulary generator + `trinity-vocab`: term classification, all four RDF formats, determinism, sanitization/collisions, manifest reading, the check-mode exit codes, a member-compatibility check against the committed vocabularies, and a round-trip that compiles generated source and asserts `OntologyDiscovery` finds it |
-| `tests/Trinity.Tests.{Virtuoso,Fuseki,GraphDB}` | net8.0 | Store integration tests — self-provision the server via Testcontainers/Docker (ADR-0036); not in the default CI job |
+| `tests/Trinity.Tests.{Virtuoso,Fuseki,GraphDB,Oxigraph}` | net8.0 | Store integration tests — self-provision the server via Testcontainers/Docker (ADR-0036); not in the default CI job |
 | `doc/adr/` | — | Architecture Decision Records |
 
 Retired in 2.0: `Trinity.CilGenerator` (the cilg weaver, ADR-0013), `Trinity.OntologyGenerator`
@@ -71,8 +72,9 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all three green** — Fuseki 316/317, GraphDB 314/315, Virtuoso
-  303/304 (0 failed each; the 1 skipped is the shared blank-node quarantine).
+  hiccup cannot redden it. Current: **all four green** — Fuseki 318/319, Oxigraph 318/319,
+  GraphDB 316/317, Virtuoso 303/304 (0 failed each; the 1 skipped is the shared blank-node
+  quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
   limitations**: Virtuoso's rule set was declared only in the `ontologies.config` that ADR-0011 retired,
@@ -284,6 +286,18 @@ Invariants that surprise newcomers:
   (own SPARQL AST → serializer → `Model.ExecuteQuery`/`GetResources`); re-linq / Remotion.Linq retired.
   `IModel.AsQueryable<T>()` routes to it, and it emits SPARQL strings — so it's decoupled from
   dotNetRDF's Query Builder and the 3.x upgrade won't touch it. A few LINQ-provider gaps stay quarantined.
+- **Oxigraph refuses what it cannot do** (ADR-0046). It is the thinnest backend: no reasoner, no
+  client-visible transactions, no auth, and no dataset/repository concept — one server is one store,
+  so `host` is the whole connection string. `inferenceEnabled: true` **throws** rather than being
+  ignored the way Fuseki ignores it: ADR-0022 permits either, but its Consequences name the silent
+  no-op as the defect, and an un-inferred answer is indistinguishable from a correct one. That
+  inverts the second half of two `LayeredModelMaterializationTest` cases — materialization lifts
+  *Trinity's* refusal (ADR-0042), it cannot conjure a reasoner. Covering a strict backend also found
+  three defects the lenient ones hide: dotNetRDF emits **invalid RDF/XML** (unquoted DTD entity
+  values) and **BOM-prefixed Turtle**, and its catch-all `Accept` header lets an ASK come back as the
+  plain text `false`. The adapter writes BOM-less Turtle and picks `Accept` by query form.
+  `StoreBase.TryParse` is shared for the same reason `GroupByTargetGraph` is — GraphDB's copy had no
+  TriG case, so TriG read from a string or stream was handed to the RDF/XML parser.
 - **Fuseki is a first-class backend** (ADR-0043), not the experimental one the older ADRs describe. Covering
   it found three defects the other backends hid. The layered view's `FROM NAMED` dataset clause was emitted
   **twice**, because `SparqlPreprocessor` never recorded a `FROM NAMED` graph and so could not suppress the

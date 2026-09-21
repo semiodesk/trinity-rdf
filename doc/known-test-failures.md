@@ -29,10 +29,16 @@ These are `Assert.Inconclusive` overrides in the per-store fixtures, not `[Ignor
 store limitation rather than a Trinity defect. The shared blank-node case above is skipped once per
 store on top of these.
 
+**Oxigraph's inferencing cases are not here, deliberately.** It has no reasoner, so the four shared
+inferencing tests and the two materialized ones would be the obvious candidates to skip — but the
+store *refuses* an inferencing query rather than answering it without (ADR-0046), so the per-store
+fixtures override them to **assert the refusal** instead. Six assertions rather than six skips.
+
 | Store | Skipped | Why |
 |---|---|---|
 | **Fuseki** | `TestInferencing`, `GetTypedResourcesWithInferencingTest`, `MappingTypeWithInferencingTest`, `MappingTypeCollectionWithInferencingTest` | Fuseki has **no per-query inference switch**: a Jena reasoner is a property of the dataset, so it applies to every query or to none. Giving the test dataset a reasoner would make these four pass and make `inferenceEnabled: false` quietly lie. ADR-0022 makes inferencing a capability a store may ignore; ADR-0043 records the decision |
 | **Virtuoso** | `Int64Test`, `Uint64Test`, `Int16Test`, `Uint16Test`, `UintTest`, `TimeSpanTest`, `TimeSpanResourceTest` | Virtuoso widens the small integer types into an integer box and does not support `xsd:long`/`xsd:duration`. The `Test<TValue>` helper reads the **unmapped** bag, which declares no target type to convert into (ADR-0040) |
+| **Oxigraph** | `Int64Test`, `Uint64Test`, `Int16Test`, `Uint16Test`, `UintTest` | Oxigraph canonicalizes the integer-derived XSD datatypes into `xsd:integer`, so a literal written as `"5"^^xsd:short` reads back as `Int32` — confirmed at the protocol level with raw SPARQL, so it is the store's value-space normalization rather than anything the adapter does. Same split as Virtuoso: mapped properties convert into their declared type (ADR-0040), the unmapped bag has none to convert into |
 | **GraphDB** | — | none |
 
 **No store suite has a failing test.** Virtuoso and GraphDB each carried four *failing* inferencing
