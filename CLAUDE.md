@@ -55,7 +55,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 792 passed, 3 skipped (quarantined), 0 failed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 793 passed, 3 skipped (quarantined), 0 failed
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 26 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -72,8 +72,8 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all three green** — Fuseki 333/334, GraphDB 331/332, Virtuoso
-  320/321 (0 failed each; the 1 skipped is the shared blank-node-removal quarantine).
+  hiccup cannot redden it. Current: **all three green** — Fuseki 334/335, GraphDB 332/333, Virtuoso
+  321/322 (0 failed each; the 1 skipped is the shared blank-node-removal quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
   limitations**: Virtuoso's rule set was declared only in the `ontologies.config` that ADR-0011 retired,
@@ -291,7 +291,13 @@ Invariants that surprise newcomers:
   for any non-empty group. The test that enforces this **discovers** its call sites by reflecting over
   `IModel` (every method taking a `Uri` first, minus a reasoned exclusion list), because the previous
   hand-written list of nine was green while a tenth accessor went unguarded — a hand-maintained list
-  cannot detect its own omission. This is **not** the .NET 10 `Uri`
+  cannot detect its own omission.
+  The invariant underneath is **bind versus interpolate, not read versus write**: a bound term fails
+  closed (matches nothing), an interpolated label fails open (an existential variable matching
+  *everything*). So `Model.DeleteResource` is deliberately unguarded — it binds, the store refuses the
+  blank `DELETE` template loudly (ADR-0039) and nothing changes — while `LayeredModel.DeleteResource`
+  interpolates and must guard: that shape stages the whole baseline for removal, silently, on both
+  backends. This is **not** the .NET 10 `Uri`
   equality problem (0025): that one is identity, this one is serialization, and it is identical on
   .NET 8/9/10. An audit fixed four sites;
   `Trinity.Tests/ObjectModel/EncodedUriContact.cs` is a mapped class with `%20` in its class and

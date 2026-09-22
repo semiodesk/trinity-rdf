@@ -276,9 +276,16 @@ namespace Semiodesk.Trinity.Tests.Store
             {
                 // Creating a blank node is done *by* passing a blank identifier, so these must accept one.
                 { "CreateResource", "blank identifiers are how a blank node is created" },
-                // A write path. Refusing here would prevent deleting a blank node, which some stores can
-                // do -- a separate decision from naming one as a query subject.
-                { "DeleteResource", "write path; see ADR-0046" },
+                // Not because deleting a blank node works -- it does not, except on Virtuoso: the store
+                // binds the subject into a DELETE template, which SPARQL forbids for a blank node, and
+                // that is ADR-0039's open quarantine. The reason is that binding fails *closed*. The
+                // store refuses loudly and changes nothing, so there is no silently-wrong outcome to
+                // guard against, and guarding at the model layer would foreclose ADR-0039's fix at the
+                // wrong layer -- the blocker is the store's template, not the caller's argument.
+                // LayeredModel.DeleteResource guards, and is not a divergence: it *interpolates* the
+                // subject, which fails open. ModelGroup.DeleteResource throws NotSupportedException,
+                // being read-only, so only two of the three write here at all.
+                { "DeleteResource", "binds the subject, so it fails closed -- see the call sites" },
                 // The Uri is a source URL to read *from*, not a subject.
                 { "Read", "the Uri is a document location, not a resource identifier" },
             };

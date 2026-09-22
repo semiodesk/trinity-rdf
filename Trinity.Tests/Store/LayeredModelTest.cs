@@ -453,6 +453,48 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         /// <summary>
+        /// Deleting through a view refuses a blank subject — and the assertion that matters is the
+        /// second one, that nothing was staged.
+        /// </summary>
+        /// <remarks>
+        /// This guard is the one place in the branch whose removal is <b>silently destructive</b>
+        /// rather than merely wrong. <c>DeleteResource</c> interpolates the subject into
+        /// <c>INSERT { GRAPH removals { _:b0 ?p ?o } } WHERE { GRAPH baseline { _:b0 ?p ?o } }</c>,
+        /// where a bare label is not a reference but an existential variable — it matches every triple
+        /// in the baseline, and a delete of one resource stages the entire baseline for removal,
+        /// without error. A bound term fails closed; an interpolated label fails open.
+        /// </remarks>
+        [Test]
+        public virtual void DeleteResourceRefusesABlankSubjectWithoutStagingAnything()
+        {
+            GivenBaselineResource(R1, "one");
+            GivenBaselineResource(R2, "two");
+
+            Assert.IsTrue(Removals.IsEmpty, "precondition: nothing staged yet");
+
+            ArgumentException refused = null;
+
+            try
+            {
+                View.DeleteResource(new UriRef("_:0", true));
+            }
+            catch (ArgumentException e)
+            {
+                refused = e;
+            }
+
+            // Checked first, and whether or not the call threw: if the guard ever goes, this is the
+            // assertion that says what it was protecting. Virtuoso accepts the interpolated label and
+            // stages every triple the baseline holds, silently and without error.
+            Assert.IsTrue(Removals.IsEmpty,
+                "a delete that was not carried out must stage nothing - an interpolated blank label "
+                + "is an existential variable matching every triple in the baseline");
+            Assert.IsFalse(Baseline.IsEmpty, "and must leave the baseline intact");
+
+            Assert.IsNotNull(refused, "a blank subject must be refused as ArgumentException");
+        }
+
+        /// <summary>
         /// And it refuses a store-minted identifier too, on every backend — the same uniform contract
         /// as a plain model, so a view cannot be the one place where blank nodes half work.
         /// </summary>

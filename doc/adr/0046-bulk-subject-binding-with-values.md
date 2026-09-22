@@ -177,6 +177,33 @@ since the method was written. `QuerySubject.Require` is now the single guard, fo
 `BulkResourceReader` is the single loop: this is the third time a rule stated once has been
 implemented twice.
 
+### Bind versus interpolate, which is the invariant underneath all of this
+
+The rule is not read versus write. **A bound term fails closed; an interpolated label fails open.**
+
+| shape | a blank label there | outcome |
+|---|---|---|
+| bound (`VALUES`, `@subject`) | an IRI term that matches no blank node | **nothing** comes back |
+| interpolated into a pattern | an existential variable | matches **everything** |
+
+That is the same distinction that separated `ContainsResource` from `GetResource` two rounds earlier —
+one put the identifier in pattern position and answered `true` for any non-empty model, the other
+bound it and found nothing — which is some evidence it is the real invariant rather than a local
+rationalization. It also decides where a guard is load-bearing:
+
+- `Model.DeleteResource` **binds**, and the store refuses a blank node in a `DELETE` template outright
+  (ADR-0039's open quarantine). It fails loudly and changes nothing, so it is deliberately left
+  unguarded: there is no silently-wrong outcome to prevent, and guarding at the model layer would
+  foreclose ADR-0039's fix at the wrong layer — the blocker is the store's template, not the caller's
+  argument. `ModelGroup.DeleteResource` throws `NotSupportedException`, being read-only.
+- `LayeredModel.DeleteResource` **interpolates**, and is therefore guarded. Issued on its own,
+  `INSERT { GRAPH removals { _:0 ?p ?o } } WHERE { GRAPH baseline { _:0 ?p ?o } }` stages the entire
+  baseline for removal, without error, on the in-memory store and on Virtuoso alike (measured). The
+  four-operation composition it sits in happens to mask that today — dotNetRDF rejects the `DELETE`
+  half outright, Virtuoso runs it and stages nothing — but that is a property of the composition, not
+  a second line of defence, and removing the guard produces **no error at all** on Virtuoso. Its test
+  therefore asserts what was *staged*, not merely that the call threw.
+
 **And the fourth time was the list of where to call it.** Sharing the implementation left the
 *enumeration* of call sites duplicated by hand — twelve in the product, nine listed literally in the
 test — with nothing connecting the two. The sweep was green while `GetResource(Uri, Type)` went
@@ -335,8 +362,8 @@ eager wrapper before any query runs. Without that, batch 2 would throw
 - Argument validation is now **eager** rather than deferred to the first `MoveNext()`, matching
   `LayeredModel`. A caller that built the enumerable and never enumerated it would previously not
   have seen the `ArgumentException` for a non-`IResource` type.
-- Test counts: in-memory `792 / 0 / 3 = 795`, Virtuoso `320 / 0 / 1 = 321` (was `303 / 0 / 1`),
-  GraphDB `331 / 0 / 1`, Fuseki `333 / 0 / 1`.
+- Test counts: in-memory `793 / 0 / 3 = 796`, Virtuoso `321 / 0 / 1 = 322` (was `303 / 0 / 1`),
+  GraphDB `332 / 0 / 1`, Fuseki `334 / 0 / 1`.
 - **A bulk read is no longer atomic**, and that is a real consequence of batching rather than an
   oversight. If a later batch fails, the earlier ones are already in the mapped collection. The
   exception does reach the caller, and the load is self-healing — the cache entry survives, so the

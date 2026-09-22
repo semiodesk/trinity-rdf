@@ -1256,6 +1256,17 @@ namespace Semiodesk.Trinity
         /// </remarks>
         public void DeleteResource(Uri uri, ITransaction transaction = null)
         {
+            // Load-bearing in a way the sibling guards are not, because this path *interpolates* the
+            // subject into the operations below rather than binding it. A bare blank node label there
+            // is not a reference but an existential variable, matching every triple in the baseline:
+            // issued on its own, INSERT { GRAPH removals { _:0 ?p ?o } } WHERE { GRAPH baseline
+            // { _:0 ?p ?o } } stages the entire baseline for removal, without error, on the in-memory
+            // store and on Virtuoso alike (measured). The four-operation composition below happens to
+            // mask that today -- dotNetRDF rejects the DELETE half outright, Virtuoso runs it and
+            // stages nothing -- but that is a property of the composition, not a second line of
+            // defence, and removing this guard produces no error at all on Virtuoso.
+            // DeleteResourceRefusesABlankSubjectWithoutStagingAnything asserts the staging, not just
+            // the exception, for exactly that reason.
             RequireQueryableSubject(uri);
 
             string subject = SparqlSerializer.SerializeUri(uri);
