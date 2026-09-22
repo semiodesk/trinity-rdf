@@ -191,6 +191,9 @@ namespace Semiodesk.Trinity
         {
             UriRef uriref = uri as UriRef;
 
+            // IsBlankId, not CanBeQuerySubject: this asks whether the identifier denotes a blank node,
+            // which is the semantic question. A blank node has no stable identity to check for prior
+            // existence. The two coincide today; naming the right one keeps them free to diverge.
             if ((uriref == null || !uriref.IsBlankId) && ContainsResource(uri, transaction))
             {
                 throw new ArgumentException("A resource with the given URI already exists.");
@@ -363,9 +366,7 @@ namespace Semiodesk.Trinity
         /// <returns>True if the resource is part of the model, False if not.</returns>
         public bool ContainsResource(Uri uri, ITransaction transaction = null)
         {
-            UriRef uriref = uri as UriRef;
-
-            if(uriref != null && uriref.IsBlankId)
+            if (!uri.CanBeQuerySubject())
             {
                 throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
             }
@@ -425,9 +426,7 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(Uri uri, ITransaction transaction = null)
         {
-            UriRef uriref = uri as UriRef;
-
-            if (uriref != null && uriref.IsBlankId)
+            if (!uri.CanBeQuerySubject())
             {
                 throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
             }
@@ -471,9 +470,7 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
-            UriRef uriref = uri as UriRef;
-
-            if (uriref != null && uriref.IsBlankId)
+            if (!uri.CanBeQuerySubject())
             {
                 throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
             }

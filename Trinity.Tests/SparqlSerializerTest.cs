@@ -327,11 +327,16 @@ namespace Semiodesk.Trinity.Tests
             Assert.AreEqual("<nodeID://b10000>", SparqlSerializer.SerializeUri(virtuosoBlank),
                 "an absolute IRI must stay bracketed, whatever the flag says");
 
+            // Writing it is not the same as naming it as a subject. Trinity refuses every blank node
+            // as a query subject on every store (see UriExtensions.CanBeQuerySubject), so the binder
+            // still skips this one -- but it must be written correctly wherever it does appear, which
+            // is what the assertion above pins and what emitting it bare used to break.
+            Assert.IsFalse(virtuosoBlank.CanBeQuerySubject());
+
             string binding = SparqlSerializer.GenerateSubjectBindings("?s",
                 new Uri[] { new UriRef("http://example.org/a"), virtuosoBlank }).Single();
 
-            StringAssert.Contains("<nodeID://b10000>", binding,
-                "an addressable blank identifier must not be skipped");
+            Assert.AreEqual("VALUES ?s { <http://example.org/a> } ", binding);
         }
 
         /// <summary>

@@ -295,7 +295,7 @@ namespace Semiodesk.Trinity
                 throw new ArgumentNullException(nameof(uri));
             }
 
-            if (uri.IsBlankId())
+            if (!uri.CanBeQuerySubject())
             {
                 throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
             }

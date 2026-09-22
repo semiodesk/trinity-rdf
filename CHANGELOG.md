@@ -45,11 +45,16 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
   `store.CreateLayeredModel(...)` still issued one unbounded block — and a blank-node member made the
   *entire* collection unreadable, where a plain model returns the rest. All three implementations now
   share one loop (`BulkResourceReader`), so the emitted shape cannot diverge again.
-- **Blank-node handling distinguished the label from the flag.** Virtuoso returns blank nodes as
-  `nodeID://b10000` — flagged as blank ids, but absolute IRIs that can be queried. Deciding
-  serialization on the flag emitted them bare and dropped them from bindings; deciding on the
-  `IsBlankId` property alone missed a consumer-built `new UriRef("_:0", UriKind.RelativeOrAbsolute)`
-  and let a bare label into the query. Both now key on the spelling (`IsBlankNodeLabel`).
+- **Blank-node handling distinguished the spelling from the fact.** Virtuoso returns blank nodes as
+  `nodeID://b10000` — flagged as blank ids, but absolute IRIs. Deciding *serialization* on the flag
+  emitted them unbracketed and broke writing them at all; that now keys on the spelling. Deciding
+  *whether an identifier may be named as a query subject* on the `IsBlankId` property alone missed a
+  consumer-built `new UriRef("_:0", UriKind.RelativeOrAbsolute)` and let a bare label into a query;
+  that now goes through `Uri.CanBeQuerySubject()`, which refuses every blank node on every store.
+  The refusal stays uniform deliberately: Virtuoso's identifiers look addressable and
+  `ContainsResource` finds them, but `GetResource` binds the subject and a bound IRI term never
+  matches a blank-node subject, so allowing them would buy a capability that half works on one
+  backend and does not exist on the others.
 - **An IRI that cannot be written verbatim is now refused, naming itself**, instead of becoming an
   `RdfParseException` inside an unrelated batch. `SerializeUri` still serializes from `OriginalString`
   and deliberately **not** from `AbsoluteUri`, which would normalize host casing, ports, dot-segments
@@ -88,8 +93,9 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
   collection now loads in batches, a store failure mid-read leaves the earlier batches in the
   collection. The exception still reaches the caller and the load is self-healing on the next read,
   but a caller that catches it can now tell a truncated collection from a complete one.
-- `Uri.IsBlankNodeLabel()` — the lexical counterpart to `IsBlankId()`. Ask `IsBlankId()` whether
-  something *is* a blank node; ask `IsBlankNodeLabel()` whether it can be written into a query.
+- `Uri.CanBeQuerySubject()` — named for the decision a guard makes, rather than for a property of the
+  node, so a guard that asks the wrong question reads wrong at the call site. Use it wherever an
+  identifier is about to be named in a query; `IsBlankId()` remains for "is this a blank node".
 
 ### Known issues
 

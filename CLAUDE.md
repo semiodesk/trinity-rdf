@@ -55,7 +55,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 782 passed, 3 skipped (quarantined), 0 failed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 784 passed, 3 skipped (quarantined), 0 failed
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 26 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -72,8 +72,8 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all three green** — Fuseki 330/331, GraphDB 328/329, Virtuoso
-  317/318 (0 failed each; the 1 skipped is the shared blank-node-removal quarantine).
+  hiccup cannot redden it. Current: **all three green** — Fuseki 332/333, GraphDB 330/331, Virtuoso
+  319/320 (0 failed each; the 1 skipped is the shared blank-node-removal quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
   limitations**: Virtuoso's rule set was declared only in the `ontologies.config` that ADR-0011 retired,
@@ -275,10 +275,17 @@ Invariants that surprise newcomers:
   mapped-collection dedup, drops LINQ rows, and hands Virtuoso the lower-cased host `XsdTypeMapper`
   warns about. An IRI that cannot be written verbatim is therefore **refused** by `SerializeUri`,
   naming itself, rather than rewritten. `SerializesVerbatimAndNeverNormalizes` is the guard.
-  Blank nodes split two ways here and conflating them is a real defect: `IsBlankId()` asks *is this a
-  blank node*, `IsBlankNodeLabel()` asks *can I write this* — Virtuoso's blank ids are `nodeID://`
-  **absolute IRIs**, addressable and bracketed, while only a `_:` label is inexpressible. Serialization
-  and subject-skipping decide on the **label**, never the flag. This is **not** the .NET 10 `Uri`
+  Blank nodes split two ways and conflating them is a real defect. `IsBlankId()` asks *is this a blank
+  node*; `IsBlankNodeLabel()` asks *is it spelled `_:`*. Virtuoso's blank ids are `nodeID://`
+  **absolute IRIs**, so they must be **bracketed** — deciding serialization on the flag emits them
+  bare and breaks writing them. **Serialization decides on the spelling.** But *using* one as a query
+  subject is refused on **every** store, uniformly and by decision: Virtuoso's look addressable and
+  `ContainsResource` does find them (the identifier goes straight into a pattern), yet `GetResource`
+  binds the subject and a bound IRI term never matches a blank-node subject — a half-working
+  capability on one backend is worse than none. Guards therefore call `CanBeQuerySubject()`, which is
+  named for the decision so a guard asking the other question *looks* wrong; `IsBlankId` stays where
+  the question really is "is this a blank node" (`CreateResource`'s existence check, the stores'
+  mint-an-identifier branch). This is **not** the .NET 10 `Uri`
   equality problem (0025): that one is identity, this one is serialization, and it is identical on
   .NET 8/9/10. An audit fixed four sites;
   `Trinity.Tests/ObjectModel/EncodedUriContact.cs` is a mapped class with `%20` in its class and

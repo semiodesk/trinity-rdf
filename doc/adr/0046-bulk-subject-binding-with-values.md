@@ -127,19 +127,45 @@ There is no SPARQL query shape that addresses a blank node **label**. A label is
 a `FILTER` expression either, and where it *is* legal it means a fresh existential variable rather
 than a reference.
 
-**Two questions that look like one.** *Is this a blank node* and *can I write this into a query* have
-different answers, and conflating them is a defect in both directions:
+**Two questions that look like one.** *Is this a blank node* and *how is it spelled* have different
+answers, and conflating them is a defect in both directions:
 
 | | `_:b0` | Virtuoso's `nodeID://b10000` |
 |---|---|---|
-| `IsBlankId()` — is it a blank node | yes | **yes** (the flag is set) |
-| `IsBlankNodeLabel()` — can it be written | no | **yes**, it is an absolute IRI |
+| `IsBlankId()` — is it a blank node | `true` | **`true`** (the flag is set) |
+| `IsBlankNodeLabel()` — is it spelled as a label | `true` | **`false`**, it is an absolute IRI |
+| serialized as | `_:b0`, bare | `<nodeID://b10000>`, **bracketed** |
+| usable as a query subject | no | **no** — see below |
 
-Serialization and subject-skipping therefore decide on the **label**, never on the flag. Deciding on
-the flag emits Virtuoso's identifiers bare and drops them from bindings, breaking blank-node
-round-trips on that store while the in-memory store — whose blank ids really are `_:` labels — shows
-nothing. That regression was written and caught here by the Virtuoso suite, which is the ADR-0043
+**Serialization decides on the spelling.** Deciding it on the flag emits Virtuoso's identifiers bare,
+which breaks writing them at all; that regression was introduced and caught here by the Virtuoso
+suite, while the in-memory store — whose blank ids really are `_:` labels — showed nothing. ADR-0043's
 lesson again: a second backend finds what the first hides.
+
+**Naming, because this was got wrong while writing about it.** An earlier version of this table
+labelled the second row *"can I write it"* and then filled it with the negation of what the method
+returns. `IsBlankId` and `IsBlankNodeLabel` both name *facts about the node*, so at a guard they read
+as interchangeable flavours of "is it blank?" and the reader has to remember which. The predicate a
+guard should call is therefore named for the **decision** — `CanBeQuerySubject()` — so
+`if (!uri.CanBeQuerySubject()) throw` reads as what it enforces, and a guard asking the other question
+looks wrong rather than merely being wrong. `IsBlankNodeLabel()` stays as the internal lexical
+primitive that serialization uses.
+
+Which answer you get is decided by the **static type of the receiver**: a `Uri` binds to the
+extensions, a `UriRef` also has the narrow `IsBlankId` property. Neither is invocable at the other's
+type, so there is no silent slip — but changing a local's declared type, or adding an `as UriRef` for
+an unrelated reason, flips the question with no diagnostic.
+
+**Blank nodes are refused as query subjects on every store, and that is a contract, not a spelling
+limitation.** It is tempting to allow the ones that look addressable, since Virtuoso's are absolute
+IRIs and `ContainsResource` does find them — it puts the identifier straight into a triple pattern,
+where Virtuoso resolves it back to the blank node. But `GetResource` binds the subject, and a bound
+IRI term never matches a blank-node subject however it is spelled. Allowing them would buy a
+capability that half works on one backend (`ContainsResource` yes, `GetResource` not found) and does
+not exist on the others. `GetResourceWithBlankIdTest` and its two neighbours have always asserted the
+uniform refusal; `AStoreMintedBlankIdentifierIsStillRefusedAsAQuerySubject` now asserts it against an
+identifier the *store* minted, which is the only case that distinguishes the two predicates — and it
+does so only on Virtuoso.
 
 **The rule, applied in one place and stated once:** *asking for one blank node by identity is an
 error; a blank node among many is skipped.* The single-resource reads (`GetResource`,
@@ -274,8 +300,8 @@ eager wrapper before any query runs. Without that, batch 2 would throw
 - Argument validation is now **eager** rather than deferred to the first `MoveNext()`, matching
   `LayeredModel`. A caller that built the enumerable and never enumerated it would previously not
   have seen the `ArgumentException` for a non-`IResource` type.
-- Test counts: in-memory `782 / 0 / 3 = 785`, Virtuoso `317 / 0 / 1 = 318` (was `303 / 0 / 1`),
-  GraphDB `328 / 0 / 1`, Fuseki `330 / 0 / 1`.
+- Test counts: in-memory `784 / 0 / 3 = 787`, Virtuoso `319 / 0 / 1 = 320` (was `303 / 0 / 1`),
+  GraphDB `330 / 0 / 1`, Fuseki `332 / 0 / 1`.
 - **A bulk read is no longer atomic**, and that is a real consequence of batching rather than an
   oversight. If a later batch fails, the earlier ones are already in the mapped collection. The
   exception does reach the caller, and the load is self-healing — the cache entry survives, so the

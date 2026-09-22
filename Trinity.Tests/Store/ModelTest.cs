@@ -537,6 +537,41 @@ namespace Semiodesk.Trinity.Tests.Store
 
         #endregion
 
+        /// <summary>
+        /// A blank identifier the store itself minted is still refused as a query subject — on every
+        /// store, including the one whose blank identifiers look addressable.
+        /// </summary>
+        /// <remarks>
+        /// The refusal is uniform by decision, not by accident of spelling. Virtuoso mints
+        /// <c>nodeID://b10000</c>, an absolute IRI that brackets fine, and <c>ContainsResource</c>
+        /// does find it because it puts the identifier straight into a triple pattern. But
+        /// <c>GetResource</c> binds the subject, and a bound IRI term never matches a blank-node
+        /// subject — so allowing these would buy a capability that half works on one backend and does
+        /// not exist on the others.
+        /// <para>
+        /// This test exists because every other blank-node case in the suite constructs its own
+        /// <c>new UriRef("_:b0", true)</c> — a label, on which the semantic and lexical predicates
+        /// agree — so none of them can tell which question a guard is asking. Only a store-minted
+        /// identifier separates them, and only on Virtuoso.
+        /// </para>
+        /// </remarks>
+        [Test]
+        public virtual void AStoreMintedBlankIdentifierIsStillRefusedAsAQuerySubject()
+        {
+            var child = (Resource)Model1.CreateResource(new UriRef("_:0", true));
+            child.AddProperty(P1, "blank");
+            child.Commit();
+
+            // Committing swaps in whatever the store minted.
+            var minted = child.Uri;
+
+            Assert.IsTrue(minted.IsBlankId(), "the minted identifier is still a blank node");
+            Assert.IsFalse(minted.CanBeQuerySubject(), "and is therefore not a query subject");
+
+            Assert.Throws<ArgumentException>(() => Model1.ContainsResource(minted));
+            Assert.Throws<ArgumentException>(() => Model1.GetResource(minted));
+        }
+
         #region Bulk subject binding (ADR-0046)
 
         /// <summary>

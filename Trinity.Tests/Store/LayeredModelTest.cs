@@ -452,6 +452,25 @@ namespace Semiodesk.Trinity.Tests.Store
             Assert.Throws<ArgumentException>(() => View.GetResource(new UriRef("_:0", true)));
         }
 
+        /// <summary>
+        /// And it refuses a store-minted identifier too, on every backend — the same uniform contract
+        /// as a plain model, so a view cannot be the one place where blank nodes half work.
+        /// </summary>
+        [Test]
+        public virtual void RequireQueryableSubjectRefusesAStoreMintedBlankIdentifier()
+        {
+            var child = (Resource)Baseline.CreateResource(new UriRef("_:0", true));
+            child.AddProperty(new Property(BaseUri.GetUriRef("label")), "blank");
+            child.Commit();
+
+            var minted = child.Uri;
+
+            Assert.IsTrue(minted.IsBlankId(), "the minted identifier is still a blank node");
+
+            Assert.Throws<ArgumentException>(() => View.ContainsResource(minted));
+            Assert.Throws<ArgumentException>(() => View.GetResource(minted));
+        }
+
         [Test]
         public virtual void GetResourcesByUriHonoursTheOverlay()
         {

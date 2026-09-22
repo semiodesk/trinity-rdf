@@ -386,13 +386,14 @@ namespace Semiodesk.Trinity
 
             foreach (Uri uri in uris)
             {
-                // The spelling decides, for two reasons. A consumer-built new UriRef("_:0",
-                // UriKind.RelativeOrAbsolute) does not set the IsBlankId property, so testing the
-                // property alone lets a bare label into the block, where it is not a legal
-                // DataBlockValue and fails the whole batch. And Virtuoso's blank identifiers are
-                // nodeID:// IRIs which ARE addressable, so testing the flag alone would silently drop
-                // every blank-node link on that store. See UriExtensions.IsBlankNodeLabel.
-                if (uri == null || uri.IsBlankNodeLabel())
+                // CanBeQuerySubject, which is broader than the IsBlankId property alone: a
+                // consumer-built new UriRef("_:0", UriKind.RelativeOrAbsolute) does not set the
+                // property, and letting that through puts a bare label into the block, where it is not
+                // a legal DataBlockValue and fails the whole batch. Binding a blank node is futile in
+                // any case -- a bound IRI term never matches a blank-node subject -- so the caller
+                // gets it back unresolved, which is what ResourceCache already does for a link that
+                // did not come back.
+                if (!uri.CanBeQuerySubject())
                 {
                     continue;
                 }
