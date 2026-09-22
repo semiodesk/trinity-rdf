@@ -70,6 +70,10 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
   through the same guard as `Model` and a layered view. Pre-existing, not a regression of this release.
 - **A null URI is reported as null**, not as a blank node. The guards briefly told a caller who passed
   `null` that their identifier was a blank node.
+- **`GetResource(Uri, Type, ITransaction)` threw the wrong exception type** on all three models. It
+  reached the blank-node guard only by reflectively invoking `GetResource<T>`, so the
+  `ArgumentException` came back wrapped in a `TargetInvocationException` that a caller writing
+  `catch (ArgumentException)` would not catch. It now guards directly, like its three siblings.
 - **The same defect, found by audit in three more query builders**, each of which would turn into a
   parse error for a percent-encoded IRI: `Model.GetResources<T>()` (the `?s a <type>` constraint built
   from `[RdfClass]`), `SparqlPreprocessor.AddPrefix` (the `PREFIX` line injected into **every** query

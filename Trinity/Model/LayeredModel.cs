@@ -392,7 +392,13 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>A resource with all effective properties.</returns>
         public object GetResource(Uri uri, Type type, ITransaction transaction = null)
-        {
+                {
+            // Guarded here rather than relying on the reflective call below reaching the guard inside
+            // GetResource<T>: MethodInfo.Invoke wraps whatever it throws in a TargetInvocationException,
+            // so a caller writing catch (ArgumentException) — which every sibling accessor justifies —
+            // would not catch it.
+            QuerySubject.Require(uri);
+
             if (_getResourceMethod == null)
             {
                 throw new InvalidOperationException("No handle to the generic method T GetResource<T>(Uri)");
@@ -770,7 +776,7 @@ namespace Semiodesk.Trinity
                     continue;
                 }
 
-                RequireQueryableSubject(resource.Uri);
+                QuerySubject.Require(resource.Uri, nameof(resource));
                 staged.Add(resource);
 
                 string subject = SparqlSerializer.SerializeUri(resource.Uri);

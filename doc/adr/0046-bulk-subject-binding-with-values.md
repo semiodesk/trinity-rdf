@@ -177,6 +177,22 @@ since the method was written. `QuerySubject.Require` is now the single guard, fo
 `BulkResourceReader` is the single loop: this is the third time a rule stated once has been
 implemented twice.
 
+**And the fourth time was the list of where to call it.** Sharing the implementation left the
+*enumeration* of call sites duplicated by hand — twelve in the product, nine listed literally in the
+test — with nothing connecting the two. The sweep was green while `GetResource(Uri, Type)` went
+unguarded on all three models: it reaches the guard only by reflectively invoking `GetResource<T>`, so
+what a caller saw was a `TargetInvocationException` rather than the `ArgumentException` every sibling
+accessor justifies. A hand-maintained list cannot detect its own omission.
+
+So the sweep **discovers** its subjects: it reflects over `IModel`, asserts every method whose first
+parameter is a `Uri`, and subtracts an explicit exclusion list with a reason per entry —
+`CreateResource` (a blank identifier is how a blank node is created), `DeleteResource` (a write path;
+refusing there would prevent deleting a blank node, which is a separate decision), and `Read` (the
+`Uri` is a document location, not a resource identifier). A method added to the interface is asserted
+**by default** and fails until it is guarded or excluded deliberately. The test unwraps exactly one
+layer of `TargetInvocationException` — the one its own reflective call adds — so an accessor that
+reaches the guard only transitively still fails, which is how this gap was found.
+
 **If addressing blank nodes ever becomes a wanted capability**, it belongs behind a store-capability
 flag ([0022](0022-store-capabilities-and-istore-extension.md)) and it needs *both* predicates, not a
 loosened guard. `ModelGroup.ContainsResource` is instructive here precisely because it was accidentally
@@ -319,7 +335,7 @@ eager wrapper before any query runs. Without that, batch 2 would throw
 - Argument validation is now **eager** rather than deferred to the first `MoveNext()`, matching
   `LayeredModel`. A caller that built the enumerable and never enumerated it would previously not
   have seen the `ArgumentException` for a non-`IResource` type.
-- Test counts: in-memory `786 / 0 / 3 = 789`, Virtuoso `320 / 0 / 1 = 321` (was `303 / 0 / 1`),
+- Test counts: in-memory `792 / 0 / 3 = 795`, Virtuoso `320 / 0 / 1 = 321` (was `303 / 0 / 1`),
   GraphDB `331 / 0 / 1`, Fuseki `333 / 0 / 1`.
 - **A bulk read is no longer atomic**, and that is a real consequence of batching rather than an
   oversight. If a later batch fails, the earlier ones are already in the mapped collection. The

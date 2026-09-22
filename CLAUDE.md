@@ -55,7 +55,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 786 passed, 3 skipped (quarantined), 0 failed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 792 passed, 3 skipped (quarantined), 0 failed
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 26 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -288,7 +288,10 @@ Invariants that surprise newcomers:
   mint-an-identifier branch). The guard itself is **one shared `QuerySubject.Require`**, because the
   contract was documented as uniform while `ModelGroup` had none — and its `ContainsResource` puts the
   identifier in a bare pattern position, where a `_:` label matches *everything* and answered `true`
-  for any non-empty group. This is **not** the .NET 10 `Uri`
+  for any non-empty group. The test that enforces this **discovers** its call sites by reflecting over
+  `IModel` (every method taking a `Uri` first, minus a reasoned exclusion list), because the previous
+  hand-written list of nine was green while a tenth accessor went unguarded — a hand-maintained list
+  cannot detect its own omission. This is **not** the .NET 10 `Uri`
   equality problem (0025): that one is identity, this one is serialization, and it is identical on
   .NET 8/9/10. An audit fixed four sites;
   `Trinity.Tests/ObjectModel/EncodedUriContact.cs` is a mapped class with `%20` in its class and

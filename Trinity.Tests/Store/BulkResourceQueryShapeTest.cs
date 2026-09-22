@@ -30,6 +30,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace Semiodesk.Trinity.Tests.Store
 {
@@ -206,41 +207,39 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         /// <summary>
-        /// Asking for <i>one</i> blank node by identity stays an error: the caller named exactly that
-        /// resource, so silently returning nothing would answer a question they did not ask.
+        /// Every <see cref="IModel"/> method that names a caller-supplied identifier as a query
+        /// subject must refuse a blank node, on every implementation.
         /// </summary>
         /// <remarks>
-        /// Every single-resource accessor, on <b>every</b> implementation. `ModelGroup` had no guard at
-        /// all, and its `ContainsResource` interpolates the identifier into a triple pattern — where a
-        /// bare `_:b0` is not a reference but a fresh existential variable, so it matched any subject
-        /// with any property and answered <c>true</c> for any non-empty group. A silently wrong answer,
-        /// which is worse than the half-working capability the contract exists to refuse.
+        /// <b>The set of methods is discovered, not listed.</b> An earlier version of this test
+        /// enumerated nine accessors by hand and was green while a tenth — <c>GetResource(Uri, Type)</c>
+        /// — went unguarded on all three models: it reaches the guard only by reflectively invoking
+        /// <c>GetResource&lt;T&gt;</c>, so what came back was a <see cref="TargetInvocationException"/>
+        /// that a caller writing <c>catch (ArgumentException)</c> would not catch. A hand-maintained
+        /// list cannot detect its own omission, which is the same failure mode as the three duplicated
+        /// implementations this branch removed, one level up.
+        /// <para>
+        /// So the sweep reflects over <see cref="IModel"/> and asserts every method whose first
+        /// parameter is a <see cref="Uri"/>, minus an explicit exclusion list with a reason for each.
+        /// A method added to the interface is therefore asserted <i>by default</i> and fails this test
+        /// until it is either guarded or excluded deliberately.
+        /// </para>
         /// </remarks>
-        [Test]
-        public void EverySingleResourceAccessorRefusesABlankNode()
+        [TestCaseSource(nameof(QuerySubjectAccessors))]
+        public void EveryQuerySubjectAccessorRefusesABlankNode(string label, Func<IModel, Uri, object> call)
         {
-            var blank = new UriRef("_:b0", true);
-
-            // A triple, so ContainsResource has something a bare label could match against.
+            // A triple, so an accessor that puts a bare label in pattern position has something to
+            // match against - that is how ModelGroup.ContainsResource used to answer true.
             var seed = Model(Model1Uri).CreateResource(new UriRef("http://example.org/shape/seed"));
             seed.AddProperty(new Property(new Uri("http://example.org/shape/p")), "v");
             seed.Commit();
 
-            foreach (var target in new (string, Func<Uri, object>)[]
+            var blank = new UriRef("_:b0", true);
+
+            foreach (var model in Models())
             {
-                ("Model.ContainsResource",        u => Model(Model1Uri).ContainsResource(u)),
-                ("Model.GetResource",             u => Model(Model1Uri).GetResource(u)),
-                ("Model.GetResource<T>",          u => Model(Model1Uri).GetResource<Resource>(u)),
-                ("ModelGroup.ContainsResource",   u => Group().ContainsResource(u)),
-                ("ModelGroup.GetResource",        u => Group().GetResource(u)),
-                ("ModelGroup.GetResource<T>",     u => Group().GetResource<Resource>(u)),
-                ("LayeredModel.ContainsResource", u => View().ContainsResource(u)),
-                ("LayeredModel.GetResource",      u => View().GetResource(u)),
-                ("LayeredModel.GetResource<T>",   u => View().GetResource<Resource>(u)),
-            })
-            {
-                Assert.Throws<ArgumentException>(() => target.Item2(blank), target.Item1
-                    + " must refuse a blank node, not answer a different question");
+                Assert.Throws<ArgumentException>(() => call(model.Item2, blank),
+                    $"{model.Item1}.{label} must refuse a blank node, not answer a different question");
             }
         }
 
@@ -248,25 +247,89 @@ namespace Semiodesk.Trinity.Tests.Store
         /// A null identifier is a null identifier, not a blank node. Telling a caller their URI is a
         /// blank node when they passed nothing sends them looking in the wrong place.
         /// </summary>
-        [Test]
-        public void EverySingleResourceAccessorReportsANullUriAsSuch()
+        [TestCaseSource(nameof(QuerySubjectAccessors))]
+        public void EveryQuerySubjectAccessorReportsANullUriAsSuch(string label, Func<IModel, Uri, object> call)
         {
-            foreach (var target in new (string, Func<Uri, object>)[]
+            foreach (var model in Models())
             {
-                ("Model.ContainsResource",        u => Model(Model1Uri).ContainsResource(u)),
-                ("Model.GetResource",             u => Model(Model1Uri).GetResource(u)),
-                ("Model.GetResource<T>",          u => Model(Model1Uri).GetResource<Resource>(u)),
-                ("ModelGroup.ContainsResource",   u => Group().ContainsResource(u)),
-                ("ModelGroup.GetResource",        u => Group().GetResource(u)),
-                ("ModelGroup.GetResource<T>",     u => Group().GetResource<Resource>(u)),
-                ("LayeredModel.ContainsResource", u => View().ContainsResource(u)),
-                ("LayeredModel.GetResource",      u => View().GetResource(u)),
-                ("LayeredModel.GetResource<T>",   u => View().GetResource<Resource>(u)),
-            })
-            {
-                Assert.Throws<ArgumentNullException>(() => target.Item2(null), target.Item1
-                    + " must report a null URI as null, not as a blank node");
+                Assert.Throws<ArgumentNullException>(() => call(model.Item2, null),
+                    $"{model.Item1}.{label} must report a null URI as null, not as a blank node");
             }
         }
+
+        private IEnumerable<Tuple<string, IModel>> Models()
+        {
+            yield return Tuple.Create("Model", Model(Model1Uri));
+            yield return Tuple.Create("ModelGroup", (IModel)Group());
+            yield return Tuple.Create("LayeredModel", (IModel)View());
+        }
+
+        /// <summary>
+        /// The <see cref="IModel"/> methods that take a caller-supplied identifier and name it as a
+        /// query subject — discovered, so a new one is covered without anyone remembering to add it.
+        /// </summary>
+        public static IEnumerable<TestCaseData> QuerySubjectAccessors()
+        {
+            // Excluded deliberately, each for a reason. Anything not named here and taking a Uri first
+            // is asserted, so a new accessor fails until this decision is made for it.
+            var excluded = new Dictionary<string, string>
+            {
+                // Creating a blank node is done *by* passing a blank identifier, so these must accept one.
+                { "CreateResource", "blank identifiers are how a blank node is created" },
+                // A write path. Refusing here would prevent deleting a blank node, which some stores can
+                // do -- a separate decision from naming one as a query subject.
+                { "DeleteResource", "write path; see ADR-0046" },
+                // The Uri is a source URL to read *from*, not a subject.
+                { "Read", "the Uri is a document location, not a resource identifier" },
+            };
+
+            var covered = new List<string>();
+
+            foreach (MethodInfo method in typeof(IModel).GetMethods())
+            {
+                ParameterInfo[] parameters = method.GetParameters();
+
+                if (parameters.Length == 0 || parameters[0].ParameterType != typeof(Uri))
+                {
+                    continue;
+                }
+
+                if (excluded.ContainsKey(method.Name))
+                {
+                    continue;
+                }
+
+                covered.Add(method.Name);
+
+                MethodInfo target = method.IsGenericMethodDefinition
+                    ? method.MakeGenericMethod(typeof(Resource))
+                    : method;
+
+                object[] tail = target.GetParameters()
+                    .Skip(1)
+                    .Select(p => p.ParameterType == typeof(Type) ? (object)typeof(Resource) : null)
+                    .ToArray();
+
+                string label = target.Name + "(" + string.Join(", ", target.GetParameters().Select(p => p.ParameterType.Name)) + ")";
+
+                yield return new TestCaseData(label, new Func<IModel, Uri, object>((model, uri) =>
+                {
+                    try
+                    {
+                        return target.Invoke(model, new object[] { uri }.Concat(tail).ToArray());
+                    }
+                    catch (TargetInvocationException e)
+                    {
+                        // Unwrap only what reflection added. A guard that is reached transitively -- via
+                        // an inner reflective call -- still fails, because the exception the *caller*
+                        // sees is the wrapper, and that is what this asserts against.
+                        throw e.InnerException;
+                    }
+                }));
+            }
+
+            Assert.IsNotEmpty(covered, "the sweep discovered no accessors, which means it is not sweeping");
+        }
+
     }
 }

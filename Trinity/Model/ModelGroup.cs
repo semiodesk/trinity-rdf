@@ -495,7 +495,13 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>A resource with all asserted properties.</returns>
         public object GetResource(Uri uri, Type type, ITransaction transaction = null)
-        {
+                {
+            // Guarded here rather than relying on the reflective call below reaching the guard inside
+            // GetResource<T>: MethodInfo.Invoke wraps whatever it throws in a TargetInvocationException,
+            // so a caller writing catch (ArgumentException) — which every sibling accessor justifies —
+            // would not catch it.
+            QuerySubject.Require(uri);
+
             if (_getResourceMethod != null)
             {
                 if (typeof(IResource).IsAssignableFrom(type))
