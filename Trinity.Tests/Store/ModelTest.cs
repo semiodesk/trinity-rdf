@@ -468,6 +468,75 @@ namespace Semiodesk.Trinity.Tests.Store
             Assert.AreEqual(r2.Fullname, actual2.Fullname);
         }
 
+        #region Percent-encoded IRIs (ADR-0046)
+
+        /// <summary>
+        /// Every query builder must serialize an IRI through <c>SparqlSerializer.SerializeUri</c>,
+        /// which uses <c>OriginalString</c>. Interpolating a <see cref="Uri"/> instead calls
+        /// <c>Uri.ToString()</c>, which returns the display form and unescapes percent-encoding —
+        /// and where the unescaped character is one SPARQL forbids inside an <c>IRIREF</c>, such as
+        /// the space that <c>%20</c> becomes, the whole query is a parse error.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="EncodedUriContact"/> exists for this: its <c>[RdfClass]</c> and
+        /// <c>[RdfProperty]</c> IRIs both carry <c>%20</c>. This covers the write path
+        /// (<c>SerializeTypedLiteral</c> and the resource serializer), the type-constrained read
+        /// (<c>Model.GetResources&lt;T&gt;()</c>, which builds <c>?s a &lt;type&gt;</c>), and the
+        /// mapped read back.
+        /// </remarks>
+        [Test]
+        public virtual void PercentEncodedIrisSurviveEveryQueryBuilder()
+        {
+            var r1 = Model1.CreateResource<EncodedUriContact>(R1);
+            r1.Fullname = "Peter";
+            r1.Commit();
+
+            // Type-constrained read: builds "?s a <type>" from the [RdfClass] IRI.
+            var byType = Model1.GetResources<EncodedUriContact>().ToList();
+
+            Assert.AreEqual(1, byType.Count, "the type-constrained query must find the resource");
+            Assert.AreEqual("Peter", byType[0].Fullname, "the mapped property IRI must round-trip too");
+
+            // Plain read back, which goes through the resource/describe path.
+            var loaded = Model1.GetResource<EncodedUriContact>(R1);
+
+            Assert.AreEqual("Peter", loaded.Fullname);
+
+            // And the bulk lazy-load path, which is what ADR-0046 rebuilt.
+            var byUri = Model1.GetResources(new Uri[] { R1 }, typeof(EncodedUriContact))
+                .Cast<EncodedUriContact>()
+                .ToList();
+
+            Assert.AreEqual(1, byUri.Count);
+            Assert.AreEqual("Peter", byUri[0].Fullname);
+        }
+
+        /// <summary>
+        /// A resource whose own IRI carries percent-encoding, as opposed to its class and property
+        /// IRIs. This is the case the lazy-load filter used to turn into
+        /// <c>RdfParseException: Illegal white space in URI</c>.
+        /// </summary>
+        [Test]
+        public virtual void PercentEncodedResourceIriRoundTrips()
+        {
+            var encoded = new UriRef(BaseUri.OriginalString + "a%20b");
+
+            var r1 = Model1.CreateResource<Contact>(encoded);
+            r1.Fullname = "Peter";
+            r1.Commit();
+
+            Assert.IsTrue(Model1.ContainsResource(encoded));
+
+            var byUri = Model1.GetResources(new Uri[] { encoded }, typeof(Contact))
+                .Cast<Contact>()
+                .ToList();
+
+            Assert.AreEqual(1, byUri.Count, "a percent-encoded subject must not break its own lookup");
+            Assert.AreEqual("Peter", byUri[0].Fullname);
+        }
+
+        #endregion
+
         #region Bulk subject binding (ADR-0046)
 
         /// <summary>

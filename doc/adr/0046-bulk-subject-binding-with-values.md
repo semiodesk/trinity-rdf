@@ -175,6 +175,21 @@ consumer would plausibly hit. dotNetRDF re-normalizes the rest, so those worked 
 `.NET` leaves reserved delimiters like `%23` escaped, so a `%23` could never have been misread as a
 fragment separator.
 
+Because the cost is a parse error rather than a silent miss, the codebase was audited for the same
+shape — any `Uri` reaching SPARQL text without going through `SerializeUri`. **Three more sites had
+it**, each now fixed and each guarded by a test that was verified to fail when the fix is reverted:
+
+| Site | What it emits | Reach |
+|---|---|---|
+| `Model.GetResources<T>(bool, ITransaction)` | `?s a <{type.Uri}>` from `[RdfClass]` | every type-constrained read |
+| `SparqlPreprocessor.AddPrefix` | `{prefix}: <{uri}>` from a registered namespace | **every query that declares a prefix** (0024) |
+| `SparqlSerializer.SerializeTypedLiteral` | `'{v}'^^<{typeUri}>` | every typed literal written |
+
+Confirmed clean, and worth naming so the audit is not repeated: `SparqlQuery.Bind` routes through
+`SerializeValue` → `SerializeUri`; the LINQ writer (`SparqlQueryWriter`) uses `OriginalString`
+directly; `StoreBase` and the Virtuoso update paths use `OriginalString`; and Virtuoso's
+`UnmarshalUri` uses `AbsoluteUri`, which — unlike `ToString()` — preserves escaping.
+
 **This is not the .NET 10 `Uri` problem of [0025](0025-resource-identity-uriref-blanknodes.md)**, and
 the distinction matters when diagnosing: that one is `EqualityComparer<T>.Default` preferring the
 `IEquatable<Uri>` that .NET 10 added, which bypasses `UriRef.Equals` and makes *identity* in a
@@ -201,7 +216,8 @@ eager wrapper before any query runs. Without that, batch 2 would throw
 - Argument validation is now **eager** rather than deferred to the first `MoveNext()`, matching
   `LayeredModel`. A caller that built the enumerable and never enumerated it would previously not
   have seen the `ArgumentException` for a non-`IResource` type.
-- Test counts: in-memory `751 / 0 / 3 = 754`, Virtuoso `312 / 0 / 1 = 313` (was `303 / 0 / 1`).
+- Test counts: in-memory `758 / 0 / 3 = 761`, Virtuoso `314 / 0 / 1 = 315` (was `303 / 0 / 1`),
+  GraphDB `325 / 0 / 1`, Fuseki `327 / 0 / 1`.
 
 ### What the guard actually is
 

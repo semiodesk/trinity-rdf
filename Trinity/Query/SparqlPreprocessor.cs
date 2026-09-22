@@ -336,7 +336,9 @@ namespace Semiodesk.Trinity
 
         private void AddPrefix(string prefix, Uri uri)
         {
-            Tokens.Insert(0, new PrefixToken(string.Format("{0}: <{1}>", prefix, uri), -1, -1, -1));
+            // SerializeUri, not the raw Uri: interpolating one calls Uri.ToString(), which returns the
+            // display form and unescapes percent-encoding. See SparqlSerializer.SerializeUri and ADR-0046.
+            Tokens.Insert(0, new PrefixToken(string.Format("{0}: {1}", prefix, SparqlSerializer.SerializeUri(uri)), -1, -1, -1));
             Tokens.Insert(0, new PrefixDirectiveToken(-1, -1));
         }
 

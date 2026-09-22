@@ -676,7 +676,9 @@ namespace Semiodesk.Trinity
 
             foreach(Class type in instance.GetTypes())
             {
-                queryBuilder.Append($"?s a <{type.Uri}> . ");
+                // SerializeUri, not the raw Uri: interpolating one calls Uri.ToString(), which returns
+                // the display form and unescapes percent-encoding. See ADR-0046.
+                queryBuilder.Append($"?s a {SparqlSerializer.SerializeUri(type.Uri)} . ");
             }
 
             queryBuilder.Append("}");

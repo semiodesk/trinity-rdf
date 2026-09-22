@@ -40,6 +40,11 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
   `OriginalString`. Unrelated to the .NET 10 `Uri` equality change in
   [ADR-0025](doc/adr/0025-resource-identity-uriref-blanknodes.md): this is the serialization path, not
   identity, and it behaves identically on .NET 8 and .NET 10.
+- **The same defect, found by audit in three more query builders**, each of which would turn into a
+  parse error for a percent-encoded IRI: `Model.GetResources<T>()` (the `?s a <type>` constraint built
+  from `[RdfClass]`), `SparqlPreprocessor.AddPrefix` (the `PREFIX` line injected into **every** query
+  that uses a registered namespace prefix), and `SparqlSerializer.SerializeTypedLiteral` (the datatype
+  IRI of every typed literal written). All three now route through `SparqlSerializer.SerializeUri`.
 - **A blank-node-valued link no longer breaks the read of its whole collection.** A blank node label
   cannot be addressed by any SPARQL query — it is not a legal `VALUES` operand, and in a query it
   means an existential variable rather than a reference. The old code emitted it as the invalid

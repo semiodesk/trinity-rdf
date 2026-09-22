@@ -82,7 +82,9 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string SerializeTypedLiteral(object obj, Uri typeUri)
         {
-            return string.Format("'{0}'^^<{1}>", XsdTypeMapper.SerializeObject(obj), typeUri);
+            // SerializeUri, not the raw Uri: interpolating one calls Uri.ToString(), which returns the
+            // display form and unescapes percent-encoding. See SerializeUri and ADR-0046.
+            return string.Format("'{0}'^^{1}", XsdTypeMapper.SerializeObject(obj), SerializeUri(typeUri));
         }
 
         /// <summary>

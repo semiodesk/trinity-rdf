@@ -55,7 +55,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 751 passed, 3 skipped (quarantined), 0 failed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 758 passed, 3 skipped (quarantined), 0 failed
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 26 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -72,8 +72,8 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all three green** — Fuseki 325/326, GraphDB 323/324, Virtuoso
-  312/313 (0 failed each; the 1 skipped is the shared blank-node-removal quarantine).
+  hiccup cannot redden it. Current: **all three green** — Fuseki 327/328, GraphDB 325/326, Virtuoso
+  314/315 (0 failed each; the 1 skipped is the shared blank-node-removal quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
   limitations**: Virtuoso's rule set was declared only in the `ontologies.config` that ADR-0011 retired,
@@ -259,6 +259,15 @@ Invariants that surprise newcomers:
   rather than serialized — no SPARQL query can address a blank node by label. An empty or null subject
   set returns empty; it must never degrade to a whole-model scan. A 300-member test does **not** guard
   this — verified by breaking the fix on purpose; the guard asks for 2000 subjects that need not exist.
+- **Every IRI reaching SPARQL text goes through `SparqlSerializer.SerializeUri`** (0046). Interpolating
+  a `Uri` calls `Uri.ToString()`, which returns the *display* form and unescapes percent-encoding;
+  where the unescaped character is one SPARQL forbids in an `IRIREF` (`%20`, `%3E`) the whole query
+  becomes `RdfParseException: Illegal white space in URI` — so it fails loudly, and takes unrelated
+  subjects in the same query with it. `OriginalString` is right, `AbsoluteUri` is also safe,
+  `ToString()` never is. This is **not** the .NET 10 `Uri` equality problem (0025): that one is
+  identity, this one is serialization, and it is identical on .NET 8/9/10. An audit fixed four sites;
+  `Trinity.Tests/ObjectModel/EncodedUriContact.cs` is a mapped class with `%20` in its class and
+  property IRIs that exists purely to keep query builders honest.
 - **SPARQL reuses registered ontology prefixes** (0024): `foaf:name` needs no `PREFIX` line.
 - **URI identity is fragment-aware** (0025): use `UriRef`, not raw `Uri` — .NET's `Uri.Equals`
   ignores the fragment, which is wrong for RDF. Blank nodes/URNs have their own identity.

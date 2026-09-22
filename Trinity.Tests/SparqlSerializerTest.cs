@@ -225,6 +225,59 @@ namespace Semiodesk.Trinity.Tests
                 + "not turn the whole query into a parse error:\n" + sparql);
         }
 
+        /// <summary>
+        /// The datatype IRI of a typed literal goes through the same hazard: interpolating the
+        /// <see cref="Uri"/> would emit its display form. A custom datatype is the realistic case —
+        /// the built-in ones are all <c>xsd:</c> and never percent-encoded.
+        /// </summary>
+        [Test]
+        public void SerializeTypedLiteralEscapesTheDatatypeIri()
+        {
+            var datatype = new Uri("http://example.org/dt/my%20type");
+
+            string literal = SparqlSerializer.SerializeTypedLiteral(42, datatype);
+
+            Assert.IsTrue(literal.EndsWith("^^<http://example.org/dt/my%20type>"),
+                "the datatype IRI must keep its percent-encoding, was: " + literal);
+
+            string sparql = "SELECT ?s ?p ?o WHERE { ?s ?p " + literal + ". }";
+
+            Assert.DoesNotThrow(() => new VDS.RDF.Parsing.SparqlQueryParser().ParseFromString(sparql),
+                "the display form of the datatype IRI must never reach the query text:\n" + sparql);
+        }
+
+        /// <summary>
+        /// And so does a declared prefix: <c>SparqlQuery</c> injects <c>PREFIX p: &lt;ns&gt;</c> for
+        /// every registered namespace the query uses, which is on the path of essentially every
+        /// query Trinity emits (ADR-0024).
+        /// </summary>
+        [Test]
+        public void DeclaredPrefixesEscapeTheirNamespaceIri()
+        {
+            const string prefix = "encodedtestns";
+            var ns = new Uri("http://example.org/encoded%20ns/");
+
+            OntologyDiscovery.Namespaces[prefix] = ns;
+
+            try
+            {
+                var query = new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s " + prefix + ":name ?o. ?s ?p ?o. }");
+                string sparql = query.ToString();
+
+                Assert.IsTrue(sparql.Contains("encoded%20ns"),
+                    "the namespace must keep its percent-encoding:\n" + sparql);
+                Assert.IsFalse(sparql.Contains("encoded ns"),
+                    "the display form must never reach the query text:\n" + sparql);
+
+                Assert.DoesNotThrow(() => new VDS.RDF.Parsing.SparqlQueryParser().ParseFromString(sparql),
+                    "a percent-encoded namespace must not turn every query using it into a parse error:\n" + sparql);
+            }
+            finally
+            {
+                OntologyDiscovery.Namespaces.Remove(prefix);
+            }
+        }
+
         private static int Occurrences(string haystack, string needle)
         {
             int count = 0;
