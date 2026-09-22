@@ -209,13 +209,64 @@ namespace Semiodesk.Trinity.Tests.Store
         /// Asking for <i>one</i> blank node by identity stays an error: the caller named exactly that
         /// resource, so silently returning nothing would answer a question they did not ask.
         /// </summary>
+        /// <remarks>
+        /// Every single-resource accessor, on <b>every</b> implementation. `ModelGroup` had no guard at
+        /// all, and its `ContainsResource` interpolates the identifier into a triple pattern — where a
+        /// bare `_:b0` is not a reference but a fresh existential variable, so it matched any subject
+        /// with any property and answered <c>true</c> for any non-empty group. A silently wrong answer,
+        /// which is worse than the half-working capability the contract exists to refuse.
+        /// </remarks>
         [Test]
-        public void AskingForOneBlankNodeIsStillAnError()
+        public void EverySingleResourceAccessorRefusesABlankNode()
         {
             var blank = new UriRef("_:b0", true);
 
-            Assert.Throws<ArgumentException>(() => Model(Model1Uri).GetResource(blank));
-            Assert.Throws<ArgumentException>(() => View().GetResource(blank));
+            // A triple, so ContainsResource has something a bare label could match against.
+            var seed = Model(Model1Uri).CreateResource(new UriRef("http://example.org/shape/seed"));
+            seed.AddProperty(new Property(new Uri("http://example.org/shape/p")), "v");
+            seed.Commit();
+
+            foreach (var target in new (string, Func<Uri, object>)[]
+            {
+                ("Model.ContainsResource",        u => Model(Model1Uri).ContainsResource(u)),
+                ("Model.GetResource",             u => Model(Model1Uri).GetResource(u)),
+                ("Model.GetResource<T>",          u => Model(Model1Uri).GetResource<Resource>(u)),
+                ("ModelGroup.ContainsResource",   u => Group().ContainsResource(u)),
+                ("ModelGroup.GetResource",        u => Group().GetResource(u)),
+                ("ModelGroup.GetResource<T>",     u => Group().GetResource<Resource>(u)),
+                ("LayeredModel.ContainsResource", u => View().ContainsResource(u)),
+                ("LayeredModel.GetResource",      u => View().GetResource(u)),
+                ("LayeredModel.GetResource<T>",   u => View().GetResource<Resource>(u)),
+            })
+            {
+                Assert.Throws<ArgumentException>(() => target.Item2(blank), target.Item1
+                    + " must refuse a blank node, not answer a different question");
+            }
+        }
+
+        /// <summary>
+        /// A null identifier is a null identifier, not a blank node. Telling a caller their URI is a
+        /// blank node when they passed nothing sends them looking in the wrong place.
+        /// </summary>
+        [Test]
+        public void EverySingleResourceAccessorReportsANullUriAsSuch()
+        {
+            foreach (var target in new (string, Func<Uri, object>)[]
+            {
+                ("Model.ContainsResource",        u => Model(Model1Uri).ContainsResource(u)),
+                ("Model.GetResource",             u => Model(Model1Uri).GetResource(u)),
+                ("Model.GetResource<T>",          u => Model(Model1Uri).GetResource<Resource>(u)),
+                ("ModelGroup.ContainsResource",   u => Group().ContainsResource(u)),
+                ("ModelGroup.GetResource",        u => Group().GetResource(u)),
+                ("ModelGroup.GetResource<T>",     u => Group().GetResource<Resource>(u)),
+                ("LayeredModel.ContainsResource", u => View().ContainsResource(u)),
+                ("LayeredModel.GetResource",      u => View().GetResource(u)),
+                ("LayeredModel.GetResource<T>",   u => View().GetResource<Resource>(u)),
+            })
+            {
+                Assert.Throws<ArgumentNullException>(() => target.Item2(null), target.Item1
+                    + " must report a null URI as null, not as a blank node");
+            }
         }
     }
 }

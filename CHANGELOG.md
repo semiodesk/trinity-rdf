@@ -62,6 +62,14 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
   `OriginalString`, so normalizing would break mapped-collection dedup and drop LINQ rows.
 - `PREFIX` declarations and datatype IRIs use a strict serializer that always brackets, rather than the
   term serializer that emits a blank node label bare.
+- **`ModelGroup` accepted blank nodes as query subjects and answered wrongly.** It had no guard on
+  `ContainsResource`, `GetResource` or `GetResource<T>`, and `ContainsResource` interpolates the
+  identifier into a triple pattern — where a bare `_:b0` is a fresh existential variable rather than a
+  reference, so it matched any subject with any property and returned **`true` for any non-empty
+  group**. The other two leaked a raw `RdfParseException` out of the query layer. All three now go
+  through the same guard as `Model` and a layered view. Pre-existing, not a regression of this release.
+- **A null URI is reported as null**, not as a blank node. The guards briefly told a caller who passed
+  `null` that their identifier was a blank node.
 - **The same defect, found by audit in three more query builders**, each of which would turn into a
   parse error for a percent-encoded IRI: `Model.GetResources<T>()` (the `?s a <type>` constraint built
   from `[RdfClass]`), `SparqlPreprocessor.AddPrefix` (the `PREFIX` line injected into **every** query

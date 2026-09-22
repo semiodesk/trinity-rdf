@@ -363,6 +363,11 @@ namespace Semiodesk.Trinity
         /// <returns>True if the resource is part of the model, False if not.</returns>
         public bool ContainsResource(Uri uri, ITransaction transaction = null)
         {
+            // Load-bearing: this interpolates the identifier into a triple pattern, where a bare
+            // blank node label is a fresh existential variable rather than a reference — it would
+            // match any subject with any property and answer true for any non-empty group.
+            QuerySubject.Require(uri);
+
             return ExecuteQuery(new SparqlQuery(string.Format(@"ASK {0} {{ {1} ?p ?o . }}",
                 DatasetClause,
                 SparqlSerializer.SerializeUri(uri))), transaction: transaction).GetAnwser();
@@ -402,6 +407,8 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(Uri uri, ITransaction transaction = null)
         {
+            QuerySubject.Require(uri);
+
             ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?s ?p ?o " + DatasetClause + " WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
             query.Bind("@subject", uri);
 
@@ -444,6 +451,8 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
+            QuerySubject.Require(uri);
+
             ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?s ?p ?o " + DatasetClause + " WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
             query.Bind("@subject", uri);
 

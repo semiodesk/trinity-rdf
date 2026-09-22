@@ -167,6 +167,25 @@ uniform refusal; `AStoreMintedBlankIdentifierIsStillRefusedAsAQuerySubject` now 
 identifier the *store* minted, which is the only case that distinguishes the two predicates — and it
 does so only on Virtuoso.
 
+**The guard is shared, because the contract was written down as uniform while it was not.**
+`Model` and `LayeredModel` carried a copy each; `ModelGroup` carried none, on any of its three
+single-resource accessors. Its `ContainsResource` interpolates the identifier into a triple pattern,
+so a bare `_:b0` arrived there not as a reference but as a **fresh existential variable** — matching
+any subject with any property, and answering `true` for any non-empty group. A silently wrong answer,
+which is worse than the half-working capability this contract exists to refuse, and it had been there
+since the method was written. `QuerySubject.Require` is now the single guard, for the same reason
+`BulkResourceReader` is the single loop: this is the third time a rule stated once has been
+implemented twice.
+
+**If addressing blank nodes ever becomes a wanted capability**, it belongs behind a store-capability
+flag ([0022](0022-store-capabilities-and-istore-extension.md)) and it needs *both* predicates, not a
+loosened guard. `ModelGroup.ContainsResource` is instructive here precisely because it was accidentally
+the naive version: putting the identifier in a bare pattern position is the shape that would address a
+blank node — but only for `nodeID://`, and only on Virtuoso, while for a `_:` label the same shape
+silently matches everything. So the capability would have to be store-gated *and* keyed on the
+spelling: the same two-predicate split as serialization, one layer up. A guard that merely stopped
+refusing would reinstate the wrong answer this ADR removed.
+
 **The rule, applied in one place and stated once:** *asking for one blank node by identity is an
 error; a blank node among many is skipped.* The single-resource reads (`GetResource`,
 `ContainsResource`, the write paths) refuse it, because the caller named exactly that resource and
@@ -300,8 +319,8 @@ eager wrapper before any query runs. Without that, batch 2 would throw
 - Argument validation is now **eager** rather than deferred to the first `MoveNext()`, matching
   `LayeredModel`. A caller that built the enumerable and never enumerated it would previously not
   have seen the `ArgumentException` for a non-`IResource` type.
-- Test counts: in-memory `784 / 0 / 3 = 787`, Virtuoso `319 / 0 / 1 = 320` (was `303 / 0 / 1`),
-  GraphDB `330 / 0 / 1`, Fuseki `332 / 0 / 1`.
+- Test counts: in-memory `786 / 0 / 3 = 789`, Virtuoso `320 / 0 / 1 = 321` (was `303 / 0 / 1`),
+  GraphDB `331 / 0 / 1`, Fuseki `333 / 0 / 1`.
 - **A bulk read is no longer atomic**, and that is a real consequence of batching rather than an
   oversight. If a later batch fails, the earlier ones are already in the mapped collection. The
   exception does reach the caller, and the load is self-healing — the cache entry survives, so the

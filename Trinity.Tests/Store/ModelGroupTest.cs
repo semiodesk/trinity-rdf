@@ -165,6 +165,35 @@ namespace Semiodesk.Trinity.Tests.Store
         
         #endregion
 
+        /// <summary>
+        /// A model group refuses a blank node as a query subject exactly as a plain model does — it
+        /// had no guard at all, and its <c>ContainsResource</c> puts the identifier into a triple
+        /// pattern, where a bare label matched anything and answered <c>true</c> for any non-empty
+        /// group.
+        /// </summary>
+        /// <remarks>
+        /// Uses a store-minted identifier, which is the only case that distinguishes "is a blank node"
+        /// from "is spelled as a label" — and it does so only on Virtuoso, whose blank ids are
+        /// <c>nodeID://</c> IRIs.
+        /// </remarks>
+        [Test]
+        public virtual void AStoreMintedBlankIdentifierIsStillRefusedAsAQuerySubject()
+        {
+            var group = Store.CreateModelGroup(Model1.Uri, Model2.Uri);
+
+            var child = (Resource)Model1.CreateResource(new UriRef("_:0", true));
+            child.AddProperty(new Property(BaseUri.GetUriRef("p1")), "blank");
+            child.Commit();
+
+            var minted = child.Uri;
+
+            Assert.IsTrue(minted.IsBlankId(), "the minted identifier is still a blank node");
+            Assert.IsFalse(minted.CanBeQuerySubject(), "and is therefore not a query subject");
+
+            Assert.Throws<ArgumentException>(() => group.ContainsResource(minted));
+            Assert.Throws<ArgumentException>(() => group.GetResource(minted));
+        }
+
         #region Bulk subject binding (ADR-0046)
 
         /// <summary>

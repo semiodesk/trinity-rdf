@@ -366,10 +366,7 @@ namespace Semiodesk.Trinity
         /// <returns>True if the resource is part of the model, False if not.</returns>
         public bool ContainsResource(Uri uri, ITransaction transaction = null)
         {
-            if (!uri.CanBeQuerySubject())
-            {
-                throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
-            }
+            QuerySubject.Require(uri);
 
             ISparqlQuery query = new SparqlQuery("ASK FROM @graph { @subject ?p ?o . }");
             query.Bind("@graph", Uri);
@@ -426,10 +423,7 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(Uri uri, ITransaction transaction = null)
         {
-            if (!uri.CanBeQuerySubject())
-            {
-                throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
-            }
+            QuerySubject.Require(uri);
 
             ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?s ?p ?o FROM @model WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
             query.Bind("@model", Uri);
@@ -470,10 +464,7 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
-            if (!uri.CanBeQuerySubject())
-            {
-                throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
-            }
+            QuerySubject.Require(uri);
 
             ISparqlQuery query = _store.GetDescribeQuery(Uri, uri);
 

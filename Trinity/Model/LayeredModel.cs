@@ -290,15 +290,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         private static void RequireQueryableSubject(Uri uri)
         {
-            if (uri == null)
-            {
-                throw new ArgumentNullException(nameof(uri));
-            }
-
-            if (!uri.CanBeQuerySubject())
-            {
-                throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
-            }
+            QuerySubject.Require(uri);
         }
 
         #endregion
