@@ -572,33 +572,18 @@ namespace Semiodesk.Trinity
 
         private IEnumerable<object> GetResourcesCore(IEnumerable<Uri> subjects, Type type, ITransaction transaction)
         {
-            foreach (string binding in SparqlSerializer.GenerateSubjectBindings("?s", subjects))
-            {
-                // The projection stays ?s ?p ?o in that order, and the triple pattern keeps its
-                // trailing '.', because ISparqlQuery.ProvidesStatements() is a token-level heuristic
-                // that latches only when a pattern terminator is reached while exactly those three
-                // variables are in scope, in that order. If it returns false, resource materialization
-                // refuses the query outright. SparqlSerializerTest pins this.
-                var query = new SparqlQuery("SELECT ?s ?p ?o WHERE { " + binding + "?s ?p ?o. }");
-
-                ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);
-
-                IEnumerable<Resource> resources = result.GetResources(type);
-
-                foreach (Resource r in resources)
+            return BulkResourceReader.Read(
+                subjects,
+                type,
+                binding => new SparqlQuery(SparqlSerializer.GenerateResourceQuery(binding)),
+                query => ExecuteQuery(query, transaction: transaction),
+                resource =>
                 {
-                    // NOTE: This safeguard is required because of a bug in ExecuteQuery where 
-                    // it returns null objects when a rdf:type triple is missing..
-                    if (r == null) continue;
-
-                    r.SetModel(this);
-                    r.IsNew = false;
-                    r.IsSynchronized = true;
-                    r.IsReadOnly = true;
-
-                    yield return r;
-                }
-            }
+                    resource.SetModel(this);
+                    resource.IsNew = false;
+                    resource.IsSynchronized = true;
+                    resource.IsReadOnly = true;
+                });
         }
 
         /// <summary>

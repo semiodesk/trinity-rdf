@@ -55,7 +55,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 758 passed, 3 skipped (quarantined), 0 failed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 782 passed, 3 skipped (quarantined), 0 failed
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 26 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -72,8 +72,8 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all three green** — Fuseki 327/328, GraphDB 325/326, Virtuoso
-  314/315 (0 failed each; the 1 skipped is the shared blank-node-removal quarantine).
+  hiccup cannot redden it. Current: **all three green** — Fuseki 330/331, GraphDB 328/329, Virtuoso
+  317/318 (0 failed each; the 1 skipped is the shared blank-node-removal quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
   limitations**: Virtuoso's rule set was declared only in the `ontologies.config` that ADR-0011 retired,
@@ -257,15 +257,30 @@ Invariants that surprise newcomers:
   **in that order**, the triple pattern keeps its **trailing `.`** (both required for
   `ProvidesStatements()`, or materialization refuses the query outright), and **blank ids are skipped**
   rather than serialized — no SPARQL query can address a blank node by label. An empty or null subject
-  set returns empty; it must never degrade to a whole-model scan. A 300-member test does **not** guard
-  this — verified by breaking the fix on purpose; the guard asks for 2000 subjects that need not exist.
+  set returns empty; it must never degrade to a whole-model scan. **All three `IModel` implementations
+  share one loop** (`BulkResourceReader`) — the fix originally landed in two of them and `LayeredModel`
+  kept issuing one unbounded block, which is why the reader exists rather than three copies. Neither a
+  300-member nor a 2000-subject store test guards the shape: with batching at 1000, 2000 subjects are
+  two queries of 1000, both under the 1024-term chain limit. `BulkResourceQueryShapeTest` captures the
+  SPARQL each model actually emits and is the guard — verified by reverting the shape while keeping
+  the batching.
 - **Every IRI reaching SPARQL text goes through `SparqlSerializer.SerializeUri`** (0046). Interpolating
   a `Uri` calls `Uri.ToString()`, which returns the *display* form and unescapes percent-encoding;
   where the unescaped character is one SPARQL forbids in an `IRIREF` (`%20`, `%3E`) the whole query
   becomes `RdfParseException: Illegal white space in URI` — so it fails loudly, and takes unrelated
-  subjects in the same query with it. `OriginalString` is right, `AbsoluteUri` is also safe,
-  `ToString()` never is. This is **not** the .NET 10 `Uri` equality problem (0025): that one is
-  identity, this one is serialization, and it is identical on .NET 8/9/10. An audit fixed four sites;
+  subjects in the same query with it. **`OriginalString` is the only correct source.** `AbsoluteUri` is
+  *not* a safe alternative, as this file previously claimed: it normalizes host casing, default ports,
+  dot-segments and percent-encoding case, while `Resource.Equals`/`GetHashCode` compare the **ordinal**
+  `OriginalString` and the LINQ provider joins two result sets on it — so normalizing silently breaks
+  mapped-collection dedup, drops LINQ rows, and hands Virtuoso the lower-cased host `XsdTypeMapper`
+  warns about. An IRI that cannot be written verbatim is therefore **refused** by `SerializeUri`,
+  naming itself, rather than rewritten. `SerializesVerbatimAndNeverNormalizes` is the guard.
+  Blank nodes split two ways here and conflating them is a real defect: `IsBlankId()` asks *is this a
+  blank node*, `IsBlankNodeLabel()` asks *can I write this* — Virtuoso's blank ids are `nodeID://`
+  **absolute IRIs**, addressable and bracketed, while only a `_:` label is inexpressible. Serialization
+  and subject-skipping decide on the **label**, never the flag. This is **not** the .NET 10 `Uri`
+  equality problem (0025): that one is identity, this one is serialization, and it is identical on
+  .NET 8/9/10. An audit fixed four sites;
   `Trinity.Tests/ObjectModel/EncodedUriContact.cs` is a mapped class with `%20` in its class and
   property IRIs that exists purely to keep query builders honest.
 - **SPARQL reuses registered ontology prefixes** (0024): `foaf:name` needs no `PREFIX` line.

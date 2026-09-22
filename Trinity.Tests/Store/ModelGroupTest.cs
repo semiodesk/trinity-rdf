@@ -257,20 +257,19 @@ namespace Semiodesk.Trinity.Tests.Store
 
 
         /// <summary>
-        /// The actual guard for the defect, as opposed to the round-trip above: it asks for more
-        /// subjects than the equality chain could ever compile into.
+        /// Proves a subject set larger than one batch round-trips end to end against a real store.
         /// </summary>
         /// <remarks>
-        /// Measured against Virtuoso 7.2.12 and 7.2.14 through the real store path: the chain
-        /// <c>FILTER(?s = &lt;a&gt;||...)</c> compiles at 1024 subjects and fails at 1025 with
-        /// <c>SP031: The nesting depth of subexpressions exceed limits of SPARQL compiler</c>. The
-        /// cap is a compile-time constant of the build — unmoved by <c>ThreadStackSize</c> and
-        /// identical on both versions — and a consumer reported it as low as 157 on theirs, so this
-        /// asks for 2000 to stay clear of any build's threshold. The same subjects bound with
-        /// <c>VALUES</c>, in batches of 1000, compile everywhere.
+        /// <b>This is not the guard against the equality chain, despite what it once claimed.</b> With
+        /// subjects batched at <c>SubjectBindingBatchSize</c>, asking for 2000 sends two queries of
+        /// 1000 — both under the 1024 terms an equality chain still compiles on Virtuoso 7.2.12/7.2.14
+        /// (measured; the cap is a compile-time constant of the build, unmoved by
+        /// <c>ThreadStackSize</c>). A revert of the shape alone would pass here. What pins the shape is
+        /// <c>BulkResourceQueryShapeTest</c>, which captures the SPARQL each model actually emits.
         /// <para>
-        /// Deliberately cheap: the subjects need not exist, because the failure was in *compiling*
-        /// the query, not in answering it. That keeps the guard fast enough to run on every store.
+        /// What this test does prove is worth keeping: that batching works against a real server, and
+        /// that the batches concatenate into one correct result. Deliberately cheap — the subjects need
+        /// not exist, because the failure mode was in compiling the query, not in answering it.
         /// </para>
         /// </remarks>
         [Test]

@@ -26,6 +26,7 @@
 // Copyright (c) Semiodesk GmbH 2026
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
@@ -385,6 +386,70 @@ namespace Semiodesk.Trinity.Tests.Store
 
             Assert.AreEqual(1, seen.Count, "a removed resource must not be enumerated");
             Assert.AreEqual(R2, seen[0].Uri);
+        }
+
+        /// <summary>
+        /// A layered view reads mapped collections through the same bulk path as a plain model —
+        /// <c>Attach</c> makes the view the resource's model, so a dereference lands here — and it
+        /// was the one implementation the ADR-0046 fix initially missed, leaving it to issue a
+        /// single unbounded <c>VALUES</c> block that Virtuoso refuses past ~4094 operands (SP030).
+        /// </summary>
+        /// <remarks>
+        /// More subjects than fit one batch, none of which need exist: the failure was in compiling
+        /// the query, not in answering it, so this stays cheap enough to run on every store.
+        /// </remarks>
+        [Test]
+        public virtual void GetResourcesByUriBatchesBeyondOneBlock()
+        {
+            GivenBaselineResource(R1, "one");
+
+            var uris = new List<Uri> { R1 };
+
+            for (int i = 1; i <= SparqlSerializer.SubjectBindingBatchSize; i++)
+            {
+                uris.Add(BaseUri.GetUriRef("layer-absent" + i));
+            }
+
+            var seen = View.GetResources(uris, typeof(MappingTestClass))
+                .Cast<MappingTestClass>()
+                .ToList();
+
+            Assert.AreEqual(1, seen.Count, "only the subject that exists should come back");
+            Assert.AreEqual("one", seen[0].uniqueStringTest);
+        }
+
+        /// <summary>
+        /// A blank node among many is skipped rather than refusing the whole read. This path used to
+        /// throw for the entire call, so one blank-node member of a mapped collection read through a
+        /// view hid every addressable member with it — while a plain model returned them and flagged
+        /// the blank one unresolved.
+        /// </summary>
+        [Test]
+        public virtual void GetResourcesByUriSkipsBlankSubjectsRatherThanRefusingTheRead()
+        {
+            GivenBaselineResource(R1, "one");
+            GivenBaselineResource(R2, "two");
+
+            var subjects = new Uri[] { R1, new UriRef("_:0", true), R2 };
+
+            var seen = View.GetResources(subjects, typeof(MappingTestClass))
+                .Cast<MappingTestClass>()
+                .ToDictionary(r => r.Uri);
+
+            Assert.AreEqual(2, seen.Count, "a blank member must not hide the addressable ones");
+            Assert.AreEqual("one", seen[R1].uniqueStringTest);
+            Assert.AreEqual("two", seen[R2].uniqueStringTest);
+        }
+
+        /// <summary>
+        /// Asking for one blank node by identity stays an error on a view, exactly as on a plain
+        /// model: the caller named that resource, so returning nothing would answer a different
+        /// question.
+        /// </summary>
+        [Test]
+        public virtual void GetResourceRefusesASingleBlankSubject()
+        {
+            Assert.Throws<ArgumentException>(() => View.GetResource(new UriRef("_:0", true)));
         }
 
         [Test]

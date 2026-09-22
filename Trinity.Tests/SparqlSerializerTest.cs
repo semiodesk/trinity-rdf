@@ -79,7 +79,7 @@ namespace Semiodesk.Trinity.Tests
         {
             var uris = new[] { new Uri("http://example.org/a"), new Uri("http://example.org/b") };
 
-            string binding = SparqlSerializer.GenerateSubjectBinding("?s", uris);
+            string binding = SparqlSerializer.GenerateSubjectBindings("?s", uris).Single();
 
             Assert.AreEqual("VALUES ?s { <http://example.org/a> <http://example.org/b> } ", binding);
         }
@@ -116,7 +116,7 @@ namespace Semiodesk.Trinity.Tests
         [Test]
         public void DroppingTheTrailingDotWouldBreakMaterialization()
         {
-            string binding = SparqlSerializer.GenerateSubjectBinding("?s", new[] { new Uri("http://example.org/a") });
+            string binding = SparqlSerializer.GenerateSubjectBindings("?s", new[] { new Uri("http://example.org/a") }).Single();
 
             Assert.IsFalse(new SparqlQuery("SELECT ?s ?p ?o WHERE { " + binding + "?s ?p ?o }").ProvidesStatements());
             Assert.IsTrue(new SparqlQuery("SELECT ?s ?p ?o WHERE { " + binding + "?s ?p ?o. }").ProvidesStatements());
@@ -194,7 +194,7 @@ namespace Semiodesk.Trinity.Tests
             Assert.AreNotEqual(original, uri.ToString(),
                 "the premise of this test is that ToString() differs — pick another case if this fails");
 
-            string binding = SparqlSerializer.GenerateSubjectBinding("?s", new[] { uri });
+            string binding = SparqlSerializer.GenerateSubjectBindings("?s", new[] { uri }).Single();
 
             Assert.AreEqual("VALUES ?s { <" + original + "> } ", binding);
         }
@@ -276,6 +276,144 @@ namespace Semiodesk.Trinity.Tests
             {
                 OntologyDiscovery.Namespaces.Remove(prefix);
             }
+        }
+
+        /// <summary>
+        /// The blank-node guard must key on the label, not on how the identifier was constructed.
+        /// Only <c>UriRef(string, bool)</c> sets the <c>IsBlankId</c> property, so a consumer that
+        /// builds one any other way used to slip a bare <c>_:0</c> into the VALUES block and take
+        /// every addressable subject in that batch down with it.
+        /// </summary>
+        [Test]
+        public void SkipsBlankNodeIdentifiersHoweverTheyWereConstructed()
+        {
+            var uris = new List<Uri>
+            {
+                new UriRef("http://example.org/a"),
+                new UriRef("_:flagged", true),                      // the flag-setting constructor
+                new UriRef("_:unflagged", UriKind.RelativeOrAbsolute), // IsBlankId == false
+                new Uri("_:plain", UriKind.RelativeOrAbsolute),        // not a UriRef at all
+                new UriRef("http://example.org/b")
+            };
+
+            string binding = SparqlSerializer.GenerateSubjectBindings("?s", uris).Single();
+
+            Assert.AreEqual("VALUES ?s { <http://example.org/a> <http://example.org/b> } ", binding);
+            Assert.IsFalse(binding.Contains("_:"), "no blank node label may reach the query text");
+
+            Assert.DoesNotThrow(() => new VDS.RDF.Parsing.SparqlQueryParser().ParseFromString(
+                SparqlSerializer.GenerateResourceQuery(binding)));
+        }
+
+        /// <summary>
+        /// A blank identifier that is spelled as an absolute IRI must stay bracketed and must stay in
+        /// the binding. Virtuoso hands its blank nodes back as <c>nodeID://b10000</c> with the
+        /// <c>IsBlankId</c> flag set, so deciding on the flag rather than the spelling emits them bare
+        /// and drops them from subject bindings — which breaks blank-node round-trips on Virtuoso
+        /// while the in-memory store, whose blank ids really are <c>_:</c> labels, shows nothing.
+        /// </summary>
+        /// <remarks>
+        /// Found by the Virtuoso suite, not by this one. Same lesson as ADR-0043: a second backend
+        /// finds what the first hides.
+        /// </remarks>
+        [Test]
+        public void KeepsAnAbsoluteIriBlankIdentifierAddressable()
+        {
+            var virtuosoBlank = new UriRef("nodeID://b10000", true);
+
+            Assert.IsTrue(virtuosoBlank.IsBlankId(), "it is semantically a blank node");
+            Assert.IsFalse(virtuosoBlank.IsBlankNodeLabel(), "but it is not spelled as a label");
+
+            Assert.AreEqual("<nodeID://b10000>", SparqlSerializer.SerializeUri(virtuosoBlank),
+                "an absolute IRI must stay bracketed, whatever the flag says");
+
+            string binding = SparqlSerializer.GenerateSubjectBindings("?s",
+                new Uri[] { new UriRef("http://example.org/a"), virtuosoBlank }).Single();
+
+            StringAssert.Contains("<nodeID://b10000>", binding,
+                "an addressable blank identifier must not be skipped");
+        }
+
+        /// <summary>
+        /// An underscore alone does not make a blank node label — <c>_:</c> does. A relative URI
+        /// beginning with <c>_</c> is an ordinary identifier and must stay bracketed.
+        /// </summary>
+        [Test]
+        public void OnlyTreatsUnderscoreColonAsABlankLabel()
+        {
+            Assert.IsFalse(new Uri("_foo", UriKind.Relative).IsBlankId());
+            Assert.IsTrue(new Uri("_:foo", UriKind.Relative).IsBlankId());
+        }
+
+        /// <summary>
+        /// The counterpart to <see cref="PreservesPercentEncoding"/>: an IRI that cannot be written
+        /// verbatim is refused where the mistake is, naming it, rather than becoming an
+        /// <c>RdfParseException</c> deep inside a batch that also kills unrelated subjects.
+        /// </summary>
+        [TestCase("http://example.org/a b")]
+        [TestCase("http://example.org/a\u0009b")]
+        [TestCase("http://example.org/a>b")]
+        [TestCase("http://example.org/a\"b")]
+        [TestCase("http://example.org/a{b")]
+        [TestCase("http://example.org/a|b")]
+        public void RefusesAnIriThatCannotBeWrittenVerbatim(string original)
+        {
+            var uri = new UriRef(original, UriKind.RelativeOrAbsolute);
+
+            var e = Assert.Throws<NotSupportedException>(() => SparqlSerializer.SerializeUri(uri));
+
+            StringAssert.Contains(original, e.Message, "the message must name the offending IRI");
+        }
+
+        /// <summary>
+        /// Serialization must be verbatim. This is the guard that was missing: nothing would have
+        /// failed if <c>SerializeUri</c> started using <c>AbsoluteUri</c>, which normalizes host
+        /// casing, default ports, dot-segments and percent-encoding case. Trinity compares and
+        /// hashes resources on the ordinal <c>OriginalString</c>
+        /// (<see cref="Resource.Equals(object)"/>), and the LINQ provider joins two result sets on
+        /// it, so a normalized spelling would silently break mapped-collection dedup and drop rows.
+        /// <c>SparqlQueryWriterTest.WritesIrisExactlyAsGiven</c> is the same guard on the read path.
+        /// </summary>
+        [TestCase("http://Example.ORG/x", TestName = "SerializeUri_does_not_lower_case_the_host")]
+        [TestCase("http://example.org:80/x", TestName = "SerializeUri_keeps_a_default_port")]
+        [TestCase("http://example.org/a%2Fb/../c", TestName = "SerializeUri_keeps_dot_segments")]
+        [TestCase("http://example.org/a%2fb", TestName = "SerializeUri_keeps_percent_encoding_case")]
+        public void SerializesVerbatimAndNeverNormalizes(string original)
+        {
+            Assert.AreEqual("<" + original + ">", SparqlSerializer.SerializeUri(new UriRef(original)));
+        }
+
+        /// <summary>
+        /// A blank node label is legal as an RDF term in a few positions and in none of the places
+        /// the grammar demands an IRI, so those use <c>SerializeIriRef</c>, which never drops the
+        /// brackets and refuses a blank identifier outright.
+        /// </summary>
+        [Test]
+        public void SerializeIriRefAlwaysBracketsAndRefusesBlankNodes()
+        {
+            Assert.AreEqual("<http://example.org/a>",
+                SparqlSerializer.SerializeIriRef(new UriRef("http://example.org/a")));
+
+            Assert.Throws<NotSupportedException>(
+                () => SparqlSerializer.SerializeIriRef(new UriRef("_:b0", true)));
+            Assert.Throws<ArgumentNullException>(() => SparqlSerializer.SerializeIriRef(null));
+
+            // SerializeUri, by contrast, emits the bare label - which is why these positions cannot use it.
+            Assert.AreEqual("_:b0", SparqlSerializer.SerializeUri(new UriRef("_:b0", true)));
+        }
+
+        /// <summary>
+        /// Argument validation belongs at the call, not at the caller's foreach. An iterator defers
+        /// its whole body, so a bad argument would otherwise surface with a stack pointing at the
+        /// consumer instead of the mistake.
+        /// </summary>
+        [Test]
+        public void ValidatesItsArgumentsEagerly()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(
+                () => SparqlSerializer.GenerateSubjectBindings("?s", new Uri[0], 0));
+            Assert.Throws<ArgumentException>(
+                () => SparqlSerializer.GenerateSubjectBindings("", new Uri[0]));
         }
 
         private static int Occurrences(string haystack, string needle)

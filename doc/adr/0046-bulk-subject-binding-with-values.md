@@ -78,6 +78,14 @@ SELECT ?s ?p ?o WHERE { VALUES ?s { <a> <b> … } ?s ?p ?o. }
 original deleted — **no forwarder**, because a forwarder is how a fourth copy starts. `Model`,
 `ModelGroup` and `LayeredModel` now share it.
 
+**One implementation, not three.** `BulkResourceReader` holds the loop; each model supplies the query
+its binding goes into, how to execute it, and the flags to stamp. This is not tidiness: the first cut
+of this ADR shipped the fix in `Model` and `ModelGroup` and left `LayeredModel` calling the unbatched
+binder, so a mapped collection read through a layered view still issued one unbounded block. Three
+copies is what the ADR set out to remove, and leaving the third behind is exactly how the original
+defect survived. Making the unbatched helper `private` is what surfaced it — the compiler named the
+one remaining caller.
+
 **Why not just raise the chunk size of the chain.** Because the chain's limit is a compile-time
 constant of the server build that this code cannot see, and a consumer already observed it at 157
 where these builds sit at 1024. Any chunk size picked here would be a guess about someone else's
@@ -114,10 +122,31 @@ resource stays inside one batch, so the results concatenate.
 
 ### Blank nodes are skipped, not serialized
 
-There is no SPARQL query shape that addresses a blank node by label. A label is not a legal
+There is no SPARQL query shape that addresses a blank node **label**. A label is not a legal
 `DataBlockValue` (`iri | RDFLiteral | NumericLiteral | BooleanLiteral | 'UNDEF'`), it is not legal in
 a `FILTER` expression either, and where it *is* legal it means a fresh existential variable rather
-than a reference. `LayeredModel` already said so in code, rejecting such a subject outright.
+than a reference.
+
+**Two questions that look like one.** *Is this a blank node* and *can I write this into a query* have
+different answers, and conflating them is a defect in both directions:
+
+| | `_:b0` | Virtuoso's `nodeID://b10000` |
+|---|---|---|
+| `IsBlankId()` — is it a blank node | yes | **yes** (the flag is set) |
+| `IsBlankNodeLabel()` — can it be written | no | **yes**, it is an absolute IRI |
+
+Serialization and subject-skipping therefore decide on the **label**, never on the flag. Deciding on
+the flag emits Virtuoso's identifiers bare and drops them from bindings, breaking blank-node
+round-trips on that store while the in-memory store — whose blank ids really are `_:` labels — shows
+nothing. That regression was written and caught here by the Virtuoso suite, which is the ADR-0043
+lesson again: a second backend finds what the first hides.
+
+**The rule, applied in one place and stated once:** *asking for one blank node by identity is an
+error; a blank node among many is skipped.* The single-resource reads (`GetResource`,
+`ContainsResource`, the write paths) refuse it, because the caller named exactly that resource and
+returning nothing would answer a different question. The bulk read skips it, because refusing loses
+every addressable subject with it — and on the lazy-load path that makes one blank member of a mapped
+collection hide the whole collection.
 
 The old code interpolated it as `<_:0>` — an invalid *relative IRI reference* — which took the whole
 query down, including every addressable subject in it. That was the recorded cause of the
@@ -175,6 +204,35 @@ consumer would plausibly hit. dotNetRDF re-normalizes the rest, so those worked 
 `.NET` leaves reserved delimiters like `%23` escaped, so a `%23` could never have been misread as a
 fragment separator.
 
+### An IRI that cannot be written verbatim is refused, not rewritten
+
+`OriginalString` preserves an *encoded* IRI but never escapes a *raw* one, so
+`new UriRef("http://example.org/a b")` still produces a query that cannot parse. The obvious cure —
+serialize from `AbsoluteUri`, which escapes — is **refused**, and the reason is worth writing down
+because it looks like a free win:
+
+`AbsoluteUri` normalizes host casing, default ports, dot-segments and percent-encoding case. Trinity
+compares and hashes resources on the **ordinal** `OriginalString` (`Resource.Equals`/`GetHashCode`),
+the LINQ provider joins two result sets on it (`SparqlQueryProvider.RestoreMultiplicity`), and
+`XsdTypeMapper` records that Virtuoso specifically cannot take the lower-cased host .NET produces. A
+normalized spelling would therefore break mapped-collection dedup and silently drop LINQ rows — a
+wrong answer traded for a parse error. `SparqlQueryWriter.WriteIri` had already made this call on the
+read path; this keeps the two sides in step.
+
+So `SerializeUri` **refuses** an `OriginalString` containing a character the `IRIREF` grammar forbids,
+naming the identifier and saying to percent-encode it. The caller could never have used such an IRI;
+they now find out where the mistake is instead of inside an unrelated batch.
+
+`SerializesVerbatimAndNeverNormalizes` pins this in the other direction, and is the guard that did not
+exist: nothing would have failed if `SerializeUri` had quietly adopted `AbsoluteUri`.
+
+### A blank node label is not an IRI, and some positions accept only an IRI
+
+`SerializeUri` emits a label bare, which is valid only where an RDF term is expected. `PREFIX`
+declarations, datatype IRIs and dataset clauses demand an `IRIREF`, so those use `SerializeIriRef`,
+which always brackets and refuses a label outright. Routing them through `SerializeUri` — as an
+earlier pass did — imports its bare-label branch into positions where a bare token cannot parse.
+
 Because the cost is a parse error rather than a silent miss, the codebase was audited for the same
 shape — any `Uri` reaching SPARQL text without going through `SerializeUri`. **Three more sites had
 it**, each now fixed and each guarded by a test that was verified to fail when the fix is reverted:
@@ -216,17 +274,34 @@ eager wrapper before any query runs. Without that, batch 2 would throw
 - Argument validation is now **eager** rather than deferred to the first `MoveNext()`, matching
   `LayeredModel`. A caller that built the enumerable and never enumerated it would previously not
   have seen the `ArgumentException` for a non-`IResource` type.
-- Test counts: in-memory `758 / 0 / 3 = 761`, Virtuoso `314 / 0 / 1 = 315` (was `303 / 0 / 1`),
-  GraphDB `325 / 0 / 1`, Fuseki `327 / 0 / 1`.
+- Test counts: in-memory `782 / 0 / 3 = 785`, Virtuoso `317 / 0 / 1 = 318` (was `303 / 0 / 1`),
+  GraphDB `328 / 0 / 1`, Fuseki `330 / 0 / 1`.
+- **A bulk read is no longer atomic**, and that is a real consequence of batching rather than an
+  oversight. If a later batch fails, the earlier ones are already in the mapped collection. The
+  exception does reach the caller, and the load is self-healing — the cache entry survives, so the
+  next read re-queries only what is missing and `AddToMapping` dedupes — but a caller who catches the
+  exception and carries on would otherwise see a silently short collection. `Resource.IsPartiallyLoaded`
+  is how they can tell. Only list mappings larger than one batch can be affected; a scalar reference
+  holds at most one subject.
 
 ### What the guard actually is
 
-A 300-member round-trip **does not catch this bug** on a stock Virtuoso, and was verified not to:
-with the fix reverted on purpose, the 300-member test still passed and only the 2000-subject test
-failed, with `SP031`. The guard is therefore
-`GetResourcesByUriCompilesBeyondTheEqualityChainLimit`, which asks for 2000 subjects that need not
-exist — the failure was in *compiling* the query, not in answering it, so the guard costs one query
-and no writes.
+Neither a 300-member round-trip **nor** the 2000-subject store test guards the shape, and both were
+verified not to. The 300-member one passes against a stock Virtuoso because 300 is far under the
+chain's 1024. The 2000-subject one passes because **batching hides it**: 2000 subjects at 1000 per
+batch are two queries of 1000 terms each, and a 1000-term chain still compiles. The first "break the
+fix on purpose" pass missed this because it removed the batching along with the shape, and so tested
+a different regression than the one the test advertised.
+
+The guard is `BulkResourceQueryShapeTest`, which captures the SPARQL each model actually emits through
+a decorating `IStore` and asserts it contains `VALUES ?s` and no `||`. It pins the **call site**, which
+is the thing that was wrong in the first place — the helper's own output was already pinned by
+exact-text assertions, and a model that stops calling the helper is invisible to those. Reverting the
+shape while keeping the batching now fails five of its six cases.
+
+`GetResourcesByUriCompilesBeyondTheEqualityChainLimit` stays, with its claim corrected: it proves a
+subject set larger than one batch round-trips against a real server, which is worth having, and is
+deliberately cheap because the subjects need not exist.
 
 dotNetRDF has no nesting limit, so the in-memory run of any of these proves only that the round-trip
 is correct. **The Virtuoso suite is the guard**, which is the same lesson as ADR-0043: a defect the

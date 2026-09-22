@@ -315,7 +315,7 @@ namespace Semiodesk.Trinity.Query.Sparql
         /// </remarks>
         private void WriteIri(Uri value)
         {
-            if (value.IsBlankId() || value.OriginalString.StartsWith("_:"))
+            if (value.IsBlankId())
             {
                 throw new NotSupportedException(
                     $"Blank node identifiers cannot be named in a query: <{value.OriginalString}>. " +

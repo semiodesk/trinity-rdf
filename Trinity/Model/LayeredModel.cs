@@ -259,18 +259,30 @@ namespace Semiodesk.Trinity
         /// exactly three same-ordered variables — keeps returning true. Without that, resource
         /// materialization refuses the query outright.
         /// </remarks>
-        private ISparqlQuery CreateResourceQuery(IEnumerable<Uri> uris)
+        private ISparqlQuery CreateResourceQuery(string subjectBinding)
         {
             var queryString = new StringBuilder();
 
             queryString.Append("SELECT DISTINCT ?s ?p ?o ");
             queryString.Append(_effectiveDatasetClause);
             queryString.Append("WHERE { ");
-            queryString.Append(SparqlSerializer.GenerateSubjectBinding("?s", uris));
+            queryString.Append(subjectBinding);
             queryString.Append(Overlay("?s", "?p", "?o"));
             queryString.Append(" }");
 
             return CreateOverlayQuery(queryString.ToString());
+        }
+
+        /// <summary>
+        /// The <c>VALUES</c> binding for a single subject that has already been checked.
+        /// </summary>
+        /// <remarks>
+        /// <c>Single()</c> asserts the invariant rather than hiding a miss: the caller has run
+        /// <see cref="RequireQueryableSubject"/>, so the binder cannot have skipped this subject.
+        /// </remarks>
+        private static string BindSingleSubject(Uri uri)
+        {
+            return SparqlSerializer.GenerateSubjectBindings("?s", new[] { uri }).Single();
         }
 
         /// <summary>
@@ -283,7 +295,7 @@ namespace Semiodesk.Trinity
                 throw new ArgumentNullException(nameof(uri));
             }
 
-            if (uri is UriRef uriRef && uriRef.IsBlankId)
+            if (uri.IsBlankId())
             {
                 throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
             }
@@ -329,7 +341,7 @@ namespace Semiodesk.Trinity
         {
             RequireQueryableSubject(uri);
 
-            ISparqlQueryResult result = ExecuteOverlayQuery(CreateResourceQuery(new[] { uri }), transaction);
+            ISparqlQueryResult result = ExecuteOverlayQuery(CreateResourceQuery(BindSingleSubject(uri)), transaction);
 
             Resource resource = result.GetResources().FirstOrDefault();
 
@@ -360,7 +372,7 @@ namespace Semiodesk.Trinity
         {
             RequireQueryableSubject(uri);
 
-            ISparqlQueryResult result = ExecuteOverlayQuery(CreateResourceQuery(new[] { uri }), transaction);
+            ISparqlQueryResult result = ExecuteOverlayQuery(CreateResourceQuery(BindSingleSubject(uri)), transaction);
 
             T resource = result.GetResources<T>().FirstOrDefault();
 
@@ -425,14 +437,26 @@ namespace Semiodesk.Trinity
                 return Enumerable.Empty<object>();
             }
 
-            foreach (Uri uri in subjects)
-            {
-                RequireQueryableSubject(uri);
-            }
+            // No RequireQueryableSubject sweep here, unlike the single-resource overloads above.
+            // Asking for one blank node by identity is an error; a blank node among many is skipped,
+            // because refusing the whole call would lose every addressable subject with it — and this
+            // is the lazy-load path, where one blank member of a mapped collection would otherwise
+            // make the entire collection unreadable. The binder does the skipping (ADR-0046).
+            return GetResourcesCore(subjects, type, transaction);
+        }
 
-            ISparqlQueryResult result = ExecuteOverlayQuery(CreateResourceQuery(subjects), transaction);
-
-            return Materialize(result.GetResources(type));
+        private IEnumerable<object> GetResourcesCore(IEnumerable<Uri> subjects, Type type, ITransaction transaction)
+        {
+            // Batched for the same reason as Model and ModelGroup: VALUES lifts the equality chain's
+            // nesting limit but is not itself unbounded — Virtuoso refuses the 4095th operand with
+            // SP030. A layered view reads through this path too, because Attach() makes the view the
+            // resource's model and therefore its ResourceCache's model. Only the query differs.
+            return BulkResourceReader.Read(
+                subjects,
+                type,
+                CreateResourceQuery,
+                query => ExecuteOverlayQuery(query, transaction),
+                Attach);
         }
 
         /// <summary>

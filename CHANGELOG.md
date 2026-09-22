@@ -40,6 +40,23 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
   `OriginalString`. Unrelated to the .NET 10 `Uri` equality change in
   [ADR-0025](doc/adr/0025-resource-identity-uriref-blanknodes.md): this is the serialization path, not
   identity, and it behaves identically on .NET 8 and .NET 10.
+- **`LayeredModel` had none of the above.** The `VALUES` fix, the batching and the blank-id skipping
+  landed in `Model` and `ModelGroup` only, so a mapped collection read through
+  `store.CreateLayeredModel(...)` still issued one unbounded block — and a blank-node member made the
+  *entire* collection unreadable, where a plain model returns the rest. All three implementations now
+  share one loop (`BulkResourceReader`), so the emitted shape cannot diverge again.
+- **Blank-node handling distinguished the label from the flag.** Virtuoso returns blank nodes as
+  `nodeID://b10000` — flagged as blank ids, but absolute IRIs that can be queried. Deciding
+  serialization on the flag emitted them bare and dropped them from bindings; deciding on the
+  `IsBlankId` property alone missed a consumer-built `new UriRef("_:0", UriKind.RelativeOrAbsolute)`
+  and let a bare label into the query. Both now key on the spelling (`IsBlankNodeLabel`).
+- **An IRI that cannot be written verbatim is now refused, naming itself**, instead of becoming an
+  `RdfParseException` inside an unrelated batch. `SerializeUri` still serializes from `OriginalString`
+  and deliberately **not** from `AbsoluteUri`, which would normalize host casing, ports, dot-segments
+  and percent-encoding case — and Trinity compares and hashes resources on the ordinal
+  `OriginalString`, so normalizing would break mapped-collection dedup and drop LINQ rows.
+- `PREFIX` declarations and datatype IRIs use a strict serializer that always brackets, rather than the
+  term serializer that emits a blank node label bare.
 - **The same defect, found by audit in three more query builders**, each of which would turn into a
   parse error for a percent-encoded IRI: `Model.GetResources<T>()` (the `?s a <type>` constraint built
   from `[RdfClass]`), `SparqlPreprocessor.AddPrefix` (the `PREFIX` line injected into **every** query
@@ -64,6 +81,15 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
 - `LayeredModelSparql.BindSubjects` was promoted to `SparqlSerializer.GenerateSubjectBinding`, so
   `Model`, `ModelGroup` and `LayeredModel` share one implementation. Both are internal; no public API
   changed.
+
+### Added
+
+- `Resource.IsPartiallyLoaded` — true when loading a mapped property failed partway. Because a large
+  collection now loads in batches, a store failure mid-read leaves the earlier batches in the
+  collection. The exception still reaches the caller and the load is self-healing on the next read,
+  but a caller that catches it can now tell a truncated collection from a complete one.
+- `Uri.IsBlankNodeLabel()` — the lexical counterpart to `IsBlankId()`. Ask `IsBlankId()` whether
+  something *is* a blank node; ask `IsBlankNodeLabel()` whether it can be written into a query.
 
 ### Known issues
 
