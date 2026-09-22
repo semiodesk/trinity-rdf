@@ -84,6 +84,7 @@ mapped/dynamic duality, models & groups, discovery, stores, and querying.
 | [0043](0043-fuseki-store-revival.md) | Reviving the Fuseki store: the 4/86 was a missing dataset, not a connector bug | Accepted |
 | [0044](0044-store-suites-green-and-in-ci.md) | Provision the inference configuration the store suites depend on, and run them in CI | Accepted |
 | [0045](0045-in-memory-rdfs-inferencing.md) | Finish in-memory inferencing: entail into a side graph, union it in per query | Accepted |
+| [0046](0046-bulk-subject-binding-with-values.md) | Bulk subject binding uses VALUES, never an equality chain | Accepted |
 
 ### Proposed (revival)
 | # | Title | Status |

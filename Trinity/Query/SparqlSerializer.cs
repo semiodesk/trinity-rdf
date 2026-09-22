@@ -161,6 +161,116 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// The number of subjects bound by a single <c>VALUES</c> block before
+        /// <see cref="GenerateSubjectBindings"/> starts a new one.
+        /// </summary>
+        /// <remarks>
+        /// <c>VALUES</c> removes the nesting limit that sinks the equality chain, but it is not
+        /// unbounded: Virtuoso compiles the block into one built-in call and refuses the 4095th
+        /// operand with <c>SP030: Too many arguments for standard built-in function</c> (measured
+        /// on 7.2.12 and 7.2.14 alike — a compile-time cap, not a query-text-length limit, and
+        /// unmoved by <c>ThreadStackSize</c>). 1000 keeps a 4x margin under that, which matters
+        /// because the ceiling is a property of the server build rather than of this code, and it
+        /// is where the measured advantage already saturates: 1000 subjects answered in 83 ms
+        /// against the chain's 957 ms. See <c>doc/adr/0046-bulk-subject-binding-with-values.md</c>.
+        /// </remarks>
+        internal const int SubjectBindingBatchSize = 1000;
+
+        /// <summary>
+        /// Binds a variable to one or more known subjects with <c>VALUES</c>.
+        /// </summary>
+        /// <remarks>
+        /// This has to be emitted <b>before</b> the pattern it constrains. Restricting the
+        /// subject afterwards with <c>FILTER (?s = ...)</c> instead leaves the engine to push the
+        /// filter into a <c>UNION</c> containing an anti-join, which neither the in-memory engine
+        /// nor GraphDB does — measured at 15x and 38x respectively, against 1.0x for the
+        /// <c>VALUES</c> form. Binding up front turns every read into an indexed probe.
+        /// <para>
+        /// The equality chain it replaces is also a correctness problem, not only a slow one:
+        /// Virtuoso parses <c>?s = &lt;a&gt; || ?s = &lt;b&gt; || ...</c> as nested binary pairs and
+        /// its compiler caps the nesting depth, answering <c>SP031: The nesting depth of
+        /// subexpressions exceed limits of SPARQL compiler</c> beyond it. The same subjects bound
+        /// with <c>VALUES</c> compile fine.
+        /// </para>
+        /// </remarks>
+        /// <param name="variable">The variable to bind, including its leading <c>?</c>.</param>
+        /// <param name="uris">The subjects to bind it to.</param>
+        internal static string GenerateSubjectBinding(string variable, IEnumerable<Uri> uris)
+        {
+            var result = new StringBuilder();
+
+            result.Append("VALUES ").Append(variable).Append(" { ");
+
+            foreach (Uri uri in uris)
+            {
+                result.Append(SerializeUri(uri)).Append(' ');
+            }
+
+            result.Append("} ");
+
+            return result.ToString();
+        }
+
+        /// <summary>
+        /// Splits a set of subjects into <c>VALUES</c> blocks of at most
+        /// <paramref name="batchSize"/> entries, dropping the ones SPARQL cannot address.
+        /// </summary>
+        /// <remarks>
+        /// Blank node identifiers are <b>skipped rather than serialized</b>. A blank node label is
+        /// not a legal <c>DataBlockValue</c> (<c>iri | RDFLiteral | NumericLiteral |
+        /// BooleanLiteral | 'UNDEF'</c>) and is not legal in a <c>FILTER</c> expression either, so
+        /// there is no query shape that can address one by label — a label in a query is an
+        /// existential variable, not a reference. <see cref="SerializeUri"/> would happily emit a
+        /// bare <c>_:b0</c> and the store would reject the whole query, taking the addressable
+        /// subjects down with it. Callers that need the stricter contract reject blank ids before
+        /// calling; <c>ResourceCache.LoadCachedValues</c> instead materializes whatever does not
+        /// come back as an unresolved resource, which is the right outcome here.
+        /// <para>
+        /// Yields nothing for an empty, all-blank or <c>null</c> subject set, so a caller that
+        /// iterates the result issues no query at all rather than an unconstrained one.
+        /// </para>
+        /// </remarks>
+        /// <param name="variable">The variable to bind, including its leading <c>?</c>.</param>
+        /// <param name="uris">The subjects to bind it to.</param>
+        /// <param name="batchSize">The maximum number of subjects per block.</param>
+        internal static IEnumerable<string> GenerateSubjectBindings(string variable, IEnumerable<Uri> uris, int batchSize = SubjectBindingBatchSize)
+        {
+            if (batchSize < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(batchSize));
+            }
+
+            if (uris == null)
+            {
+                yield break;
+            }
+
+            var batch = new List<Uri>(batchSize);
+
+            foreach (Uri uri in uris)
+            {
+                if (uri == null || (uri is UriRef uriRef && uriRef.IsBlankId))
+                {
+                    continue;
+                }
+
+                batch.Add(uri);
+
+                if (batch.Count == batchSize)
+                {
+                    yield return GenerateSubjectBinding(variable, batch);
+
+                    batch.Clear();
+                }
+            }
+
+            if (batch.Count > 0)
+            {
+                yield return GenerateSubjectBinding(variable, batch);
+            }
+        }
+
+        /// <summary>
         /// Serializes a resource.
         /// </summary>
         /// <param name="resource">A resource.</param>

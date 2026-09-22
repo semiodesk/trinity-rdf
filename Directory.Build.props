@@ -19,6 +19,10 @@
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <FileVersion>2.0.0.0</FileVersion>
     <LangVersion>latest</LangVersion>
+    <!-- Rendered on the nuget.org listing page. Kept to the headline of the current release only —
+         the full history lives in CHANGELOG.md, which this points at. Update both together; the
+         RELEASING.md gate checks for it. -->
+    <PackageReleaseNotes>Fixes a defect that capped mapped collections on Virtuoso: the bulk lazy-load query bound its subjects with an equality chain, which Virtuoso's SPARQL compiler refuses past a nesting depth (SP031), breaking reads and writes of larger collections. Subjects are now bound with VALUES, in batches. Also fixes an empty/null subject set reading the entire model, percent-encoded subject IRIs not being found, and a blank-node-valued link breaking the read of its whole collection. See CHANGELOG.md and doc/adr/0046-bulk-subject-binding-with-values.md.</PackageReleaseNotes>
     <PackageProjectUrl>https://trinity-rdf.net</PackageProjectUrl>
     <RepositoryUrl>https://github.com/semiodesk/trinity-rdf</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

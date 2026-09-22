@@ -28,6 +28,7 @@
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
 using Semiodesk.Trinity.Tests.Linq;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -467,6 +468,105 @@ namespace Semiodesk.Trinity.Tests.Store
             Assert.AreEqual(r2.Fullname, actual2.Fullname);
         }
 
+        #region Bulk subject binding (ADR-0046)
+
+        /// <summary>
+        /// A mapped collection is lazy-loaded through
+        /// <see cref="IModel.GetResources(System.Collections.Generic.IEnumerable{Uri}, Type, ITransaction)"/>,
+        /// which used to constrain the subjects with an equality chain
+        /// (<c>FILTER(?s = &lt;a&gt;||?s = &lt;b&gt;||...)</c>). Virtuoso parses that as nested binary
+        /// pairs and its compiler caps the nesting depth, so past a threshold every read *and*
+        /// every write of the collection failed with
+        /// <c>SP031: The nesting depth of subexpressions exceed limits of SPARQL compiler</c> —
+        /// writes too, because Add/Remove read the collection before mutating it.
+        /// </summary>
+        /// <remarks>
+        /// dotNetRDF has no such limit, so the in-memory run of this test proves only that the
+        /// round-trip is correct. The Virtuoso run is the one that guards the defect.
+        /// </remarks>
+        [Test]
+        public virtual void GetResourcesByUriHandlesLargeCollections()
+        {
+            const int count = 300;
+
+            var contact = Model1.CreateResource<Contact>(R1);
+            contact.Fullname = "Bulk";
+
+            for (int i = 0; i < count; i++)
+            {
+                var address = Model1.CreateResource<EmailAddress>(BaseUri.GetUriRef("mail" + i));
+                address.Address = "user" + i + "@example.org";
+                address.Commit();
+
+                contact.EmailAddresses.Add(address);
+            }
+
+            contact.Commit();
+
+            var loaded = Model1.GetResource<Contact>(R1);
+
+            Assert.AreEqual(count, loaded.EmailAddresses.Count, "every member of the collection must come back");
+            Assert.AreEqual(count, loaded.EmailAddresses.Select(e => e.Uri).Distinct().Count(), "and each exactly once");
+            Assert.IsTrue(loaded.EmailAddresses.All(e => !string.IsNullOrEmpty(e.Address)),
+                "each member must be materialized with its properties, not just its identifier");
+
+            // The write path reads the collection before mutating it, which is the other half of
+            // what the equality chain broke.
+            loaded.EmailAddresses.RemoveAt(0);
+            loaded.Commit();
+
+            Assert.AreEqual(count - 1, Model1.GetResource<Contact>(R1).EmailAddresses.Count,
+                "a write that touches a large collection must succeed too");
+        }
+
+        /// <summary>
+        /// No subjects means no resources. Omitting the constraint instead left
+        /// <c>SELECT ?s ?p ?o WHERE { ?s ?p ?o. }</c>, which returns the whole model — so this
+        /// asserts against a model that holds unrelated resources, or the regression passes.
+        /// </summary>
+        [Test]
+        public virtual void GetResourcesByUriReturnsEmptyForNoSubjects()
+        {
+            InitializeModels();
+
+            Assert.IsFalse(Model1.IsEmpty, "the guard is meaningless against an empty model");
+
+            Assert.IsEmpty(Model1.GetResources(new Uri[0], typeof(Resource)).ToList(),
+                "an empty subject set must not be read as 'every subject'");
+
+            Assert.IsEmpty(Model1.GetResources(null, typeof(Resource)).ToList(),
+                "a null subject set must not throw, and must not be read as 'every subject'");
+        }
+
+        /// <summary>
+        /// A blank node label is not a legal <c>VALUES</c> operand and not legal in a <c>FILTER</c>
+        /// expression either, so a blank-node-valued link cannot be resolved by label. It must
+        /// still appear in the mapped collection — flagged unresolved — rather than take the whole
+        /// query down, which is what emitting <c>&lt;_:b0&gt;</c> used to do.
+        /// </summary>
+        [Test]
+        public virtual void GetResourcesByUriToleratesBlankNodeSubjects()
+        {
+            var blank = new UriRef("_:0", true);
+            var named = BaseUri.GetUriRef("mail0");
+
+            var address = Model1.CreateResource<EmailAddress>(named);
+            address.Address = "user0@example.org";
+            address.Commit();
+
+            var resources = Model1.GetResources(new Uri[] { blank, named }, typeof(EmailAddress))
+                .Cast<EmailAddress>()
+                .ToList();
+
+            Assert.AreEqual(1, resources.Count, "the addressable subject must still come back");
+            Assert.AreEqual(named, resources[0].Uri);
+
+            Assert.IsEmpty(Model1.GetResources(new Uri[] { blank }, typeof(EmailAddress)).ToList(),
+                "a blank-node-only request must return empty rather than query for every subject");
+        }
+
+        #endregion
+
         [Test]
         public virtual void GetTypedResourcesTest()
         {
@@ -702,6 +802,50 @@ namespace Semiodesk.Trinity.Tests.Store
             }
         }
         
+
+        /// <summary>
+        /// The actual guard for the defect, as opposed to the round-trip above: it asks for more
+        /// subjects than the equality chain could ever compile into.
+        /// </summary>
+        /// <remarks>
+        /// Measured against Virtuoso 7.2.12 and 7.2.14 through the real store path: the chain
+        /// <c>FILTER(?s = &lt;a&gt;||...)</c> compiles at 1024 subjects and fails at 1025 with
+        /// <c>SP031: The nesting depth of subexpressions exceed limits of SPARQL compiler</c>. The
+        /// cap is a compile-time constant of the build — unmoved by <c>ThreadStackSize</c> and
+        /// identical on both versions — and a consumer reported it as low as 157 on theirs, so this
+        /// asks for 2000 to stay clear of any build's threshold. The same subjects bound with
+        /// <c>VALUES</c>, in batches of 1000, compile everywhere.
+        /// <para>
+        /// Deliberately cheap: the subjects need not exist, because the failure was in *compiling*
+        /// the query, not in answering it. That keeps the guard fast enough to run on every store.
+        /// </para>
+        /// </remarks>
+        [Test]
+        public virtual void GetResourcesByUriCompilesBeyondTheEqualityChainLimit()
+        {
+            const int count = 2000;
+
+            var present = BaseUri.GetUriRef("mail0");
+
+            var address = Model1.CreateResource<EmailAddress>(present);
+            address.Address = "user0@example.org";
+            address.Commit();
+
+            var uris = new List<Uri> { present };
+
+            for (int i = 1; i < count; i++)
+            {
+                uris.Add(BaseUri.GetUriRef("absent" + i));
+            }
+
+            var resources = Model1.GetResources(uris, typeof(EmailAddress))
+                .Cast<EmailAddress>()
+                .ToList();
+
+            Assert.AreEqual(1, resources.Count, "only the subject that exists should come back");
+            Assert.AreEqual(present, resources[0].Uri);
+        }
+
         #endregion
     }
 }

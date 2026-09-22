@@ -75,9 +75,16 @@ Two smaller decisions ride along:
   not aggregate: a resource can be clean while something it links to is dirty, because `Commit()` still
   does not cascade (0029).
 - Blank nodes are illegal in SPARQL `DELETE` templates, and the delta names triples directly where the
-  old code deleted through variables. The regression test for this is quarantined because blank-node
-  values already fail on the *read* path (`doc/known-test-failures.md`), so the write-side hazard is
-  currently uncovered.
+  old code deleted through variables. The regression test for this was quarantined because blank-node
+  values already failed on the *read* path.
+  **Amended by [0046](0046-bulk-subject-binding-with-values.md):** that read-path failure is fixed —
+  the lazy-load query no longer interpolates a blank id as the invalid relative IRI `<_:0>` — and
+  `CanRemoveBlankNodeValuedLink` now reaches the delta and fails there, with
+  `SparqlUpdateException: "Cannot create a DELETE command where any of the Triple Patterns are not
+  constructable triple patterns (Blank Node Variables are not permitted)"`. So the hazard predicted
+  here is now **demonstrated rather than merely suspected**, and it is the only thing still
+  quarantining that test. Fixing it means deleting through a variable bound by a `WHERE` instead of
+  naming the node. The read half is covered by `CanReadBlankNodeValuedLink`.
 - Verified against real stores, not just the in-memory one, because the emitted SPARQL changed:
   in-memory **397 passed / 0 failed / 7 skipped**, Virtuoso **99 passed / 7 pre-existing failures**,
   GraphDB **106 passed / 4 pre-existing failures**. The pre-existing failures are unchanged in identity,
@@ -88,4 +95,6 @@ Two smaller decisions ride along:
 ## Related
 - [0029](0029-resource-commit-rollback-change-tracking.md), [0016](0016-resource-centric-not-triple-centric.md),
   [0028](0028-store-level-transactions.md), [0036](0036-integration-tests-testcontainers.md)
+- [0046](0046-bulk-subject-binding-with-values.md) — fixed the read half of the quarantined
+  blank-node case, leaving the `DELETE`-template hazard above as the sole remaining cause
 - `doc/trinity-write-semantics.md` — the measurements this responds to

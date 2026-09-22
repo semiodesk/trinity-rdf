@@ -55,24 +55,25 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 3 skipped (quarantined); 0 failed on net8.0
-dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 23 passed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 751 passed, 3 skipped (quarantined), 0 failed
+dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 26 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
 
-- The 7 skipped tests are `[Ignore]`d and tracked in `doc/known-test-failures.md`: in-memory
-  inferencing (store-level, ADR-0022), one open semantics decision (polymorphic base-type queries,
-  ADR-0037), and blank-node values in mapped collections failing on the read path (ADR-0039) — the only
-  quarantined case that is an outright defect. No missing LINQ translation or datatype bug remains, and
-  none are generator regressions.
+- The 3 skipped tests are `[Ignore]`d and tracked in `doc/known-test-failures.md`: one open semantics
+  decision counted twice (polymorphic base-type queries, ADR-0037), and **removing** a blank-node-valued
+  link (ADR-0039) — the only quarantined case that is an outright defect. Its *read* half was fixed by
+  ADR-0046 and is covered by `CanReadBlankNodeValuedLink`; what remains is that a blank node is not legal
+  in a SPARQL `DELETE` template. No missing LINQ translation or datatype bug remains, and none are
+  generator regressions.
 - Store integration tests (`tests/Trinity.Tests.*`) **self-provision** their server in Docker via
   Testcontainers on a random host port (ADR-0036): run `dotnet test tests/Trinity.Tests.{Virtuoso,GraphDB,Fuseki}`
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all three green** — Fuseki 316/317, GraphDB 314/315, Virtuoso
-  303/304 (0 failed each; the 1 skipped is the shared blank-node quarantine).
+  hiccup cannot redden it. Current: **all three green** — Fuseki 325/326, GraphDB 323/324, Virtuoso
+  312/313 (0 failed each; the 1 skipped is the shared blank-node-removal quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
   limitations**: Virtuoso's rule set was declared only in the `ontologies.config` that ADR-0011 retired,
@@ -245,6 +246,19 @@ Invariants that surprise newcomers:
   (its docstrings are stale — trust the code).
 - **Lazy loading of linked resources is always on** (0023, via `ResourceCache`) — not disablable.
   A latent bug (#30) lives here: `SetValue` doesn't invalidate the cache (ADR-0029).
+- **Bulk subject constraints are `VALUES`, never an equality chain** (0046): the lazy load under every
+  mapped-property dereference binds its subjects with `VALUES ?s { … }`, emitted *before* the pattern,
+  in batches of 1000, via the shared `SparqlSerializer.GenerateSubjectBinding(s)`. The chain it
+  replaced (`FILTER(?s = <a>||…)`) is a **correctness** problem, not just a slow one: Virtuoso parses it
+  as nested binary pairs and refuses past a compile-time depth with `SP031` — measured at 1024 subjects
+  on 7.2.12/7.2.14, reported at 157 by a consumer, and **not** movable via `ThreadStackSize`. Because it
+  sits under reads *and* writes (`Add`/`Remove` read before mutating), a capped collection is unusable
+  in both directions. Three things are load-bearing and easy to break: the projection stays `?s ?p ?o`
+  **in that order**, the triple pattern keeps its **trailing `.`** (both required for
+  `ProvidesStatements()`, or materialization refuses the query outright), and **blank ids are skipped**
+  rather than serialized — no SPARQL query can address a blank node by label. An empty or null subject
+  set returns empty; it must never degrade to a whole-model scan. A 300-member test does **not** guard
+  this — verified by breaking the fix on purpose; the guard asks for 2000 subjects that need not exist.
 - **SPARQL reuses registered ontology prefixes** (0024): `foaf:name` needs no `PREFIX` line.
 - **URI identity is fragment-aware** (0025): use `UriRef`, not raw `Uri` — .NET's `Uri.Equals`
   ignores the fragment, which is wrong for RDF. Blank nodes/URNs have their own identity.

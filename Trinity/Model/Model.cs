@@ -577,19 +577,38 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IEnumerable<object> GetResources(IEnumerable<Uri> uris, Type type, ITransaction transaction = null)
         {
-            if (typeof(IResource).IsAssignableFrom(type))
+            if (!typeof(IResource).IsAssignableFrom(type))
             {
-                StringBuilder queryString = new StringBuilder();
-                queryString.Append("SELECT ?s ?p ?o WHERE { ?s ?p ?o. ");
-                if( uris != null &&  uris.Count() > 0 )
-                {
-                    queryString.Append("FILTER(");
-                    queryString.Append(string.Join("||", from s in uris select $"?s = <{s}>"));
-                    queryString.Append(")");
-                }
-                
-                queryString.Append("}");
-                var query = new SparqlQuery(queryString.ToString());
+                string msg = string.Format("Error: The given type {0} does not implement the IResource interface.", type);
+                throw new ArgumentException(msg);
+            }
+
+            // Materialized here, once, and for two independent reasons. The subjects are enumerated
+            // several times below (once per batch), and the sole caller — ResourceCache.LoadCachedValues —
+            // passes its live cache set and removes from it while consuming the result, so anything
+            // still enumerating `uris` past the first yield would see it mutate.
+            List<Uri> subjects = (uris ?? Enumerable.Empty<Uri>()).ToList();
+
+            if (subjects.Count == 0)
+            {
+                // No subjects means no resources. Omitting the constraint instead would leave
+                // SELECT ?s ?p ?o WHERE { ?s ?p ?o. }, which materializes the entire model.
+                return Enumerable.Empty<object>();
+            }
+
+            return GetResourcesCore(subjects, type, transaction);
+        }
+
+        private IEnumerable<object> GetResourcesCore(IEnumerable<Uri> subjects, Type type, ITransaction transaction)
+        {
+            foreach (string binding in SparqlSerializer.GenerateSubjectBindings("?s", subjects))
+            {
+                // The projection stays ?s ?p ?o in that order, and the triple pattern keeps its
+                // trailing '.', because ISparqlQuery.ProvidesStatements() is a token-level heuristic
+                // that latches only when a pattern terminator is reached while exactly those three
+                // variables are in scope, in that order. If it returns false, resource materialization
+                // refuses the query outright. SparqlSerializerTest pins this.
+                var query = new SparqlQuery("SELECT ?s ?p ?o WHERE { " + binding + "?s ?p ?o. }");
 
                 ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);
 
@@ -597,19 +616,16 @@ namespace Semiodesk.Trinity
 
                 foreach (Resource r in resources)
                 {
-                    if( type.IsAssignableFrom(r.GetType()))
+                    // NOTE: This safeguard is required because of a bug in ExecuteQuery where
+                    // it returns null objects when a rdf:type triple is missing.
+                    if (r == null) continue;
+
                     r.IsNew = false;
                     r.IsSynchronized = true;
                     r.SetModel(this);
 
                     yield return r;
                 }
-
-            }
-            else
-            {
-                string msg = string.Format("Error: The given type {0} does not implement the IResource interface.", type);
-                throw new ArgumentException(msg);
             }
         }
 

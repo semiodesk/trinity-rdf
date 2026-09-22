@@ -266,7 +266,7 @@ namespace Semiodesk.Trinity
             queryString.Append("SELECT DISTINCT ?s ?p ?o ");
             queryString.Append(_effectiveDatasetClause);
             queryString.Append("WHERE { ");
-            queryString.Append(LayeredModelSparql.BindSubjects("?s", uris));
+            queryString.Append(SparqlSerializer.GenerateSubjectBinding("?s", uris));
             queryString.Append(Overlay("?s", "?p", "?o"));
             queryString.Append(" }");
 
