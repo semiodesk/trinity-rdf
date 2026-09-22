@@ -143,7 +143,7 @@ Fixed here because they live in the code being replaced:
 |---|---|
 | `Model.cs` | Empty or null `uris` skipped the `FILTER` entirely, leaving `SELECT ?s ?p ?o WHERE { ?s ?p ?o. }` — **the whole model**, materialized as resources |
 | `ModelGroup.cs` | No guard at all: empty `uris` emitted `FILTER ( )` (a syntax error), null threw `NullReferenceException` out of `string.Join` |
-| both | `$"?s = <{s}>"` interpolates `Uri.ToString()`, which **unescapes percent-encoding**. `SparqlSerializer.SerializeUri` uses `OriginalString` deliberately, so a resource stored under an escaped spelling was silently not found |
+| both | `$"?s = <{s}>"` interpolates `Uri.ToString()`, which **unescapes percent-encoding**. `SparqlSerializer.SerializeUri` uses `OriginalString` deliberately. See below for what this actually cost |
 | `Model.cs` | `uris` was enumerated twice (`.Count()`, then the projection) |
 | `Model.cs` | A **dangling `if`**: `if (type.IsAssignableFrom(r.GetType()))` guarded only `r.IsNew = false;`, while `IsSynchronized` and `SetModel` ran unconditionally |
 | `Model.cs` | No null guard, where `ModelGroup` and `LayeredModel.Materialize` both skip the nulls a missing `rdf:type` produces |
@@ -153,6 +153,36 @@ born unbraced in `64de7f2` (2020) when the method called the *untyped* `result.G
 was made vestigial two days later in `5b162fa` when that became `result.GetResources(type)`.
 `MappingDiscovery.GetMatchingTypes` filters candidates with `type.IsAssignableFrom(...)` and the
 fallback is `Activator.CreateInstance(type, uri)`, so the condition is now unconditionally true.
+
+### What `Uri.ToString()` actually cost, measured
+
+`Uri.ToString()` returns the *display* form, which unescapes percent-encoding; `OriginalString` and
+`AbsoluteUri` do not. Swept across encodings against the in-memory store, comparing the old
+interpolation with the new serialization:
+
+| encoding | `ToString()` yields | old query | new query |
+|---|---|---|---|
+| `%20` | `a b` | **`RdfParseException`** | correct |
+| `%3E` | `a>b` | **`RdfParseException`** | correct |
+| `%22` `%3C` `%7B` `%7D` `%7C` `%5E` | `a"b`, `a<b`, … | correct | correct |
+| `%23` `%2F` `%3F` `%5C` | left escaped | correct | correct |
+| `%C3%A9` | `aéb` | correct | correct |
+
+So the cost is **narrower and sharper** than "a resource is silently not found": it bites only where
+the unescaped character is one SPARQL forbids inside an `IRIREF`, and then it is a **parse error that
+takes the whole query down** — every other subject in the same batch with it. A space is the case a
+consumer would plausibly hit. dotNetRDF re-normalizes the rest, so those worked by luck, and
+`.NET` leaves reserved delimiters like `%23` escaped, so a `%23` could never have been misread as a
+fragment separator.
+
+**This is not the .NET 10 `Uri` problem of [0025](0025-resource-identity-uriref-blanknodes.md)**, and
+the distinction matters when diagnosing: that one is `EqualityComparer<T>.Default` preferring the
+`IEquatable<Uri>` that .NET 10 added, which bypasses `UriRef.Equals` and makes *identity* in a
+`HashSet`/`Dictionary` fragment-blind. This one is `ToString()` on the *serialization* path, it is
+identical on .NET 8 and .NET 10, and it has been there since 2020. They are the same *family* —
+`System.Uri` applying web-URI equivalences (escaping, fragments) that RDF treats as significant;
+`Uri("a%20b").Equals(Uri("a b"))` is `true` on every runtime — but they are different members,
+different symptoms and different fixes.
 
 ### The subjects are materialized once, and that is a correctness requirement
 

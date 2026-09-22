@@ -173,17 +173,56 @@ namespace Semiodesk.Trinity.Tests
         }
 
         /// <summary>
-        /// The chain this replaced interpolated <c>Uri.ToString()</c>, which unescapes
-        /// percent-encoding — so a resource stored under an escaped spelling was silently not found.
+        /// The chain this replaced interpolated <c>Uri.ToString()</c>, which returns the *display*
+        /// form and unescapes percent-encoding: <c>http://example.org/a%20b</c> came out as
+        /// <c>http://example.org/a b</c>. Where the unescaped character is one SPARQL forbids inside
+        /// an <c>IRIREF</c> — a space is the obvious one — the query is a **parse error** that takes
+        /// every other subject in the same batch down with it, not merely a subject that fails to
+        /// match.
         /// </summary>
-        [Test]
-        public void PreservesPercentEncoding()
+        /// <remarks>
+        /// Unrelated to the .NET 10 <c>Uri</c> equality change (ADR-0025): this is the serialization
+        /// path rather than identity, and it behaves identically on .NET 8, 9 and 10.
+        /// </remarks>
+        [TestCase("http://example.org/a%20b")]
+        [TestCase("http://example.org/a%3Eb")]
+        [TestCase("http://example.org/caf%C3%A9")]
+        public void PreservesPercentEncoding(string original)
         {
-            var uri = new Uri("http://example.org/a%20b");
+            var uri = new Uri(original);
+
+            Assert.AreNotEqual(original, uri.ToString(),
+                "the premise of this test is that ToString() differs — pick another case if this fails");
 
             string binding = SparqlSerializer.GenerateSubjectBinding("?s", new[] { uri });
 
-            Assert.AreEqual("VALUES ?s { <http://example.org/a%20b> } ", binding);
+            Assert.AreEqual("VALUES ?s { <" + original + "> } ", binding);
+        }
+
+        /// <summary>
+        /// The end of that story: the emitted query has to actually parse. A space inside an
+        /// <c>IRIREF</c> is what the old interpolation produced for <c>%20</c>, and dotNetRDF
+        /// rejects it with <c>"Illegal white space in URI"</c>.
+        /// </summary>
+        [Test]
+        public void TheEmittedQueryParsesForAPercentEncodedSubject()
+        {
+            var uris = new[]
+            {
+                new Uri("http://example.org/a%20b"),
+                new Uri("http://example.org/plain")
+            };
+
+            string sparql = ResourceQuery(uris);
+
+            Assert.IsFalse(sparql.Contains("a b"), "the display form must never reach the query text");
+            Assert.IsTrue(new SparqlQuery(sparql).ProvidesStatements());
+
+            var parser = new VDS.RDF.Parsing.SparqlQueryParser();
+
+            Assert.DoesNotThrow(() => parser.ParseFromString(sparql),
+                "a subject whose display form contains a character SPARQL forbids in an IRIREF must "
+                + "not turn the whole query into a parse error:\n" + sparql);
         }
 
         private static int Occurrences(string haystack, string needle)

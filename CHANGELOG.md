@@ -32,9 +32,14 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
   every triple in the model, materialized as resources. On `ModelGroup` there was no guard at all:
   an empty set emitted the syntactically invalid `FILTER ( )`, and `null` threw
   `NullReferenceException`. Both now return an empty result without issuing a query.
-- **Subjects are no longer corrupted by `Uri.ToString()`.** The chain interpolated `Uri.ToString()`,
-  which unescapes percent-encoding, so a resource stored under an escaped spelling was silently not
-  found. Subjects are serialized through `SparqlSerializer.SerializeUri`, which uses `OriginalString`.
+- **A percent-encoded subject IRI no longer breaks the query.** The chain interpolated
+  `Uri.ToString()`, which returns the *display* form and unescapes percent-encoding. Where the
+  unescaped character is one SPARQL forbids inside an `IRIREF` — `%20` and `%3E`, measured — the query
+  became a parse error (`RdfParseException: Illegal white space in URI`) that took every other subject
+  in it down too. Subjects are now serialized through `SparqlSerializer.SerializeUri`, which uses
+  `OriginalString`. Unrelated to the .NET 10 `Uri` equality change in
+  [ADR-0025](doc/adr/0025-resource-identity-uriref-blanknodes.md): this is the serialization path, not
+  identity, and it behaves identically on .NET 8 and .NET 10.
 - **A blank-node-valued link no longer breaks the read of its whole collection.** A blank node label
   cannot be addressed by any SPARQL query — it is not a legal `VALUES` operand, and in a query it
   means an existential variable rather than a reference. The old code emitted it as the invalid
