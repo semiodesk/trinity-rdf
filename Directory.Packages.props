@@ -33,6 +33,8 @@
     <PackageVersion Include="NUnit3TestAdapter" Version="4.6.0" />
     <!-- Store-integration tests self-provision their servers via Docker (ADR-0036). -->
     <PackageVersion Include="Testcontainers" Version="3.10.0" />
+    <!-- Benchmarks only (benchmarks/Trinity.Benchmarks), never referenced by shipping code. -->
+    <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
   </ItemGroup>
 
 </Project>

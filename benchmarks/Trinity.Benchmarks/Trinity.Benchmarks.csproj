@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Title>Trinity.Benchmarks</Title>
+    <Description>Cross-store performance benchmarks for the Trinity RDF ORM.</Description>
+    <AssemblyName>Semiodesk.Trinity.Benchmarks</AssemblyName>
+    <RootNamespace>Semiodesk.Trinity.Benchmarks</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <!-- BenchmarkDotNet requires an optimized build; it refuses to run under Debug. -->
+    <Optimize Condition="'$(Configuration)' == 'Release'">true</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+  </ItemGroup>
+
+  <!--
+    The store test projects are referenced for their Testcontainers fixtures only. Those classes are
+    public and their StartAsync is callable outside NUnit, so the provisioning lives in exactly one
+    place. Copying it here instead would be a second copy of the same setup logic, which is the
+    failure mode that produced GraphDB's missing TriG case (ADR-0046).
+  -->
+  <!--
+    The source generator is referenced as an analyzer, exactly as Trinity.Tests does it: it is
+    PrivateAssets in Trinity.csproj, so it does not flow through a ProjectReference and the mapped
+    model here would have no implementing half.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\Trinity.Generator\Trinity.Generator.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Trinity\Trinity.csproj" />
+    <ProjectReference Include="..\..\Trinity.Tests\Trinity.Tests.csproj" />
+    <ProjectReference Include="..\..\tests\Trinity.Tests.Fuseki\Trinity.Tests.Fuseki.csproj" />
+    <ProjectReference Include="..\..\tests\Trinity.Tests.GraphDB\Trinity.Tests.GraphDB.csproj" />
+    <ProjectReference Include="..\..\tests\Trinity.Tests.Oxigraph\Trinity.Tests.Oxigraph.csproj" />
+    <ProjectReference Include="..\..\tests\Trinity.Tests.Virtuoso\Trinity.Tests.Virtuoso.csproj" />
+  </ItemGroup>
+
+</Project>
