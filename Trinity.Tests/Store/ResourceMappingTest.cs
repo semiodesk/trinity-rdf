@@ -1245,21 +1245,32 @@ namespace Semiodesk.Trinity.Tests.Store
             r1.AddProperty(to.stringTest, "Hello international World"+2);
             
             Assert.AreEqual(2, r1.stringListTest.Count);
+            CollectionAssert.AreEquivalent(
+                new[] { "Hello international World1", "Hello international World2" }, r1.stringListTest);
             Assert.AreEqual(9, r1.ListValues(to.stringTest).Count());
             
             r1.RemoveProperty(to.stringTest, "Hello international World"+1);
             
             Assert.AreEqual(1, r1.stringListTest.Count);
+            CollectionAssert.AreEquivalent(new[] { "Hello international World2" }, r1.stringListTest);
             Assert.AreEqual(8, r1.ListValues(to.stringTest).Count());
             
             r1.Language = "de";
             
+            // The mapped collection is a single-language window: only the German values, and only
+            // those, are visible through it. Asserting the contents - not just the count - is what
+            // distinguishes this from the same count made up of nulls (ADR-0047).
             Assert.AreEqual(3, r1.stringListTest.Count);
+            CollectionAssert.AreEquivalent(
+                new[] { germanValue + 1, germanValue + 2, germanValue + 3 }, r1.stringListTest);
             Assert.AreEqual(8, r1.ListValues(to.stringTest).Count());
             
             r1.Language = "en";
             
             Assert.AreEqual(4, r1.stringListTest.Count);
+            CollectionAssert.AreEquivalent(
+                new[] { englishValue + 1, englishValue + 2, englishValue + 3, englishValue + 4 },
+                r1.stringListTest);
             Assert.AreEqual(8, r1.ListValues(to.stringTest).Count());
             
             r1.RemoveProperty(to.stringTest, germanValue + 1, "de");
@@ -1269,6 +1280,56 @@ namespace Semiodesk.Trinity.Tests.Store
             r1.RemoveProperty(to.stringTest, englishValue + 1, "en");
             
             Assert.AreEqual(7, r1.ListValues(to.stringTest).Count());
+        }
+
+        /// <summary>
+        /// Characterizes the &lt;c&gt;ListValues(Property)&lt;/c&gt; double-wrap (ADR-0047, defect 1).
+        /// </summary>
+        /// <remarks>
+        /// The existing localized tests assert only <c>.Count()</c>, which is exactly why this survived:
+        /// the counts are right and every value is null. <c>GetValueObject()</c> has already wrapped the
+        /// value into a <c>Tuple&lt;string,string&gt;</c> once a language is active, and
+        /// <c>ListValues(Property)</c> wraps it a second time with <c>x as string</c> — which is
+        /// <c>null</c> on a tuple. So the untyped read surface reports <c>Tuple(null, "de")</c> while the
+        /// mapped getter beside it reports the right string.
+        /// </remarks>
+        [Test]
+        [Ignore("ADR-0047 defect 1: ListValues(Property) re-wraps an already-tagged value, so the untyped "
+              + "read surface reports Tuple(null, lang). Un-ignore when the ambient Resource.Language is "
+              + "removed. See doc/known-test-failures.md.")]
+        public virtual void ListValuesReturnsTheValueNotNullWhenALanguageIsActive()
+        {
+            const string germanValue = "Hallo Welt";
+
+            var r1 = Model1.CreateResource<StringMappingTestClass>(_r1);
+            r1.AddProperty(to.uniqueStringTest, germanValue, "de");
+            r1.AddProperty(to.stringTest, germanValue + 1, "de");
+            r1.AddProperty(to.stringTest, germanValue + 2, "de");
+
+            r1.Language = "de";
+
+            // The mapped getters agree the values are there.
+            Assert.AreEqual(germanValue, r1.uniqueStringTest);
+            CollectionAssert.AreEquivalent(new[] { germanValue + 1, germanValue + 2 }, r1.stringListTest);
+
+            // The untyped surface must report the same values, tagged - not a tuple with a null value.
+            // Both the scalar and the list branch re-wrap, so assert them together rather than letting
+            // the first failure hide the second.
+            var scalar = (Tuple<string, string>)r1.GetValue(to.uniqueStringTest);
+            var listed = r1.ListValues(to.stringTest).Cast<Tuple<string, string>>().ToList();
+
+            Assert.Multiple(() =>
+            {
+                Assert.AreEqual("de", scalar.Item2);
+                Assert.AreEqual(germanValue, scalar.Item1,
+                    "GetValue(Property) dropped the value and kept only the tag.");
+
+                Assert.AreEqual(2, listed.Count);
+                CollectionAssert.AreEquivalent(
+                    new[] { germanValue + 1, germanValue + 2 },
+                    listed.Select(x => x.Item1).ToList(),
+                    "ListValues(Property) dropped the values and kept only the tags.");
+            });
         }
 
         [Test]
@@ -1287,6 +1348,8 @@ namespace Semiodesk.Trinity.Tests.Store
             r1.stringListTest.Add(germanValue + 3);
             
             Assert.AreEqual(3, r1.stringListTest.Count);
+            CollectionAssert.AreEquivalent(
+                new[] { germanValue + 1, germanValue + 2, germanValue + 3 }, r1.stringListTest);
             Assert.AreEqual(5, r1.ListValues(to.stringTest).Count());
 
             r1.Language = "en";
@@ -1296,11 +1359,17 @@ namespace Semiodesk.Trinity.Tests.Store
             r1.stringListTest.Add(englishValue + 4);
             
             Assert.AreEqual(4, r1.stringListTest.Count);
+            CollectionAssert.AreEquivalent(
+                new[] { englishValue + 1, englishValue + 2, englishValue + 3, englishValue + 4 },
+                r1.stringListTest);
             Assert.AreEqual(9, r1.ListValues(to.stringTest).Count());
 
             r1.Language = null;
             
+            // Language = null selects plain literals only - the two untagged values added first.
             Assert.AreEqual(2, r1.stringListTest.Count);
+            CollectionAssert.AreEquivalent(
+                new[] { "Hello interanational World1", "Hello interanational World2" }, r1.stringListTest);
             Assert.AreEqual(9, r1.ListValues(to.stringTest).Count());
         }
 

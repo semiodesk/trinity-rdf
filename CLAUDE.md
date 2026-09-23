@@ -55,18 +55,23 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 793 passed, 3 skipped (quarantined), 0 failed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 793 passed, 4 skipped (quarantined), 0 failed
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 26 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
 
-- The 3 skipped tests are `[Ignore]`d and tracked in `doc/known-test-failures.md`: one open semantics
-  decision counted twice (polymorphic base-type queries, ADR-0037), and **removing** a blank-node-valued
-  link (ADR-0039) — the only quarantined case that is an outright defect. Its *read* half was fixed by
+- The 4 skipped tests are `[Ignore]`d and tracked in `doc/known-test-failures.md`: one open semantics
+  decision counted twice (polymorphic base-type queries, ADR-0037), **removing** a blank-node-valued
+  link (ADR-0039), and the localized-literal characterization test (ADR-0047). Its *read* half was fixed by
   ADR-0046 and is covered by `CanReadBlankNodeValuedLink`; what remains is that a blank node is not legal
   in a SPARQL `DELETE` template. No missing LINQ translation or datatype bug remains, and none are
   generator regressions.
+
+  The ADR-0047 entry is **deliberately red**, not a discovered failure: it asserts that
+  `GetValue(Property)`/`ListValues(Property)` return the value rather than `Tuple(null, lang)`, and it
+  fails today because `ListValues(Property)` re-wraps an already-tagged value. It is the regression net
+  for removing `Resource.Language`, and it goes green by deleting its `[Ignore]`, not by new work.
 - Store integration tests (`tests/Trinity.Tests.*`) **self-provision** their server in Docker via
   Testcontainers on a random host port (ADR-0036): run `dotnet test tests/Trinity.Tests.{Virtuoso,GraphDB,Fuseki}`
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
