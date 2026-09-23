@@ -1294,9 +1294,6 @@ namespace Semiodesk.Trinity.Tests.Store
         /// mapped getter beside it reports the right string.
         /// </remarks>
         [Test]
-        [Ignore("ADR-0047 defect 1: ListValues(Property) re-wraps an already-tagged value, so the untyped "
-              + "read surface reports Tuple(null, lang). Un-ignore when the ambient Resource.Language is "
-              + "removed. See doc/known-test-failures.md.")]
         public virtual void ListValuesReturnsTheValueNotNullWhenALanguageIsActive()
         {
             const string germanValue = "Hallo Welt";
@@ -1315,19 +1312,19 @@ namespace Semiodesk.Trinity.Tests.Store
             // The untyped surface must report the same values, tagged - not a tuple with a null value.
             // Both the scalar and the list branch re-wrap, so assert them together rather than letting
             // the first failure hide the second.
-            var scalar = (Tuple<string, string>)r1.GetValue(to.uniqueStringTest);
-            var listed = r1.ListValues(to.stringTest).Cast<Tuple<string, string>>().ToList();
+            var scalar = (LangString)r1.GetValue(to.uniqueStringTest);
+            var listed = r1.ListValues(to.stringTest).Cast<LangString>().ToList();
 
             Assert.Multiple(() =>
             {
-                Assert.AreEqual("de", scalar.Item2);
-                Assert.AreEqual(germanValue, scalar.Item1,
+                Assert.AreEqual("de", scalar.Language);
+                Assert.AreEqual(germanValue, scalar.Value,
                     "GetValue(Property) dropped the value and kept only the tag.");
 
                 Assert.AreEqual(2, listed.Count);
                 CollectionAssert.AreEquivalent(
                     new[] { germanValue + 1, germanValue + 2 },
-                    listed.Select(x => x.Item1).ToList(),
+                    listed.Select(x => x.Value).ToList(),
                     "ListValues(Property) dropped the values and kept only the tags.");
             });
         }

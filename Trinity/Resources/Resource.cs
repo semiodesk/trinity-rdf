@@ -548,12 +548,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void AddProperty(Property property, string value, CultureInfo language)
         {
-            // TODO: 
-            // Write a custom string class with an associated language.
-            // Internally the language and string are stored as Tuple containing the string and culture info
-            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.Name.ToLower());
-
-            AddPropertyToMapping(property, aggregation, false);
+            AddPropertyToMapping(property, new LangString(value, language), false);
         }
 
         /// <summary>
@@ -562,12 +557,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void AddProperty(Property property, string value, string language)
         {
-            // TODO: 
-            // Write a custom string class with an associated language.
-            // Internally the language and string are stored as Tuple containing the string and culture info
-            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.ToLower());
-
-            AddPropertyToMapping(property, aggregation, false);
+            AddPropertyToMapping(property, new LangString(value, language), false);
         }
 
         /// <summary>
@@ -744,9 +734,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, string value, CultureInfo language)
         {
-            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.Name.ToLower());
-
-            RemovePropertyFromMapping(property, aggregation);
+            RemovePropertyFromMapping(property, new LangString(value, language));
         }
 
         /// <summary>
@@ -755,9 +743,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, string value, string language)
         {
-            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.ToLower());
-
-            RemovePropertyFromMapping(property, aggregation);
+            RemovePropertyFromMapping(property, new LangString(value, language));
         }
 
         /// <summary>
@@ -973,9 +959,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public virtual bool HasProperty(Property property, string value, CultureInfo language)
         {
-            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.Name.ToLower());
-
-            return HasProperty(property, aggregation);
+            return HasProperty(property, new LangString(value, language));
         }
 
         /// <summary>
@@ -987,9 +971,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public virtual bool HasProperty(Property property, string value, string language)
         {
-            Tuple<string, string> aggregation = new Tuple<string, string>(value, language);
-
-            return HasProperty(property, aggregation);
+            return HasProperty(property, new LangString(value, language));
         }
 
         /// <summary>
@@ -1102,35 +1084,21 @@ namespace Semiodesk.Trinity
             {
                 if (!propertyMapping.IsUnsetValue)
                 {
+                    // GetValueObject() has already applied the language, so the value arrives tagged.
+                    // This used to re-tag it - `x as string` on an already-tagged value, which is null -
+                    // so the untyped read surface reported a tagged null while the mapped getter beside it
+                    // reported the right string (ADR-0047 defect 1). Both branches now simply pass the
+                    // value through, which is what the else-branches already did.
                     if (propertyMapping.IsList)
                     {
-                        IList value = (IList)propertyMapping.GetValueObject();
-
-                        if (!string.IsNullOrEmpty(Language) && !propertyMapping.LanguageInvariant && propertyMapping.GenericType == typeof(string))
+                        foreach (object v in ((IList)propertyMapping.GetValueObject()).Cast<object>())
                         {
-                            foreach (var x in value)
-                            {
-                                yield return new Tuple<string, string>(x as string, Language);
-                            }
-                        }
-                        else
-                        {
-                            foreach (object v in value.Cast<object>())
-                            {
-                                yield return v;
-                            }
+                            yield return v;
                         }
                     }
                     else
                     {
-                        if (!string.IsNullOrEmpty(Language) && !propertyMapping.LanguageInvariant && propertyMapping.DataType == typeof(string))
-                        {
-                            yield return new Tuple<string, string>(propertyMapping.GetValueObject() as string, Language);
-                        }
-                        else
-                        {
-                            yield return propertyMapping.GetValueObject();
-                        }
+                        yield return propertyMapping.GetValueObject();
                     }
                 }
                 else if (ResourceCache.HasCachedValues(propertyMapping))
@@ -1402,13 +1370,11 @@ namespace Semiodesk.Trinity
                             _properties[mapping.Value.Property].Remove(value);
                         }
                     }
-                    else if (value is Tuple<string, string>)
+                    else if (value is LangString localizedString)
                     {
-                        var localizedString = value as Tuple<string, string>;
-
-                        if (string.Compare(localizedString.Item2, Language, true) == 0)
+                        if (string.Compare(localizedString.Language, Language, true) == 0)
                         {
-                            mapping.Value.SetOrAddMappedValue(localizedString.Item1);
+                            mapping.Value.SetOrAddMappedValue(localizedString.Value);
 
                             _properties[mapping.Value.Property].Remove(localizedString);
                         }

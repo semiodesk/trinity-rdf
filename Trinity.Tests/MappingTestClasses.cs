@@ -461,19 +461,19 @@ namespace Semiodesk.Trinity.Tests
             set { SetValue(intTestMapping, value); }
         }
 
-        public PropertyMapping<Tuple<string, string>> uniqueLocalizedStringPropertyTestMapping =
-new PropertyMapping<Tuple<string, string>>("uniqueLocalizedStringTest", to.uniqueLocalizedStringTestString);
+        public PropertyMapping<LangString> uniqueLocalizedStringPropertyTestMapping =
+new PropertyMapping<LangString>("uniqueLocalizedStringTest", to.uniqueLocalizedStringTestString);
 
-        public Tuple<string, string> uniqueLocalizedStringTest
+        public LangString uniqueLocalizedStringTest
         {
             get { return GetValue(uniqueLocalizedStringPropertyTestMapping); }
             set { SetValue(uniqueLocalizedStringPropertyTestMapping, value); }
         }
 
-        public PropertyMapping<List<Tuple<string, string>>> localizedStringPropertyTestMapping =
-    new PropertyMapping<List<Tuple<string, string>>>("localizedStringTest", to.localizedStringTestString);
+        public PropertyMapping<List<LangString>> localizedStringPropertyTestMapping =
+    new PropertyMapping<List<LangString>>("localizedStringTest", to.localizedStringTestString);
 
-        public List<Tuple<string, string>> localizedStringTest
+        public List<LangString> localizedStringTest
         {
             get { return GetValue(localizedStringPropertyTestMapping); }
             set { SetValue(localizedStringPropertyTestMapping, value); }

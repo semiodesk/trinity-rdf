@@ -136,8 +136,7 @@ namespace Semiodesk.Trinity
             {typeof(IResource), SerializeIResource},
             {typeof(IModel), SerializeIResource},
             {typeof(string), SerializeString},
-            {typeof(string[]), SerializeStringArray},
-            {typeof(Tuple<string, CultureInfo>), SerializeStringCultureInfoTuple},
+            {typeof(LangString), SerializeLangString},
             {typeof(Uri), SerializeUri},
             {typeof(byte[]), SerializeByteArray},
         };
@@ -326,38 +325,26 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Serialize an array of strings
+        /// Serialize a language-tagged literal to its lexical form.
         /// </summary>
-        /// <param name="obj"></param>
-        /// <returns></returns>
-        public static string SerializeStringArray(object obj)
+        /// <remarks>
+        /// The tag is not emitted here. A literal's lexical form and its tag are written separately -
+        /// <c>SparqlSerializer.SerializeTranslatedString</c> appends the <c>@lang</c> - so this returns the
+        /// value alone, as the two serializers it replaced did. Unlike them it cannot lose the tag, because
+        /// the tag never reaches this method: the previous <c>Tuple&lt;string,CultureInfo&gt;</c> serializer
+        /// silently discarded a culture that no caller could recover (ADR-0047).
+        /// </remarks>
+        /// <param name="obj">A <see cref="LangString"/>.</param>
+        /// <returns>The lexical form.</returns>
+        public static string SerializeLangString(object obj)
         {
-
-            if (obj is string[] array)
+            if (obj is LangString langString)
             {
-                return array.First();
+                return langString.Value;
             }
             else
             {
-                throw new ArgumentException("Argument 1 must be of type string[]");
-            }
-        }
-
-        /// <summary>
-        /// Serialize a tuple consisting of a string and its associated culture
-        /// </summary>
-        /// <param name="obj"></param>
-        /// <returns></returns>
-        public static string SerializeStringCultureInfoTuple(object obj)
-        {
-
-            if (obj is Tuple<string, CultureInfo> tuple)
-            {
-                return tuple.Item1;
-            }
-            else
-            {
-                throw new ArgumentException("Argument 1 must be of type System.Tuple<string, System.Globalization.CultureInfo>");
+                throw new ArgumentException("Argument 1 must be of type Semiodesk.Trinity.LangString");
             }
         }
 
@@ -740,7 +727,7 @@ namespace Semiodesk.Trinity
             }
             else if (lang != null)
             {
-                return new string[] { result.ToString(), lang.Value };
+                return new LangString(result.ToString(), lang.Value);
             }
 
             return result;

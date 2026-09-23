@@ -163,14 +163,18 @@ namespace Semiodesk.Trinity.Tests.Store
             const string value = "Hello World!";
             var culture = CultureInfo.CreateSpecificCulture("en");
             
-            Test<Tuple<string, string>>((r1) =>
+            Test<LangString>((r1) =>
                 {
                     r1.AddProperty(P1, value, culture);
                 },
                 (result) =>
                 {
-                    Assert.AreEqual(value, result.Item1);
-                    Assert.AreEqual(culture.Name.ToLower(), result.Item2.ToLower());
+                    Assert.AreEqual(value, result.Value);
+
+                    // CreateSpecificCulture("en") is en-US, so the tag is the culture's full name.
+                    // No ToLower() on the right-hand side: the tag is normalized when the LangString is
+                    // built, so what the store returns cannot differ in case from what was passed.
+                    Assert.AreEqual(culture.Name.ToLowerInvariant(), result.Language);
                 });
         }
 

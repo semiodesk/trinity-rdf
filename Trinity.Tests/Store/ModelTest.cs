@@ -423,10 +423,13 @@ namespace Semiodesk.Trinity.Tests.Store
             r1.Commit();
 
             var actual = Model1.GetResource(R1);
-            var v = (Tuple<string, string>)actual.GetValue(P1);
+            var v = (LangString)actual.GetValue(P1);
 
-            Assert.AreEqual("in the jungle", v.Item1);
-            Assert.AreEqual("en", v.Item2);
+            Assert.AreEqual("in the jungle", v.Value);
+            Assert.AreEqual("en", v.Language);
+
+            // The literal round-trips as a whole, so an equality check is now meaningful.
+            Assert.AreEqual(new LangString("in the jungle", "en"), v);
         }
 
         [Test]

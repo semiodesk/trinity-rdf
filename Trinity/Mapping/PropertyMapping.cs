@@ -199,7 +199,7 @@ namespace Semiodesk.Trinity
                                                  typeof(UInt64), typeof(UInt64?),
                                                  typeof(DateTime), typeof(DateTime?),
                                                  typeof(TimeSpan), typeof(TimeSpan?),
-                                                 typeof(System.Uri), typeof(Tuple<string, string>)};
+                                                 typeof(System.Uri), typeof(LangString)};
 
             // Membership in 'allowed' is exact type identity, which rejects every subclass. That
             // used to make UriRef -- the type ADR-0025 tells callers to prefer for identity -- an
@@ -519,7 +519,7 @@ namespace Semiodesk.Trinity
                 }
                 else
                 {
-                    return new Tuple<string, string>(_value as string, Language);
+                    return new LangString(_value as string, Language);
                 }
             }
         }
@@ -530,11 +530,11 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         IList ToLanguageList()
         {
-            List<Tuple<string, string>> result = new List<Tuple<string, string>>();
+            List<LangString> result = new List<LangString>();
 
             foreach (string v in _value as IList<string>)
             {
-                result.Add(new Tuple<string, string>(v, Language));
+                result.Add(new LangString(v, Language));
             }
 
             return result;
