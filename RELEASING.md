@@ -43,8 +43,9 @@ Do **not** publish until every gate holds:
    active required-signer enforcement**: on nuget.org, under the owning account's **Certificates**,
    remove any expired/registered certificates so unsigned pushes are accepted. If unsure, dry-run
    with a `-rc`/prerelease id first and unlist it afterward.
-7. **Release notes** — CHANGELOG / release notes updated for this version, including the breaking
-   changes (see Notes).
+7. **Release notes** — `CHANGELOG.md` has a section for this version, and `PackageReleaseNotes` in
+   `Directory.Build.props` carries its headline (that is what renders on the nuget.org listing page).
+   Update both together, and call out the breaking changes (see Notes).
 
 ## Steps
 

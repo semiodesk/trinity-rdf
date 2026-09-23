@@ -39,6 +39,16 @@ namespace Semiodesk.Trinity
 
         public IModel Model;
 
+        /// <summary>
+        /// True if a bulk load of a mapped property failed partway and left the mapping incomplete.
+        /// </summary>
+        /// <remarks>
+        /// Sticky on purpose. It records that a collection was observed short at some point, which is
+        /// what a caller who caught the exception needs to know; a later successful retry fills the
+        /// collection but does not make the earlier observation untrue.
+        /// </remarks>
+        public bool IsPartiallyLoaded { get; private set; }
+
         // UriRef rather than Uri, deliberately. This set decides whether a lazily-loaded link has
         // already been resolved, so it is hashed and probed on the read path. A HashSet<Uri> uses
         // EqualityComparer<Uri>.Default, which on .NET 10 compares fragment-blind -- two links that
@@ -116,10 +126,25 @@ namespace Semiodesk.Trinity
 
             var res = Model.GetResources(cachedUris, baseType);
 
-            foreach (IResource resource in res)
+            try
             {
-                cachedUris.Remove(resource.Uri);
-                AddToMapping(mapping, resource);
+                foreach (IResource resource in res)
+                {
+                    cachedUris.Remove(resource.Uri);
+                    AddToMapping(mapping, resource);
+                }
+            }
+            catch
+            {
+                // A bulk read is issued one query per batch (ADR-0046), so a store failure partway
+                // leaves the earlier batches already added to the mapping and removed from the set
+                // above. That is recoverable — the cache entry survives, so the next read of this
+                // property re-queries only what is left and AddToMapping dedupes — but until then the
+                // collection is short, and a caller who swallows this exception would have no way to
+                // tell. The flag is that way.
+                IsPartiallyLoaded = true;
+
+                throw;
             }
 
             // Whatever is left did not come back from the store: the link points at a resource that was

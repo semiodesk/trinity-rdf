@@ -1,11 +1,11 @@
-# 0046. Localized literals are typed containers, not ambient resource state
+# 0047. Localized literals are typed containers, not ambient resource state
 
 Date: 2026-09-17
 
 ## Status
 
 Proposed (2.0). The design below is agreed; implementation follows. On landing, this supersedes
-[0027](0027-localized-literals.md), whose status becomes *Superseded by 0046*.
+[0027](0027-localized-literals.md), whose status becomes *Superseded by 0047*.
 
 ## Context
 
@@ -13,12 +13,12 @@ RDF literals carry language tags (`"Hallo"@de`). [0027](0027-localized-literals.
 Trinity handles them and marked itself *"Accepted — rudimentary; flagged for improvement"*, with a
 Revival note asking for *"a proper localized-literal type and a consistent read/write API"*. The
 same request has been sitting in the code since 2016 as `// TODO: Write a custom string class with
-an associated language` (`Trinity/Resources/Resource.cs:534`). This ADR answers it.
+an associated language` (`Trinity/Resources/Resource.cs:552`). This ADR answers it.
 
 ### Language is a mode switch on the object
 
 `Resource.Language` is a settable `string` whose setter calls `ReloadLocalizedMappings()`
-(`Resource.cs:1367`). That method does not filter a view — it **moves values**. For every
+(`Resource.cs:1381`). That method does not filter a view — it **moves values**. For every
 non-`LanguageInvariant` `string`/`List<string>` mapping it drains the mapped value back into the
 untyped `_properties` bag, clears the mapping, then refills it from the bag with the values whose
 tag matches the new language. So at any instant **exactly one language is mapped and the rest sit
@@ -44,10 +44,10 @@ library API.
 
 | Shape | Where |
 |---|---|
-| `Tuple<string,string>` | untyped writes (`Resource.cs:539,553`); dotNetRDF read (`dotNetRDFQueryResult.cs:371`); Virtuoso read (`Trinity.Virtuoso/VirtuosoSparqlQueryResult.cs:120`) |
+| `Tuple<string,string>` | untyped writes (`Resource.cs:554,568`); dotNetRDF read (`dotNetRDFQueryResult.cs:372`); Virtuoso read (`Trinity.Virtuoso/VirtuosoSparqlQueryResult.cs:120`) |
 | bare `string` + out-of-band `IPropertyMapping.Language` | inside a mapping, while a language is active |
 | `Tuple<string,CultureInfo>` | serializer key (`XsdTypeMapper.cs:140,351`) — and it **drops the culture** |
-| `string[] { value, lang }` | `XsdTypeMapper.DeserializeXmlNode:741` — appears unreferenced |
+| `string[] { value, lang }` | `XsdTypeMapper.DeserializeXmlNode:743` — appears unreferenced |
 
 `SparqlSerializer.SerializeValue` branches over three of them, each with the identical comment
 `// string + language`. [0027](0027-localized-literals.md) named two of the four; the third and
@@ -60,15 +60,15 @@ language-tagged literal *is*, so each call site re-derives it and they disagree.
 
 | # | Where | Defect |
 |---|---|---|
-| 1 | `Resource.cs:1099,1114` | **`ListValues(Property)` double-wraps.** `GetValueObject()` has already tagged the value, so `x as string` is `null` and `ListValues(Property)`/`GetValue(Property)` return `Tuple<null, lang>`. Invisible because the tests assert only `.Count()`. |
-| 2 | `dotNetRDFQueryResult.cs:372` vs `Resource.cs:244` | **Tag-case churn.** Reads preserve the server's casing; writes lower-case it. Against [0039](0039-resource-write-semantics.md)'s ordinal delta a value read as `@en-US` and committed after `Language = "en-US"` emits a spurious `DELETE '…'@en-US` + `INSERT '…'@en-us`, and flips `HasUnsavedChanges()`. |
-| 3 | `SparqlQueryProvider.cs:178,287` | **LINQ projection throws.** `Convert.ChangeType` on a `Tuple<string,string>` raises `InvalidCastException`, so `Select(p => p.Name)` fails outright if any value is tagged. The adjacent `Uri` → `UriRef` special case exists for precisely this reason. |
-| 4 | `Resource.cs:976` | `HasProperty(p, v, string lang)` omits the `.ToLower()` that `AddProperty` applies, and lookup is an ordinal tuple match — so `HasProperty(p,"x","DE")` is **false** after `AddProperty(p,"x","DE")`. |
-| 5 | `Resource.cs:1388,1399` | `_properties[key].Remove(v)` leaves **empty `HashSet` entries**, breaking the invariant `HasProperty(Property)` documents at `:892-895`. The bare indexer also throws `KeyNotFoundException` when two mappings share a predicate. |
-| 6 | `Resource.cs:297-309` | The copy constructor drops `_language` but shares `_mappings` **by reference**, so the copy's two language views disagree. |
+| 1 | `Resource.cs:1113,1128` | **`ListValues(Property)` double-wraps.** `GetValueObject()` has already tagged the value, so `x as string` is `null` and `ListValues(Property)`/`GetValue(Property)` return `Tuple<null, lang>`. Invisible because the tests assert only `.Count()`. |
+| 2 | `dotNetRDFQueryResult.cs:372` vs `Resource.cs:258` | **Tag-case churn.** Reads preserve the server's casing; writes lower-case it. Against [0039](0039-resource-write-semantics.md)'s ordinal delta a value read as `@en-US` and committed after `Language = "en-US"` emits a spurious `DELETE '…'@en-US` + `INSERT '…'@en-us`, and flips `HasUnsavedChanges()`. |
+| 3 | `SparqlQueryProvider.cs:180,287` | **LINQ projection throws.** `Convert.ChangeType` on a `Tuple<string,string>` raises `InvalidCastException`, so `Select(p => p.Name)` fails outright if any value is tagged. The adjacent `Uri` → `UriRef` special case exists for precisely this reason. |
+| 4 | `Resource.cs:990` | `HasProperty(p, v, string lang)` omits the `.ToLower()` that `AddProperty` applies, and lookup is an ordinal tuple match — so `HasProperty(p,"x","DE")` is **false** after `AddProperty(p,"x","DE")`. |
+| 5 | `Resource.cs:1402,1413` | `_properties[key].Remove(v)` leaves **empty `HashSet` entries**, breaking the invariant `HasProperty(Property)` documents at `:904-907`. The bare indexer also throws `KeyNotFoundException` when two mappings share a predicate. |
+| 6 | `Resource.cs:311-323` | The copy constructor drops `_language` but shares `_mappings` **by reference**, so the copy's two language views disagree. |
 | 7 | `PropertyMapping.cs:510` | `&&`/`\|\|` precedence makes the type guard a tautology; the condition reduces to `LanguageInvariant \|\| IsNullOrEmpty(Language)`. Since `Language` has a **public setter**, setting it on a non-string mapping yields `Tuple(null, lang)` or an NRE in `ToLanguageList`. |
-| 8 | `SparqlQueryTranslator.cs:2520` | **LINQ cannot express a language at all** — all five `LiteralTerm` sites pass `null`. Worse, it is *inconsistent with itself*: `==` emits a plain literal and never matches `"Hallo"@de`, while `Contains` emits `CONTAINS(?v,"…")`, which SPARQL argument compatibility (§17.4.3) **does** match against tagged values. The provider silently disagrees about whether tagged data exists. |
-| 9 | `Resource.cs:1395` | Matching is an exact case-insensitive compare — **no BCP-47 fallback**. `de` never matches `de-DE`. |
+| 8 | `SparqlQueryTranslator.cs:2521` | **LINQ cannot express a language at all** — all five `LiteralTerm` sites pass `null`. Worse, it is *inconsistent with itself*: `==` emits a plain literal and never matches `"Hallo"@de`, while `Contains` emits `CONTAINS(?v,"…")`, which SPARQL argument compatibility (§17.4.3) **does** match against tagged values. The provider silently disagrees about whether tagged data exists. |
+| 9 | `Resource.cs:1409` | Matching is an exact case-insensitive compare — **no BCP-47 fallback**. `de` never matches `de-DE`. |
 
 Also: the `.ToLower()` calls are culture-sensitive rather than invariant (Turkish-I);
 `XsdTypeMapper` has no `Tuple<string,string>` serializer at all, and `DeserializeLiteralNode`
@@ -106,7 +106,7 @@ to end (`HashSet<object> _properties`, `GetValueObject()`, `SetOrAddMappedValue(
 allocation saving is boxed away on the first hop while the correctness cost is real:
 `PropertyMapping<T>.Clear()` does `_value = default(T)`, which for a struct is a `LangString` with a
 null `Value` — an invalid literal handed to user code — and `AddPropertyToMapping`'s `value == null`
-guard (`Resource.cs:453`) could never fire. Nullable reference types are off repo-wide, so
+guard (`Resource.cs:467`) could never fire. Nullable reference types are off repo-wide, so
 `LangString?` would be `Nullable<LangString>`, a distinct type every compatibility check would have
 to special-case. `UriRef` is a class for the same family of reasons.
 
@@ -283,8 +283,8 @@ cost — per-concrete-class copy constructors for `Model`, `ModelGroup` and `Lay
 delegating decorator would break the `model is ILayeredModel` type tests in
 `SparqlSerializer.GenerateDatasetClause` and silently read the un-subtracted baseline, exactly
 [0041](0041-layered-read-views.md)'s failure mode), plus new `GetResource` overloads that would have
-to dodge the reflection-by-name handles in `Model.cs:107`, `ModelGroup.cs:114` and
-`LayeredModel.cs:182`. Revisit only if a genuinely *filtered fetch* is ever wanted.
+to dodge the reflection-by-name handles in `Model.cs:109`, `ModelGroup.cs:116` and
+`LayeredModel.cs:184`. Revisit only if a genuinely *filtered fetch* is ever wanted.
 
 **A single container type with many-per-tag storage and a single-valued view.** The argument for it
 is that RDF places no cardinality constraint on `(subject, predicate)`, so a one-per-language
@@ -297,7 +297,7 @@ escape hatch they already know. The lossiness is recorded under *Consequences* r
 around.
 
 **Filtering the fetch rather than the mapped surface.** Five stores build the resource read as a
-`DESCRIBE` (`StoreBase:699` and the four backends), which has nowhere to hang a `FILTER`; a filter
+`DESCRIBE` (`StoreBase:702` and the four backends), which has nowhere to hang a `FILTER`; a filter
 on `?o` would need `!isLiteral(?o) || lang(?o) = "" || langMatches(…)` merely to avoid dropping every
 IRI and number. And a partially-loaded resource is dangerous: `StoreBase.UpdateResource`'s
 no-baseline branch replaces wholesale with `DELETE { <s> ?p ?o }`, which would destroy the languages
@@ -315,7 +315,7 @@ honest.
 - **`LocalizedString` against multi-valued data is lossy, deliberately.** If the store holds two
   `@de` labels for a `LocalizedString` property, one is dropped — and because
   `TrySerializeResourceDelta` computes removals from what the resource currently holds
-  (`SparqlSerializer.cs:249`), the dropped value is then **deleted from the store** on the next
+  (`SparqlSerializer.cs:503`), the dropped value is then **deleted from the store** on the next
   `Commit()`. This is exactly what a scalar `string` already does to a multi-valued predicate.
   `LocalizedStringCollection` is the escape hatch, as `List<string>` is today.
 - **Tag casing is normalized.** A store returning `de-DE` round-trips as `de-de`. Semantically

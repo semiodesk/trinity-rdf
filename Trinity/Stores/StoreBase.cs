@@ -258,6 +258,9 @@ namespace Semiodesk.Trinity
 
             if (resource.IsNew)
             {
+                // IsBlankId, not CanBeQuerySubject: this asks whether the resource is a blank node and
+                // therefore needs a server-minted identifier — the semantic question, independent of
+                // whether the placeholder happens to be writable.
                 if (resource.Uri.IsBlankId)
                 {
                     string queryString = string.Format(@"SELECT BNODE() AS ?x FROM <{0}> WHERE {{}}", modelUri.OriginalString);

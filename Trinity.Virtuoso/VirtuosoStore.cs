@@ -719,6 +719,9 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
             if (resource.IsNew)
             {
+                // IsBlankId, not CanBeQuerySubject: the semantic question — is this a blank node that
+                // needs a server-minted identifier. Virtuoso then mints a nodeID:// IRI, which *is* a
+                // usable query subject, which is exactly why the two questions must stay apart.
                 if (resource.Uri.IsBlankId)
                 {
                     // Virtuoso does not support the SPARQL 1.1 BNODE constructor. Therefore,

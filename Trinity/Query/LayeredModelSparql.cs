@@ -26,8 +26,6 @@
 // Copyright (c) Semiodesk GmbH 2026
 
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Semiodesk.Trinity
 {
@@ -183,32 +181,6 @@ namespace Semiodesk.Trinity
 
             return string.Format("FROM NAMED {0} FROM NAMED {1} FROM NAMED {2} ",
                 Graph(model.Baseline), Graph(model.Additions), Graph(model.Removals));
-        }
-
-        /// <summary>
-        /// Binds a variable to one or more known subjects with <c>VALUES</c>.
-        /// </summary>
-        /// <remarks>
-        /// This has to be emitted <b>before</b> the overlay it constrains. Restricting the
-        /// subject afterwards with <c>FILTER (?s = ...)</c> instead leaves the engine to push the
-        /// filter into a <c>UNION</c> containing an anti-join, which neither the in-memory engine
-        /// nor GraphDB does — measured at 15x and 38x respectively, against 1.0x for the
-        /// <c>VALUES</c> form. Binding up front turns every read into an indexed probe.
-        /// </remarks>
-        internal static string BindSubjects(string variable, IEnumerable<Uri> uris)
-        {
-            var result = new StringBuilder();
-
-            result.Append("VALUES ").Append(variable).Append(" { ");
-
-            foreach (Uri uri in uris)
-            {
-                result.Append(SparqlSerializer.SerializeUri(uri)).Append(' ');
-            }
-
-            result.Append("} ");
-
-            return result.ToString();
         }
 
         /// <summary>

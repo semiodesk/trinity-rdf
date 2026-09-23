@@ -46,10 +46,10 @@ Trinity's tests compare instants (`ToUniversalTime()`) accordingly.
 Consider an extensible datatype registry, add missing common XSD types, and unify with the
 localized-literal path ([0027](0027-localized-literals.md)).
 
-The localized half is answered by [0046](0046-localized-literals-typed-containers.md), which removes
+The localized half is answered by [0047](0047-localized-literals-typed-containers.md), which removes
 this mapper's `Tuple<string,CultureInfo>` serializer (it dropped the culture) and its `string[]`
 parse output in favour of a single `LangString`. The extensible datatype registry remains open.
 
 ## Related
 - [0027](0027-localized-literals.md), [0002](0002-attribute-based-object-mapping.md)
-- [0046](0046-localized-literals-typed-containers.md) — unifies the localized-literal path
+- [0047](0047-localized-literals-typed-containers.md) — unifies the localized-literal path
