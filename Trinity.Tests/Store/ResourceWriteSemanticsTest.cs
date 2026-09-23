@@ -222,24 +222,31 @@ namespace Semiodesk.Trinity.Tests.Store
         /// <remarks>
         /// Two preconditions have to hold at once, and nothing else in this suite arranges either.
         ///
-        /// <b>The resources are new.</b> <c>UpdateResources</c> has three branches -- a delta for
-        /// synchronized resources, an insert for new ones, and a wholesale replace for the rest --
-        /// and until this test only the delta branch had ever run, on any backend. The other
-        /// <c>UpdateResources</c> test passes resources that were committed and then reloaded, so it
-        /// takes the delta path by construction.
+        /// <b>The resources have no baseline</b>, so they take the wholesale branch --
+        /// <c>UpdateResources</c>' other one, and the one that had never run on any backend.
+        /// The existing <c>UpdateResources</c> test passes resources that were committed and then
+        /// reloaded, so it takes the delta path by construction.
         ///
-        /// <b>The model is empty.</b> Every other write test inherits a graph that an earlier
-        /// operation created, which is why <c>Clear()</c> is called explicitly rather than relied on:
-        /// on Jena a modify operation scoped to a graph that does not exist matches nothing, applies
-        /// nothing, and returns success. The bulk path wrote zero triples on Fuseki at any batch
-        /// size, and the suite could not see it because it never started from nothing.
+        /// <b>The model holds no triples.</b> That is the precondition the defect needs and the
+        /// reason this assertion is here: a graph-scoped modify against a graph with nothing in it
+        /// matched nothing, applied nothing and returned success, so a bulk write into a fresh model
+        /// was lost on Fuseki at any batch size. Every other write test inherits a graph an earlier
+        /// operation filled, which is why the suite could not see it.
+        ///
+        /// <c>ContainsModel</c> rather than <c>IsEmpty</c>: the distinction the defect turns on is
+        /// *absent* versus *empty*, and an <c>ASK</c> cannot tell them apart. Jena has no empty named
+        /// graphs, so on Fuseki the two coincide -- but asserting the one that is actually meant is
+        /// what keeps this test honest on the backends where they do not.
         /// </remarks>
         [Test]
         public void BulkUpdateWritesNewResourcesIntoAnEmptyModel()
         {
+            // Load-bearing, not redundant with TearDown: an earlier fixture in the same run may
+            // have left the graph populated, and this test is only meaningful starting from nothing.
             Model1.Clear();
 
-            Assert.IsTrue(Model1.IsEmpty, "precondition: the graph must not exist yet");
+            Assert.IsFalse(Store.ContainsModel(Model1.Uri),
+                "precondition: the graph must hold nothing for the defect to be reachable");
 
             var firstUri = BaseUri.GetUriRef("bulk-new-1");
             var secondUri = BaseUri.GetUriRef("bulk-new-2");
@@ -262,36 +269,62 @@ namespace Semiodesk.Trinity.Tests.Store
         /// A bulk write mixing new resources with modified existing ones must land both.
         /// </summary>
         /// <remarks>
-        /// The three branches are emitted as separate updates, so a batch spanning them is the case
-        /// where their ordering matters: the insert runs first because it is what creates the graph
-        /// the other two are scoped to.
+        /// The two branches are emitted as separate updates, so a batch spanning both is what says
+        /// they compose. <c>replaced</c> is the case the wholesale branch exists for and the one that
+        /// is easy to get wrong: a resource that is <i>already in the store</i> but was constructed
+        /// rather than loaded has no baseline to diff against, so it must be <b>replaced</b>, not
+        /// merged. Routing it to an insert leaves both the old and the new value on a single-valued
+        /// property, and a mapped read then shows one of them -- silent, and exactly the failure
+        /// ADR-0042 describes.
         ///
-        /// A regression guard rather than a reproduction: this one passes without the fix, because
-        /// the <c>Commit()</c> that seeds the existing resource creates the graph, and that is
-        /// exactly why the suite was blind to the defect for as long as it was.
+        /// A regression guard rather than a reproduction: it passes without the Fuseki fix, because
+        /// the <c>Commit()</c> that seeds the store puts triples in the graph first, which is why the
+        /// suite was blind to that defect for as long as it was.
         /// </remarks>
         [Test]
-        public void BulkUpdateWritesNewAndModifiedResourcesTogether()
+        public void BulkUpdateReplacesUnsynchronizedResourcesRatherThanMergingThem()
         {
             Model1.Clear();
 
-            var existingUri = BaseUri.GetUriRef("bulk-mixed-existing");
-            var newUri = BaseUri.GetUriRef("bulk-mixed-new");
+            var replacedUri = BaseUri.GetUriRef("bulk-mixed-replaced");
+            var modifiedUri = BaseUri.GetUriRef("bulk-mixed-modified");
 
-            var seeded = Model1.CreateResource<Person>(existingUri);
+            var seeded = Model1.CreateResource<Person>(replacedUri);
             seeded.FirstName = "Before";
             seeded.Commit();
 
-            var modified = Model1.GetResource<Person>(existingUri);
-            modified.FirstName = "After";
+            var alsoSeeded = Model1.CreateResource<Person>(modifiedUri);
+            alsoSeeded.FirstName = "Loaded";
+            alsoSeeded.Commit();
 
-            var added = Model1.CreateResource<Person>(newUri);
-            added.FirstName = "Added";
+            // No baseline: constructed, not loaded, though the store already holds it. Wholesale.
+            var replaced = new Person(replacedUri);
+            replaced.SetModel(Model1);
+            replaced.FirstName = "After";
 
-            Model1.UpdateResources(new Resource[] { modified, added });
+            // Loaded, so it carries a snapshot. Delta.
+            var modified = Model1.GetResource<Person>(modifiedUri);
+            modified.FirstName = "Changed";
 
-            Assert.AreEqual("After", Model1.GetResource<Person>(existingUri).FirstName);
-            Assert.AreEqual("Added", Model1.GetResource<Person>(newUri).FirstName);
+            Model1.UpdateResources(new Resource[] { replaced, modified });
+
+            Assert.AreEqual("After", Model1.GetResource<Person>(replacedUri).FirstName);
+
+            // Asked of the store, not of the mapped resource. A merge leaves two values on a
+            // single-valued property and the mapped read surfaces exactly one of them -- so reading
+            // it back through the mapping cannot see the corruption, which is the whole reason
+            // ADR-0042 calls it silent. Counting the triples is the only probe that can.
+            var values = Store.ExecuteQuery(new SparqlQuery(
+                    $"SELECT ?o FROM <{Model1.Uri}> WHERE {{ <{replacedUri}> <{foaf.firstName.Uri}> ?o }}",
+                    declarePrefixes: false))
+                .GetBindings()
+                .Count();
+
+            Assert.AreEqual(1, values,
+                "a resource with no baseline must be replaced, not merged -- two values for a "
+                + "single-valued property is the silent corruption ADR-0042 warns about");
+
+            Assert.AreEqual("Changed", Model1.GetResource<Person>(modifiedUri).FirstName);
         }
 
         /// <summary>

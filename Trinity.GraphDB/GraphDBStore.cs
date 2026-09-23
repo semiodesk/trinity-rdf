@@ -200,10 +200,9 @@ namespace Semiodesk.Trinity.Store.GraphDB
                 // The resource was never synchronized, so there is no baseline to diff against and the
                 // whole resource has to be replaced.
                 updateString = string.Format(@"
-                    WITH <{0}>
-                    DELETE {{ {1} ?p ?o. }}
-                    INSERT {{ {2} }}
-                    WHERE {{ OPTIONAL {{ {1} ?p ?o. }} }} ",
+                    DELETE {{ GRAPH <{0}> {{ {1} ?p ?o. }} }}
+                    INSERT {{ GRAPH <{0}> {{ {2} }} }}
+                    WHERE {{ OPTIONAL {{ GRAPH <{0}> {{ {1} ?p ?o. }} }} }} ",
                     modelUri.OriginalString,
                     SparqlSerializer.SerializeUri(resource.Uri),
                     SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));

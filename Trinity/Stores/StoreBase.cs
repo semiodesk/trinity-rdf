@@ -272,8 +272,7 @@ namespace Semiodesk.Trinity
                 }
 
                 updateString = string.Format(@"
-                    WITH <{0}>
-                    INSERT {{ {1} }} 
+                    INSERT {{ GRAPH <{0}> {{ {1} }} }}
                     WHERE {{}}",
                 modelUri.OriginalString,
                 SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
@@ -295,10 +294,9 @@ namespace Semiodesk.Trinity
                 // The resource was never synchronized, so there is no baseline to diff against and the
                 // whole resource has to be replaced.
                 updateString = string.Format(@"
-                    WITH <{0}>
-                    DELETE {{ {1} ?p ?o. }}
-                    INSERT {{ {2} }}
-                    WHERE {{ OPTIONAL {{ {1} ?p ?o. }} }} ",
+                    DELETE {{ GRAPH <{0}> {{ {1} ?p ?o. }} }}
+                    INSERT {{ GRAPH <{0}> {{ {2} }} }}
+                    WHERE {{ OPTIONAL {{ GRAPH <{0}> {{ {1} ?p ?o. }} }} }} ",
                 modelUri.OriginalString,
                 SparqlSerializer.SerializeUri(resource.Uri),
                 SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
@@ -346,16 +344,18 @@ namespace Semiodesk.Trinity
             var subject = SparqlSerializer.SerializeUri(resource.Uri);
             var update = new StringBuilder();
 
-            update.AppendFormat("WITH <{0}> ", modelUri.OriginalString);
+            // GRAPH-qualified, not WITH-scoped: a graph-scoped modify against a graph holding no
+            // triples silently applies nothing on Jena. See UpdateResources for the measurement.
+            var graph = $"<{modelUri.OriginalString}>";
 
             if (deleted.Count > 0)
             {
-                update.AppendFormat("DELETE {{ {0} }} ", SerializeTripleBlock(subject, deleted));
+                update.AppendFormat("DELETE {{ GRAPH {0} {{ {1} }} }} ", graph, SerializeTripleBlock(subject, deleted));
             }
 
             if (inserted.Count > 0)
             {
-                update.AppendFormat("INSERT {{ {0} }} ", SerializeTripleBlock(subject, inserted));
+                update.AppendFormat("INSERT {{ GRAPH {0} {{ {1} }} }} ", graph, SerializeTripleBlock(subject, inserted));
             }
 
             // An empty pattern yields exactly one solution, so the ground templates apply once.
@@ -390,28 +390,25 @@ namespace Semiodesk.Trinity
         /// <param name="ignoreUnmappedProperties">Set this to true to update only mapped properties.</param>
         public virtual void UpdateResources(IEnumerable<Resource> resources, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
         {
-            string WITH = $"{SparqlSerializer.SerializeUri(modelUri)} ";
+            // Materialized once. The sequence is walked twice -- to build the update and again to
+            // set the flags -- and a deferred source would re-run its query, so the flags would
+            // land on a second set of objects and the caller's would stay dirty.
+            var batch = resources as IList<Resource> ?? resources.ToList();
+
+            string graph = SparqlSerializer.SerializeUri(modelUri);
 
             // Resources that have been synchronized are written as a delta, exactly as in
             // UpdateResource — a bulk write must not erase other writers' values either.
             StringBuilder deltaDelete = new StringBuilder();
             StringBuilder deltaInsert = new StringBuilder();
 
-            // New resources have nothing to replace, so they are inserted outright. INSERT DATA
-            // rather than the WITH ... WHERE form the other two branches use, for the same reason
-            // UpdateResource (singular) already makes this distinction: on Jena, a modify operation
-            // scoped to a graph that does not yet exist matches nothing and applies nothing, and
-            // answers 204 while doing so. INSERT DATA creates the graph. It is also the cheaper
-            // form everywhere -- there is no WHERE clause to evaluate.
-            StringBuilder insertData = new StringBuilder();
-
-            // Resources with no baseline that are *not* new still have to be replaced wholesale.
+            // Resources without a baseline still have to be replaced wholesale.
             StringBuilder INSERT = new StringBuilder();
             StringBuilder DELETE = new StringBuilder();
             StringBuilder OPTIONAL = new StringBuilder();
 
             int count = 0;
-            foreach (var res in resources)
+            foreach (var res in batch)
             {
                 if (SparqlSerializer.TrySerializeResourceDelta(res, ignoreUnmappedProperties, out var deleted, out var inserted))
                 {
@@ -427,10 +424,6 @@ namespace Semiodesk.Trinity
                         deltaInsert.Append(SerializeTripleBlock(subject, inserted));
                     }
                 }
-                else if (res.IsNew)
-                {
-                    insertData.Append($" {SparqlSerializer.SerializeResource(res, ignoreUnmappedProperties)} ");
-                }
                 else
                 {
                     DELETE.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p{count} ?o{count}. ");
@@ -440,28 +433,28 @@ namespace Semiodesk.Trinity
                 }
             }
 
-            // First, deliberately: the other two forms are scoped with WITH and need the graph to
-            // exist, and this is the operation that creates it.
-            if (insertData.Length > 0)
-            {
-                ExecuteNonQuery(
-                    new SparqlUpdate($"INSERT DATA {{ GRAPH {WITH} {{ {insertData} }} }}"), transaction);
-            }
-
+            // GRAPH <g> around every template, rather than scoping the operation with WITH <g>.
+            //
+            // A WITH-scoped modify against a graph that holds no triples matches nothing, applies
+            // nothing, and answers success -- so a bulk write into a fresh model was silently lost
+            // on Fuseki, at any batch size. It is not that the graph must first be "created": Jena
+            // has no empty named graphs, so CREATE SILENT GRAPH does not help and was measured not
+            // to. What works is naming the graph inside each template, which the store then creates
+            // as it inserts. Verified against Fuseki 5.1.0 with raw curl for all three shapes: a
+            // wholesale write into a fresh graph, a delta into a fresh graph, and a wholesale write
+            // that must replace existing triples.
             if (deltaDelete.Length > 0 || deltaInsert.Length > 0)
             {
                 var delta = new StringBuilder();
 
-                delta.AppendFormat("WITH {0} ", WITH);
-
                 if (deltaDelete.Length > 0)
                 {
-                    delta.AppendFormat("DELETE {{ {0} }} ", deltaDelete);
+                    delta.AppendFormat("DELETE {{ GRAPH {0} {{ {1} }} }} ", graph, deltaDelete);
                 }
 
                 if (deltaInsert.Length > 0)
                 {
-                    delta.AppendFormat("INSERT {{ {0} }} ", deltaInsert);
+                    delta.AppendFormat("INSERT {{ GRAPH {0} {{ {1} }} }} ", graph, deltaInsert);
                 }
 
                 delta.Append("WHERE {}");
@@ -471,12 +464,15 @@ namespace Semiodesk.Trinity
 
             if (count > 0)
             {
-                string updateString = $"WITH {WITH} DELETE {{ {DELETE} }} INSERT {{ {INSERT} }} WHERE {{ OPTIONAL {{ {OPTIONAL} }} }}";
+                string updateString =
+                    $"DELETE {{ GRAPH {graph} {{ {DELETE} }} }} "
+                    + $"INSERT {{ GRAPH {graph} {{ {INSERT} }} }} "
+                    + $"WHERE {{ OPTIONAL {{ GRAPH {graph} {{ {OPTIONAL} }} }} }}";
 
                 ExecuteNonQuery(new SparqlUpdate(updateString), transaction);
             }
 
-            foreach (var resource in resources)
+            foreach (var resource in batch)
             {
                 resource.IsNew = false;
                 resource.IsSynchronized = true;
