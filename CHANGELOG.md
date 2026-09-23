@@ -9,10 +9,32 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
 
 ## [Unreleased]
 
-## [2.0.0-rc.4] - 2026-09-22
+## [2.0.0-rc.4] - 2026-09-23
+
+**A consistency pass over the three `IModel` implementations.** This release began as a fix for one
+Virtuoso failure (`SP031`, below) and turned into something broader, because the investigation kept
+finding the same shape: a rule stated once and implemented two or three times, diverging quietly.
+
+Of the defects fixed here, **five of six were pre-existing rather than regressions of this work**, and
+the loudest one is not the most dangerous. `SP031` fails — a capped mapped collection raises an
+exception a consumer can see and report. `ModelGroup.ContainsResource` returning **`true` for any
+blank node on any non-empty model group** is a wrong answer on a public accessor, reachable on every
+backend, that a caller has no way to detect. If you read one entry below, read that one.
+
+`Model`, `ModelGroup` and a layered view now share one bulk-read loop, one query-subject guard and one
+blank-node vocabulary, so the next divergence has nowhere to hide. Nothing in the public surface
+changed except that three accessors on `ModelGroup` now refuse a blank node instead of answering it
+wrongly, and one accessor on each model throws `ArgumentException` where it used to throw
+`TargetInvocationException`.
 
 ### Fixed
 
+- **`ModelGroup` accepted blank nodes as query subjects and answered wrongly.** It had no guard on
+  `ContainsResource`, `GetResource` or `GetResource<T>`, and `ContainsResource` interpolates the
+  identifier into a triple pattern — where a bare `_:b0` is a fresh existential variable rather than a
+  reference, so it matched any subject with any property and returned **`true` for any non-empty
+  group**. The other two leaked a raw `RdfParseException` out of the query layer. All three now go
+  through the same guard as `Model` and a layered view. Pre-existing, not a regression of this release.
 - **Mapped collections are no longer capped at a few hundred members on Virtuoso.**
   `IModel.GetResources(IEnumerable<Uri>, Type, ITransaction)` — the bulk lazy load under *every*
   mapped-property dereference — constrained its subjects with an equality chain
@@ -62,12 +84,6 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
   `OriginalString`, so normalizing would break mapped-collection dedup and drop LINQ rows.
 - `PREFIX` declarations and datatype IRIs use a strict serializer that always brackets, rather than the
   term serializer that emits a blank node label bare.
-- **`ModelGroup` accepted blank nodes as query subjects and answered wrongly.** It had no guard on
-  `ContainsResource`, `GetResource` or `GetResource<T>`, and `ContainsResource` interpolates the
-  identifier into a triple pattern — where a bare `_:b0` is a fresh existential variable rather than a
-  reference, so it matched any subject with any property and returned **`true` for any non-empty
-  group**. The other two leaked a raw `RdfParseException` out of the query layer. All three now go
-  through the same guard as `Model` and a layered view. Pre-existing, not a regression of this release.
 - **A null URI is reported as null**, not as a blank node. The guards briefly told a caller who passed
   `null` that their identifier was a blank node.
 - **`GetResource(Uri, Type, ITransaction)` threw the wrong exception type** on all three models. It

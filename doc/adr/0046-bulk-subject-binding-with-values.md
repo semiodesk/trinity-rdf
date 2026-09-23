@@ -199,10 +199,14 @@ rationalization. It also decides where a guard is load-bearing:
 - `LayeredModel.DeleteResource` **interpolates**, and is therefore guarded. Issued on its own,
   `INSERT { GRAPH removals { _:0 ?p ?o } } WHERE { GRAPH baseline { _:0 ?p ?o } }` stages the entire
   baseline for removal, without error, on the in-memory store and on Virtuoso alike (measured). The
-  four-operation composition it sits in happens to mask that today — dotNetRDF rejects the `DELETE`
-  half outright, Virtuoso runs it and stages nothing — but that is a property of the composition, not
-  a second line of defence, and removing the guard produces **no error at all** on Virtuoso. Its test
-  therefore asserts what was *staged*, not merely that the call threw.
+  four operations it sits in happen to mask that today, and *how* they do it is the reason not to rely
+  on it: dotNetRDF refuses to **construct** the `DELETE` command, so the parse of the whole joined
+  script fails and the `INSERT` never runs. Nothing rolled back, because nothing started — the
+  protection is not even in the same phase as the damage. Reordering the operations, splitting them
+  across two `ExecuteNonQuery` calls, or changing the un-staging to a shape dotNetRDF will construct
+  each unmask it. Virtuoso does not offer even that: with the guard removed it reports **no error at
+  all**. Its test therefore asserts what was *staged* before asserting that the call threw — the only
+  ordering that survives both backends.
 
 **And the fourth time was the list of where to call it.** Sharing the implementation left the
 *enumeration* of call sites duplicated by hand — twelve in the product, nine listed literally in the

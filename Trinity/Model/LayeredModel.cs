@@ -1261,12 +1261,18 @@ namespace Semiodesk.Trinity
             // is not a reference but an existential variable, matching every triple in the baseline:
             // issued on its own, INSERT { GRAPH removals { _:0 ?p ?o } } WHERE { GRAPH baseline
             // { _:0 ?p ?o } } stages the entire baseline for removal, without error, on the in-memory
-            // store and on Virtuoso alike (measured). The four-operation composition below happens to
-            // mask that today -- dotNetRDF rejects the DELETE half outright, Virtuoso runs it and
-            // stages nothing -- but that is a property of the composition, not a second line of
-            // defence, and removing this guard produces no error at all on Virtuoso.
-            // DeleteResourceRefusesABlankSubjectWithoutStagingAnything asserts the staging, not just
-            // the exception, for exactly that reason.
+            // store and on Virtuoso alike (measured).
+            //
+            // The four operations below happen to mask that today, and *how* they do it is the reason
+            // not to rely on it: dotNetRDF refuses to **construct** the DELETE command, so the parse of
+            // the whole joined script fails and the INSERT never runs. Nothing rolled back, because
+            // nothing started -- the protection is not even in the same phase as the damage. Reorder
+            // these operations, split them across two ExecuteNonQuery calls, or change the un-staging
+            // to a shape dotNetRDF will construct, and the INSERT runs and stages the baseline again.
+            // Virtuoso does not even offer that much: with this guard removed it reports no error at all.
+            //
+            // Hence DeleteResourceRefusesABlankSubjectWithoutStagingAnything asserts what was staged
+            // *before* asserting that the call threw -- the only ordering that survives both backends.
             RequireQueryableSubject(uri);
 
             string subject = SparqlSerializer.SerializeUri(uri);
