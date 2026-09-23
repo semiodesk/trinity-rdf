@@ -13,3 +13,5 @@ artifacts/**
 # Test run output (dotnet test --logger trx)
 TestResults/
 *.trx
+# Coverage runs (doc/test-coverage.md).
+.coverage/

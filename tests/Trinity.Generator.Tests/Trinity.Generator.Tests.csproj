@@ -12,6 +12,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="NUnit" />
     <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="coverlet.collector" />
     <!-- Needed to drive the generator directly in-process, which is the only way to observe the
          diagnostics it reports; compiling against it only shows what it emits. -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
