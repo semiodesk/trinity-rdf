@@ -28,6 +28,7 @@
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
 using Semiodesk.Trinity.Tests.Linq;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -467,6 +468,209 @@ namespace Semiodesk.Trinity.Tests.Store
             Assert.AreEqual(r2.Fullname, actual2.Fullname);
         }
 
+        #region Percent-encoded IRIs (ADR-0046)
+
+        /// <summary>
+        /// Every query builder must serialize an IRI through <c>SparqlSerializer.SerializeUri</c>,
+        /// which uses <c>OriginalString</c>. Interpolating a <see cref="Uri"/> instead calls
+        /// <c>Uri.ToString()</c>, which returns the display form and unescapes percent-encoding —
+        /// and where the unescaped character is one SPARQL forbids inside an <c>IRIREF</c>, such as
+        /// the space that <c>%20</c> becomes, the whole query is a parse error.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="EncodedUriContact"/> exists for this: its <c>[RdfClass]</c> and
+        /// <c>[RdfProperty]</c> IRIs both carry <c>%20</c>. This covers the write path
+        /// (<c>SerializeTypedLiteral</c> and the resource serializer), the type-constrained read
+        /// (<c>Model.GetResources&lt;T&gt;()</c>, which builds <c>?s a &lt;type&gt;</c>), and the
+        /// mapped read back.
+        /// </remarks>
+        [Test]
+        public virtual void PercentEncodedIrisSurviveEveryQueryBuilder()
+        {
+            var r1 = Model1.CreateResource<EncodedUriContact>(R1);
+            r1.Fullname = "Peter";
+            r1.Commit();
+
+            // Type-constrained read: builds "?s a <type>" from the [RdfClass] IRI.
+            var byType = Model1.GetResources<EncodedUriContact>().ToList();
+
+            Assert.AreEqual(1, byType.Count, "the type-constrained query must find the resource");
+            Assert.AreEqual("Peter", byType[0].Fullname, "the mapped property IRI must round-trip too");
+
+            // Plain read back, which goes through the resource/describe path.
+            var loaded = Model1.GetResource<EncodedUriContact>(R1);
+
+            Assert.AreEqual("Peter", loaded.Fullname);
+
+            // And the bulk lazy-load path, which is what ADR-0046 rebuilt.
+            var byUri = Model1.GetResources(new Uri[] { R1 }, typeof(EncodedUriContact))
+                .Cast<EncodedUriContact>()
+                .ToList();
+
+            Assert.AreEqual(1, byUri.Count);
+            Assert.AreEqual("Peter", byUri[0].Fullname);
+        }
+
+        /// <summary>
+        /// A resource whose own IRI carries percent-encoding, as opposed to its class and property
+        /// IRIs. This is the case the lazy-load filter used to turn into
+        /// <c>RdfParseException: Illegal white space in URI</c>.
+        /// </summary>
+        [Test]
+        public virtual void PercentEncodedResourceIriRoundTrips()
+        {
+            var encoded = new UriRef(BaseUri.OriginalString + "a%20b");
+
+            var r1 = Model1.CreateResource<Contact>(encoded);
+            r1.Fullname = "Peter";
+            r1.Commit();
+
+            Assert.IsTrue(Model1.ContainsResource(encoded));
+
+            var byUri = Model1.GetResources(new Uri[] { encoded }, typeof(Contact))
+                .Cast<Contact>()
+                .ToList();
+
+            Assert.AreEqual(1, byUri.Count, "a percent-encoded subject must not break its own lookup");
+            Assert.AreEqual("Peter", byUri[0].Fullname);
+        }
+
+        #endregion
+
+        /// <summary>
+        /// A blank identifier the store itself minted is still refused as a query subject — on every
+        /// store, including the one whose blank identifiers look addressable.
+        /// </summary>
+        /// <remarks>
+        /// The refusal is uniform by decision, not by accident of spelling. Virtuoso mints
+        /// <c>nodeID://b10000</c>, an absolute IRI that brackets fine, and <c>ContainsResource</c>
+        /// does find it because it puts the identifier straight into a triple pattern. But
+        /// <c>GetResource</c> binds the subject, and a bound IRI term never matches a blank-node
+        /// subject — so allowing these would buy a capability that half works on one backend and does
+        /// not exist on the others.
+        /// <para>
+        /// This test exists because every other blank-node case in the suite constructs its own
+        /// <c>new UriRef("_:b0", true)</c> — a label, on which the semantic and lexical predicates
+        /// agree — so none of them can tell which question a guard is asking. Only a store-minted
+        /// identifier separates them, and only on Virtuoso.
+        /// </para>
+        /// </remarks>
+        [Test]
+        public virtual void AStoreMintedBlankIdentifierIsStillRefusedAsAQuerySubject()
+        {
+            var child = (Resource)Model1.CreateResource(new UriRef("_:0", true));
+            child.AddProperty(P1, "blank");
+            child.Commit();
+
+            // Committing swaps in whatever the store minted.
+            var minted = child.Uri;
+
+            Assert.IsTrue(minted.IsBlankId(), "the minted identifier is still a blank node");
+            Assert.IsFalse(minted.CanBeQuerySubject(), "and is therefore not a query subject");
+
+            Assert.Throws<ArgumentException>(() => Model1.ContainsResource(minted));
+            Assert.Throws<ArgumentException>(() => Model1.GetResource(minted));
+        }
+
+        #region Bulk subject binding (ADR-0046)
+
+        /// <summary>
+        /// A mapped collection is lazy-loaded through
+        /// <see cref="IModel.GetResources(System.Collections.Generic.IEnumerable{Uri}, Type, ITransaction)"/>,
+        /// which used to constrain the subjects with an equality chain
+        /// (<c>FILTER(?s = &lt;a&gt;||?s = &lt;b&gt;||...)</c>). Virtuoso parses that as nested binary
+        /// pairs and its compiler caps the nesting depth, so past a threshold every read *and*
+        /// every write of the collection failed with
+        /// <c>SP031: The nesting depth of subexpressions exceed limits of SPARQL compiler</c> —
+        /// writes too, because Add/Remove read the collection before mutating it.
+        /// </summary>
+        /// <remarks>
+        /// dotNetRDF has no such limit, so the in-memory run of this test proves only that the
+        /// round-trip is correct. The Virtuoso run is the one that guards the defect.
+        /// </remarks>
+        [Test]
+        public virtual void GetResourcesByUriHandlesLargeCollections()
+        {
+            const int count = 300;
+
+            var contact = Model1.CreateResource<Contact>(R1);
+            contact.Fullname = "Bulk";
+
+            for (int i = 0; i < count; i++)
+            {
+                var address = Model1.CreateResource<EmailAddress>(BaseUri.GetUriRef("mail" + i));
+                address.Address = "user" + i + "@example.org";
+                address.Commit();
+
+                contact.EmailAddresses.Add(address);
+            }
+
+            contact.Commit();
+
+            var loaded = Model1.GetResource<Contact>(R1);
+
+            Assert.AreEqual(count, loaded.EmailAddresses.Count, "every member of the collection must come back");
+            Assert.AreEqual(count, loaded.EmailAddresses.Select(e => e.Uri).Distinct().Count(), "and each exactly once");
+            Assert.IsTrue(loaded.EmailAddresses.All(e => !string.IsNullOrEmpty(e.Address)),
+                "each member must be materialized with its properties, not just its identifier");
+
+            // The write path reads the collection before mutating it, which is the other half of
+            // what the equality chain broke.
+            loaded.EmailAddresses.RemoveAt(0);
+            loaded.Commit();
+
+            Assert.AreEqual(count - 1, Model1.GetResource<Contact>(R1).EmailAddresses.Count,
+                "a write that touches a large collection must succeed too");
+        }
+
+        /// <summary>
+        /// No subjects means no resources. Omitting the constraint instead left
+        /// <c>SELECT ?s ?p ?o WHERE { ?s ?p ?o. }</c>, which returns the whole model — so this
+        /// asserts against a model that holds unrelated resources, or the regression passes.
+        /// </summary>
+        [Test]
+        public virtual void GetResourcesByUriReturnsEmptyForNoSubjects()
+        {
+            InitializeModels();
+
+            Assert.IsFalse(Model1.IsEmpty, "the guard is meaningless against an empty model");
+
+            Assert.IsEmpty(Model1.GetResources(new Uri[0], typeof(Resource)).ToList(),
+                "an empty subject set must not be read as 'every subject'");
+
+            Assert.IsEmpty(Model1.GetResources(null, typeof(Resource)).ToList(),
+                "a null subject set must not throw, and must not be read as 'every subject'");
+        }
+
+        /// <summary>
+        /// A blank node label is not a legal <c>VALUES</c> operand and not legal in a <c>FILTER</c>
+        /// expression either, so a blank-node-valued link cannot be resolved by label. It must
+        /// still appear in the mapped collection — flagged unresolved — rather than take the whole
+        /// query down, which is what emitting <c>&lt;_:b0&gt;</c> used to do.
+        /// </summary>
+        [Test]
+        public virtual void GetResourcesByUriToleratesBlankNodeSubjects()
+        {
+            var blank = new UriRef("_:0", true);
+            var named = BaseUri.GetUriRef("mail0");
+
+            var address = Model1.CreateResource<EmailAddress>(named);
+            address.Address = "user0@example.org";
+            address.Commit();
+
+            var resources = Model1.GetResources(new Uri[] { blank, named }, typeof(EmailAddress))
+                .Cast<EmailAddress>()
+                .ToList();
+
+            Assert.AreEqual(1, resources.Count, "the addressable subject must still come back");
+            Assert.AreEqual(named, resources[0].Uri);
+
+            Assert.IsEmpty(Model1.GetResources(new Uri[] { blank }, typeof(EmailAddress)).ToList(),
+                "a blank-node-only request must return empty rather than query for every subject");
+        }
+
+        #endregion
+
         [Test]
         public virtual void GetTypedResourcesTest()
         {
@@ -702,6 +906,49 @@ namespace Semiodesk.Trinity.Tests.Store
             }
         }
         
+
+        /// <summary>
+        /// Proves a subject set larger than one batch round-trips end to end against a real store.
+        /// </summary>
+        /// <remarks>
+        /// <b>This is not the guard against the equality chain, despite what it once claimed.</b> With
+        /// subjects batched at <c>SubjectBindingBatchSize</c>, asking for 2000 sends two queries of
+        /// 1000 — both under the 1024 terms an equality chain still compiles on Virtuoso 7.2.12/7.2.14
+        /// (measured; the cap is a compile-time constant of the build, unmoved by
+        /// <c>ThreadStackSize</c>). A revert of the shape alone would pass here. What pins the shape is
+        /// <c>BulkResourceQueryShapeTest</c>, which captures the SPARQL each model actually emits.
+        /// <para>
+        /// What this test does prove is worth keeping: that batching works against a real server, and
+        /// that the batches concatenate into one correct result. Deliberately cheap — the subjects need
+        /// not exist, because the failure mode was in compiling the query, not in answering it.
+        /// </para>
+        /// </remarks>
+        [Test]
+        public virtual void GetResourcesByUriCompilesBeyondTheEqualityChainLimit()
+        {
+            const int count = 2000;
+
+            var present = BaseUri.GetUriRef("mail0");
+
+            var address = Model1.CreateResource<EmailAddress>(present);
+            address.Address = "user0@example.org";
+            address.Commit();
+
+            var uris = new List<Uri> { present };
+
+            for (int i = 1; i < count; i++)
+            {
+                uris.Add(BaseUri.GetUriRef("absent" + i));
+            }
+
+            var resources = Model1.GetResources(uris, typeof(EmailAddress))
+                .Cast<EmailAddress>()
+                .ToList();
+
+            Assert.AreEqual(1, resources.Count, "only the subject that exists should come back");
+            Assert.AreEqual(present, resources[0].Uri);
+        }
+
         #endregion
     }
 }

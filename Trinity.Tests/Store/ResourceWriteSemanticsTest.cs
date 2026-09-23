@@ -282,21 +282,59 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         /// <summary>
+        /// A blank-node-valued link must round-trip through a mapped collection. This is the read
+        /// half of what <see cref="CanRemoveBlankNodeValuedLink"/> covers, and it passes — it is
+        /// split out so the half that works stays covered while the write half is quarantined.
+        /// </summary>
+        /// <remarks>
+        /// The blank node cannot be resolved by label — no SPARQL query can address one, because a
+        /// label in a query is an existential variable rather than a reference (ADR-0046). It is
+        /// therefore skipped when the lazy load binds its subjects, and
+        /// <c>ResourceCache.LoadCachedValues</c> materializes it as an unresolved resource: present
+        /// in the collection, with its identity, without its properties. Before ADR-0046 this threw
+        /// <c>RdfParseException: "Cannot resolve a Relative URI Reference since there is no in-scope
+        /// Base URI"</c>, because the subject was interpolated into the lazy-load filter as the
+        /// invalid relative IRI <c>&lt;_:0&gt;</c>.
+        /// </remarks>
+        [Test]
+        public void CanReadBlankNodeValuedLink()
+        {
+            var parentUri = BaseUri.GetUriRef("parent");
+
+            // The typed CreateResource<T> overload rejects blank ids, so the untyped one is used here.
+            var child = (Resource)Model1.CreateResource(new UriRef("_:0", true));
+            child.AddProperty(new Property(BaseUri.GetUriRef("label")), "Blank child");
+            child.Commit();
+
+            var parent = Model1.CreateResource<Person>(parentUri);
+            parent.FirstName = "Parent";
+            parent.Interests.Add(child);
+            parent.Commit();
+
+            var loaded = Model1.GetResource<Person>(parentUri);
+
+            Assert.AreEqual(1, loaded.Interests.Count, "The blank-node link must round-trip.");
+            Assert.IsTrue(((UriRef)loaded.Interests.First().Uri).IsBlankId,
+                "and it must still be identified as a blank node.");
+        }
+
+        /// <summary>
         /// Blank nodes are not legal in a SPARQL DELETE template, so a delta that removes a
         /// blank-node-valued triple cannot name it directly — a hazard the old whole-resource rewrite
         /// never hit because it deleted through variables.
         /// </summary>
         /// <remarks>
-        /// Quarantined: this never reaches the delta. Reading a mapped collection whose value is a blank
-        /// node already fails on the query side with
-        /// <c>"Cannot resolve a Relative URI Reference since there is no in-scope Base URI"</c>, thrown
-        /// from dotNetRDF's expression parser while resolving the lazy-load filter. That is a pre-existing
-        /// limitation of blank-node handling in the read path, independent of write semantics, and it
-        /// extends item 6 of <c>doc/trinity-write-semantics.md</c>. The test is kept because the delta
-        /// hazard is real and will need covering once blank-node reads work.
+        /// Quarantined on the <b>write</b> half. The read half was fixed by ADR-0046 and is covered
+        /// by <see cref="CanReadBlankNodeValuedLink"/>; this test now gets as far as the delta and
+        /// fails there with
+        /// <c>SparqlUpdateException: "Cannot create a DELETE command where any of the Triple Patterns
+        /// are not constructable triple patterns (Blank Node Variables are not permitted)"</c> —
+        /// which is exactly the hazard the test was written for. Removing a blank-node-valued link
+        /// needs the delta to delete through a variable bound by a WHERE, not to name the node.
+        /// Extends item 6 of <c>doc/trinity-write-semantics.md</c>.
         /// </remarks>
         [Test]
-        [Ignore("Pre-existing: blank-node values in mapped collections fail on the read path. See doc/known-test-failures.md.")]
+        [Ignore("Blank-node-valued links cannot be removed: a blank node is not legal in a SPARQL DELETE template. See doc/known-test-failures.md.")]
         public void CanRemoveBlankNodeValuedLink()
         {
             var parentUri = BaseUri.GetUriRef("parent");

@@ -191,6 +191,9 @@ namespace Semiodesk.Trinity
         {
             UriRef uriref = uri as UriRef;
 
+            // IsBlankId, not CanBeQuerySubject: this asks whether the identifier denotes a blank node,
+            // which is the semantic question. A blank node has no stable identity to check for prior
+            // existence. The two coincide today; naming the right one keeps them free to diverge.
             if ((uriref == null || !uriref.IsBlankId) && ContainsResource(uri, transaction))
             {
                 throw new ArgumentException("A resource with the given URI already exists.");
@@ -363,12 +366,7 @@ namespace Semiodesk.Trinity
         /// <returns>True if the resource is part of the model, False if not.</returns>
         public bool ContainsResource(Uri uri, ITransaction transaction = null)
         {
-            UriRef uriref = uri as UriRef;
-
-            if(uriref != null && uriref.IsBlankId)
-            {
-                throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
-            }
+            QuerySubject.Require(uri);
 
             ISparqlQuery query = new SparqlQuery("ASK FROM @graph { @subject ?p ?o . }");
             query.Bind("@graph", Uri);
@@ -425,12 +423,7 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(Uri uri, ITransaction transaction = null)
         {
-            UriRef uriref = uri as UriRef;
-
-            if (uriref != null && uriref.IsBlankId)
-            {
-                throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
-            }
+            QuerySubject.Require(uri);
 
             ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?s ?p ?o FROM @model WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
             query.Bind("@model", Uri);
@@ -471,12 +464,7 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
-            UriRef uriref = uri as UriRef;
-
-            if (uriref != null && uriref.IsBlankId)
-            {
-                throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
-            }
+            QuerySubject.Require(uri);
 
             ISparqlQuery query = _store.GetDescribeQuery(Uri, uri);
 
@@ -518,7 +506,13 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>An instance of the given resource object type, Null otherwise.</returns>
         public object GetResource(Uri uri, Type type, ITransaction transaction = null)
-        {
+                {
+            // Guarded here rather than relying on the reflective call below reaching the guard inside
+            // GetResource<T>: MethodInfo.Invoke wraps whatever it throws in a TargetInvocationException,
+            // so a caller writing catch (ArgumentException) — which every sibling accessor justifies —
+            // would not catch it.
+            QuerySubject.Require(uri);
+
             if (_getResourceMethod != null)
             {
                 if (typeof(IResource).IsAssignableFrom(type))
@@ -577,40 +571,41 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IEnumerable<object> GetResources(IEnumerable<Uri> uris, Type type, ITransaction transaction = null)
         {
-            if (typeof(IResource).IsAssignableFrom(type))
-            {
-                StringBuilder queryString = new StringBuilder();
-                queryString.Append("SELECT ?s ?p ?o WHERE { ?s ?p ?o. ");
-                if( uris != null &&  uris.Count() > 0 )
-                {
-                    queryString.Append("FILTER(");
-                    queryString.Append(string.Join("||", from s in uris select $"?s = <{s}>"));
-                    queryString.Append(")");
-                }
-                
-                queryString.Append("}");
-                var query = new SparqlQuery(queryString.ToString());
-
-                ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);
-
-                IEnumerable<Resource> resources = result.GetResources(type);
-
-                foreach (Resource r in resources)
-                {
-                    if( type.IsAssignableFrom(r.GetType()))
-                    r.IsNew = false;
-                    r.IsSynchronized = true;
-                    r.SetModel(this);
-
-                    yield return r;
-                }
-
-            }
-            else
+            if (!typeof(IResource).IsAssignableFrom(type))
             {
                 string msg = string.Format("Error: The given type {0} does not implement the IResource interface.", type);
                 throw new ArgumentException(msg);
             }
+
+            // Materialized here, once, and for two independent reasons. The subjects are enumerated
+            // several times below (once per batch), and the sole caller — ResourceCache.LoadCachedValues —
+            // passes its live cache set and removes from it while consuming the result, so anything
+            // still enumerating `uris` past the first yield would see it mutate.
+            List<Uri> subjects = (uris ?? Enumerable.Empty<Uri>()).ToList();
+
+            if (subjects.Count == 0)
+            {
+                // No subjects means no resources. Omitting the constraint instead would leave
+                // SELECT ?s ?p ?o WHERE { ?s ?p ?o. }, which materializes the entire model.
+                return Enumerable.Empty<object>();
+            }
+
+            return GetResourcesCore(subjects, type, transaction);
+        }
+
+        private IEnumerable<object> GetResourcesCore(IEnumerable<Uri> subjects, Type type, ITransaction transaction)
+        {
+            return BulkResourceReader.Read(
+                subjects,
+                type,
+                binding => new SparqlQuery(SparqlSerializer.GenerateResourceQuery(binding)),
+                query => ExecuteQuery(query, transaction: transaction),
+                resource =>
+                {
+                    resource.IsNew = false;
+                    resource.IsSynchronized = true;
+                    resource.SetModel(this);
+                });
         }
 
         /// <summary>
@@ -660,7 +655,9 @@ namespace Semiodesk.Trinity
 
             foreach(Class type in instance.GetTypes())
             {
-                queryBuilder.Append($"?s a <{type.Uri}> . ");
+                // SerializeUri, not the raw Uri: interpolating one calls Uri.ToString(), which returns
+                // the display form and unescapes percent-encoding. See ADR-0046.
+                queryBuilder.Append($"?s a {SparqlSerializer.SerializeUri(type.Uri)} . ");
             }
 
             queryBuilder.Append("}");
