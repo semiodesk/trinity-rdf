@@ -216,6 +216,85 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         /// <summary>
+        /// The bulk API must write resources that do not exist yet, into a model that does not exist
+        /// yet.
+        /// </summary>
+        /// <remarks>
+        /// Two preconditions have to hold at once, and nothing else in this suite arranges either.
+        ///
+        /// <b>The resources are new.</b> <c>UpdateResources</c> has three branches -- a delta for
+        /// synchronized resources, an insert for new ones, and a wholesale replace for the rest --
+        /// and until this test only the delta branch had ever run, on any backend. The other
+        /// <c>UpdateResources</c> test passes resources that were committed and then reloaded, so it
+        /// takes the delta path by construction.
+        ///
+        /// <b>The model is empty.</b> Every other write test inherits a graph that an earlier
+        /// operation created, which is why <c>Clear()</c> is called explicitly rather than relied on:
+        /// on Jena a modify operation scoped to a graph that does not exist matches nothing, applies
+        /// nothing, and returns success. The bulk path wrote zero triples on Fuseki at any batch
+        /// size, and the suite could not see it because it never started from nothing.
+        /// </remarks>
+        [Test]
+        public void BulkUpdateWritesNewResourcesIntoAnEmptyModel()
+        {
+            Model1.Clear();
+
+            Assert.IsTrue(Model1.IsEmpty, "precondition: the graph must not exist yet");
+
+            var firstUri = BaseUri.GetUriRef("bulk-new-1");
+            var secondUri = BaseUri.GetUriRef("bulk-new-2");
+
+            var first = Model1.CreateResource<Person>(firstUri);
+            first.FirstName = "First";
+
+            var second = Model1.CreateResource<Person>(secondUri);
+            second.FirstName = "Second";
+
+            Model1.UpdateResources(new Resource[] { first, second });
+
+            Assert.IsFalse(Model1.IsEmpty, "a bulk write of new resources must reach the store");
+
+            Assert.AreEqual("First", Model1.GetResource<Person>(firstUri).FirstName);
+            Assert.AreEqual("Second", Model1.GetResource<Person>(secondUri).FirstName);
+        }
+
+        /// <summary>
+        /// A bulk write mixing new resources with modified existing ones must land both.
+        /// </summary>
+        /// <remarks>
+        /// The three branches are emitted as separate updates, so a batch spanning them is the case
+        /// where their ordering matters: the insert runs first because it is what creates the graph
+        /// the other two are scoped to.
+        ///
+        /// A regression guard rather than a reproduction: this one passes without the fix, because
+        /// the <c>Commit()</c> that seeds the existing resource creates the graph, and that is
+        /// exactly why the suite was blind to the defect for as long as it was.
+        /// </remarks>
+        [Test]
+        public void BulkUpdateWritesNewAndModifiedResourcesTogether()
+        {
+            Model1.Clear();
+
+            var existingUri = BaseUri.GetUriRef("bulk-mixed-existing");
+            var newUri = BaseUri.GetUriRef("bulk-mixed-new");
+
+            var seeded = Model1.CreateResource<Person>(existingUri);
+            seeded.FirstName = "Before";
+            seeded.Commit();
+
+            var modified = Model1.GetResource<Person>(existingUri);
+            modified.FirstName = "After";
+
+            var added = Model1.CreateResource<Person>(newUri);
+            added.FirstName = "Added";
+
+            Model1.UpdateResources(new Resource[] { modified, added });
+
+            Assert.AreEqual("After", Model1.GetResource<Person>(existingUri).FirstName);
+            Assert.AreEqual("Added", Model1.GetResource<Person>(newUri).FirstName);
+        }
+
+        /// <summary>
         /// The bulk API has the same obligation as a single commit: write the caller's changes without
         /// disturbing anything else on the resources involved.
         /// </summary>

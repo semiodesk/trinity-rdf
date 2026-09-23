@@ -397,7 +397,15 @@ namespace Semiodesk.Trinity
             StringBuilder deltaDelete = new StringBuilder();
             StringBuilder deltaInsert = new StringBuilder();
 
-            // Resources without a baseline still have to be replaced wholesale.
+            // New resources have nothing to replace, so they are inserted outright. INSERT DATA
+            // rather than the WITH ... WHERE form the other two branches use, for the same reason
+            // UpdateResource (singular) already makes this distinction: on Jena, a modify operation
+            // scoped to a graph that does not yet exist matches nothing and applies nothing, and
+            // answers 204 while doing so. INSERT DATA creates the graph. It is also the cheaper
+            // form everywhere -- there is no WHERE clause to evaluate.
+            StringBuilder insertData = new StringBuilder();
+
+            // Resources with no baseline that are *not* new still have to be replaced wholesale.
             StringBuilder INSERT = new StringBuilder();
             StringBuilder DELETE = new StringBuilder();
             StringBuilder OPTIONAL = new StringBuilder();
@@ -419,6 +427,10 @@ namespace Semiodesk.Trinity
                         deltaInsert.Append(SerializeTripleBlock(subject, inserted));
                     }
                 }
+                else if (res.IsNew)
+                {
+                    insertData.Append($" {SparqlSerializer.SerializeResource(res, ignoreUnmappedProperties)} ");
+                }
                 else
                 {
                     DELETE.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p{count} ?o{count}. ");
@@ -426,6 +438,14 @@ namespace Semiodesk.Trinity
                     INSERT.Append($" {SparqlSerializer.SerializeResource(res, ignoreUnmappedProperties)} ");
                     count++;
                 }
+            }
+
+            // First, deliberately: the other two forms are scoped with WITH and need the graph to
+            // exist, and this is the operation that creates it.
+            if (insertData.Length > 0)
+            {
+                ExecuteNonQuery(
+                    new SparqlUpdate($"INSERT DATA {{ GRAPH {WITH} {{ {insertData} }} }}"), transaction);
             }
 
             if (deltaDelete.Length > 0 || deltaInsert.Length > 0)
