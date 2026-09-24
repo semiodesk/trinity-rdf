@@ -199,10 +199,13 @@ namespace Semiodesk.Trinity.Store.GraphDB
             {
                 // The resource was never synchronized, so there is no baseline to diff against and the
                 // whole resource has to be replaced.
+                // Two operations, as StoreBase does: a modify instantiates its ground INSERT
+                // template once per solution, and a blank node in that template is minted fresh
+                // each time, so a blank-node-valued link is duplicated once per triple the subject
+                // already had. Measured on this backend, not inferred.
                 updateString = string.Format(@"
-                    DELETE {{ GRAPH <{0}> {{ {1} ?p ?o. }} }}
-                    INSERT {{ GRAPH <{0}> {{ {2} }} }}
-                    WHERE {{ OPTIONAL {{ GRAPH <{0}> {{ {1} ?p ?o. }} }} }} ",
+                    DELETE WHERE {{ GRAPH <{0}> {{ {1} ?p ?o. }} }} ;
+                    INSERT DATA {{ GRAPH <{0}> {{ {2} }} }} ",
                     modelUri.OriginalString,
                     SparqlSerializer.SerializeUri(resource.Uri),
                     SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));

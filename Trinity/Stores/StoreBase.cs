@@ -298,7 +298,7 @@ namespace Semiodesk.Trinity
                 // node in that template is minted fresh each time, so a blank-node-valued link is
                 // duplicated once per existing triple on the subject.
                 updateString = string.Format(@"
-                    DELETE {{ GRAPH <{0}> {{ {1} ?p ?o. }} }} WHERE {{ GRAPH <{0}> {{ {1} ?p ?o. }} }} ;
+                    DELETE WHERE {{ GRAPH <{0}> {{ {1} ?p ?o. }} }} ;
                     INSERT DATA {{ GRAPH <{0}> {{ {2} }} }} ",
                 modelUri.OriginalString,
                 SparqlSerializer.SerializeUri(resource.Uri),
@@ -540,9 +540,18 @@ namespace Semiodesk.Trinity
                 // ground, so a subject with six existing triples inserted it six times over. RDF is
                 // a set, so repeated IRIs collapse -- but a blank node in the template is minted
                 // fresh each time, so a blank-node-valued link became six links to six distinct
-                // nodes. Measured, not reasoned: six existing triples gave six values and six child
-                // nodes where one was intended. That also made cost the product of the subjects'
-                // triple counts; hoisting makes it linear (n=1000: 1870 ms -> 66 ms).
+                // nodes.
+                //
+                // Measured on all four backends rather than inferred from one, because this is a
+                // corner of the spec implementations could reasonably read differently: the
+                // in-memory store, Fuseki 5.1.0, GraphDB 10.8.0 and Virtuoso 7.2.14 each returned
+                // six links and six child nodes for six existing triples. The cost half stands on
+                // its own regardless -- per-solution instantiation makes it the product of the
+                // subjects' triple counts, and hoisting makes it linear (n=1000: 1870 ms -> 66 ms).
+                //
+                // Blank-node identity is now per operation, so two resources in different chunks
+                // that reference the same blank child get two nodes. That is strictly better than
+                // per solution, and narrower than the batch sizes callers use.
                 //
                 // The OPTIONAL goes with it. It existed so the ground INSERT still applied when the
                 // subject had no triples; INSERT DATA is unconditional, so the DELETE now matches

@@ -758,12 +758,16 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             {
                 // The resource was never synchronized, so there is no baseline to diff against and the
                 // whole resource has to be replaced.
+                // The insert is hoisted into its own operation for the reason given in
+                // StoreBase: a modify instantiates its ground INSERT template once per solution and
+                // mints a fresh blank node each time. Virtuoso's clause ordering is left alone --
+                // the defect is in carrying both templates, not in where WITH sits.
                 updateString = string.Format(@"
                     SPARQL
                     WITH <{0}>
                     DELETE {{ {1} ?p ?o. }}
-                    WHERE {{ OPTIONAL {{ {1} ?p ?o. }} }}
-                    INSERT {{ {2} }} ",
+                    WHERE {{ {1} ?p ?o. }} ;
+                    INSERT DATA {{ GRAPH <{0}> {{ {2} }} }} ",
                     modelUri.OriginalString,
                     SparqlSerializer.SerializeUri(resource.Uri),
                     SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));

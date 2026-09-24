@@ -379,8 +379,13 @@ namespace Semiodesk.Trinity.Tests.Store
         /// its INSERT template <b>once per solution</b>. The template is ground, so repeated IRIs
         /// collapse into the same triples and nothing looked wrong -- but a blank node in a template
         /// is minted fresh per instantiation, so a blank-node-valued link became one link per
-        /// existing triple on the subject, each to a different node. Six existing triples gave six
-        /// links and six children where one was intended.
+        /// existing triple on the subject, each to a different node.
+        ///
+        /// This fixture runs on every backend, and the behaviour was measured on every backend
+        /// before it was described: the in-memory store, Fuseki 5.1.0, GraphDB 10.8.0 and Virtuoso
+        /// 7.2.14 each gave six links and six children for six existing triples. Worth stating,
+        /// because it is a corner of the spec implementations could reasonably read differently and
+        /// one backend's answer would not have settled it (ADR-0043).
         ///
         /// This is why the fix hoists the insert into its own <c>INSERT DATA</c> operation rather
         /// than only rearranging the WHERE. A shape that merely stops the cross-product still

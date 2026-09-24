@@ -82,14 +82,14 @@ namespace Semiodesk.Trinity.Tests.Store
         /// <summary>
         /// The update emitted when several unsynchronized resources are written at once.
         /// </summary>
-        private List<string> WholesaleUpdates(int resources)
+        private List<string> WholesaleUpdates(int resources, string prefix = "p")
         {
             var batch = new List<Resource>();
 
             for (var i = 0; i < resources; i++)
             {
                 // Constructed rather than loaded: no baseline, so the wholesale branch is taken.
-                var person = new Person(new UriRef($"http://example.org/write-shape/p{i}"));
+                var person = new Person(new UriRef($"http://example.org/write-shape/{prefix}{i}"));
 
                 person.SetModel(_model);
                 person.FirstName = $"P{i}";
@@ -117,9 +117,12 @@ namespace Semiodesk.Trinity.Tests.Store
             // -- and what matters is that the count is fixed rather than one pair per resource.
             var patternsForThree = Regex.Matches(three, @"\?s \?p \?o").Count;
 
-            SetUp();
+            // A second batch in the same fixture, rather than re-entering SetUp, which would replace
+            // the store without disposing the first.
+            _updates.Clear();
+            _model.Clear();
 
-            var six = WholesaleUpdates(6).Single();
+            var six = WholesaleUpdates(6, "q").Single();
 
             Assert.AreEqual(patternsForThree, Regex.Matches(six, @"\?s \?p \?o").Count,
                 "the pattern count must not scale with the batch: a pattern per resource left-joins "
@@ -143,9 +146,14 @@ namespace Semiodesk.Trinity.Tests.Store
             Assert.IsTrue(update.IndexOf(';') > update.IndexOf("DELETE"),
                 "two operations in one request: the delete, then the insert");
 
-            Assert.IsFalse(Regex.IsMatch(update, @"DELETE\s*\{[^}]*\}\s*INSERT\s*\{"),
-                "an INSERT template inside the modify is instantiated once per solution, which mints "
-                + "a fresh blank node each time");
+            // Counted rather than pattern-matched around the braces. A regex bounded by [^}] cannot
+            // cross the inner brace of the GRAPH block, so it silently passes against exactly the
+            // folded-back form it is meant to catch; this cannot.
+            Assert.AreEqual(
+                Regex.Matches(update, "INSERT DATA").Count,
+                Regex.Matches(update, "INSERT").Count,
+                "every INSERT must be an INSERT DATA: a template inside the modify is instantiated "
+                + "once per solution, which mints a fresh blank node each time");
         }
 
         [Test]
