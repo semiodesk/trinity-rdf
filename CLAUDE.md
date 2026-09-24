@@ -55,8 +55,8 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 819 passed, 3 skipped (quarantined), 0 failed
-dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 26 passed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 860 passed, 3 skipped (quarantined), 0 failed
+dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 31 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
@@ -92,8 +92,18 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   type so Trinity converts into it (ADR-0040), whereas the unmapped bag declares nothing. If `ListValues`
   is ever given a CLR-type-fidelity guarantee, they must come back.
 - **CI:** `.github/workflows/ci.yml` (ubuntu, .NET 10) — a fast `build` job (restore → build → test →
-  pack) plus a `stores` matrix job running the three Dockerized store suites (ADR-0044). NuGet
-  publishing is **manual** (no publish job).
+  coverage → pack) plus a `stores` matrix job running the three Dockerized store suites (ADR-0044).
+  NuGet publishing is **manual** (no publish job).
+- **Coverage** is collected by the collector bundled with `Microsoft.NET.Test.Sdk` (no package or tool
+  to add), merged by `.github/scripts/coverage.py`, printed to the job summary as a per-assembly table,
+  and **gated at a 78% floor**. Two things about that number are easy to get wrong. The three suites
+  overlap — core is exercised by all of them — so reports are merged by taking the highest hit count
+  per `(file, line)`; summing totals would count shared lines repeatedly. And **test assemblies are
+  excluded**: they are ~96% covered by construction, and counting them reported 88.9% where the
+  product was at 80.9%. The floor sits deliberately *below* the current figure rather than at it — a
+  ratchet pinned to the exact value turns any honest refactor that deletes well-covered code red.
+  Run it locally with `dotnet test … --collect "Code Coverage;Format=Cobertura" --results-directory ./coverage`
+  then `python3 .github/scripts/coverage.py ./coverage 78`.
 - Central Package Management: versions live in `Directory.Packages.props`; shared metadata +
   the single `Version` (2.0.0) in `Directory.Build.props`. Projects use versionless `PackageReference`.
 
