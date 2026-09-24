@@ -95,6 +95,11 @@ namespace Semiodesk.Trinity.Generator
                     context.ReportDiagnostic(result.LanguageInvariantIsObsolete.ToDiagnostic());
                 }
 
+                if (result.ContainerMustBeGetOnly is not null)
+                {
+                    context.ReportDiagnostic(result.ContainerMustBeGetOnly.ToDiagnostic());
+                }
+
                 if (result.MappedTypeIsRawUri is not null)
                 {
                     context.ReportDiagnostic(result.MappedTypeIsRawUri.ToDiagnostic());
@@ -200,8 +205,19 @@ namespace Semiodesk.Trinity.Generator
                 source.Append("        ").Append(p.Modifiers).Append(' ').Append(p.PropertyType)
                     .Append(' ').AppendLine(p.PropertyName);
                 source.AppendLine("        {");
-                source.Append("            get { return GetValue(").Append(field).AppendLine("); }");
-                source.Append("            set { SetValue(").Append(field).AppendLine(", value); }");
+
+                if (p.GetAccessor is not null)
+                {
+                    source.Append("            ").Append(p.GetAccessor)
+                        .Append(" { return GetValue(").Append(field).AppendLine("); }");
+                }
+
+                if (p.SetAccessor is not null)
+                {
+                    source.Append("            ").Append(p.SetAccessor)
+                        .Append(" { SetValue(").Append(field).AppendLine(", value); }");
+                }
+
                 source.AppendLine("        }");
             }
 
@@ -278,6 +294,19 @@ namespace Semiodesk.Trinity.Generator
         /// wrong for RDF identity and <c>UriRef</c>, which derives from it, is the fix. A check phrased
         /// as "assignable to Uri" would flag the fix as well as the defect.
         /// </remarks>
+        /// <summary>
+        /// True when the mapped type is a localized-text container.
+        /// </summary>
+        /// <remarks>
+        /// Asked of the interface rather than the two concrete names, so a container written outside
+        /// Trinity is treated the same way.
+        /// </remarks>
+        private static bool IsLocalizedContainer(ITypeSymbol type)
+        {
+            return type.AllInterfaces.Any(i =>
+                i.ToDisplayString() == "Semiodesk.Trinity.ILocalizedText");
+        }
+
         private static bool IsRawUri(ITypeSymbol type)
         {
             ITypeSymbol candidate = GetCollectionContainer(type) is null
@@ -378,7 +407,8 @@ namespace Semiodesk.Trinity.Generator
             DiagnosticInfo? Diagnostic,
             DiagnosticInfo? ContainingClassNotPartial,
             DiagnosticInfo? MappedTypeIsRawUri = null,
-            DiagnosticInfo? LanguageInvariantIsObsolete = null);
+            DiagnosticInfo? LanguageInvariantIsObsolete = null,
+            DiagnosticInfo? ContainerMustBeGetOnly = null);
 
         /// <summary>The outcome of inspecting one <c>[RdfClass]</c> declaration.</summary>
         /// <remarks>
@@ -474,7 +504,9 @@ namespace Semiodesk.Trinity.Generator
             string PropertyType,
             string Uri,
             string? CollectionConcreteType,
-            string Modifiers)
+            string Modifiers,
+            string? GetAccessor,
+            string? SetAccessor)
         {
             public static PropertyResult From(GeneratorAttributeSyntaxContext ctx)
             {
@@ -491,6 +523,41 @@ namespace Semiodesk.Trinity.Generator
                 string modifiers = ctx.TargetNode is PropertyDeclarationSyntax declaration
                     ? string.Join(" ", declaration.Modifiers.Select(m => m.Text))
                     : "public partial";
+
+                // Captured the same way and for the same reason as the modifiers: the generated half has
+                // to declare exactly the accessors the declaring half did, or it is CS9253 ("does not
+                // implement any accessor declared on the definition part"). Emitting get+set
+                // unconditionally made a get-only mapped property impossible to declare - which is the
+                // shape a localized container wants, since it is mutated in place rather than assigned.
+                // Each accessor keeps its own modifiers too, so `private set` and `init` round-trip.
+                string? getAccessor = null;
+                string? setAccessor = null;
+
+                if (ctx.TargetNode is PropertyDeclarationSyntax accessorSource &&
+                    accessorSource.AccessorList is not null)
+                {
+                    foreach (AccessorDeclarationSyntax accessor in accessorSource.AccessorList.Accessors)
+                    {
+                        string text = string.Join(
+                            " ",
+                            accessor.Modifiers.Select(m => m.Text).Concat(new[] { accessor.Keyword.Text }));
+
+                        if (accessor.IsKind(SyntaxKind.GetAccessorDeclaration))
+                        {
+                            getAccessor = text;
+                        }
+                        else if (accessor.IsKind(SyntaxKind.SetAccessorDeclaration) ||
+                                 accessor.IsKind(SyntaxKind.InitAccessorDeclaration))
+                        {
+                            setAccessor = text;
+                        }
+                    }
+                }
+                else
+                {
+                    getAccessor = "get";
+                    setAccessor = "set";
+                }
 
                 // Reported even when the class carries no [RdfClass] of its own, so a class with only
                 // mapped properties is still told it must be partial. Deduplicated in Emit against the
@@ -548,6 +615,10 @@ namespace Semiodesk.Trinity.Generator
                     ? new DiagnosticInfo(MappingDiagnostics.MappedTypeMustNotBeRawUri, location, prop.Name)
                     : null;
 
+                DiagnosticInfo? containerMustBeGetOnly = IsLocalizedContainer(prop.Type) && setAccessor is not null
+                    ? new DiagnosticInfo(MappingDiagnostics.ContainerMustBeGetOnly, location, prop.Name)
+                    : null;
+
                 return new PropertyResult(new PropertyInfo(
                     type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                     GetNamespace(type),
@@ -556,7 +627,10 @@ namespace Semiodesk.Trinity.Generator
                     prop.Type.ToDisplayString(TypeFormat),
                     uri,
                     GetCollectionConcreteType(prop.Type),
-                    modifiers), null, containingClassNotPartial, mappedTypeIsRawUri, languageInvariantIsObsolete);
+                    modifiers,
+                    getAccessor,
+                    setAccessor), null, containingClassNotPartial, mappedTypeIsRawUri,
+                    languageInvariantIsObsolete, containerMustBeGetOnly);
             }
         }
 

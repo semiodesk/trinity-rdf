@@ -122,6 +122,16 @@ namespace Semiodesk.Trinity.Generator
             isEnabledByDefault: true,
             description: "Resources are constructed by Activator.CreateInstance(type, uri) while marshalling query results. Without such a constructor the failure appears at runtime, not at build time.");
 
+        /// <summary>TRIN009: a localized-text container declared with a setter.</summary>
+        public static readonly DiagnosticDescriptor ContainerMustBeGetOnly = new DiagnosticDescriptor(
+            id: "TRIN009",
+            title: "Localized container property should be get-only",
+            messageFormat: "Property '{0}' is a localized-text container and declares a setter; declare it get-only, because the container is mutated in place",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            description: "A LocalizedString or LocalizedStringCollection is a mutable view owned by the mapping, not a value to assign. A setter admits two hazards the get-only form removes at compile time: assigning null, after which every use is a NullReferenceException, and assigning another resource's container, which aliases one instance across both so a write through either is visible through the other. Write label[\"de\"] = \"Hallo\" instead of label = something (ADR-0047).");
+
         /// <summary>TRIN008: <c>[RdfProperty(uri, languageInvariant)]</c>, which no longer does anything.</summary>
         public static readonly DiagnosticDescriptor LanguageInvariantIsObsolete = new DiagnosticDescriptor(
             id: "TRIN008",

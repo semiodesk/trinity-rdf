@@ -55,8 +55,8 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 864 passed, 3 skipped (quarantined), 0 failed
-dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 34 passed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 865 passed, 3 skipped (quarantined), 0 failed
+dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 38 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
@@ -139,12 +139,14 @@ someone migrating a large model wants the whole list from one build:
 | `TRIN004` | a mapped class does not derive from `Resource` |
 | `TRIN005` | a mapped class has no accessible `(Uri)` constructor, so `Activator.CreateInstance(type, uri)` cannot materialize it when reading |
 | `TRIN006` | a URI belongs to a **generated** vocabulary but is not one of its terms — a typo. Only vocabularies marked `[GeneratedCode("trinity-vocab", …)]` are trusted, since only those list every term; an unknown namespace is never reported |
+| `TRIN009` | a localized-text container property declares a setter. The container is a mutable view owned by the mapping; assigning one either nulls it or aliases another resource's instance |
 | `TRIN008` | `[RdfProperty]` passes the obsolete `languageInvariant` flag. It no longer has any effect — the declared type decides (ADR-0047) — and a flag that silently does nothing is indistinguishable from one that works, so it is reported rather than ignored |
 | `TRIN007` | a mapped property is typed `System.Uri` (or is a collection of them) instead of `UriRef` — `Uri` equality ignores the fragment. **The one diagnostic that does not mean "nothing was generated"**: the mapping is emitted, the declared type is wrong. Matched on exact type identity, so `UriRef` — which derives from `Uri` — is not flagged. `PropertyMapping<T>` **throws** for `System.Uri` at runtime (Release too), which is what catches hand-written mappings the generator never sees |
 
 The generator handles scalars, collections (seeded with a default instance), localized-text
 containers (seeded likewise, by `PropertyMapping<T>`), resource references, multiple `[RdfClass]`, and inheritance (including `GetTypes`-only
-subclasses). The implementing half copies the declaring declaration's **modifiers verbatim**, so
+subclasses). The implementing half copies the declaring declaration's **modifiers and accessors verbatim** — it
+declares exactly the accessors the declaration did, each with its own modifiers, or it is CS9253 — so
 accessibility and `new`/`virtual`/`override`/`sealed` match — C# requires both halves to agree, and
 hiding a `Resource` member (`Model`, say — a car has one) needs `new` on both or it is an unfixable CS8800. Only `partial` members are processed. The runtime engine (`Resource`,
 `PropertyMapping<T>`, reflective `InitializePropertyMappings`) is unchanged from 1.x.
@@ -365,11 +367,12 @@ Invariants that surprise newcomers:
   exactly as a mapped `string` already does to a multi-valued predicate; `LocalizedStringCollection` is
   the escape hatch. `[RdfProperty(uri, languageInvariant)]` still compiles for one release and raises
   **TRIN008**; `RdfPropertyAttribute`'s two-argument constructor is `[Obsolete]` and goes in 2.1.
-  **Not yet done (0047 step 5):** the generator emits `get`+`set` unconditionally, so a container must be
-  declared `{ get; set; }` — the intended get-only form is CS9253. Containers therefore work through
-  hand-written mappings and through `{ get; set; }`, not yet through the recommended authoring shape.
-  LINQ still cannot express a language, and is inconsistent about it — `==` never matches a tagged value
-  while `Contains` does.
+  Containers are declared **get-only** — they are mutated in place, not assigned, and a setter both
+  admits `null` and aliases one container across two resources, so **TRIN009** warns. The generator emits
+  exactly the accessors the declaring half declares (each with its own modifiers, so `private set` and
+  `init` round-trip); emitting `get`+`set` unconditionally used to make the get-only form CS9253.
+  **Still open (0047 step 6):** LINQ cannot express a language, and is inconsistent about it — `==`
+  never matches a tagged value while `Contains` does.
 
 ## Other architecture notes
 

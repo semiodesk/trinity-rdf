@@ -13,3 +13,4 @@ TRIN005 | Trinity.Mapping | Warning | Mapped class has no accessible constructor
 TRIN006 | Trinity.Mapping | Warning | URI belongs to a generated vocabulary but is not one of its terms
 TRIN007 | Trinity.Mapping | Warning | Mapped property uses System.Uri, whose equality ignores the fragment; use UriRef
 TRIN008 | Trinity.Mapping | Warning | [RdfProperty] passes the obsolete languageInvariant flag, which no longer has an effect
+TRIN009 | Trinity.Mapping | Warning | Localized-text container property declares a setter; it is mutated in place and should be get-only

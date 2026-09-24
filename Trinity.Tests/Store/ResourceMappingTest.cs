@@ -1277,6 +1277,39 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         /// <summary>
+        /// The same contract through the generator instead of a hand-written mapping, declared get-only
+        /// as ADR-0047 recommends.
+        /// </summary>
+        /// <remarks>
+        /// Both authoring routes have to stay first-class (ADR-0018), and this is the one that was
+        /// briefly impossible: emitting get+set unconditionally made a get-only mapped property CS9253.
+        /// </remarks>
+        [Test]
+        public virtual void GeneratedContainersRoundTripEveryLanguage()
+        {
+            var r1 = Model1.CreateResource<LocalizedDocument>(_r1);
+
+            r1.Title["de"] = "Bericht";
+            r1.Title["en"] = "Report";
+            r1.Keywords.Add("de", "Jahresbericht");
+            r1.Keywords.Add("de", "Geschäftsbericht");
+            r1.Code = "DOC-1";
+            r1.Commit();
+
+            var actual = Model1.GetResource<LocalizedDocument>(_r1);
+
+            Assert.AreEqual("Bericht", actual.Title["de"]);
+            Assert.AreEqual("Report", actual.Title["en"]);
+            CollectionAssert.AreEqual(new[] { "de", "en" }, actual.Title.Languages);
+            CollectionAssert.AreEquivalent(
+                new[] { "Jahresbericht", "Geschäftsbericht" }, actual.Keywords["de"]);
+
+            // A string property beside the containers still sees untagged literals only.
+            Assert.AreEqual("DOC-1", actual.Code);
+            CollectionAssert.IsEmpty(actual.ListLanguages(new Property(new Uri("semio:test:documentCode"))));
+        }
+
+        /// <summary>
         /// A mapped <c>string</c> sees untagged literals only.
         /// </summary>
         /// <remarks>

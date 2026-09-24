@@ -289,6 +289,107 @@ namespace Semiodesk.Trinity.Generator.Tests
         }
 
         /// <summary>
+        /// The generated half declares exactly the accessors the declaring half did.
+        /// </summary>
+        /// <remarks>
+        /// Emitting get+set unconditionally made a get-only mapped property impossible to declare -
+        /// CS9253, "does not implement any accessor declared on the definition part" - which is the
+        /// shape a localized container wants, since it is mutated in place rather than assigned.
+        /// </remarks>
+        [Test]
+        public void EmitsOnlyTheAccessorsTheDeclarationDeclares()
+        {
+            var generated = Generated(@"
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/label"")]
+                    public partial LocalizedString Label { get; }
+                }");
+
+            StringAssert.Contains("get { return GetValue(LabelPropertyMapping); }", generated);
+            StringAssert.DoesNotContain("set { SetValue(LabelPropertyMapping", generated);
+        }
+
+        /// <summary>
+        /// An accessor's own modifiers round-trip too, or a mapped property could not have a
+        /// narrower setter than its getter.
+        /// </summary>
+        [Test]
+        public void EmitsAccessorModifiersVerbatim()
+        {
+            var generated = Generated(@"
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/name"")]
+                    public partial string Name { get; private set; }
+                }");
+
+            StringAssert.Contains("private set { SetValue(NamePropertyMapping, value); }", generated);
+        }
+
+        /// <summary>
+        /// A container declared with a setter is reported: it is a mutable view owned by the mapping,
+        /// and assigning one either nulls it or aliases another resource's instance.
+        /// </summary>
+        [Test]
+        public void ReportsALocalizedContainerWithASetter()
+        {
+            var diagnostics = Run(@"
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/label"")]
+                    public partial LocalizedString Label { get; set; }
+                }");
+
+            Assert.AreEqual("TRIN009", SingleId(diagnostics));
+            Assert.That(Message(diagnostics), Does.Contain("Label").And.Contain("get-only"));
+        }
+
+        /// <summary>
+        /// TRIN009 is about containers, not about get-only. An ordinary mapped property keeps its
+        /// setter without complaint.
+        /// </summary>
+        [Test]
+        public void DoesNotReportAnOrdinaryPropertyWithASetter()
+        {
+            var diagnostics = Run(@"
+                using System.Collections.Generic;
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/name"")]
+                    public partial string Name { get; set; }
+
+                    [RdfProperty(""http://example.org/tags"")]
+                    public partial List<string> Tags { get; set; }
+
+                    [RdfProperty(""http://example.org/alias"")]
+                    public partial LocalizedStringCollection Aliases { get; }
+                }");
+
+            CollectionAssert.IsEmpty(diagnostics.Select(d => d.Id));
+        }
+
+        /// <summary>
         /// The obsolete languageInvariant flag is reported rather than silently ignored.
         /// </summary>
         /// <remarks>
