@@ -395,7 +395,9 @@ namespace Semiodesk.Trinity
             // land on a second set of objects and the caller's would stay dirty.
             var batch = resources as IList<Resource> ?? resources.ToList();
 
-            string graph = SparqlSerializer.SerializeUri(modelUri);
+            // SerializeIriRef, not SerializeUri: this lands after GRAPH, where the grammar demands an
+            // IRIREF, and SerializeUri emits a blank node label bare (ADR-0046).
+            string graph = SparqlSerializer.SerializeIriRef(modelUri);
 
             // Resources that have been synchronized are written as a delta, exactly as in
             // UpdateResource — a bulk write must not erase other writers' values either.
@@ -403,11 +405,8 @@ namespace Semiodesk.Trinity
             StringBuilder deltaInsert = new StringBuilder();
 
             // Resources without a baseline still have to be replaced wholesale.
-            StringBuilder INSERT = new StringBuilder();
-            StringBuilder DELETE = new StringBuilder();
-            StringBuilder OPTIONAL = new StringBuilder();
+            var wholesale = new List<Resource>();
 
-            int count = 0;
             foreach (var res in batch)
             {
                 if (SparqlSerializer.TrySerializeResourceDelta(res, ignoreUnmappedProperties, out var deleted, out var inserted))
@@ -426,10 +425,7 @@ namespace Semiodesk.Trinity
                 }
                 else
                 {
-                    DELETE.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p{count} ?o{count}. ");
-                    OPTIONAL.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p{count} ?o{count}. ");
-                    INSERT.Append($" {SparqlSerializer.SerializeResource(res, ignoreUnmappedProperties)} ");
-                    count++;
+                    wholesale.Add(res);
                 }
             }
 
@@ -462,20 +458,81 @@ namespace Semiodesk.Trinity
                 ExecuteNonQuery(new SparqlUpdate(delta.ToString()), transaction);
             }
 
-            if (count > 0)
-            {
-                string updateString =
-                    $"DELETE {{ GRAPH {graph} {{ {DELETE} }} }} "
-                    + $"INSERT {{ GRAPH {graph} {{ {INSERT} }} }} "
-                    + $"WHERE {{ OPTIONAL {{ GRAPH {graph} {{ {OPTIONAL} }} }} }}";
-
-                ExecuteNonQuery(new SparqlUpdate(updateString), transaction);
-            }
+            WriteWholesale(wholesale, graph, transaction, ignoreUnmappedProperties);
 
             foreach (var resource in batch)
             {
                 resource.IsNew = false;
                 resource.IsSynchronized = true;
+            }
+        }
+
+        /// <summary>
+        /// Replaces every resource in <paramref name="wholesale"/> outright: all of its existing
+        /// triples are deleted and the serialized resource inserted.
+        /// </summary>
+        /// <remarks>
+        /// One variable triple pattern with the subjects bound by <c>VALUES</c>, rather than one
+        /// pattern per resource. The per-resource form put every subject in a single <c>OPTIONAL</c>
+        /// block, and that block is a <b>conjunction</b>, which broke twice over:
+        ///
+        /// <list type="bullet">
+        /// <item>One subject with no triples yielded zero solutions for the whole group, so every
+        /// <c>DELETE</c> template triple was skipped for holding an unbound variable while the ground
+        /// <c>INSERT</c> still applied — turning every other replace in the batch into a merge. That
+        /// is the silent corruption of ADR-0042, reachable by adding one new resource to a batch.</item>
+        /// <item>Cost was the product of the subjects' triple counts rather than their sum: measured
+        /// on the in-memory store at six triples each, three resources took 10 ms and six took
+        /// 1374 ms, roughly four times per resource added.</item>
+        /// </list>
+        ///
+        /// Splitting into one <c>OPTIONAL</c> per resource fixes only the first: adjacent optionals
+        /// still left-join into a cross product. Binding the subject instead fixes both — 20 resources
+        /// measure 6 ms — and it is the convention ADR-0046 already sets for bulk subject constraints.
+        /// </remarks>
+        /// <param name="wholesale">Resources to replace. May be empty.</param>
+        /// <param name="graph">The target graph, already serialized as an <c>IRIREF</c>.</param>
+        /// <param name="transaction">Transaction associated with this action.</param>
+        /// <param name="ignoreUnmappedProperties">Set this to true to update only mapped properties.</param>
+        private void WriteWholesale(IList<Resource> wholesale, string graph, ITransaction transaction, bool ignoreUnmappedProperties)
+        {
+            if (wholesale.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var res in wholesale)
+            {
+                // Checked before anything is built, and deliberately rather than left to
+                // GenerateSubjectBindings, which *skips* a subject it cannot bind. Skipping here
+                // would leave the resource's existing triples in place while the ground INSERT added
+                // the new ones — a silent partial write, where a blank id currently fails closed on
+                // the DELETE template (ADR-0039). Losing that would be a worse trade than the throw.
+                QuerySubject.Require(res.Uri, nameof(wholesale));
+            }
+
+            for (var offset = 0; offset < wholesale.Count; offset += SparqlSerializer.SubjectBindingBatchSize)
+            {
+                var chunk = wholesale.Skip(offset).Take(SparqlSerializer.SubjectBindingBatchSize).ToList();
+
+                // One block per chunk by construction, since the chunk is the batch size.
+                var values = SparqlSerializer
+                    .GenerateSubjectBindings("?s", chunk.Select(r => r.Uri))
+                    .Single();
+
+                var insert = new StringBuilder();
+
+                foreach (var res in chunk)
+                {
+                    insert.Append($" {SparqlSerializer.SerializeResource(res, ignoreUnmappedProperties)} ");
+                }
+
+                var updateString =
+                    $"DELETE {{ GRAPH {graph} {{ ?s ?p ?o. }} }} "
+                    + $"INSERT {{ GRAPH {graph} {{ {insert} }} }} "
+                    + $"WHERE {{ {values} OPTIONAL {{ GRAPH {graph} {{ ?s ?p ?o. }} }} }}";
+
+                ExecuteNonQuery(new SparqlUpdate(updateString), transaction);
             }
         }
 

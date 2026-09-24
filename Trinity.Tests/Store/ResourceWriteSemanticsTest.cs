@@ -25,6 +25,7 @@
 //
 // Copyright (c) Semiodesk GmbH 2023
 
+using System;
 using NUnit.Framework;
 using Semiodesk.Trinity.Tests.Linq;
 using System.Linq;
@@ -314,17 +315,72 @@ namespace Semiodesk.Trinity.Tests.Store
             // single-valued property and the mapped read surfaces exactly one of them -- so reading
             // it back through the mapping cannot see the corruption, which is the whole reason
             // ADR-0042 calls it silent. Counting the triples is the only probe that can.
-            var values = Store.ExecuteQuery(new SparqlQuery(
-                    $"SELECT ?o FROM <{Model1.Uri}> WHERE {{ <{replacedUri}> <{foaf.firstName.Uri}> ?o }}",
-                    declarePrefixes: false))
-                .GetBindings()
-                .Count();
-
-            Assert.AreEqual(1, values,
+            Assert.AreEqual(1, CountValues(replacedUri, foaf.firstName),
                 "a resource with no baseline must be replaced, not merged -- two values for a "
                 + "single-valued property is the silent corruption ADR-0042 warns about");
 
             Assert.AreEqual("Changed", Model1.GetResource<Person>(modifiedUri).FirstName);
+        }
+
+        /// <summary>
+        /// Several resources replaced in one batch, where one of them is not in the store yet.
+        /// </summary>
+        /// <remarks>
+        /// The guarantee under test is the same one
+        /// <see cref="BulkUpdateReplacesUnsynchronizedResourcesRatherThanMergingThem"/> states, but at
+        /// <c>n &gt; 1</c> -- and it used to hold only at <c>n = 1</c>. The wholesale branch put every
+        /// resource's pattern in a single <c>OPTIONAL</c> block, which is a conjunction: one subject
+        /// with no triples yields zero solutions for the whole group, every <c>DELETE</c> template
+        /// triple is skipped for having an unbound variable, and the ground <c>INSERT</c> applies to
+        /// all of them. So one absent resource turned every other replace in the batch into a merge.
+        ///
+        /// Counted in the store rather than read back through the mapping, for the reason given on
+        /// the single-resource test: a single-valued mapping surfaces one value and cannot see a
+        /// merge.
+        /// </remarks>
+        [Test]
+        public void BulkUpdateReplacesEveryResourceEvenWhenOneIsAbsent()
+        {
+            Model1.Clear();
+
+            var seededUri = BaseUri.GetUriRef("bulk-absent-seeded");
+            var absentUri = BaseUri.GetUriRef("bulk-absent-new");
+
+            var seeded = Model1.CreateResource<Person>(seededUri);
+            seeded.FirstName = "Before";
+            seeded.Commit();
+
+            // Both constructed, so neither carries a baseline: both take the wholesale branch. Only
+            // the first is in the store, and that asymmetry is the whole point.
+            var replaced = new Person(seededUri);
+            replaced.SetModel(Model1);
+            replaced.FirstName = "After";
+
+            var added = new Person(absentUri);
+            added.SetModel(Model1);
+            added.FirstName = "Added";
+
+            Model1.UpdateResources(new Resource[] { replaced, added });
+
+            Assert.AreEqual(1, CountValues(seededUri, foaf.firstName),
+                "a resource absent from the batch's graph must not stop the others being replaced");
+            Assert.AreEqual(1, CountValues(absentUri, foaf.firstName));
+
+            Assert.AreEqual("After", Model1.GetResource<Person>(seededUri).FirstName);
+            Assert.AreEqual("Added", Model1.GetResource<Person>(absentUri).FirstName);
+        }
+
+        /// <summary>
+        /// How many values the store holds for a property, asked of the store rather than of a mapped
+        /// resource -- a single-valued mapping surfaces one value and so cannot see a merge.
+        /// </summary>
+        private int CountValues(Uri subject, Property property)
+        {
+            return Store.ExecuteQuery(new SparqlQuery(
+                    $"SELECT ?o FROM <{Model1.Uri}> WHERE {{ <{subject}> <{property.Uri}> ?o }}",
+                    declarePrefixes: false))
+                .GetBindings()
+                .Count();
         }
 
         /// <summary>
