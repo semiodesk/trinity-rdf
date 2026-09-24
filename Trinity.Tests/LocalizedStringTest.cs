@@ -1,4 +1,4 @@
-// LICENSE:
+﻿// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@
 
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -349,6 +350,196 @@ namespace Semiodesk.Trinity.Tests
             Assert.AreEqual(2, many.Count);
             CollectionAssert.AreEqual(new[] { "Erdapfel", "Kartoffel" }, many["de"]);
         }
+
+        /// <summary>
+        /// Exercises the whole <see cref="ILocalizedText"/> surface on <b>both</b> implementations.
+        /// </summary>
+        /// <remarks>
+        /// Written because coverage showed the interface was proven on <see cref="LocalizedString"/> and
+        /// unproven on <see cref="LocalizedStringCollection"/> — and the mapping wires itself to the
+        /// interface, so the collection path would otherwise go in untested. A [TestCaseSource] over the
+        /// two keeps them from drifting apart: a member added to one and forgotten on the other fails here.
+        /// </remarks>
+        [TestCaseSource(nameof(BothContainers))]
+        public void TheSharedSurfaceBehavesIdenticallyOnBothContainers(Func<ILocalizedText> make)
+        {
+            var text = make();
+
+            Assert.IsTrue(text.IsEmpty);
+            Assert.AreEqual(0, text.Count);
+            CollectionAssert.IsEmpty(text.Languages);
+            Assert.IsFalse(text.Contains("de"));
+            Assert.IsNull(text.Best());
+            Assert.IsNull(text.Best("de"));
+
+            LangString match;
+            Assert.IsFalse(text.TryGetBest("de", out match));
+            Assert.IsNull(match);
+
+            Fill(text, "de", "Hallo");
+            Fill(text, "en", "Hello");
+
+            Assert.IsFalse(text.IsEmpty);
+            Assert.AreEqual(2, text.Count);
+            CollectionAssert.AreEqual(new[] { "de", "en" }, text.Languages);
+            Assert.IsTrue(text.Contains("DE"), "Lookup normalizes the tag.");
+
+            Assert.IsTrue(text.TryGetBest("de-AT", out match));
+            Assert.AreEqual(new LangString("Hallo", "de"), match);
+            Assert.AreEqual("Hallo", text.Best("de-AT", "en"));
+
+            CollectionAssert.AreEqual(
+                new[] { "\"Hallo\"@de", "\"Hello\"@en" },
+                text.Select(x => x.ToNTriples()).ToList(),
+                "Enumeration is the tagged literals, ordered by tag.");
+
+            // The non-generic enumerator is what a foreach over IEnumerable uses.
+            var loose = new List<object>();
+            foreach (var value in (System.Collections.IEnumerable)text)
+            {
+                loose.Add(value);
+            }
+            Assert.AreEqual(2, loose.Count);
+
+            Assert.IsTrue(text.Remove("de"));
+            Assert.IsFalse(text.Remove("de"), "Removing an absent language reports that it did nothing.");
+            Assert.AreEqual(1, text.Count);
+
+            text.Clear();
+
+            Assert.IsTrue(text.IsEmpty);
+            CollectionAssert.IsEmpty(text.Languages);
+        }
+
+        /// <summary>
+        /// <c>ToString()</c> yields text for the current UI culture on both containers, so interpolating a
+        /// mapped property never prints a type name.
+        /// </summary>
+        [TestCaseSource(nameof(BothContainers))]
+        public void ToStringYieldsTextForTheCurrentCulture(Func<ILocalizedText> make)
+        {
+            var culture = Thread.CurrentThread.CurrentUICulture;
+
+            try
+            {
+                var text = make();
+
+                Assert.AreEqual(string.Empty, $"{text}", "An empty property interpolates to nothing, not null.");
+
+                Fill(text, "de", "Hallo");
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo("de-DE");
+
+                Assert.AreEqual("Hallo", $"{text}");
+            }
+            finally
+            {
+                Thread.CurrentThread.CurrentUICulture = culture;
+            }
+        }
+
+        [TestCaseSource(nameof(BothContainers))]
+        public void RefusesALanguageThatNamesNothing(Func<ILocalizedText> make)
+        {
+            var text = make();
+
+            Assert.Throws<ArgumentNullException>(() => text.Contains(null));
+            Assert.Throws<ArgumentException>(() => text.Contains(""));
+            Assert.Throws<ArgumentException>(() => text.Contains("   "));
+
+            // A blank range is a question with no answer, not an error - Best is a lookup, not a lookup key.
+            Assert.IsNull(text.Best((string)null));
+            Assert.IsNull(text.Best(""));
+            Assert.IsNull(text.Best((string[])null));
+        }
+
+        private static IEnumerable<TestCaseData> BothContainers()
+        {
+            yield return new TestCaseData(
+                new Func<ILocalizedText>(() => new LocalizedString())).SetName("{m}(LocalizedString)");
+            yield return new TestCaseData(
+                new Func<ILocalizedText>(() => new LocalizedStringCollection())).SetName("{m}(LocalizedStringCollection)");
+        }
+
+        private static void Fill(ILocalizedText text, string language, string value)
+        {
+            if (text is LocalizedString single)
+            {
+                single.Set(language, value);
+            }
+            else
+            {
+                ((LocalizedStringCollection)text).Add(language, value);
+            }
+        }
+
+        #endregion
+
+        #region Members that only one container has
+
+        [Test]
+        public void TheScalarContainerReadsAndWritesThroughACulture()
+        {
+            var label = new LocalizedString();
+            var german = CultureInfo.GetCultureInfo("de-DE");
+
+            label[german] = "Hallo";
+
+            Assert.AreEqual("Hallo", label[german], "The culture indexer must read as well as write.");
+            Assert.Throws<ArgumentNullException>(() => { var _ = label[(CultureInfo)null]; });
+        }
+
+        [Test]
+        public void TheCollectionReadsThroughACultureAndRefusesTheInvariantOne()
+        {
+            var aliases = new LocalizedStringCollection();
+            aliases.Add("de-DE", "Erdapfel");
+
+            CollectionAssert.AreEqual(new[] { "Erdapfel" }, aliases[CultureInfo.GetCultureInfo("de-DE")]);
+            Assert.Throws<ArgumentNullException>(() => { var _ = aliases[(CultureInfo)null]; });
+            Assert.Throws<ArgumentException>(() => { var _ = aliases[CultureInfo.InvariantCulture]; });
+        }
+
+        [Test]
+        public void TheCollectionAddsAndRemovesLiteralsAndUntaggedValues()
+        {
+            var aliases = new LocalizedStringCollection();
+
+            aliases.Add(new LangString("Erdapfel", "de"));
+
+            Assert.IsFalse(aliases.HasInvariant);
+
+            aliases.AddInvariant("plain");
+
+            Assert.IsTrue(aliases.HasInvariant);
+            Assert.IsTrue(aliases.RemoveInvariant("plain"));
+            Assert.IsFalse(aliases.RemoveInvariant("plain"), "Removing it twice reports that it did nothing.");
+            Assert.IsFalse(aliases.HasInvariant);
+
+            Assert.Throws<ArgumentNullException>(() => aliases.Add((LangString)null));
+            Assert.Throws<ArgumentNullException>(() => aliases.AddInvariant(null));
+        }
+
+        [Test]
+        public void TheScalarContainerRemovesAndClears()
+        {
+            var label = new LocalizedString();
+
+            label["de"] = "Hallo";
+            label.Invariant = "plain";
+
+            Assert.IsTrue(label.Remove("de"));
+            Assert.IsFalse(label.Remove("de"));
+            Assert.IsFalse(label.IsEmpty, "The untagged value survives removing a language.");
+
+            label.Clear();
+
+            Assert.IsTrue(label.IsEmpty);
+            Assert.IsNull(label.Invariant, "Clear removes the untagged value too.");
+        }
+
+        #endregion
+
+        #region Cross-container
 
         [Test]
         public void BothContainersShareTheLookupRules()

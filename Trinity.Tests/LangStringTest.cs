@@ -1,4 +1,4 @@
-// LICENSE:
+﻿// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -209,6 +209,23 @@ namespace Semiodesk.Trinity.Tests
 
             CollectionAssert.AreEqual(
                 new[] { "\"z\"@de", "\"a\"@en", "\"b\"@en" }, sorted);
+        }
+
+        /// <summary>
+        /// Sorting a list that contains a null must not throw, and nulls sort first - the ordering
+        /// contract every IComparable is expected to keep.
+        /// </summary>
+        [Test]
+        public void OrdersNullBeforeAnyLiteral()
+        {
+            var value = new LangString("a", "de");
+
+            Assert.AreEqual(1, value.CompareTo(null));
+
+            var sorted = new List<LangString> { value, null }.OrderBy(x => x).ToList();
+
+            Assert.IsNull(sorted[0]);
+            Assert.AreEqual(value, sorted[1]);
         }
 
         #endregion

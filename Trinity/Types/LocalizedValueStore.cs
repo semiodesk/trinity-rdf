@@ -1,4 +1,4 @@
-// LICENSE:
+﻿// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -52,8 +52,6 @@ namespace Semiodesk.Trinity
         internal int Count => _tagged.Count;
 
         internal bool IsEmpty => _tagged.Count == 0 && _invariant.Count == 0;
-
-        internal IReadOnlyList<LangString> Tagged => _tagged;
 
         internal IReadOnlyList<string> Invariant => _invariant;
 
@@ -262,17 +260,12 @@ namespace Semiodesk.Trinity
 
                 range = range.Substring(0, cut);
 
-                // "If the last subtag is a single character, remove it too" - RFC 4647 3.4.
+                // "If the last subtag is a single character, remove it too" - RFC 4647 3.4. No guard on
+                // the second cut: the test above only passes when a '-' sits at that index, so
+                // LastIndexOf cannot then fail.
                 if (range.Length >= 2 && range[range.Length - 2] == '-')
                 {
-                    cut = range.LastIndexOf('-');
-
-                    if (cut < 0)
-                    {
-                        return false;
-                    }
-
-                    range = range.Substring(0, cut);
+                    range = range.Substring(0, range.LastIndexOf('-'));
                 }
             }
         }
