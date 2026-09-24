@@ -76,11 +76,29 @@ namespace Semiodesk.Trinity
         private readonly bool _isList;
 
         /// <summary>
+        /// True if the property is mapped to a localized-text container.
+        /// </summary>
+        private readonly bool _isContainer;
+
+        /// <summary>
+        /// The mapped value as a localized-text container, or <c>null</c> when this is not one.
+        /// </summary>
+        private ILocalizedText Container => _value as ILocalizedText;
+
+        /// <summary>
         /// True if the property is mapped to a collection.
         /// </summary>
         bool IPropertyMapping.IsList
         {
             get { return _isList; }
+        }
+
+        /// <summary>
+        /// True if the property is mapped to a localized-text container.
+        /// </summary>
+        bool IPropertyMapping.IsContainer
+        {
+            get { return _isContainer; }
         }
 
         /// <summary>
@@ -98,6 +116,12 @@ namespace Semiodesk.Trinity
                 if (_isList && _value != null)
                 {
                     return (_value as IList).Count == 0;
+                }
+                else if (_isContainer && _value != null)
+                {
+                    // A container is seeded at construction, so it is never null and _isUnsetValue would
+                    // report it as set before anything was written to it.
+                    return Container.IsEmpty;
                 }
                 else
                 {
@@ -169,7 +193,16 @@ namespace Semiodesk.Trinity
 
             _dataType = typeof(T);
 
-            if (_dataType.GetInterface("IList") != null)
+            if (typeof(ILocalizedText).IsAssignableFrom(_dataType))
+            {
+                // Seeded here rather than by the generator: unlike IList<T>, the container types are
+                // concrete, so there is nothing for the caller to choose and no new constructor shape.
+                _isContainer = true;
+                _isList = false;
+                _genericType = null;
+                _value = (T)Activator.CreateInstance(typeof(T));
+            }
+            else if (_dataType.GetInterface("IList") != null)
             {
                 _isList = true;
                 _genericType = _dataType.GetGenericArguments()[0];
@@ -209,6 +242,7 @@ namespace Semiodesk.Trinity
             {
                 return type != null
                     && (allowed.Contains(type)
+                        || typeof(ILocalizedText).IsAssignableFrom(type)
                         || typeof(Uri).IsAssignableFrom(type)
                         || type.GetInterface("IResource") != null
                         || typeof(Resource).IsAssignableFrom(type));
@@ -341,7 +375,26 @@ namespace Semiodesk.Trinity
         /// <param name="value">The value.</param>
         void IPropertyMapping.SetOrAddMappedValue(object value)
         {
-            if (_isList)
+            if (_isContainer)
+            {
+                // The container owns the multiplicity: LocalizedString keeps one value per language and
+                // LocalizedStringCollection keeps them all. This path is called once per triple by the
+                // read path, so it adds rather than replaces and lets the container decide.
+                if (value is LangString langString)
+                {
+                    AddToContainer(langString);
+
+                    return;
+                }
+
+                if (value is string plain)
+                {
+                    AddInvariantToContainer(plain);
+
+                    return;
+                }
+            }
+            else if (_isList)
             {
                 if (_value is IList list)
                 {
@@ -438,7 +491,23 @@ namespace Semiodesk.Trinity
         /// <param name="value"></param>
         void IPropertyMapping.RemoveOrResetValue(object value)
         {
-            if (_isList)
+            if (_isContainer)
+            {
+                if (value is LangString langString)
+                {
+                    RemoveFromContainer(langString);
+
+                    return;
+                }
+
+                if (value is string plain)
+                {
+                    RemoveInvariantFromContainer(plain);
+
+                    return;
+                }
+            }
+            else if (_isList)
             {
                 // _genericType.IsAssignableFrom(value's type), not the reverse. The test used to be
                 // inverted, and it failed in both directions.
@@ -561,6 +630,14 @@ namespace Semiodesk.Trinity
             {
                 return NumericConversion.IsWideningTo(type, mappingType);
             }
+            else if (_isContainer)
+            {
+                // What makes a store-materialized tagged literal land *in* the mapping instead of the
+                // untyped bag. The gate must agree with SetOrAddMappedValue above, which is also why a
+                // plain string is accepted: a localized property's predicate may carry untagged
+                // literals too, and the container keeps them in its Invariant slot.
+                return type == typeof(LangString) || type == typeof(string);
+            }
             else
             {
                 return (mappingType.IsAssignableFrom(type)
@@ -623,6 +700,52 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// Enumerates every RDF value this mapping holds.
+        /// </summary>
+        IEnumerable<object> IPropertyMapping.EnumerateValues()
+        {
+            if (((IPropertyMapping)this).IsUnsetValue)
+            {
+                yield break;
+            }
+
+            if (_isContainer)
+            {
+                // Flattened into individual literals, because that is what a triple is. The container is
+                // the shape the *mapped* property exposes; the RDF surface below it is one value each.
+                foreach (LangString tagged in Container)
+                {
+                    yield return tagged;
+                }
+
+                if (_value is LocalizedStringCollection many)
+                {
+                    foreach (string plain in many.Invariant)
+                    {
+                        yield return plain;
+                    }
+                }
+                else if (_value is LocalizedString single && single.HasInvariant)
+                {
+                    yield return single.Invariant;
+                }
+            }
+            else if (_isList)
+            {
+                // Through GetValueObject(), not _value: while Resource.Language still exists it is what
+                // applies the tag. Once that goes, this is the plain collection either way.
+                foreach (object value in (IList)((IPropertyMapping)this).GetValueObject())
+                {
+                    yield return value;
+                }
+            }
+            else
+            {
+                yield return ((IPropertyMapping)this).GetValueObject();
+            }
+        }
+
+        /// <summary>
         /// Clones the mapping of another resource.
         /// </summary>
         /// <param name="other"></param>
@@ -633,7 +756,20 @@ namespace Semiodesk.Trinity
                 return;
             }
 
-            if (_value != null && _isList)
+            if (_value != null && _isContainer)
+            {
+                // Contents, not the reference: assigning would alias one container across two resources,
+                // so a write through the copy would be visible through the original.
+                Container.Clear();
+
+                foreach (object value in other.EnumerateValues())
+                {
+                    ((IPropertyMapping)this).SetOrAddMappedValue(value);
+                }
+
+                _isUnsetValue = other.IsUnsetValue;
+            }
+            else if (_value != null && _isList)
             {
                 IList collection = (IList)_value;
 
@@ -660,7 +796,13 @@ namespace Semiodesk.Trinity
         /// </summary>
         void IPropertyMapping.Clear()
         {
-            if (_isList)
+            if (_isContainer)
+            {
+                // The container instance is kept and emptied, never replaced: the mapped property is
+                // get-only and a caller may be holding the reference.
+                Container.Clear();
+            }
+            else if (_isList)
             {
                 (_value as IList).Clear();
             }
@@ -670,6 +812,66 @@ namespace Semiodesk.Trinity
             }
 
             _isUnsetValue = true;
+        }
+
+        /// <summary>
+        /// Adds a language-tagged literal to the mapped container.
+        /// </summary>
+        private void AddToContainer(LangString value)
+        {
+            if (_value is LocalizedStringCollection many)
+            {
+                many.Add(value);
+            }
+            else if (_value is LocalizedString single)
+            {
+                single.Set(value);
+            }
+
+            _isUnsetValue = false;
+        }
+
+        /// <summary>
+        /// Adds an untagged literal to the mapped container.
+        /// </summary>
+        private void AddInvariantToContainer(string value)
+        {
+            if (_value is LocalizedStringCollection many)
+            {
+                many.AddInvariant(value);
+            }
+            else if (_value is LocalizedString single)
+            {
+                single.Invariant = value;
+            }
+
+            _isUnsetValue = false;
+        }
+
+        private void RemoveFromContainer(LangString value)
+        {
+            if (_value is LocalizedStringCollection many)
+            {
+                many.Remove(value.Language, value.Value);
+            }
+            else if (_value is LocalizedString single && single[value.Language] == value.Value)
+            {
+                // Only when it is the value being removed: a scalar container holds one value per
+                // language, and removing "Hallo"@de must not drop a "Servus"@de that replaced it.
+                single.Remove(value.Language);
+            }
+        }
+
+        private void RemoveInvariantFromContainer(string value)
+        {
+            if (_value is LocalizedStringCollection many)
+            {
+                many.RemoveInvariant(value);
+            }
+            else if (_value is LocalizedString single && single.Invariant == value)
+            {
+                single.Invariant = null;
+            }
         }
 
         #endregion

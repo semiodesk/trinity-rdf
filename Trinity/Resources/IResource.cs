@@ -374,6 +374,23 @@ namespace Semiodesk.Trinity
         IEnumerable<object> ListValues(Property property);
 
         /// <summary>
+        /// Lists the distinct language tags carried by any value of the given property.
+        /// </summary>
+        /// <remarks>
+        /// The direct answer to "which languages does this resource have?", which the previous design
+        /// could not give from the mapped surface at all (ADR-0047).
+        /// </remarks>
+        /// <param name="property">A RDF property.</param>
+        /// <returns>The language tags, ordered. Empty when no value carries one.</returns>
+        IEnumerable<string> ListLanguages(Property property);
+
+        /// <summary>
+        /// Lists the distinct language tags carried by any value of this resource.
+        /// </summary>
+        /// <returns>The language tags, ordered. Empty when no value carries one.</returns>
+        IEnumerable<string> ListLanguages();
+
+        /// <summary>
         /// Gets the value of a uniquely asserted property.
         /// </summary>
         /// <param name="property">A RDF property.</param>

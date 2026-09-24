@@ -1185,6 +1185,97 @@ namespace Semiodesk.Trinity.Tests.Store
             Assert.AreEqual(r1.RandomProperty, v);
         }
 
+        /// <summary>
+        /// A mapped container holds every language at once and survives a store round trip.
+        /// </summary>
+        /// <remarks>
+        /// This is what the ambient Resource.Language could not do: every assertion here about a
+        /// language other than the "current" one was previously unanswerable from the mapped surface.
+        /// </remarks>
+        [Test]
+        public virtual void LocalizedContainersRoundTripEveryLanguage()
+        {
+            var r1 = Model1.CreateResource<LocalizedMappingTestClass>(_r1);
+
+            r1.Label["de"] = "Hallo Welt";
+            r1.Label["en"] = "Hello World";
+            r1.Label.Invariant = "plain";
+
+            r1.Aliases.Add("de", "Erdapfel");
+            r1.Aliases.Add("de", "Kartoffel");
+            r1.Aliases.Add("en", "Potato");
+
+            r1.Commit();
+
+            var actual = Model1.GetResource<LocalizedMappingTestClass>(_r1);
+
+            // Both languages are readable, at once, without switching anything.
+            Assert.AreEqual("Hallo Welt", actual.Label["de"]);
+            Assert.AreEqual("Hello World", actual.Label["en"]);
+            CollectionAssert.AreEqual(new[] { "de", "en" }, actual.Label.Languages);
+
+            // The untagged literal on the same predicate is kept apart from the languages.
+            Assert.AreEqual("plain", actual.Label.Invariant);
+
+            // The collection keeps both German values; the scalar container would have kept one.
+            CollectionAssert.AreEquivalent(new[] { "Erdapfel", "Kartoffel" }, actual.Aliases["de"]);
+            CollectionAssert.AreEqual(new[] { "Potato" }, actual.Aliases["en"]);
+
+            // Lookup works against what came back from the store, not only against what was written.
+            Assert.AreEqual("Hallo Welt", actual.Label.Best("de-AT", "en"));
+
+            // And the untyped surface reports the same tags.
+            CollectionAssert.AreEqual(new[] { "de", "en" }, actual.ListLanguages(to.uniqueLocalizedStringCultureTest));
+        }
+
+        /// <summary>
+        /// Writing one language must not disturb another. Under the previous design this held only
+        /// because every other language sat in the untyped bag while one was mapped - an invariant
+        /// nothing stated or tested.
+        /// </summary>
+        [Test]
+        public virtual void EditingOneLanguageLeavesTheOthersAlone()
+        {
+            var r1 = Model1.CreateResource<LocalizedMappingTestClass>(_r1);
+
+            r1.Label["de"] = "Hallo Welt";
+            r1.Label["en"] = "Hello World";
+            r1.Commit();
+
+            var edited = Model1.GetResource<LocalizedMappingTestClass>(_r1);
+            edited.Label["de"] = "Servus";
+            edited.Commit();
+
+            var actual = Model1.GetResource<LocalizedMappingTestClass>(_r1);
+
+            Assert.AreEqual("Servus", actual.Label["de"]);
+            Assert.AreEqual("Hello World", actual.Label["en"], "Committing German must not delete English.");
+            Assert.AreEqual(2, actual.Label.Count);
+        }
+
+        /// <summary>
+        /// Removing a language removes only that language's triples.
+        /// </summary>
+        [Test]
+        public virtual void RemovingALanguageLeavesTheOthersAlone()
+        {
+            var r1 = Model1.CreateResource<LocalizedMappingTestClass>(_r1);
+
+            r1.Label["de"] = "Hallo Welt";
+            r1.Label["en"] = "Hello World";
+            r1.Commit();
+
+            var edited = Model1.GetResource<LocalizedMappingTestClass>(_r1);
+            Assert.IsTrue(edited.Label.Remove("de"));
+            edited.Commit();
+
+            var actual = Model1.GetResource<LocalizedMappingTestClass>(_r1);
+
+            Assert.IsNull(actual.Label["de"]);
+            Assert.AreEqual("Hello World", actual.Label["en"]);
+            CollectionAssert.AreEqual(new[] { "en" }, actual.Label.Languages);
+        }
+
         [Test]
         public virtual void TestLocalizedStringPropertyMapping()
         {

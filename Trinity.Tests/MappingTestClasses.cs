@@ -410,6 +410,46 @@ namespace Semiodesk.Trinity.Tests
         #endregion
     }
 
+    /// <summary>
+    /// Exercises the localized-text containers, which hold every language at once rather than showing
+    /// one at a time (ADR-0047).
+    /// </summary>
+    public class LocalizedMappingTestClass : Resource
+    {
+        #region Constructors
+
+        public LocalizedMappingTestClass(Uri uri) : base(uri) { }
+
+        #endregion
+
+        #region Mapping
+
+        public override IEnumerable<Class> GetTypes()
+        {
+            return new List<Class> { to.LocalizedMappingTestClass };
+        }
+
+        /// <summary>One value per language - the scalar of the pair.</summary>
+        public PropertyMapping<LocalizedString> labelPropertyMapping =
+            new PropertyMapping<LocalizedString>("Label", to.uniqueLocalizedStringCultureTestString);
+
+        public LocalizedString Label
+        {
+            get { return GetValue(labelPropertyMapping); }
+        }
+
+        /// <summary>Any number of values per language - the collection of the pair.</summary>
+        public PropertyMapping<LocalizedStringCollection> aliasesPropertyMapping =
+            new PropertyMapping<LocalizedStringCollection>("Aliases", to.localizedStringCultureTestString);
+
+        public LocalizedStringCollection Aliases
+        {
+            get { return GetValue(aliasesPropertyMapping); }
+        }
+
+        #endregion
+    }
+
     public class StringMappingTestClass : Resource
     {
         #region Constructors

@@ -92,10 +92,29 @@ namespace Semiodesk.Trinity
         bool IsValueCompatible(object value);
 
         /// <summary>
+        /// True if the property is mapped to a localized-text container.
+        /// </summary>
+        bool IsContainer { get; }
+
+        /// <summary>
         /// Gets the value or values mapped to this property.
         /// </summary>
         /// <returns></returns>
         object GetValueObject();
+
+        /// <summary>
+        /// Enumerates every RDF value this mapping holds: one for a scalar, and any number for a
+        /// collection or a localized-text container.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="IsList"/> has always doubled as "holds more than one value", which a localized
+        /// container contradicts: it is multi-valued without being an <see cref="System.Collections.IList"/>.
+        /// Claiming otherwise would send the constructor into <c>GetGenericArguments()[0]</c> on a
+        /// non-generic type. So the question is asked directly instead, and the three places that
+        /// enumerate a mapping's values go through here rather than each re-deriving the shape.
+        /// </remarks>
+        /// <returns>The values, or an empty sequence when the mapping is unset.</returns>
+        System.Collections.Generic.IEnumerable<object> EnumerateValues();
 
         /// <summary>
         /// This method is meant to be called from the non-mapped interface. It replaces the current value if 

@@ -932,7 +932,10 @@ namespace Semiodesk.Trinity
                 {
                     if (propertyMapping.Property.Uri.Equals(property.Uri) && !propertyMapping.IsUnsetValue)
                     {
-                        if (propertyMapping.GetValueObject().Equals(value) || (propertyMapping.IsList && (propertyMapping.GetValueObject() as IList).Contains(value)))
+                        // Enumerating subsumes the scalar and list cases this used to spell out, and
+                        // covers the container, whose GetValueObject() is the container itself and so
+                        // never equals a single value.
+                        if (propertyMapping.EnumerateValues().Contains(value))
                         {
                             result = true;
                         }
@@ -975,6 +978,39 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// Lists the distinct language tags carried by any value of the given property.
+        /// </summary>
+        /// <remarks>
+        /// The direct answer to "which languages does this resource have?" — a question the previous
+        /// design could not answer from the mapped surface at all, because a mapped property held one
+        /// language at a time and the rest sat in the untyped bag (ADR-0047).
+        /// </remarks>
+        /// <param name="property">A RDF property.</param>
+        /// <returns>The language tags, ordered. Empty when no value carries one.</returns>
+        public virtual IEnumerable<string> ListLanguages(Property property)
+        {
+            return ListValues(property)
+                .OfType<LangString>()
+                .Select(x => x.Language)
+                .Distinct()
+                .OrderBy(x => x, StringComparer.Ordinal);
+        }
+
+        /// <summary>
+        /// Lists the distinct language tags carried by any value of this resource.
+        /// </summary>
+        /// <returns>The language tags, ordered. Empty when no value carries one.</returns>
+        public virtual IEnumerable<string> ListLanguages()
+        {
+            return ListValues()
+                .Select(x => x.Item2)
+                .OfType<LangString>()
+                .Select(x => x.Language)
+                .Distinct()
+                .OrderBy(x => x, StringComparer.Ordinal);
+        }
+
+        /// <summary>
         /// Lists every property/value pair on this resource, mapped and unmapped alike.
         /// </summary>
         /// <remarks>
@@ -1006,18 +1042,9 @@ namespace Semiodesk.Trinity
             {
                 if (!propertyMapping.IsUnsetValue)
                 {
-                    if (propertyMapping.IsList)
+                    foreach (object value in propertyMapping.EnumerateValues())
                     {
-                        IList values = (IList)propertyMapping.GetValueObject();
-
-                        foreach (object value in values)
-                        {
-                            yield return new Tuple<Property, object>(propertyMapping.Property, value);
-                        }
-                    }
-                    else
-                    {
-                        yield return new Tuple<Property, object>(propertyMapping.Property, propertyMapping.GetValueObject());
+                        yield return new Tuple<Property, object>(propertyMapping.Property, value);
                     }
                 }
                 else if (ResourceCache.HasCachedValues(propertyMapping))
@@ -1084,21 +1111,13 @@ namespace Semiodesk.Trinity
             {
                 if (!propertyMapping.IsUnsetValue)
                 {
-                    // GetValueObject() has already applied the language, so the value arrives tagged.
-                    // This used to re-tag it - `x as string` on an already-tagged value, which is null -
-                    // so the untyped read surface reported a tagged null while the mapped getter beside it
-                    // reported the right string (ADR-0047 defect 1). Both branches now simply pass the
-                    // value through, which is what the else-branches already did.
-                    if (propertyMapping.IsList)
+                    // One enumeration for all three shapes. This used to re-tag an already-tagged value
+                    // with `x as string`, which is null on a tagged value, so the untyped read surface
+                    // reported a tagged null while the mapped getter beside it reported the right string
+                    // (ADR-0047 defect 1).
+                    foreach (object value in propertyMapping.EnumerateValues())
                     {
-                        foreach (object v in ((IList)propertyMapping.GetValueObject()).Cast<object>())
-                        {
-                            yield return v;
-                        }
-                    }
-                    else
-                    {
-                        yield return propertyMapping.GetValueObject();
+                        yield return value;
                     }
                 }
                 else if (ResourceCache.HasCachedValues(propertyMapping))
