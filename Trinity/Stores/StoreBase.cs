@@ -293,10 +293,13 @@ namespace Semiodesk.Trinity
             {
                 // The resource was never synchronized, so there is no baseline to diff against and the
                 // whole resource has to be replaced.
+                // Two operations rather than one modify, for the reason given in WriteWholesale:
+                // a modify instantiates its ground INSERT template once per solution, and a blank
+                // node in that template is minted fresh each time, so a blank-node-valued link is
+                // duplicated once per existing triple on the subject.
                 updateString = string.Format(@"
-                    DELETE {{ GRAPH <{0}> {{ {1} ?p ?o. }} }}
-                    INSERT {{ GRAPH <{0}> {{ {2} }} }}
-                    WHERE {{ OPTIONAL {{ GRAPH <{0}> {{ {1} ?p ?o. }} }} }} ",
+                    DELETE {{ GRAPH <{0}> {{ {1} ?p ?o. }} }} WHERE {{ GRAPH <{0}> {{ {1} ?p ?o. }} }} ;
+                    INSERT DATA {{ GRAPH <{0}> {{ {2} }} }} ",
                 modelUri.OriginalString,
                 SparqlSerializer.SerializeUri(resource.Uri),
                 SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
@@ -458,7 +461,7 @@ namespace Semiodesk.Trinity
                 ExecuteNonQuery(new SparqlUpdate(delta.ToString()), transaction);
             }
 
-            WriteWholesale(wholesale, graph, transaction, ignoreUnmappedProperties);
+            WriteWholesale(wholesale, graph, transaction, ignoreUnmappedProperties, nameof(resources));
 
             foreach (var resource in batch)
             {
@@ -494,7 +497,8 @@ namespace Semiodesk.Trinity
         /// <param name="graph">The target graph, already serialized as an <c>IRIREF</c>.</param>
         /// <param name="transaction">Transaction associated with this action.</param>
         /// <param name="ignoreUnmappedProperties">Set this to true to update only mapped properties.</param>
-        private void WriteWholesale(IList<Resource> wholesale, string graph, ITransaction transaction, bool ignoreUnmappedProperties)
+        /// <param name="paramName">Name of the public parameter the resources arrived in.</param>
+        private void WriteWholesale(IList<Resource> wholesale, string graph, ITransaction transaction, bool ignoreUnmappedProperties, string paramName)
         {
             if (wholesale.Count == 0)
             {
@@ -508,14 +512,18 @@ namespace Semiodesk.Trinity
                 // would leave the resource's existing triples in place while the ground INSERT added
                 // the new ones — a silent partial write, where a blank id currently fails closed on
                 // the DELETE template (ADR-0039). Losing that would be a worse trade than the throw.
-                QuerySubject.Require(res.Uri, nameof(wholesale));
+                // paramName, not nameof(wholesale): the caller passed 'resources', and naming a
+                // private local in the exception tells them nothing they can act on.
+                QuerySubject.Require(res.Uri, paramName);
             }
 
             for (var offset = 0; offset < wholesale.Count; offset += SparqlSerializer.SubjectBindingBatchSize)
             {
                 var chunk = wholesale.Skip(offset).Take(SparqlSerializer.SubjectBindingBatchSize).ToList();
 
-                // One block per chunk by construction, since the chunk is the batch size.
+                // Exactly one block: at most one because the chunk is the batch size, and at least
+                // one because the loop above refused every subject GenerateSubjectBindings would
+                // have skipped. Without that guard an all-blank chunk yields no blocks at all.
                 var values = SparqlSerializer
                     .GenerateSubjectBindings("?s", chunk.Select(r => r.Uri))
                     .Single();
@@ -527,10 +535,22 @@ namespace Semiodesk.Trinity
                     insert.Append($" {SparqlSerializer.SerializeResource(res, ignoreUnmappedProperties)} ");
                 }
 
+                // Two operations in one request, rather than one modify carrying both templates.
+                // A modify instantiates its INSERT template once per solution, and the template is
+                // ground, so a subject with six existing triples inserted it six times over. RDF is
+                // a set, so repeated IRIs collapse -- but a blank node in the template is minted
+                // fresh each time, so a blank-node-valued link became six links to six distinct
+                // nodes. Measured, not reasoned: six existing triples gave six values and six child
+                // nodes where one was intended. That also made cost the product of the subjects'
+                // triple counts; hoisting makes it linear (n=1000: 1870 ms -> 66 ms).
+                //
+                // The OPTIONAL goes with it. It existed so the ground INSERT still applied when the
+                // subject had no triples; INSERT DATA is unconditional, so the DELETE now matches
+                // only what it means to delete.
                 var updateString =
                     $"DELETE {{ GRAPH {graph} {{ ?s ?p ?o. }} }} "
-                    + $"INSERT {{ GRAPH {graph} {{ {insert} }} }} "
-                    + $"WHERE {{ {values} OPTIONAL {{ GRAPH {graph} {{ ?s ?p ?o. }} }} }}";
+                    + $"WHERE {{ {values} GRAPH {graph} {{ ?s ?p ?o. }} }} ; "
+                    + $"INSERT DATA {{ GRAPH {graph} {{ {insert} }} }}";
 
                 ExecuteNonQuery(new SparqlUpdate(updateString), transaction);
             }

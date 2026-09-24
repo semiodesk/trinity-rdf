@@ -371,6 +371,73 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         /// <summary>
+        /// A wholesale write must insert a blank-node-valued link once, however many triples the
+        /// subject already had.
+        /// </summary>
+        /// <remarks>
+        /// The wholesale branch used to carry both templates in one modify, and a modify instantiates
+        /// its INSERT template <b>once per solution</b>. The template is ground, so repeated IRIs
+        /// collapse into the same triples and nothing looked wrong -- but a blank node in a template
+        /// is minted fresh per instantiation, so a blank-node-valued link became one link per
+        /// existing triple on the subject, each to a different node. Six existing triples gave six
+        /// links and six children where one was intended.
+        ///
+        /// This is why the fix hoists the insert into its own <c>INSERT DATA</c> operation rather
+        /// than only rearranging the WHERE. A shape that merely stops the cross-product still
+        /// duplicates here.
+        ///
+        /// Counted in the store: the mapped collection would report whatever came back, and the
+        /// defect is that there is more of it than was written.
+        /// </remarks>
+        [Test]
+        public void BulkUpdateInsertsABlankNodeValuedLinkOnlyOnce()
+        {
+            Model1.Clear();
+
+            var subjectUri = BaseUri.GetUriRef("bulk-blank-link");
+            var label = new Property(BaseUri.GetUriRef("label"));
+
+            // Six triples on the subject first, so a per-solution template would instantiate six
+            // times. The untyped overload is used because CreateResource<T> rejects blank ids.
+            var seeded = Model1.CreateResource<Person>(subjectUri);
+            seeded.FirstName = "a";
+            seeded.LastName = "b";
+            seeded.Age = 1;
+            seeded.Status = true;
+            seeded.AccountBalance = 1.5f;
+            seeded.Commit();
+
+            var child = (Resource)Model1.CreateResource(new UriRef("_:blankChild", true));
+            child.AddProperty(label, "Blank child");
+            child.Commit();
+
+            // Constructed rather than loaded, so it has no baseline and takes the wholesale branch.
+            var replaced = new Person(subjectUri);
+            replaced.SetModel(Model1);
+            replaced.FirstName = "a";
+            replaced.Interests.Add(child);
+
+            Model1.UpdateResources(new Resource[] { replaced });
+
+            Assert.AreEqual(1, CountValues(subjectUri, foaf.interest),
+                "the link must be inserted once, not once per triple the subject already had");
+            Assert.AreEqual(1, CountSubjects(label),
+                "and it must point at one child node, not a fresh one per instantiation");
+        }
+
+        /// <summary>
+        /// How many distinct subjects carry a property.
+        /// </summary>
+        private int CountSubjects(Property property)
+        {
+            var query = new SparqlQuery(
+                $"SELECT DISTINCT ?s FROM <{Model1.Uri}> WHERE {{ ?s <{property.Uri}> ?o }}",
+                declarePrefixes: false);
+
+            return Store.ExecuteQuery(query).GetBindings().Count();
+        }
+
+        /// <summary>
         /// How many values the store holds for a property, asked of the store rather than of a mapped
         /// resource -- a single-valued mapping surfaces one value and so cannot see a merge.
         /// </summary>
