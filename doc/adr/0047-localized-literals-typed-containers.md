@@ -157,8 +157,13 @@ public sealed class LocalizedString : IEnumerable<LangString>
 }
 ```
 
-`LocalizedStringCollection` adds `Add(language, value)`, `All(language) => IReadOnlyList<string>`,
-`Remove(language, value)` and `AllInvariant`.
+`LocalizedStringCollection` keeps the same surface but its indexer returns **every** value for a tag
+— `this[string language] => IReadOnlyList<string>` — and it adds `Add(language, value)`,
+`Set(language, params string[])`, `Remove(language, value)`, `AddInvariant`/`RemoveInvariant`, and an
+`Invariant` that is a list. Both implement `ILocalizedText`, which carries everything independent of
+multiplicity (`Languages`, `Best`, `TryGetBest`, `Contains`, `Remove`, `Count`, `IsEmpty`), so the
+RFC 4647 rules exist once — a second copy of the matching logic is precisely how the four
+representations this ADR replaces came to disagree.
 
 `Languages` is the direct answer to *"which languages are available"* — the question the old design
 could not answer from the mapped surface at all.
