@@ -62,16 +62,6 @@ namespace Semiodesk.Trinity
         bool IsUnsetValue { get; }
 
         /// <summary>
-        /// Language of the value
-        /// </summary>
-        string Language { get; set; }
-
-        /// <summary>
-        /// The mapping ignores the language setting and is always non-localized. Only valid if type or generic type is string or string collection.
-        /// </summary>
-        bool LanguageInvariant { get; }
-
-        /// <summary>
         /// Method to test if a type is compatible. In case of collection, the containing type is tested for compatibility.
         /// </summary>
         /// <param name="type">The type to test.</param>

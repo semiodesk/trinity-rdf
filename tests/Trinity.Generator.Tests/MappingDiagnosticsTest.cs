@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -286,6 +286,80 @@ namespace Semiodesk.Trinity.Generator.Tests
 
             Assert.AreEqual("TRIN007", SingleId(diagnostics));
             Assert.That(Message(diagnostics), Does.Contain("SeeAlso").And.Contain("UriRef"));
+        }
+
+        /// <summary>
+        /// The obsolete languageInvariant flag is reported rather than silently ignored.
+        /// </summary>
+        /// <remarks>
+        /// A flag that no longer does anything is indistinguishable, at the call site, from one that
+        /// works — and this one used to decide whether a property saw tagged literals, so silence would
+        /// leave the author believing a guarantee they no longer have (ADR-0047).
+        /// </remarks>
+        [Test]
+        public void ReportsTheObsoleteLanguageInvariantFlag()
+        {
+            var diagnostics = Run(@"
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/name"", true)]
+                    public partial string Name { get; set; }
+                }");
+
+            Assert.AreEqual("TRIN008", SingleId(diagnostics));
+            Assert.That(Message(diagnostics), Does.Contain("Name").And.Contain("languageInvariant"));
+        }
+
+        /// <summary>
+        /// Passing <c>false</c> is just as stale as passing <c>true</c>: both name a parameter that no
+        /// longer exists in the supported constructor, so both need the author's attention.
+        /// </summary>
+        [Test]
+        public void ReportsTheObsoleteFlagEvenWhenItIsFalse()
+        {
+            var diagnostics = Run(@"
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/name"", false)]
+                    public partial string Name { get; set; }
+                }");
+
+            Assert.AreEqual("TRIN008", SingleId(diagnostics));
+        }
+
+        /// <summary>
+        /// The ordinary declaration must stay silent, or the diagnostic would fire on every mapped
+        /// property in the repository.
+        /// </summary>
+        [Test]
+        public void DoesNotReportAPropertyWithoutTheFlag()
+        {
+            var diagnostics = Run(@"
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/name"")]
+                    public partial string Name { get; set; }
+
+                    [RdfProperty(""http://example.org/label"")]
+                    public partial LocalizedString Label { get; }
+                }");
+
+            CollectionAssert.IsEmpty(diagnostics.Select(d => d.Id));
         }
 
         /// <summary>

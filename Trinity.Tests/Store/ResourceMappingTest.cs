@@ -1276,189 +1276,111 @@ namespace Semiodesk.Trinity.Tests.Store
             CollectionAssert.AreEqual(new[] { "en" }, actual.Label.Languages);
         }
 
+        /// <summary>
+        /// A mapped <c>string</c> sees untagged literals only.
+        /// </summary>
+        /// <remarks>
+        /// The successor to TestLocalizedStringPropertyMapping, which asserted that one property showed
+        /// German, then English, then nothing, as Resource.Language was switched. That property is gone:
+        /// a string is untagged by construction, and language-tagged values are read through a container
+        /// (LocalizedContainersRoundTripEveryLanguage). Nothing is lost by the narrower mapped view --
+        /// the tagged values are still on the resource and still visible untyped, which is what the
+        /// second half asserts.
+        /// </remarks>
         [Test]
-        public virtual void TestLocalizedStringPropertyMapping()
+        public virtual void MappedStringSeesUntaggedLiteralsOnly()
         {
-            var germanValue = "Hallo Welt";
-            var englishValue = "Hello World";
-            
             var r1 = Model1.CreateResource<StringMappingTestClass>(_r1);
-            r1.AddProperty(to.uniqueStringTest, germanValue, "de");
-            r1.AddProperty(to.uniqueStringTest, englishValue, "en");
-            
-            Assert.AreEqual(null, r1.uniqueStringTest);
-            
-            r1.Language = "de";
-            
-            Assert.AreEqual(germanValue, r1.uniqueStringTest);
-            
-            r1.Language = "en";
-            
-            Assert.AreEqual(englishValue, r1.uniqueStringTest);
 
-            r1.Language = null;
-            
-            Assert.AreEqual(null, r1.uniqueStringTest);
-        }
+            r1.AddProperty(to.uniqueStringTest, "Hallo Welt", "de");
+            r1.AddProperty(to.uniqueStringTest, "Hello World", "en");
 
-        [Test]
-        public virtual void TestLocalizedStringInvariancy()
-        {
-            var contact = Model1.CreateResource<PersonContact>(_r1);
-            contact.NameGiven = "Peter";
-            contact.Language = "de";
-            
-            Assert.AreEqual("Peter", contact.NameGiven);
-        }
-        
-        [Test]
-        public virtual void TestLocalizedStringListPropertyMapping()
-        {
-            var germanValue = "Hallo Welt";
-            var englishValue = "Hello World";
-            
-            var r1 = Model1.CreateResource<StringMappingTestClass>(_r1);
-            r1.AddProperty(to.stringTest, germanValue+1, "de");
-            r1.AddProperty(to.stringTest, germanValue+2, "de");
-            r1.AddProperty(to.stringTest, germanValue+3, "de");
-            r1.AddProperty(to.stringTest, englishValue+1, "en");
-            r1.AddProperty(to.stringTest, englishValue+2, "en");
-            r1.AddProperty(to.stringTest, englishValue+3, "en");
-            r1.AddProperty(to.stringTest, englishValue+4, "en");
-            
-            Assert.AreEqual(0, r1.stringListTest.Count);
-            
-            var values = r1.ListValues(to.stringTest);
-            
-            Assert.AreEqual(7, values.Count());
-            
-            r1.AddProperty(to.stringTest, "Hello international World"+1);
-            r1.AddProperty(to.stringTest, "Hello international World"+2);
-            
-            Assert.AreEqual(2, r1.stringListTest.Count);
-            CollectionAssert.AreEquivalent(
-                new[] { "Hello international World1", "Hello international World2" }, r1.stringListTest);
-            Assert.AreEqual(9, r1.ListValues(to.stringTest).Count());
-            
-            r1.RemoveProperty(to.stringTest, "Hello international World"+1);
-            
-            Assert.AreEqual(1, r1.stringListTest.Count);
-            CollectionAssert.AreEquivalent(new[] { "Hello international World2" }, r1.stringListTest);
-            Assert.AreEqual(8, r1.ListValues(to.stringTest).Count());
-            
-            r1.Language = "de";
-            
-            // The mapped collection is a single-language window: only the German values, and only
-            // those, are visible through it. Asserting the contents - not just the count - is what
-            // distinguishes this from the same count made up of nulls (ADR-0047).
-            Assert.AreEqual(3, r1.stringListTest.Count);
-            CollectionAssert.AreEquivalent(
-                new[] { germanValue + 1, germanValue + 2, germanValue + 3 }, r1.stringListTest);
-            Assert.AreEqual(8, r1.ListValues(to.stringTest).Count());
-            
-            r1.Language = "en";
-            
-            Assert.AreEqual(4, r1.stringListTest.Count);
-            CollectionAssert.AreEquivalent(
-                new[] { englishValue + 1, englishValue + 2, englishValue + 3, englishValue + 4 },
-                r1.stringListTest);
-            Assert.AreEqual(8, r1.ListValues(to.stringTest).Count());
-            
-            r1.RemoveProperty(to.stringTest, germanValue + 1, "de");
-            
-            Assert.AreEqual(7, r1.ListValues(to.stringTest).Count());
+            Assert.IsNull(r1.uniqueStringTest, "Tagged values are not what a string property maps.");
 
-            r1.RemoveProperty(to.stringTest, englishValue + 1, "en");
-            
-            Assert.AreEqual(7, r1.ListValues(to.stringTest).Count());
+            r1.AddProperty(to.uniqueStringTest, "plain");
+
+            Assert.AreEqual("plain", r1.uniqueStringTest);
+
+            // Open resources (ADR-0017): the mapped window narrowed, the data did not.
+            var values = r1.ListValues(to.uniqueStringTest).ToList();
+
+            Assert.AreEqual(3, values.Count);
+            CollectionAssert.AreEquivalent(
+                new[] { new LangString("Hallo Welt", "de"), new LangString("Hello World", "en") },
+                values.OfType<LangString>().ToList());
+            CollectionAssert.AreEqual(new[] { "de", "en" }, r1.ListLanguages(to.uniqueStringTest));
         }
 
         /// <summary>
-        /// Characterizes the &lt;c&gt;ListValues(Property)&lt;/c&gt; double-wrap (ADR-0047, defect 1).
+        /// The successor to TestLocalizedStringInvariancy. There is no flag to set and no ambient
+        /// language to opt out of: the declared type carries the guarantee.
         /// </summary>
-        /// <remarks>
-        /// The existing localized tests assert only <c>.Count()</c>, which is exactly why this survived:
-        /// the counts are right and every value is null. <c>GetValueObject()</c> has already wrapped the
-        /// value into a <c>Tuple&lt;string,string&gt;</c> once a language is active, and
-        /// <c>ListValues(Property)</c> wraps it a second time with <c>x as string</c> — which is
-        /// <c>null</c> on a tuple. So the untyped read surface reports <c>Tuple(null, "de")</c> while the
-        /// mapped getter beside it reports the right string.
-        /// </remarks>
         [Test]
-        public virtual void ListValuesReturnsTheValueNotNullWhenALanguageIsActive()
+        public virtual void MappedStringIsLanguageInvariantByConstruction()
         {
-            const string germanValue = "Hallo Welt";
+            var contact = Model1.CreateResource<PersonContact>(_r1);
+            contact.NameGiven = "Peter";
+            contact.Commit();
 
-            var r1 = Model1.CreateResource<StringMappingTestClass>(_r1);
-            r1.AddProperty(to.uniqueStringTest, germanValue, "de");
-            r1.AddProperty(to.stringTest, germanValue + 1, "de");
-            r1.AddProperty(to.stringTest, germanValue + 2, "de");
+            var actual = Model1.GetResource<PersonContact>(_r1);
 
-            r1.Language = "de";
-
-            // The mapped getters agree the values are there.
-            Assert.AreEqual(germanValue, r1.uniqueStringTest);
-            CollectionAssert.AreEquivalent(new[] { germanValue + 1, germanValue + 2 }, r1.stringListTest);
-
-            // The untyped surface must report the same values, tagged - not a tuple with a null value.
-            // Both the scalar and the list branch re-wrap, so assert them together rather than letting
-            // the first failure hide the second.
-            var scalar = (LangString)r1.GetValue(to.uniqueStringTest);
-            var listed = r1.ListValues(to.stringTest).Cast<LangString>().ToList();
-
-            Assert.Multiple(() =>
-            {
-                Assert.AreEqual("de", scalar.Language);
-                Assert.AreEqual(germanValue, scalar.Value,
-                    "GetValue(Property) dropped the value and kept only the tag.");
-
-                Assert.AreEqual(2, listed.Count);
-                CollectionAssert.AreEquivalent(
-                    new[] { germanValue + 1, germanValue + 2 },
-                    listed.Select(x => x.Value).ToList(),
-                    "ListValues(Property) dropped the values and kept only the tags.");
-            });
+            Assert.AreEqual("Peter", actual.NameGiven);
+            CollectionAssert.IsEmpty(actual.ListLanguages(), "A string property writes no language tag.");
         }
 
+        /// <summary>
+        /// A mapped <c>List&lt;string&gt;</c> sees untagged literals only -- the collection counterpart
+        /// of the scalar case. Successor to the two TestLocalizedStringListPropertyMapping tests, which
+        /// asserted counts as Resource.Language was switched between de, en and null.
+        /// </summary>
         [Test]
-        public virtual void TestLocalizedStringListPropertyMapping2()
+        public virtual void MappedStringCollectionSeesUntaggedLiteralsOnly()
         {
-            var germanValue = "Hallo Welt";
-            var englishValue = "Hello World";
-            
             var r1 = Model1.CreateResource<StringMappingTestClass>(_r1);
-            r1.stringListTest.Add("Hello interanational World" + 1);
-            r1.stringListTest.Add("Hello interanational World" + 2);
-            
-            r1.Language = "de";
-            r1.stringListTest.Add(germanValue + 1);
-            r1.stringListTest.Add(germanValue + 2);
-            r1.stringListTest.Add(germanValue + 3);
-            
-            Assert.AreEqual(3, r1.stringListTest.Count);
-            CollectionAssert.AreEquivalent(
-                new[] { germanValue + 1, germanValue + 2, germanValue + 3 }, r1.stringListTest);
+
+            r1.AddProperty(to.stringTest, "Hallo Welt1", "de");
+            r1.AddProperty(to.stringTest, "Hallo Welt2", "de");
+            r1.AddProperty(to.stringTest, "Hello World1", "en");
+
+            CollectionAssert.IsEmpty(r1.stringListTest);
+
+            r1.AddProperty(to.stringTest, "plain1");
+            r1.AddProperty(to.stringTest, "plain2");
+
+            CollectionAssert.AreEquivalent(new[] { "plain1", "plain2" }, r1.stringListTest);
             Assert.AreEqual(5, r1.ListValues(to.stringTest).Count());
+            CollectionAssert.AreEqual(new[] { "de", "en" }, r1.ListLanguages(to.stringTest));
+        }
 
-            r1.Language = "en";
-            r1.stringListTest.Add(englishValue + 1);
-            r1.stringListTest.Add(englishValue + 2);
-            r1.stringListTest.Add(englishValue + 3);
-            r1.stringListTest.Add(englishValue + 4);
-            
-            Assert.AreEqual(4, r1.stringListTest.Count);
-            CollectionAssert.AreEquivalent(
-                new[] { englishValue + 1, englishValue + 2, englishValue + 3, englishValue + 4 },
-                r1.stringListTest);
-            Assert.AreEqual(9, r1.ListValues(to.stringTest).Count());
+        /// <summary>
+        /// The untyped read surface reports values, not tagged nulls.
+        /// </summary>
+        /// <remarks>
+        /// Successor to the characterization test from step 2, which reproduced ADR-0047 defect 1 by
+        /// asking this of a mapped property while a language was active. There is no active language
+        /// now, so the same question is put to a container -- whose GetValueObject() is the container
+        /// itself, and which would therefore report one unusable value if EnumerateValues were ever
+        /// bypassed again.
+        /// </remarks>
+        [Test]
+        public virtual void ListValuesReportsTheValuesOfAContainer()
+        {
+            var r1 = Model1.CreateResource<LocalizedMappingTestClass>(_r1);
 
-            r1.Language = null;
-            
-            // Language = null selects plain literals only - the two untagged values added first.
-            Assert.AreEqual(2, r1.stringListTest.Count);
+            r1.Label["de"] = "Hallo Welt";
+            r1.Label["en"] = "Hello World";
+            r1.Label.Invariant = "plain";
+
+            var values = r1.ListValues(to.uniqueLocalizedStringCultureTest).ToList();
+
+            Assert.AreEqual(3, values.Count, "Two tagged literals and the untagged one, flattened.");
             CollectionAssert.AreEquivalent(
-                new[] { "Hello interanational World1", "Hello interanational World2" }, r1.stringListTest);
-            Assert.AreEqual(9, r1.ListValues(to.stringTest).Count());
+                new[] { new LangString("Hallo Welt", "de"), new LangString("Hello World", "en") },
+                values.OfType<LangString>().ToList());
+            CollectionAssert.AreEqual(new[] { "plain" }, values.OfType<string>().ToList());
+
+            Assert.AreEqual(3, r1.ListValues().Count(x => Equals(x.Item1, to.uniqueLocalizedStringCultureTest)),
+                "The serialization path flattens the container the same way.");
         }
 
         [Test]

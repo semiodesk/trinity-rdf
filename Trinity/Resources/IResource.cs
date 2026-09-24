@@ -54,11 +54,6 @@ namespace Semiodesk.Trinity
         bool IsReadOnly { get; }
 
         /// <summary>
-        /// Set the language of this resource. This will change te mapped strings to this language.
-        /// </summary>
-        string Language { get; set; }
-
-        /// <summary>
         /// Indicates if the resources has been disposed.
         /// </summary>
         bool IsDisposed { get; set; }

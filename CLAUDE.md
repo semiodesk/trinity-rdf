@@ -55,8 +55,8 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 860 passed, 3 skipped (quarantined), 0 failed
-dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 31 passed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 864 passed, 3 skipped (quarantined), 0 failed
+dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 34 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
@@ -139,13 +139,14 @@ someone migrating a large model wants the whole list from one build:
 | `TRIN004` | a mapped class does not derive from `Resource` |
 | `TRIN005` | a mapped class has no accessible `(Uri)` constructor, so `Activator.CreateInstance(type, uri)` cannot materialize it when reading |
 | `TRIN006` | a URI belongs to a **generated** vocabulary but is not one of its terms — a typo. Only vocabularies marked `[GeneratedCode("trinity-vocab", …)]` are trusted, since only those list every term; an unknown namespace is never reported |
+| `TRIN008` | `[RdfProperty]` passes the obsolete `languageInvariant` flag. It no longer has any effect — the declared type decides (ADR-0047) — and a flag that silently does nothing is indistinguishable from one that works, so it is reported rather than ignored |
 | `TRIN007` | a mapped property is typed `System.Uri` (or is a collection of them) instead of `UriRef` — `Uri` equality ignores the fragment. **The one diagnostic that does not mean "nothing was generated"**: the mapping is emitted, the declared type is wrong. Matched on exact type identity, so `UriRef` — which derives from `Uri` — is not flagged. `PropertyMapping<T>` **throws** for `System.Uri` at runtime (Release too), which is what catches hand-written mappings the generator never sees |
 
-The generator handles scalars, collections (seeded with a default instance), language-invariant
-strings, resource references, multiple `[RdfClass]`, and inheritance (including `GetTypes`-only
+The generator handles scalars, collections (seeded with a default instance), localized-text
+containers (seeded likewise, by `PropertyMapping<T>`), resource references, multiple `[RdfClass]`, and inheritance (including `GetTypes`-only
 subclasses). The implementing half copies the declaring declaration's **modifiers verbatim**, so
 accessibility and `new`/`virtual`/`override`/`sealed` match — C# requires both halves to agree, and
-hiding a `Resource` member (`Language`, say) needs `new` on both or it is an unfixable CS8800. Only `partial` members are processed. The runtime engine (`Resource`,
+hiding a `Resource` member (`Model`, say — a car has one) needs `new` on both or it is an unfixable CS8800. Only `partial` members are processed. The runtime engine (`Resource`,
 `PropertyMapping<T>`, reflective `InitializePropertyMappings`) is unchanged from 1.x.
 
 ## Vocabularies (ADR-0014)
@@ -337,23 +338,38 @@ Invariants that surprise newcomers:
 - **Query results are multi-modal** (0031): `GetResources`/`GetBindings`/`GetAnwser`(sic)/`Count` —
   pick the accessor matching the query form (with offset/limit paging).
 - **Datatype & i18n mapping** (0026/0027/0047): `XsdTypeMapper` (culture-invariant via `XmlConvert`).
-  A language-tagged literal is a **`LangString`** — one type, replacing the four shapes 0027 lived with
-  (`Tuple<string,string>`, `Tuple<string,CultureInfo>`, `string[]{value,lang}`, and a bare string
-  carrying its tag out of band). It normalizes the tag with `ToLowerInvariant` at construction, which is
-  why `AddProperty`/`HasProperty` can no longer disagree about casing and why the 0039 delta is stable
-  across a read/commit cycle. An **untagged literal stays a plain `string`**: `LangString.Language` is
-  never null, so there is no second way to spell "no tag", and `"Hallo"` can never equal
-  `new LangString("Hallo","de")`. There is deliberately **no conversion to or from `string`** (ADR-0025
-  applied, not repeated — `label == "Hallo"` must not compile), but `==`/`!=` between two `LangString`s
-  are declared, or a class compares by reference.
-  **Still ambient, still to be removed (ADR-0047 step 4):** `Resource.Language` is a *mode switch*, not a
-  filter — its setter runs `ReloadLocalizedMappings`, which physically moves values between the mapped
-  property and the untyped bag, so a mapped `string` shows one language at a time and two threads reading
-  one resource in different locales corrupt each other's storage. Commits stay safe only by the unstated
-  invariant that each language sits in exactly one of the bag or the mapping. The containers
-  (`LocalizedString`/`LocalizedStringCollection`) that replace it do not exist yet. Also still open:
-  LINQ cannot express a language, and is inconsistent about it — `==` never matches a tagged value while
-  `Contains` does.
+  A language-tagged literal is a **`LangString`** — one type, replacing the four shapes 0027 lived with.
+  It normalizes the tag with `ToLowerInvariant` at construction, which is why `AddProperty`/`HasProperty`
+  cannot disagree about casing and why the 0039 delta is stable across a read/commit cycle. An
+  **untagged literal is a plain `string`**: `LangString.Language` is never null, so there is no second
+  way to spell "no tag", and `"Hallo"` can never equal `new LangString("Hallo","de")`. There is
+  deliberately **no conversion to or from `string`** (ADR-0025 applied, not repeated — `label ==
+  "Hallo"` must not compile), but `==`/`!=` between two `LangString`s are declared, or a class compares
+  by reference.
+- **The property's declared type decides how tags are handled** (0047). `Resource.Language` and the
+  `languageInvariant` flag are **gone** — there is no ambient state, so a resource is safe to read in
+  two locales at once:
+
+  | Declared type | Sees |
+  |---|---|
+  | `string`, `List<string>` | untagged literals only (what `languageInvariant: true` used to mean) |
+  | `LocalizedString` | every language, one value each |
+  | `LocalizedStringCollection` | every language, several values each |
+  | `LangString`, `List<LangString>` | tagged literals, raw triple view |
+
+  Containers hold **all** languages at once, so `Languages`/`ListLanguages()` can answer which exist and
+  editing one never disturbs another. `Best()` is RFC 4647 **Lookup**, which truncates the *request* —
+  `de-DE` finds a `de` value, `de` does not find `de-DE`. Indexers are exact-match on get *and* set, so
+  `t[k] = t[k]` cannot move a value between languages. Declaring `LocalizedString` against genuinely
+  multi-valued data is **lossy** — it keeps the last value and a later `Commit()` deletes the rest,
+  exactly as a mapped `string` already does to a multi-valued predicate; `LocalizedStringCollection` is
+  the escape hatch. `[RdfProperty(uri, languageInvariant)]` still compiles for one release and raises
+  **TRIN008**; `RdfPropertyAttribute`'s two-argument constructor is `[Obsolete]` and goes in 2.1.
+  **Not yet done (0047 step 5):** the generator emits `get`+`set` unconditionally, so a container must be
+  declared `{ get; set; }` — the intended get-only form is CS9253. Containers therefore work through
+  hand-written mappings and through `{ get; set; }`, not yet through the recommended authoring shape.
+  LINQ still cannot express a language, and is inconsistent about it — `==` never matches a tagged value
+  while `Contains` does.
 
 ## Other architecture notes
 

@@ -239,33 +239,6 @@ namespace Semiodesk.Trinity
         /// <param name="value"></param>
         protected virtual void SetIsReadOnly(bool value) { IsReadOnly = value; }
 
-        private string _language;
-
-        /// <summary>
-        /// Set the language of this resource. This will change te mapped strings to this language.
-        /// </summary>
-        [JsonIgnore]
-        public string Language
-        {
-            get
-            {
-                return _language;
-            }
-            set
-            {
-                if (value != null)
-                {
-                    _language = value.ToLower();
-                }
-                else
-                {
-                    _language = null;
-                }
-
-                ReloadLocalizedMappings();
-            }
-        }
-
         #endregion
 
         #region Constructors
@@ -1359,64 +1332,6 @@ namespace Semiodesk.Trinity
             if (ResourceCache.HasCachedValues(propertyMapping))
             {
                 ResourceCache.LoadCachedValues(propertyMapping);
-            }
-        }
-
-        /// <summary>
-        /// Update the property mappings with the values in the selected language.
-        /// </summary>
-        protected void ReloadLocalizedMappings()
-        {
-            foreach (var mapping in _mappings.Where(x => (x.Value.DataType == typeof(string) || x.Value.GenericType == typeof(string)) && !x.Value.LanguageInvariant))
-            {
-                if (!mapping.Value.IsUnsetValue)
-                {
-                    TransferMappingToProperties(mapping.Value);
-
-                    mapping.Value.Clear();
-                }
-
-                mapping.Value.Language = Language;
-
-                foreach (var value in ListValues(mapping.Value.Property).ToList())
-                {
-                    if (string.IsNullOrEmpty(Language))
-                    {
-                        if (value is string)
-                        {
-                            mapping.Value.SetOrAddMappedValue(value);
-
-                            _properties[mapping.Value.Property].Remove(value);
-                        }
-                    }
-                    else if (value is LangString localizedString)
-                    {
-                        if (string.Compare(localizedString.Language, Language, true) == 0)
-                        {
-                            mapping.Value.SetOrAddMappedValue(localizedString.Value);
-
-                            _properties[mapping.Value.Property].Remove(localizedString);
-                        }
-                    }
-                }
-            }
-        }
-
-        private void TransferMappingToProperties(IPropertyMapping mapping)
-        {
-            if (!_properties.ContainsKey(mapping.Property))
-            {
-                _properties.Add(mapping.Property, new HashSet<object>());
-            }
-
-            if (mapping.IsList)
-            {
-                foreach (var x in mapping.GetValueObject() as IList)
-                    _properties[mapping.Property].Add(x);
-            }
-            else
-            {
-                _properties[mapping.Property].Add(mapping.GetValueObject());
             }
         }
 

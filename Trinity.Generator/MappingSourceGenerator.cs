@@ -1,4 +1,4 @@
-// LICENSE:
+﻿// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -88,6 +88,11 @@ namespace Semiodesk.Trinity.Generator
                 if (result.Diagnostic is not null)
                 {
                     context.ReportDiagnostic(result.Diagnostic.ToDiagnostic());
+                }
+
+                if (result.LanguageInvariantIsObsolete is not null)
+                {
+                    context.ReportDiagnostic(result.LanguageInvariantIsObsolete.ToDiagnostic());
                 }
 
                 if (result.MappedTypeIsRawUri is not null)
@@ -188,11 +193,6 @@ namespace Semiodesk.Trinity.Generator
                 if (p.CollectionConcreteType is not null)
                 {
                     source.Append(", new ").Append(p.CollectionConcreteType).Append("()");
-                }
-
-                if (p.LanguageInvariant)
-                {
-                    source.Append(", true");
                 }
 
                 source.AppendLine(");");
@@ -377,7 +377,8 @@ namespace Semiodesk.Trinity.Generator
             PropertyInfo? Info,
             DiagnosticInfo? Diagnostic,
             DiagnosticInfo? ContainingClassNotPartial,
-            DiagnosticInfo? MappedTypeIsRawUri = null);
+            DiagnosticInfo? MappedTypeIsRawUri = null,
+            DiagnosticInfo? LanguageInvariantIsObsolete = null);
 
         /// <summary>The outcome of inspecting one <c>[RdfClass]</c> declaration.</summary>
         /// <remarks>
@@ -472,7 +473,6 @@ namespace Semiodesk.Trinity.Generator
             string PropertyName,
             string PropertyType,
             string Uri,
-            bool LanguageInvariant,
             string? CollectionConcreteType,
             string Modifiers)
         {
@@ -530,17 +530,17 @@ namespace Semiodesk.Trinity.Generator
                     return new PropertyResult(null, null, containingClassNotPartial);
                 }
 
-                bool languageInvariant =
-                    attribute.ConstructorArguments.Length > 1 &&
-                    attribute.ConstructorArguments[1].Value is bool b && b;
+                // Reported, not obeyed. The flag no longer changes what is emitted, and a flag that
+                // silently does nothing is indistinguishable from one that works (ADR-0047). Detected
+                // whether it was passed positionally or by name, and at either value: passing
+                // languageInvariant:false is just as stale as passing true.
+                bool languageInvariantSpecified =
+                    attribute.ConstructorArguments.Length > 1 ||
+                    attribute.NamedArguments.Any(a => a.Key == "LanguageInvariant");
 
-                foreach (var named in attribute.NamedArguments)
-                {
-                    if (named.Key == "LanguageInvariant" && named.Value.Value is bool nb)
-                    {
-                        languageInvariant = nb;
-                    }
-                }
+                DiagnosticInfo? languageInvariantIsObsolete = languageInvariantSpecified
+                    ? new DiagnosticInfo(MappingDiagnostics.LanguageInvariantIsObsolete, location, prop.Name)
+                    : null;
 
                 INamedTypeSymbol type = prop.ContainingType;
 
@@ -555,9 +555,8 @@ namespace Semiodesk.Trinity.Generator
                     prop.Name,
                     prop.Type.ToDisplayString(TypeFormat),
                     uri,
-                    languageInvariant,
                     GetCollectionConcreteType(prop.Type),
-                    modifiers), null, containingClassNotPartial, mappedTypeIsRawUri);
+                    modifiers), null, containingClassNotPartial, mappedTypeIsRawUri, languageInvariantIsObsolete);
             }
         }
 

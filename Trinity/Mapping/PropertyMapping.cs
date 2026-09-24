@@ -130,11 +130,6 @@ namespace Semiodesk.Trinity
             }
         }
 
-        /// <summary>
-        /// Language of the value.
-        /// </summary>
-        public string Language { get; set; }
-
         private Property _property;
 
         /// <summary>
@@ -163,11 +158,6 @@ namespace Semiodesk.Trinity
         /// </summary>
         public string PropertyName { get; private set; }
 
-        /// <summary>
-        /// Only valid if type or generic type is string. The mapping ignores the language setting and is always non-localized.
-        /// </summary>
-        public bool LanguageInvariant { get; private set; }
-
         #endregion
 
         #region Constructors
@@ -177,8 +167,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="propertyName">Name of the property in the class</param>
         /// <param name="property">The RDF property that should be mapped</param>
-        /// <param name="languageInvariant">This parameter is only valid if the type is string. Tells the mapping that the values should be treated as non-localized literals.</param>
-        public PropertyMapping(string propertyName, Property property, bool languageInvariant=false)
+        public PropertyMapping(string propertyName, Property property)
         {
             if( string.IsNullOrEmpty(propertyName) )
             {
@@ -186,8 +175,6 @@ namespace Semiodesk.Trinity
             }
 
             _property = property;
-
-            LanguageInvariant = languageInvariant;
 
             PropertyName = propertyName;
 
@@ -272,8 +259,7 @@ namespace Semiodesk.Trinity
         /// <param name="propertyName">Name of the property in the class</param>
         /// <param name="property">The RDF property that should be mapped</param>
         /// <param name="defaultValue">The default value used to initialize this property</param>
-        /// <param name="languageInvariant">This parameter is only valid if the type is string. Tells the mapping that the values should be treated as non-localized literals.</param>
-        public PropertyMapping(string propertyName, Property property, T defaultValue, bool languageInvariant = false) : this(propertyName, property, languageInvariant)
+        public PropertyMapping(string propertyName, Property property, T defaultValue) : this(propertyName, property)
         {
             SetValue(defaultValue);
         }
@@ -283,9 +269,8 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="propertyName">Name of the property in the class</param>
         /// <param name="propertyUri">The URI of the RDF property that should be mapped</param>
-        /// <param name="languageInvariant">This parameter is only valid if the type is string. Tells the mapping that the values should be treated as non-localized literals.</param>
-        public PropertyMapping(string propertyName, string propertyUri, bool languageInvariant = false)
-            : this(propertyName, property: null, languageInvariant: languageInvariant)
+        public PropertyMapping(string propertyName, string propertyUri)
+            : this(propertyName, property: null)
         {
             PropertyUri = propertyUri;
         }
@@ -296,9 +281,8 @@ namespace Semiodesk.Trinity
         /// <param name="propertyName">Name of the property in the class</param>
         /// <param name="propertyUri">The URI of the RDF property that should be mapped</param>
         /// <param name="defaultValue">The default value used to initialize this property</param>
-        /// <param name="languageInvariant">This parameter is only valid if the type is string. Tells the mapping that the values should be treated as non-localized literals.</param>
-        public PropertyMapping(string propertyName, string propertyUri, T defaultValue, bool languageInvariant = false)
-            : this(propertyName, property: null, defaultValue: defaultValue, languageInvariant: languageInvariant)
+        public PropertyMapping(string propertyName, string propertyUri, T defaultValue)
+            : this(propertyName, property: null, defaultValue: defaultValue)
         {
             PropertyUri = propertyUri;
         }
@@ -576,37 +560,12 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         object IPropertyMapping.GetValueObject()
         {
-            if (LanguageInvariant || string.IsNullOrEmpty(Language) && (_dataType != typeof(string) || _genericType != typeof(string)))
-            {
-                return _value;
-            }
-            else
-            {
-                if (_isList)
-                {
-                    return ToLanguageList();
-                }
-                else
-                {
-                    return new LangString(_value as string, Language);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets a list of strings as list of tuples containing the values and the language tags.
-        /// </summary>
-        /// <returns></returns>
-        IList ToLanguageList()
-        {
-            List<LangString> result = new List<LangString>();
-
-            foreach (string v in _value as IList<string>)
-            {
-                result.Add(new LangString(v, Language));
-            }
-
-            return result;
+            // State-free. This used to wrap the value in a tag taken from ambient state, which is what
+            // made the result depend on when Resource.Language was last assigned - and, through the
+            // double-wrap in ListValues, what made the untyped read surface return a tagged null
+            // (ADR-0047). A mapped string is now an untagged literal, and a tagged one lives in a
+            // container that carries its own tags.
+            return _value;
         }
 
         /// <summary>
@@ -732,16 +691,14 @@ namespace Semiodesk.Trinity
             }
             else if (_isList)
             {
-                // Through GetValueObject(), not _value: while Resource.Language still exists it is what
-                // applies the tag. Once that goes, this is the plain collection either way.
-                foreach (object value in (IList)((IPropertyMapping)this).GetValueObject())
+                foreach (object value in (IList)_value)
                 {
                     yield return value;
                 }
             }
             else
             {
-                yield return ((IPropertyMapping)this).GetValueObject();
+                yield return _value;
             }
         }
 

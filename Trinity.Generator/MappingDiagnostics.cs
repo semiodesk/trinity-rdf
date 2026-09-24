@@ -1,4 +1,4 @@
-// LICENSE:
+﻿// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -121,5 +121,15 @@ namespace Semiodesk.Trinity.Generator
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true,
             description: "Resources are constructed by Activator.CreateInstance(type, uri) while marshalling query results. Without such a constructor the failure appears at runtime, not at build time.");
+
+        /// <summary>TRIN008: <c>[RdfProperty(uri, languageInvariant)]</c>, which no longer does anything.</summary>
+        public static readonly DiagnosticDescriptor LanguageInvariantIsObsolete = new DiagnosticDescriptor(
+            id: "TRIN008",
+            title: "languageInvariant no longer has an effect",
+            messageFormat: "Property '{0}' passes languageInvariant to [RdfProperty]; the flag is ignored, because the property's declared type now decides how language tags are handled",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            description: "A string property is language-invariant by construction: it sees untagged literals only. Declare LocalizedString (one value per language) or LocalizedStringCollection (several) for language-tagged values, or LangString for the raw tagged literal. The old flag is an exact partition of the migration - languageInvariant:true stays string, every other string-typed mapped property becomes LocalizedString. Reported rather than silently ignored because a flag that no longer does anything is otherwise indistinguishable from one that does (ADR-0047).");
     }
 }
