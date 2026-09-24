@@ -55,7 +55,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 865 passed, 3 skipped (quarantined), 0 failed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 873 passed, 3 skipped (quarantined), 0 failed
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 38 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -72,8 +72,8 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all three green** — Fuseki 334/335, GraphDB 332/333, Virtuoso
-  321/322 (0 failed each; the 1 skipped is the shared blank-node-removal quarantine).
+  hiccup cannot redden it. Current: **all three green** — Fuseki 338/339, GraphDB 336/337, Virtuoso
+  325/326 (0 failed each; the 1 skipped is the shared blank-node-removal quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
   limitations**: Virtuoso's rule set was declared only in the `ontologies.config` that ADR-0011 retired,
@@ -371,8 +371,17 @@ Invariants that surprise newcomers:
   admits `null` and aliases one container across two resources, so **TRIN009** warns. The generator emits
   exactly the accessors the declaring half declares (each with its own modifiers, so `private set` and
   `init` round-trip); emitting `get`+`set` unconditionally used to make the get-only form CS9253.
-  **Still open (0047 step 6):** LINQ cannot express a language, and is inconsistent about it — `==`
-  never matches a tagged value while `Contains` does.
+  **LINQ** queries one language at a time: `Where(d => d.Label["de"] == "Hallo")`. The tag must be a
+  constant, because it becomes part of the query text — a closure is folded to one by the partial
+  evaluator, a per-row value is refused. The emitted form is `STR(?v) = "…" && LANG(?v) = "de"`, **not**
+  `?v = "…"@de`: measured on dotNetRDF 3.5.2, a language-tagged literal inside a `FILTER` comparison
+  matches regardless of its tag (`"x"@fr` matched a `@de` value), while the same literal in a *triple
+  pattern* matches correctly and `STR`/`LANG` evaluate correctly. Two things are **refused rather than
+  approximated** (the ADR-0041 posture): `Best()`/`TryGetBest()`, because RFC 4647 lookup is a
+  client-side fallback walk that `langMatches` would answer differently, and projecting a single
+  language (`Select(d => d.Label["de"])`), because the bound variable carries every language. Filter on
+  the language in `Where` and project the resource instead. A mapped `string` still emits a plain
+  literal and so never matches a tagged one — which is now correct rather than a workaround.
 
 ## Other architecture notes
 

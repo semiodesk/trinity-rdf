@@ -1,4 +1,4 @@
-// LICENSE:
+﻿// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -81,12 +81,174 @@ namespace Semiodesk.Trinity.Tests.Query.Sparql
             eve.FirstName = "Eve";
             eve.Age = 38;
             eve.Commit();
+
+            // Two documents whose localized titles share a lexical form but differ in language, so a
+            // query that ignored the tag would return both and one that honoured it returns one.
+            Document german = _model.CreateResource<Document>(new Uri("http://example.org/doc/de"));
+            german.Title = "Bericht";
+            german.LocalizedTitle["de"] = "Bericht";
+            german.Commit();
+
+            Document english = _model.CreateResource<Document>(new Uri("http://example.org/doc/en"));
+            english.Title = "Report";
+            english.LocalizedTitle["en"] = "Bericht";
+            english.LocalizedTitle["de"] = "Jahresbericht";
+            english.Commit();
+
+            // A tagged literal on the same predicate a mapped string maps. Projecting that string used
+            // to throw InvalidCastException for every row because one resource carried a tag
+            // (ADR-0047 defect 3).
+            Document tagged = _model.CreateResource<Document>(new Uri("http://example.org/doc/tagged"));
+            tagged.Title = "Tagged";
+            tagged.AddProperty(
+                new Property(new Uri("http://www.w3.org/2000/01/rdf-schema#label")), "Markiert", "de");
+            tagged.Commit();
         }
 
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
             _store?.Dispose();
+        }
+
+        /// <summary>
+        /// A localized property is queried one language at a time, and the tag is part of the match.
+        /// </summary>
+        /// <remarks>
+        /// Both documents carry the lexical form "Bericht" - one tagged @de, one @en - so a translator
+        /// that dropped the tag would return both. Before ADR-0047 the translator could not express a
+        /// tag at all: LiteralTerm carried one and the writer could emit it, but every construction site
+        /// passed null.
+        /// </remarks>
+        [Test]
+        public void FiltersALocalizedPropertyByLanguage()
+        {
+            var german = _model.AsSparqlQueryable<Document>()
+                .Where(d => d.LocalizedTitle["de"] == "Bericht")
+                .ToList();
+
+            Assert.AreEqual(1, german.Count);
+            Assert.AreEqual(new Uri("http://example.org/doc/de"), german[0].Uri);
+
+            var english = _model.AsSparqlQueryable<Document>()
+                .Where(d => d.LocalizedTitle["en"] == "Bericht")
+                .ToList();
+
+            Assert.AreEqual(1, english.Count);
+            Assert.AreEqual(new Uri("http://example.org/doc/en"), english[0].Uri);
+        }
+
+        /// <summary>
+        /// The tag is matched, not ignored: asking for a language nothing carries returns nothing, even
+        /// though the lexical form exists under another tag.
+        /// </summary>
+        [Test]
+        public void DoesNotMatchTheSameTextUnderAnotherLanguage()
+        {
+            var french = _model.AsSparqlQueryable<Document>()
+                .Where(d => d.LocalizedTitle["fr"] == "Bericht")
+                .ToList();
+
+            CollectionAssert.IsEmpty(french);
+        }
+
+        /// <summary>
+        /// A mapped string is untagged, so it never matches a tagged literal - the counterpart to the
+        /// test above, and the reason the translator emits a plain term for it.
+        /// </summary>
+        [Test]
+        public void AMappedStringDoesNotMatchATaggedLiteral()
+        {
+            var byPlainTitle = _model.AsSparqlQueryable<Document>()
+                .Where(d => d.Title == "Jahresbericht")
+                .ToList();
+
+            CollectionAssert.IsEmpty(byPlainTitle, "Jahresbericht exists only as a @de literal.");
+        }
+
+        /// <summary>
+        /// Indexing with a tag that varies per row is refused rather than mistranslated: the tag becomes
+        /// part of the query text, which is built once.
+        /// </summary>
+        /// <remarks>
+        /// The tag has to depend on the row to reach this. A closure over a local - even
+        /// <c>tags[0].ToUpperInvariant()</c> - is folded to a constant by the partial evaluator before
+        /// the translator sees it, and is therefore supported rather than refused.
+        /// </remarks>
+        [Test]
+        public void RefusesALanguageTagThatVariesPerRow()
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                _model.AsSparqlQueryable<Document>()
+                    .Where(d => d.LocalizedTitle[d.Title] == "Bericht")
+                    .ToList());
+        }
+
+        /// <summary>
+        /// A tag computed from a closure is folded to a constant before translation, so it works.
+        /// </summary>
+        [Test]
+        public void AcceptsALanguageTagFoldedToAConstant()
+        {
+            var tags = new[] { "DE", "en" };
+
+            var german = _model.AsSparqlQueryable<Document>()
+                .Where(d => d.LocalizedTitle[tags[0].ToLowerInvariant()] == "Bericht")
+                .ToList();
+
+            Assert.AreEqual(1, german.Count);
+            Assert.AreEqual(new Uri("http://example.org/doc/de"), german[0].Uri);
+        }
+
+        /// <summary>
+        /// Projecting one language is refused rather than approximated: the bound variable carries every
+        /// language of the property, so projecting it would silently return the wrong rows.
+        /// </summary>
+        [Test]
+        public void RefusesProjectingASingleLanguage()
+        {
+            var thrown = Assert.Throws<NotSupportedException>(() =>
+                _model.AsSparqlQueryable<Document>()
+                    .Select(d => d.LocalizedTitle["de"])
+                    .ToList());
+
+            StringAssert.Contains("localized", thrown.Message);
+        }
+
+        /// <summary>
+        /// Projecting a mapped string whose predicate also carries tagged literals returns the text
+        /// rather than throwing.
+        /// </summary>
+        /// <remarks>
+        /// ADR-0047 defect 3: a tagged literal binds as a LangString, which is not IConvertible, so
+        /// Convert.ChangeType raised InvalidCastException and the whole projection failed because some
+        /// other resource happened to carry a tag on the same predicate.
+        /// </remarks>
+        [Test]
+        public void ProjectsAPredicateThatAlsoCarriesTaggedLiterals()
+        {
+            var titles = _model.AsSparqlQueryable<Document>()
+                .Select(d => d.Title)
+                .ToList();
+
+            CollectionAssert.Contains(titles, "Bericht");
+            CollectionAssert.Contains(titles, "Tagged");
+        }
+
+        /// <summary>
+        /// Best() is refused rather than approximated: RFC 4647 lookup walks a preference list and
+        /// falls back to the untagged value, which langMatches() does not do, so translating it would
+        /// answer a different question.
+        /// </summary>
+        [Test]
+        public void RefusesBestInsideAQuery()
+        {
+            var thrown = Assert.Throws<NotSupportedException>(() =>
+                _model.AsSparqlQueryable<Document>()
+                    .Where(d => d.LocalizedTitle.Best("de") == "Bericht")
+                    .ToList());
+
+            StringAssert.Contains("4647", thrown.Message);
         }
 
         [Test]

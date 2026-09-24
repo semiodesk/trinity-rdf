@@ -255,17 +255,31 @@ workaround. The default `==` path does not change. What is added:
 
 - `ToTerm` gains a `LangString` case populating the dormant `LiteralTerm.Language`
   (`SparqlAst.cs:224`); `SparqlQueryWriter.WriteLiteral:333-335` already emits it.
-- A chain kind for `LocalizedString.get_Item`, so `Where(a => a.Label["de"] == "Hallo")` emits
-  `FILTER (?v = "Hallo"@de)` — exact term equality, which stores can index.
-- Query-marker extension methods, needing no new AST node because `SparqlFunctionExpression` takes
-  an arbitrary name: `HasLanguage(range)` → `langMatches(lang(?v), "…")`; `IsPlain()` →
-  `lang(?v) = ""`; `LanguageTag()` → `lang(?v)`, projectable and groupable; `Lexical()` → `STR(?v)`.
+- A chain kind for `LocalizedString.get_Item`, so `Where(a => a.Label["de"] == "Hallo")` constrains
+  both the lexical form and the tag. **Not** as `FILTER (?v = "Hallo"@de)`, which this ADR originally
+  specified: measured on dotNetRDF 3.5.2, a language-tagged literal inside a `FILTER` comparison
+  matches *regardless of its tag* — `"Bericht"@fr` matched a value tagged `@de` — while the same
+  literal in a triple pattern matches correctly, and `STR`/`LANG` both evaluate correctly. The emitted
+  form is therefore `STR(?v) = "Hallo" && LANG(?v) = "de"`, equivalent for an `rdf:langString` and
+  keeping the indexer's exact-tag semantics. It gives up the index-friendliness term equality would
+  have had; binding the term in the triple pattern instead would recover it, and is the obvious
+  follow-up if it ever shows up in a profile. The tag must be a **constant** — it becomes part of the
+  query text — so a closure is folded to one by the partial evaluator and a per-row value is refused.
+- Query-marker extension methods — `HasLanguage(range)` → `langMatches(lang(?v), "…")`, `IsPlain()` →
+  `lang(?v) = ""`, `LanguageTag()` → `lang(?v)`, `Lexical()` → `STR(?v)` — need no new AST node,
+  because `SparqlFunctionExpression` takes an arbitrary name. **Not built.** Indexing by language
+  covers the cases that motivated this ADR, and the helpers are worth adding when something actually
+  needs them rather than on speculation.
 - Defect 3 is fixed by adding a `LangString` case to `CoerceValue`/`ExecuteBindings`, mirroring the
   `Uri` → `UriRef` case beside it.
-- **`Best(...)` inside a query throws `NotSupportedException`.** RFC 4647 Lookup is a client-side
-  fallback walk with no faithful SPARQL; quietly translating it to `langMatches` would return the
-  wrong rows. Refusing loudly is the posture [0041](0041-layered-read-views.md) established.
-- `ORDER BY` on a localized member emits `ORDER BY STR(?v)`. SPARQL 1.1 §15.1 leaves the relative
+- **`Best(...)`/`TryGetBest(...)` inside a query throw `NotSupportedException`.** RFC 4647 Lookup is a
+  client-side fallback walk with no faithful SPARQL; quietly translating it to `langMatches` would
+  return the wrong rows. Refusing loudly is the posture [0041](0041-layered-read-views.md)
+  established. **Projecting a single language** — `Select(d => d.Label["de"])` — is refused for the
+  same reason: the bound variable carries every language of the property, so projecting it would
+  silently return the wrong rows. Filter on the language in `Where` and project the resource.
+- `ORDER BY` on a localized member should emit `ORDER BY STR(?v)`. **Not built**, for the same reason
+  as the helpers. SPARQL 1.1 §15.1 leaves the relative
   order of literals with *different* language tags implementation-defined, so the raw form diverges
   across backends. This is a stronger statement than [0037](0037-linq-provider-rebuild.md)'s
   "codepoint, not .NET", and it means culture-aware collation cannot be pushed down at all — a

@@ -1,4 +1,4 @@
-// LICENSE:
+﻿// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -175,12 +175,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                     continue;
                 }
 
-                if (!elementType.IsInstanceOfType(value))
-                {
-                    value = Convert.ChangeType(value, elementType, CultureInfo.InvariantCulture);
-                }
-
-                list.Add(value);
+                list.Add(CoerceValue(value, elementType));
             }
 
             return list;
@@ -296,6 +291,16 @@ namespace Semiodesk.Trinity.Query.Sparql
             if (type == typeof(UriRef) && value is Uri uri)
             {
                 return uri.ToUriRef();
+            }
+
+            // The same wall, for the same reason: a language-tagged literal binds as a LangString, which
+            // is not IConvertible either, so projecting one into a string threw InvalidCastException
+            // rather than returning the text (ADR-0047). Projecting the tag away is the reasonable
+            // reading of 'select x.Name' -- the caller asked for a string and gets the lexical form;
+            // asking for a LangString keeps the tag, via the IsInstanceOfType check above.
+            if (type == typeof(string) && value is LangString langString)
+            {
+                return langString.Value;
             }
 
             return Convert.ChangeType(value, type, CultureInfo.InvariantCulture);

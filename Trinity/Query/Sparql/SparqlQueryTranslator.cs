@@ -1,4 +1,4 @@
-// LICENSE:
+﻿// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -686,6 +686,16 @@ namespace Semiodesk.Trinity.Query.Sparql
                     break;
                 }
 
+                case ChainKind.Localized:
+                    // Refused rather than approximated. Projecting the bound variable would yield every
+                    // language of the property, not the one indexed, and adding the LANG constraint here
+                    // would duplicate the filter machinery in the projection path. Filter by language in
+                    // Where and project the resource, or enumerate and index in memory (ADR-0047).
+                    throw new NotSupportedException(
+                        "Projecting a single language of a localized property is not supported. Filter " +
+                        "on the language in Where and project the resource, then index the property in " +
+                        "memory.");
+
                 default:
                     // Uri / Length / other decorated chains are handled as one-column client projections.
                     ApplyClientSelect(lambda);
@@ -1189,6 +1199,39 @@ namespace Semiodesk.Trinity.Query.Sparql
                     return new SparqlBinaryExpression(MapComparison(op), new SparqlVariableExpression(subject.Name), new SparqlConstantExpression(ToTerm(value)));
                 }
 
+                case ChainKind.Localized:
+                {
+                    if (!(value is string text))
+                    {
+                        throw new NotSupportedException(
+                            "A localized property can only be compared against a string.");
+                    }
+
+                    // Compared as lexical form AND tag rather than as one tagged term. The obvious
+                    // spelling -- FILTER(?v = "Hallo"@de) -- is *silently wrong on the in-memory
+                    // engine*: measured against dotNetRDF 3.5.2, a language-tagged literal inside a
+                    // FILTER comparison matches whatever the tag says, so "Hallo"@fr matched a value
+                    // tagged @de. The same literal in a triple pattern matches correctly, and STR() and
+                    // LANG() both evaluate correctly, so the conjunction below is the form that is both
+                    // exact and actually evaluated. It is equivalent to term equality for a langString,
+                    // and it keeps the indexer's exact-match semantics: LANG returns the exact tag, so
+                    // "de" does not match "de-AT".
+                    MemberBinding localized = BindChain(scope, chain.Chain, false);
+
+                    SparqlVariableExpression variable = new SparqlVariableExpression(localized.Variable.Name);
+
+                    return new SparqlBinaryExpression(
+                        SparqlBinaryOperator.And,
+                        new SparqlBinaryExpression(
+                            MapComparison(op),
+                            new SparqlFunctionExpression("STR", variable),
+                            new SparqlConstantExpression(new LiteralTerm(text))),
+                        new SparqlBinaryExpression(
+                            SparqlBinaryOperator.Equal,
+                            new SparqlFunctionExpression("LANG", variable),
+                            new SparqlConstantExpression(new LiteralTerm(chain.Language.ToLowerInvariant()))));
+                }
+
                 case ChainKind.Length:
                 {
                     MemberBinding binding = BindChain(scope, chain.Chain, false);
@@ -1602,6 +1645,20 @@ namespace Semiodesk.Trinity.Query.Sparql
                 case "IsMatch" when call.Object == null && call.Method.DeclaringType == typeof(Regex):
                     return TranslateRegexMatch(scope, call);
 
+                case "Best" when IsLocalizedContainer(call.Method.DeclaringType):
+                case "TryGetBest" when IsLocalizedContainer(call.Method.DeclaringType):
+                    // Refused rather than approximated. Best() is an RFC 4647 Lookup: it walks a
+                    // preference list, truncating each range until something matches, and falls back to
+                    // the untagged value. langMatches() is a different rule and would return different
+                    // rows, so translating it would answer a question the caller did not ask. Index the
+                    // property with the language you want instead, or materialize and call Best() in
+                    // memory (ADR-0047).
+                    throw new NotSupportedException(
+                        $"{call.Method.Name}() cannot be translated to SPARQL: RFC 4647 lookup is a " +
+                        "client-side fallback walk with no faithful SPARQL equivalent. Index the " +
+                        "localized property with an explicit language tag, or enumerate the results " +
+                        "and call it in memory.");
+
                 default:
                     throw new NotSupportedException($"Unsupported method call in predicate: {call.Method.Name}.");
             }
@@ -1675,6 +1732,21 @@ namespace Semiodesk.Trinity.Query.Sparql
 
                     if (chain == null)
                     {
+                        if (expression is MethodCallExpression localizedCall
+                            && IsLocalizedContainer(localizedCall.Method.DeclaringType)
+                            && (localizedCall.Method.Name == "Best" || localizedCall.Method.Name == "TryGetBest"))
+                        {
+                            // RFC 4647 lookup walks a preference list, truncating each range until
+                            // something matches, then falls back to the untagged value. langMatches() is
+                            // a different rule and would return different rows, so this is refused
+                            // rather than approximated (ADR-0047, and the posture of ADR-0041).
+                            throw new NotSupportedException(
+                                $"{localizedCall.Method.Name}() cannot be translated to SPARQL: RFC 4647 " +
+                                "lookup is a client-side fallback walk with no faithful SPARQL " +
+                                "equivalent. Index the localized property with an explicit language tag, " +
+                                "or enumerate the results and call it in memory.");
+                        }
+
                         throw new NotSupportedException($"Unsupported operand expression: {expression.NodeType}.");
                     }
 
@@ -1741,6 +1813,9 @@ namespace Semiodesk.Trinity.Query.Sparql
             /// <summary>A mapped resource chain accessed via <c>.Uri</c>.</summary>
             Uri,
 
+            /// <summary>One language of a localized-text container: <c>a.Label["de"]</c>.</summary>
+            Localized,
+
             /// <summary><c>string.Length</c> over a mapped chain (<c>STRLEN</c>).</summary>
             Length,
 
@@ -1756,6 +1831,11 @@ namespace Semiodesk.Trinity.Query.Sparql
             public MemberExpression Chain { get; set; }
 
             public Type MemberType { get; set; }
+
+            /// <summary>
+            /// For <see cref="ChainKind.Localized"/>: the language tag the indexer selected.
+            /// </summary>
+            public string Language { get; set; }
 
             /// <summary>
             /// For <see cref="ChainKind.Count"/>: restricts the counted elements to this mapped type
@@ -1811,6 +1891,33 @@ namespace Semiodesk.Trinity.Query.Sparql
                 }
             }
 
+            // a.Label["de"] is a get_Item call over a mapped member, not a member access, so it has to
+            // be recognised before the MemberExpression path below.
+            if (expression is MethodCallExpression indexer
+                && indexer.Method.Name == "get_Item"
+                && indexer.Arguments.Count == 1
+                && indexer.Object is MemberExpression container
+                && IsLocalizedContainer(container.Type)
+                && IsMappedChain(container))
+            {
+                // The tag has to be constant: it becomes part of an RDF term in the emitted query, and a
+                // term cannot be computed per row.
+                if (!(Unwrap(indexer.Arguments[0]) is ConstantExpression tag) || !(tag.Value is string language))
+                {
+                    throw new NotSupportedException(
+                        "Only a constant language tag can be used to index a localized property in a query.");
+                }
+
+                return new ChainInfo
+                {
+                    Kind = ChainKind.Localized,
+                    Chain = container,
+                    MemberType = typeof(string),
+                    Language = language,
+                    RootParameter = GetRootParameter(container)
+                };
+            }
+
             if (!(expression is MemberExpression member))
             {
                 return null;
@@ -1858,6 +1965,14 @@ namespace Semiodesk.Trinity.Query.Sparql
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// True when a mapped member's type is a localized-text container.
+        /// </summary>
+        private static bool IsLocalizedContainer(Type type)
+        {
+            return type != null && typeof(ILocalizedText).IsAssignableFrom(type);
         }
 
         private static bool IsMappedChain(MemberExpression member)
@@ -2517,8 +2632,15 @@ namespace Semiodesk.Trinity.Query.Sparql
                     return new IriTerm(uri);
                 case IResource resource:
                     return new IriTerm(resource.Uri);
+                case LangString langString:
+                    // The tag is part of the RDF term, so it has to reach the query or `== "Hallo"@de`
+                    // would match a differently-tagged literal. This is what finally populates
+                    // LiteralTerm.Language, which the writer has always been able to emit (ADR-0047).
+                    return new LiteralTerm(langString.Value, language: langString.Language);
                 case string text:
-                    // Stored as a plain literal; emit plain so term equality matches.
+                    // A mapped string is an untagged literal, so a plain term is the exact match. This
+                    // used to be a workaround for the translator having no way to express a tag; since
+                    // ADR-0047 gave `string` that meaning, it is simply correct.
                     return new LiteralTerm(text);
                 default:
                     return new LiteralTerm(XsdTypeMapper.SerializeObject(value), XsdTypeMapper.GetXsdTypeUri(value.GetType()));
