@@ -27,6 +27,7 @@
 
 using Semiodesk.Trinity.Extensions;
 using System;
+using System.Text;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -274,39 +275,6 @@ namespace Semiodesk.Trinity.Store
             }
         }
 
-        /// <summary>
-        /// Try parse RDF from a given text reader into the store.
-        /// </summary>
-        /// <param name="reader">The text reader to read from.</param>
-        /// <param name="graph">The graph to store the read triples.</param>
-        /// <param name="format">RDF format to be read.</param>
-        public static void TryParse(TextReader reader, IGraph graph, RdfSerializationFormat format)
-        {
-            switch (format)
-            {
-                case RdfSerializationFormat.N3:
-                    new Notation3Parser().Load(graph, reader); break;
-
-                case RdfSerializationFormat.NTriples:
-                    new NTriplesParser().Load(graph, reader); break;
-
-                case RdfSerializationFormat.NQuads:
-                    new NQuadsParser().Load(new GraphHandler(graph), reader); break;
-
-                case RdfSerializationFormat.Turtle:
-                    new TurtleParser().Load(graph, reader); break;
-
-                case RdfSerializationFormat.Json:
-                    new RdfJsonParser().Load(graph, reader); break;
-
-                case RdfSerializationFormat.JsonLd:
-                    new JsonLdParser().Load(new GraphHandler(graph), reader); break;
-
-                default:
-                case RdfSerializationFormat.RdfXml:
-                    new RdfXmlParser().Load(graph, reader); break;
-            }
-        }
 
         /// <summary>
         /// Loads a serialized graph from the given String into the current store. See allowed <see cref="RdfSerializationFormat">formats</see>.
@@ -346,7 +314,9 @@ namespace Semiodesk.Trinity.Store
         /// <returns></returns>
         public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update, bool leaveOpen = false)
         {
-            using (TextReader reader = new StreamReader(stream))
+            // leaveOpen has to reach the reader: a plain StreamReader closes the caller's stream
+            // when it is disposed, whatever the flag says.
+            using (TextReader reader = new StreamReader(stream, Encoding.UTF8, true, 1024, leaveOpen))
             {
                 IGraph graph = new Graph(graphUri);
 
@@ -358,9 +328,6 @@ namespace Semiodesk.Trinity.Store
                 }
 
                 _store.Add(graph, update);
-
-                if (!leaveOpen)
-                    stream.Close();
 
                 return graphUri;
             }
@@ -417,11 +384,13 @@ namespace Semiodesk.Trinity.Store
                     }
                 }
             }
-            else if (url.Scheme == "http")
+            // https as well as http: rejecting it returned null rather than raising, so loading a
+            // graph from an https URL failed silently. Fuseki already accepted both.
+            else if (url.Scheme == "http" || url.Scheme == "https")
             {
                 graph = new Graph(graphUri);
 
-                UriLoader.Load(graph, url);
+                LoadGraphFromUrl(graph, url);
             }
 
             if (graph != null)

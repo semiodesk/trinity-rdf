@@ -31,6 +31,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using VDS.RDF;
+using VDS.RDF.Parsing;
+using VDS.RDF.Parsing.Handlers;
 using VDS.RDF.Writing;
 
 namespace Semiodesk.Trinity
@@ -812,6 +814,89 @@ namespace Semiodesk.Trinity
             query.Bind("@subject", subjectUri);
 
             return query;
+        }
+
+        /// <summary>
+        /// Parses a serialized graph in the given format into <paramref name="graph"/>.
+        /// </summary>
+        /// <remarks>
+        /// Lives here rather than in each backend for the same reason as
+        /// <see cref="GroupByTargetGraph"/>: it was written out once per store, and the copies drifted.
+        /// GraphDB's had no <see cref="RdfSerializationFormat.Trig"/> case, so a TriG document read
+        /// through <c>Read(string)</c> or <c>Read(Stream)</c> fell to the RDF/XML arm -- it did not
+        /// route the triples wrongly, it failed to parse them at all, on one backend only. That is the
+        /// hardest version of this bug to notice, and a fourth copy would have been a fourth chance to
+        /// reintroduce it. A new backend gets the behaviour rather than a fourth copy.
+        ///
+        /// The quad formats (NQuads, TriG, JSON-LD) can name graphs of their own. They are loaded
+        /// through a <see cref="GraphHandler"/>, which funnels every quad into <paramref name="graph"/>
+        /// regardless of the name it carried. Callers that must preserve those names read through
+        /// <see cref="GroupByTargetGraph"/> instead.
+        ///
+        /// Public, as each store's own copy was: <c>FusekiStore.TryParse(...)</c> and the like still
+        /// resolve here, so moving it did not break callers outside the assembly.
+        /// </remarks>
+        /// <param name="reader">The text reader to read from.</param>
+        /// <param name="graph">The graph to store the read triples.</param>
+        /// <param name="format">RDF format to be read.</param>
+        public static void TryParse(TextReader reader, IGraph graph, RdfSerializationFormat format)
+        {
+            switch (format)
+            {
+                case RdfSerializationFormat.N3:
+                    new Notation3Parser().Load(graph, reader); break;
+
+                case RdfSerializationFormat.NTriples:
+                    new NTriplesParser().Load(graph, reader); break;
+
+                case RdfSerializationFormat.NQuads:
+                    new NQuadsParser().Load(new GraphHandler(graph), reader); break;
+
+                case RdfSerializationFormat.Trig:
+                    new TriGParser().Load(new GraphHandler(graph), reader); break;
+
+                case RdfSerializationFormat.Turtle:
+                    new TurtleParser().Load(graph, reader); break;
+
+                case RdfSerializationFormat.Json:
+                    new RdfJsonParser().Load(graph, reader); break;
+
+                case RdfSerializationFormat.JsonLd:
+                    new JsonLdParser().Load(new GraphHandler(graph), reader); break;
+
+                case RdfSerializationFormat.RdfXml:
+                default:
+                    new RdfXmlParser().Load(graph, reader); break;
+            }
+        }
+
+        /// <summary>
+        /// The loader used to fetch graphs named by an http(s) URL.
+        /// </summary>
+        /// <remarks>
+        /// One instance for the process, and that is the point. <see cref="Loader"/> replaced the
+        /// static <c>UriLoader</c> dotNetRDF has deprecated, but it is an <i>instance</i> type that
+        /// owns an <see cref="System.Net.Http.HttpClient"/> -- so constructing one per call, which
+        /// is the obvious way to translate the old static call, would open a fresh connection pool
+        /// every time and exhaust sockets under load. Sharing one is what HttpClient is designed
+        /// for.
+        /// </remarks>
+        private static readonly Loader RemoteLoader = new Loader();
+
+        /// <summary>
+        /// Loads the graph published at an http(s) URL into <paramref name="graph"/>.
+        /// </summary>
+        /// <remarks>
+        /// Shared for the same reason as <see cref="TryParse"/> and
+        /// <see cref="GroupByTargetGraph"/>: this was one identical line in five backends, and the
+        /// socket-lifetime question above has one right answer that none of them should have to
+        /// rediscover.
+        /// </remarks>
+        /// <param name="graph">The graph to load into.</param>
+        /// <param name="url">URL of the document to fetch.</param>
+        protected static void LoadGraphFromUrl(IGraph graph, Uri url)
+        {
+            RemoteLoader.LoadGraph(graph, url);
         }
 
         #endregion

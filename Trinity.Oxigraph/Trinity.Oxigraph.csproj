@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <Title>Semiodesk.Trinity.Oxigraph</Title>
+    <Description>This package provides an Oxigraph store adapter for the Trinity RDF ORM.</Description>
+    <AssemblyName>Semiodesk.Trinity.Oxigraph</AssemblyName>
+    <RootNamespace>Semiodesk.Trinity.Store.Oxigraph</RootNamespace>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+
+  <PropertyGroup>
+    <OutputPath>..\Build\$(Configuration)\stores\oxigraph</OutputPath>
+    <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+    <PackageLicenseUrl></PackageLicenseUrl>
+    <PackageProjectUrl>https://trinity-rdf.net</PackageProjectUrl>
+    <PackageIcon>trinity-logo.png</PackageIcon>
+    <RepositoryUrl>https://github.com/semiodesk/trinity-rdf</RepositoryUrl>
+    <PackageTags>RDF SPARQL Database Semantic Object Mapping Linked Data Oxigraph</PackageTags>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <None Include="..\assets\trinity-logo.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="dotNetRdf.Client" />
+    <PackageReference Include="System.Data.Common" />
+    <PackageReference Include="System.Security.Permissions" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\Trinity\Trinity.csproj" />
+  </ItemGroup>
+
+</Project>

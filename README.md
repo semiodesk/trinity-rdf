@@ -153,6 +153,7 @@ behaving like a single model.
 | Virtuoso | `Semiodesk.Trinity.Virtuoso` | `provider=virtuoso;host=<host>;port=1111;uid=<user>;pw=<password>` |
 | GraphDB | `Semiodesk.Trinity.GraphDB` | `provider=graphdb;host=<uri>;uid=<user>;pw=<password>;repository=<id>` |
 | Fuseki | `Semiodesk.Trinity.Fuseki` | `provider=fuseki;host=<uri>;uid=<user>;pw=<password>;dataset=<name>` |
+| Oxigraph | `Semiodesk.Trinity.Oxigraph` | `provider=oxigraph;host=<uri>` |
 
 Backends are registered explicitly at startup:
 
@@ -168,6 +169,12 @@ helper for seeding schema or background graphs at startup.
 > It needs Fuseki 5.1.0 or newer: Jena 4.x answers HTTP 500 to any query mentioning a `urn:uuid:`
 > IRI, which is what `Model.CreateResource()` mints by default. Inferencing is not supported —
 > Fuseki has no per-query inference switch.
+
+> **Oxigraph** is the lightweight backend: a single binary, a small container, and strict SPARQL
+> 1.1. It runs the same store suite and passes it in full. It has **no reasoner at all**, so a
+> query asking for inferencing is **refused** rather than answered without it — an un-inferred
+> answer is indistinguishable from a correct one (ADR-0047). There is no dataset or repository to
+> name: one server holds one dataset, so `host` is the whole configuration.
 
 ## Why RDF
 

@@ -9,8 +9,34 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
 
 ## [Unreleased]
 
+### Added
+
+- **Oxigraph as a fourth store backend** (`Semiodesk.Trinity.Oxigraph`, `provider=oxigraph`). It runs
+  the same shared store suites as Fuseki, GraphDB and Virtuoso and is green on them. Oxigraph has no
+  reasoner, so `inferenceEnabled: true` **throws** instead of being silently ignored — an answer
+  computed without inference looks exactly like a correct one. Being strict, it surfaced three
+  dotNetRDF output defects the other stores tolerate (invalid RDF/XML entity declarations, Turtle with
+  a byte-order mark, a catch-all `Accept` header that lets an `ASK` come back as plain text); the
+  adapter works around all three. ([ADR-0047](doc/adr/0047-oxigraph-store.md))
+
 ### Fixed
 
+- **`Read(..., update: true)` replaced the graph instead of adding to it on Fuseki and GraphDB.** Both
+  wrote through a Graph Store `PUT`, which replaces by definition, so everything the graph already
+  held was lost. The shared test checked only the value just added, so it passed. Additions now go
+  through `UpdateGraph`, as they always did on Virtuoso, and the test checks the value that was
+  already there. ([ADR-0047](doc/adr/0047-oxigraph-store.md))
+- **`Read(stream, ..., leaveOpen: true)` closed the caller's stream on every store**, because disposing a
+  plain `StreamReader` closes the stream beneath it.
+- **Reading TriG from a file returned `null` on Fuseki and GraphDB**, after writing the data. Callers
+  read `null` as failure.
+- **GraphDB parsed an `application/xml` query response twice.** After the fallback parser succeeded,
+  execution went on to a second parser over the already-consumed stream.
+- **TriG read from a string or stream was not parsed on GraphDB.** Each backend had its own copy of the
+  format switch, and GraphDB's had no TriG case, so the document went to the RDF/XML parser. The
+  switch is now shared as `StoreBase.TryParse`. The same change makes `https` URLs work when reading a
+  graph from a URL: GraphDB, Virtuoso and the in-memory store accepted only `http` and returned `null`
+  for `https`.
 - **A bulk write into a model that holds no triples was silently lost on Fuseki.**
   `UpdateResources` scoped its updates with `WITH <g>`, and on Jena a graph-scoped modify against a
   graph containing nothing matches nothing, applies nothing, and answers success — so every resource

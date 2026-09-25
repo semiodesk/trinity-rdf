@@ -21,31 +21,17 @@
 // AUTHORS:
 //
 //  Moritz Eberl <moritz@semiodesk.com>
-//  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2023
+// Copyright (c) Semiodesk GmbH 2026
 
 using NUnit.Framework;
 using Semiodesk.Trinity.Tests.Store;
 
-namespace Semiodesk.Trinity.Tests.Virtuoso
+namespace Semiodesk.Trinity.Tests.Oxigraph
 {
     /// <summary>
-    /// Runs the store-independent model-catalog suite against Virtuoso.
+    /// Runs the store-independent layered-model query corpus against Oxigraph.
     /// </summary>
     [TestFixture]
-    public class VirtuosoCatalogTest : StoreCatalogTest<VirtuosoTestSetup>
-    {
-        /// <summary>
-        /// Quarantined: the Virtuoso manager names the graph of a write by Uri.AbsoluteUri, and ContainsModel does too, which lower-cases the host and re-escapes the path, while the SPARQL
-        /// path uses OriginalString. A graph named with upper case in its host is written under one IRI
-        /// and queried under another. Fixing it means overriding the connector's graph addressing, as
-        /// OxigraphConnector does. See doc/known-test-failures.md.
-        /// </summary>
-        [Test]
-        public override void AGraphIsAddressedByTheExactIriItWasNamedWith()
-        {
-            Assert.Inconclusive("Graph Store writes address the graph by AbsoluteUri, not the exact IRI; see doc/known-test-failures.md.");
-        }
-    }
+    public class OxigraphLayeredModelQueryCorpusTest : LayeredModelQueryCorpusTest<OxigraphTestSetup> { }
 }

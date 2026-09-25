@@ -29,6 +29,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Text;
 using System.Web;
@@ -141,46 +142,54 @@ namespace Semiodesk.Trinity.Store.GraphDB
           parameters["infer"] = "true";
         }
 
-        var request = CreateRequest(url, accept, "POST", parameters);
-        request.ContentType = "application/x-www-form-urlencoded;charset=utf-8";
-        
-        var queryBuilder = new StringBuilder();
-        queryBuilder.Append("query=");
-        queryBuilder.Append(HttpUtility.UrlEncode(this.EscapeQuery(sparqlQuery)));
-        
-        // 3.x removed the global Options class; UTF-8 without a BOM was the default it carried.
-        using (var writer = new StreamWriter(request.GetRequestStream(), new UTF8Encoding(false)))
-        {
-          writer.Write(queryBuilder);
-          writer.Close();
-        }
+        // The HttpMethod overload, not the string one: the latter builds an HttpWebRequest and is
+        // obsolete in dotNetRDF 3.x.
+        var request = CreateRequest(url, accept, HttpMethod.Post, parameters);
 
-        // dotNetRDF 3.x removed Tools.HttpDebugRequest/Response (HTTP debugging is done through
-        // HttpClient logging now), so the former debug hooks are simply gone.
-        using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+        // Encoded by hand, as before the HttpClient move, rather than with FormUrlEncodedContent:
+        // on .NET Framework that type escapes through Uri.EscapeDataString, which throws past about
+        // 64K characters -- a length a batch of VALUES-bound subjects can reach. StringContent
+        // encodes UTF-8 without a BOM.
+        request.Content = new StringContent(
+          "query=" + HttpUtility.UrlEncode(EscapeQuery(sparqlQuery)),
+          new UTF8Encoding(false),
+          "application/x-www-form-urlencoded");
+
+        // GetAwaiter().GetResult() rather than .Result, so a failure surfaces as itself and not
+        // wrapped in an AggregateException.
+        using (var response = HttpClient.SendAsync(request).GetAwaiter().GetResult())
         {
-          var input = new StreamReader(response.GetResponseStream());
-          
+          if (!response.IsSuccessStatusCode)
+          {
+            // The query variant, as before the move: a malformed query is an RdfQueryException.
+            throw StorageHelper.HandleHttpQueryError(response);
+          }
+
+          var contentType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
+          var input = new StreamReader(response.Content.ReadAsStreamAsync().GetAwaiter().GetResult());
+
           try
           {
-            MimeTypesHelper.GetSparqlParser(response.ContentType, allowPlainTextResults).Load(resultsHandler, input);
-            response.Close();
+            MimeTypesHelper.GetSparqlParser(contentType, allowPlainTextResults).Load(resultsHandler, input);
           }
           catch (RdfParserSelectionException)
           {
-            if (response.ContentType.StartsWith("application/xml"))
+            if (contentType.StartsWith("application/xml"))
             {
               try
               {
                 MimeTypesHelper.GetSparqlParser("application/sparql-results+xml").Load(resultsHandler, input);
-                response.Close();
+
+                // Parsed, so done. Falling through handed the already-consumed stream to a second
+                // parser, which either threw or reset the handler.
+                return;
               }
               catch (RdfParserSelectionException)
               {
               }
             }
 
-            var parser = MimeTypesHelper.GetParser(response.ContentType);
+            var parser = MimeTypesHelper.GetParser(contentType);
             
             if (sparqlQuery1 != null && (SparqlSpecsHelper.IsSelectQuery(sparqlQuery1.QueryType) ||
                                          sparqlQuery1.QueryType == VDS.RDF.Query.SparqlQueryType.Ask))
@@ -189,14 +198,18 @@ namespace Semiodesk.Trinity.Store.GraphDB
             {
               parser.Load(rdfHandler, input);
             }
-
-            response.Close();
           }
         }
       }
-      catch (WebException ex)
+      catch (RdfException)
       {
-        throw StorageHelper.HandleHttpQueryError(ex);
+        throw;
+      }
+      catch (Exception ex)
+      {
+        // HttpClient throws HttpRequestException, not WebException, so the old
+        // catch (WebException) could no longer run and transport failures escaped untranslated.
+        throw StorageHelper.HandleError(ex, "querying");
       }
     }
     

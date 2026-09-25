@@ -1,4 +1,4 @@
-﻿// LICENSE:
+// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,31 +21,28 @@
 // AUTHORS:
 //
 //  Moritz Eberl <moritz@semiodesk.com>
-//  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2023
+// Copyright (c) Semiodesk GmbH 2026
 
+using System;
 using NUnit.Framework;
 using Semiodesk.Trinity.Tests.Store;
 
-namespace Semiodesk.Trinity.Tests.Virtuoso
+namespace Semiodesk.Trinity.Tests.Oxigraph
 {
     /// <summary>
-    /// Runs the store-independent model-catalog suite against Virtuoso.
+    /// Runs the store-independent model suite against Oxigraph.
     /// </summary>
     [TestFixture]
-    public class VirtuosoCatalogTest : StoreCatalogTest<VirtuosoTestSetup>
+    public class OxigraphModelTest : ModelTest<OxigraphTestSetup>
     {
         /// <summary>
-        /// Quarantined: the Virtuoso manager names the graph of a write by Uri.AbsoluteUri, and ContainsModel does too, which lower-cases the host and re-escapes the path, while the SPARQL
-        /// path uses OriginalString. A graph named with upper case in its host is written under one IRI
-        /// and queried under another. Fixing it means overriding the connector's graph addressing, as
-        /// OxigraphConnector does. See doc/known-test-failures.md.
+        /// Asserts the refusal rather than skipping it. Oxigraph has no reasoner, so the store refuses a query that asks for inferencing rather than answering it without (ADR-0047). ADR-0022 lets a store ignore the flag -- Fuseki does -- but its Consequences name that as the defect: an un-inferred answer is indistinguishable from a correct one.
         /// </summary>
         [Test]
-        public override void AGraphIsAddressedByTheExactIriItWasNamedWith()
+        public override void GetTypedResourcesWithInferencingTest()
         {
-            Assert.Inconclusive("Graph Store writes address the graph by AbsoluteUri, not the exact IRI; see doc/known-test-failures.md.");
+            Assert.Throws<NotSupportedException>(() => base.GetTypedResourcesWithInferencingTest());
         }
     }
 }

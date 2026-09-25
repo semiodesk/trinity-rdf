@@ -4,7 +4,7 @@
 and packs — it does **not** publish. A maintainer publishes to nuget.org by hand, so no NuGet API
 key and no signing secret lives in the repository or in CI.
 
-Five packages ship together at the **same version** (the single `VersionPrefix` in
+Six packages ship together at the **same version** (the single `VersionPrefix` in
 `Directory.Build.props`):
 
 | Package | Notes |
@@ -13,6 +13,7 @@ Five packages ship together at the **same version** (the single `VersionPrefix` 
 | `Semiodesk.Trinity.Virtuoso` | Virtuoso store backend |
 | `Semiodesk.Trinity.Fuseki` | Fuseki store backend |
 | `Semiodesk.Trinity.GraphDB` | GraphDB store backend |
+| `Semiodesk.Trinity.Oxigraph` | Oxigraph store backend |
 | `Semiodesk.Trinity.Vocabulary.Tool` | **`dotnet tool`**, command `trinity-vocab` (ADR-0014). Installed with `dotnet tool install -g`, not referenced as a package, but published and pushed the same way |
 
 ## Preconditions (gates)
@@ -36,7 +37,7 @@ Do **not** publish until every gate holds:
    - `dotnet test Trinity.Tests/Trinity.Tests.csproj -c Release` → passing, with only the known
      `[Ignore]`d skips (see `doc/known-test-failures.md`).
    - `dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj -c Release` → passing.
-   - Store integration tests (`tests/Trinity.Tests.{Virtuoso,Fuseki,GraphDB}`) need live servers
+   - Store integration tests (`tests/Trinity.Tests.{Virtuoso,Fuseki,GraphDB,Oxigraph}`) need live servers
      and are **not** a release gate.
 6. **nuget.org will accept the push** — packages are pushed **unsigned** (nuget.org applies its own
    repository signature; author/code signing is intentionally not used). Make sure there is **no
@@ -59,6 +60,7 @@ dotnet pack Trinity/Trinity.csproj                   -c Release -o ./artifacts
 dotnet pack Trinity.Virtuoso/Trinity.Virtuoso.csproj -c Release -o ./artifacts
 dotnet pack Trinity.Fuseki/Trinity.Fuseki.csproj     -c Release -o ./artifacts
 dotnet pack Trinity.GraphDB/Trinity.GraphDB.csproj   -c Release -o ./artifacts
+dotnet pack Trinity.Oxigraph/Trinity.Oxigraph.csproj -c Release -o ./artifacts
 dotnet pack Trinity.Vocabulary.Cli/Trinity.Vocabulary.Cli.csproj -c Release -o ./artifacts
 
 # 2. Sanity-check the core package: correct version, and it contains

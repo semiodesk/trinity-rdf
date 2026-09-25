@@ -154,6 +154,88 @@ namespace Semiodesk.Trinity.Tests.Store
             }
         }
 
+        /// <summary>
+        /// TriG read from a string, rather than from a URL.
+        /// </summary>
+        /// <remarks>
+        /// Every other TriG test here goes through <c>Read(Uri, Uri, ...)</c>, which routes by graph
+        /// name through <c>GroupByTargetGraph</c> and never reaches the format switch. So the switch
+        /// was uncovered, and GraphDB's copy of it had no TriG case at all -- a TriG document read
+        /// this way fell through to the RDF/XML arm and was not parsed. Sharing the switch on
+        /// <c>StoreBase</c> fixes that; this test is what would have caught it.
+        ///
+        /// Both graphs collapse into the caller's graph here, which is correct for this overload:
+        /// there is only one target, and a GraphHandler funnels every quad into it. Losing the names
+        /// is the documented behaviour; losing the triples was the defect.
+        /// </remarks>
+        [Test]
+        public virtual void TrigReadFromAStringIsParsedRatherThanSilentlyDropped()
+        {
+            var target = BaseUri.GetUriRef("trig-from-string");
+
+            const string trig =
+                "@prefix ex: <http://example.org/trig/> .\n"
+                + "ex:g1 { ex:s1 ex:p \"one\" . }\n"
+                + "ex:g2 { ex:s2 ex:p \"two\" . }\n";
+
+            Store.Read(trig, target, RdfSerializationFormat.Trig, false);
+
+            Assert.AreEqual(2, Count(target),
+                "both TriG graphs must be parsed into the caller's graph; 0 means the format switch "
+                + "never routed TriG and the document was handed to the wrong parser");
+        }
+
+        /// <summary>
+        /// The stream overload of the same path, which shares the format switch.
+        /// </summary>
+        [Test]
+        public virtual void TrigReadFromAStreamIsParsedRatherThanSilentlyDropped()
+        {
+            var target = BaseUri.GetUriRef("trig-from-stream");
+
+            const string trig =
+                "@prefix ex: <http://example.org/trig/> .\n"
+                + "ex:g3 { ex:s3 ex:p \"three\" . }\n";
+
+            using (var stream = GenerateStreamFromString(trig))
+            {
+                Store.Read(stream, target, RdfSerializationFormat.Trig, false);
+            }
+
+            Assert.AreEqual(1, Count(target), "the stream overload must parse TriG too");
+        }
+
+        /// <summary>
+        /// Reading TriG from a file reports the graph it wrote, as every other read does.
+        /// </summary>
+        /// <remarks>
+        /// The TriG branch writes each graph itself and never sets the single graph the other branches
+        /// write at the end, so it fell through to <c>return null</c> — which callers read as failure,
+        /// after the data had been written. <see cref="UnnamedTrigTriplesGoToTheGraphTheCallerNamed"/>
+        /// takes this path too, but discards the return value.
+        /// </remarks>
+        [Test]
+        public virtual void TrigReadFromAFileReturnsTheGraphItWasReadInto()
+        {
+            var target = BaseUri.GetUriRef("trig-file-return");
+            var subject = BaseUri.GetUriRef("trig-file-subject");
+
+            var file = Path.Combine(Path.GetTempPath(), $"trinity-trig-{Guid.NewGuid():N}.trig");
+
+            File.WriteAllText(file, $"<{target}> {{ <{subject}> <http://example.org/p> \"v\" }}\n");
+
+            try
+            {
+                Assert.AreEqual(target, Store.Read(target, new Uri(file), RdfSerializationFormat.Trig, false));
+                Assert.AreEqual(1, Count(target));
+            }
+            finally
+            {
+                File.Delete(file);
+                Store.GetModel(target).Clear();
+            }
+        }
+
         private bool HasAxiom()
         {
             var query = new SparqlQuery(
