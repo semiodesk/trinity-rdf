@@ -21,6 +21,17 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
 
 ### Fixed
 
+- **`Read(..., update: true)` replaced the graph instead of adding to it on Fuseki and GraphDB.** Both
+  wrote through a Graph Store `PUT`, which replaces by definition, so everything the graph already
+  held was lost. The shared test checked only the value just added, so it passed. Additions now go
+  through `UpdateGraph`, as they always did on Virtuoso, and the test checks the value that was
+  already there. ([ADR-0047](doc/adr/0047-oxigraph-store.md))
+- **`Read(stream, ..., leaveOpen: true)` closed the caller's stream on every store**, because disposing a
+  plain `StreamReader` closes the stream beneath it.
+- **Reading TriG from a file returned `null` on Fuseki and GraphDB**, after writing the data. Callers
+  read `null` as failure.
+- **GraphDB parsed an `application/xml` query response twice.** After the fallback parser succeeded,
+  execution went on to a second parser over the already-consumed stream.
 - **TriG read from a string or stream was not parsed on GraphDB.** Each backend had its own copy of the
   format switch, and GraphDB's had no TriG case, so the document went to the RDF/XML parser. The
   switch is now shared as `StoreBase.TryParse`. The same change makes `https` URLs work when reading a

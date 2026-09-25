@@ -28,6 +28,7 @@ using Semiodesk.Trinity.Extensions;
 using System.Collections.Generic;
 using System.IO;
 using System;
+using System.Text;
 using VDS.RDF.Parsing.Handlers;
 using VDS.RDF.Parsing;
 using VDS.RDF.Query;
@@ -124,7 +125,9 @@ namespace Semiodesk.Trinity.Store.Oxigraph
                 throw new NotSupportedException("This store does not support the deletion of graphs.");
             }
 
-            Connector.DeleteGraph(uri);
+            // The string overloads with OriginalString: the Uri ones name the graph by AbsoluteUri,
+            // which is a different IRI whenever the host has upper case or the path re-escapes.
+            Connector.DeleteGraph(uri.OriginalString);
         }
 
         /// <summary>
@@ -135,7 +138,7 @@ namespace Semiodesk.Trinity.Store.Oxigraph
         [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
         public override bool ContainsModel(Uri uri)
         {
-            return uri != null && Connector.HasGraph(uri);
+            return uri != null && Connector.HasGraph(uri.OriginalString);
         }
 
         /// <summary>
@@ -152,8 +155,8 @@ namespace Semiodesk.Trinity.Store.Oxigraph
             if (resource.IsNew)
             {
                 updateString = string.Format(@"
-                    INSERT DATA {{ GRAPH <{0}> {{  {1} }} }} ",
-                    modelUri.OriginalString,
+                    INSERT DATA {{ GRAPH {0} {{  {1} }} }} ",
+                    SparqlSerializer.SerializeUri(modelUri),
                     SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
             }
             else if (TryBuildDeltaUpdate(resource, modelUri, ignoreUnmappedProperties, out updateString))
@@ -177,9 +180,9 @@ namespace Semiodesk.Trinity.Store.Oxigraph
                 // each time, so a blank-node-valued link is duplicated once per triple the subject
                 // already had.
                 updateString = string.Format(@"
-                    DELETE WHERE {{ GRAPH <{0}> {{ {1} ?p ?o. }} }} ;
-                    INSERT DATA {{ GRAPH <{0}> {{ {2} }} }} ",
-                    modelUri.OriginalString,
+                    DELETE WHERE {{ GRAPH {0} {{ {1} ?p ?o. }} }} ;
+                    INSERT DATA {{ GRAPH {0} {{ {2} }} }} ",
+                    SparqlSerializer.SerializeUri(modelUri),
                     SparqlSerializer.SerializeUri(resource.Uri),
                     SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
             }
@@ -234,7 +237,29 @@ namespace Semiodesk.Trinity.Store.Oxigraph
             }
 
             var q = query.ToString();
-            var results = ExecuteQuery(q);
+
+            Log?.Invoke(q);
+
+            // The form is known here, so the connector need not parse the query again to learn it --
+            // this is the path every lazy load and LINQ query takes.
+            bool? expectsResultSet;
+
+            switch (query.QueryType)
+            {
+                case SparqlQueryType.Select:
+                case SparqlQueryType.Ask:
+                    expectsResultSet = true;
+                    break;
+                case SparqlQueryType.Construct:
+                case SparqlQueryType.Describe:
+                    expectsResultSet = false;
+                    break;
+                default:
+                    expectsResultSet = null;
+                    break;
+            }
+
+            var results = Connector.Query(q, expectsResultSet);
 
             switch (results)
             {
@@ -304,8 +329,6 @@ namespace Semiodesk.Trinity.Store.Oxigraph
         /// <returns></returns>
         public override Uri Read(string content, Uri graphUri, RdfSerializationFormat format, bool update)
         {
-            var exists = Connector.HasGraph(graphUri);
-            
             using (StringReader reader = new StringReader(content))
             {
                 IGraph graph = new Graph(graphUri);
@@ -316,13 +339,7 @@ namespace Semiodesk.Trinity.Store.Oxigraph
                 // dotNetRDF connectors still derive the graph they write to from BaseUri.
                 graph.BaseUri = graphUri;
 
-
-                if (!update && exists)
-                {
-                    Connector.DeleteGraph(graphUri);
-                }
-
-                Connector.SaveGraph(graph);
+                Write(graph, update);
 
                 return graphUri;
             }
@@ -338,9 +355,9 @@ namespace Semiodesk.Trinity.Store.Oxigraph
         /// <returns></returns>
         public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update, bool leaveOpen = false)
         {
-            var exists = Connector.HasGraph(graphUri);
-            
-            using (TextReader reader = new StreamReader(stream))
+            // The reader owns the stream unless told otherwise, so leaveOpen has to reach it: a plain
+            // StreamReader closes the caller's stream when it is disposed, whatever the flag says.
+            using (TextReader reader = new StreamReader(stream, Encoding.UTF8, true, 1024, leaveOpen))
             {
                 IGraph graph = new Graph(graphUri);
 
@@ -350,18 +367,7 @@ namespace Semiodesk.Trinity.Store.Oxigraph
                 // dotNetRDF connectors still derive the graph they write to from BaseUri.
                 graph.BaseUri = graphUri;
 
-
-                if (!update && exists)
-                {
-                    Connector.DeleteGraph(graphUri);
-                }
-
-                Connector.SaveGraph(graph);
-
-                if (!leaveOpen)
-                {
-                    stream.Close();
-                }
+                Write(graph, update);
 
                 return graphUri;
             }
@@ -378,8 +384,6 @@ namespace Semiodesk.Trinity.Store.Oxigraph
         public override Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update)
         {
             IGraph graph = null;
-            
-            var exists = Connector.HasGraph(graphUri);
 
             if (url.AbsoluteUri.StartsWith("file:"))
             {
@@ -418,13 +422,12 @@ namespace Semiodesk.Trinity.Store.Oxigraph
                         // have the second replace the first.
                         foreach (var target in GroupByTargetGraph(s, graphUri))
                         {
-                            if (!update && Connector.HasGraph(target.Uri))
-                            {
-                                Connector.DeleteGraph(target.Uri);
-                            }
-
-                            Connector.SaveGraph(target.Graph);
+                            Write(target.Graph, update);
                         }
+
+                        // Every graph is written above, so there is no single one left for the end
+                        // of the method -- which returned null here, and callers read null as failure.
+                        return graphUri;
                     }
                     else
                     {
@@ -451,17 +454,31 @@ namespace Semiodesk.Trinity.Store.Oxigraph
 
             if (graph != null)
             {
-                if (!update && exists)
-                {
-                    Connector.DeleteGraph(graphUri);
-                }
-
-                Connector.SaveGraph(graph);
+                Write(graph, update);
 
                 return graphUri;
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Writes a parsed graph under its name, adding to or replacing what the store holds there.
+        /// </summary>
+        /// <remarks>
+        /// A replace needs no delete first: <see cref="OxigraphConnector.SaveGraph"/> is a Graph Store
+        /// <c>PUT</c>, which replaces by definition. That is also why an add must not use it.
+        /// </remarks>
+        private void Write(IGraph graph, bool update)
+        {
+            if (update)
+            {
+                Connector.AppendGraph(graph);
+            }
+            else
+            {
+                Connector.SaveGraph(graph);
+            }
         }
 
 
@@ -478,11 +495,11 @@ namespace Semiodesk.Trinity.Store.Oxigraph
         /// <returns></returns>
         public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false)
         {
-            if (Connector.HasGraph(graphUri))
+            if (Connector.HasGraph(graphUri.OriginalString))
             {
                 IGraph graph = new Graph(graphUri);
                 
-                Connector.LoadGraph(graph, graphUri);
+                Connector.LoadGraph(graph, graphUri.OriginalString);
 
                 if (namespaces != null)
                 {
@@ -508,11 +525,11 @@ namespace Semiodesk.Trinity.Store.Oxigraph
         /// <returns></returns>
         public override void Write(Stream stream, Uri graphUri, IRdfWriter formatWriter, bool leaveOpen = false)
         {
-            if (Connector.HasGraph(graphUri))
+            if (Connector.HasGraph(graphUri.OriginalString))
             {
                 IGraph graph = new Graph(graphUri);
                 
-                Connector.LoadGraph(graph, graphUri);
+                Connector.LoadGraph(graph, graphUri.OriginalString);
 
                 Write(stream, graph, formatWriter, leaveOpen);
             }

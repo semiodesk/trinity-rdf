@@ -832,11 +832,14 @@ namespace Semiodesk.Trinity
         /// through a <see cref="GraphHandler"/>, which funnels every quad into <paramref name="graph"/>
         /// regardless of the name it carried. Callers that must preserve those names read through
         /// <see cref="GroupByTargetGraph"/> instead.
+        ///
+        /// Public, as each store's own copy was: <c>FusekiStore.TryParse(...)</c> and the like still
+        /// resolve here, so moving it did not break callers outside the assembly.
         /// </remarks>
         /// <param name="reader">The text reader to read from.</param>
         /// <param name="graph">The graph to store the read triples.</param>
         /// <param name="format">RDF format to be read.</param>
-        protected static void TryParse(TextReader reader, IGraph graph, RdfSerializationFormat format)
+        public static void TryParse(TextReader reader, IGraph graph, RdfSerializationFormat format)
         {
             switch (format)
             {

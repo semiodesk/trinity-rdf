@@ -950,5 +950,128 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         #endregion
+
+        #region Reading into a model
+
+        /// <summary>
+        /// Reads Turtle into <see cref="Model1"/> through the overload the test case names.
+        /// </summary>
+        private void ReadThrough(string overload, string turtle, bool update)
+        {
+            switch (overload)
+            {
+                case "string":
+                    Assert.IsTrue(Model1.Read(turtle, RdfSerializationFormat.Turtle, update));
+                    break;
+
+                case "stream":
+                    using (var stream = GenerateStreamFromString(turtle))
+                    {
+                        Assert.IsTrue(Model1.Read(stream, RdfSerializationFormat.Turtle, update));
+                    }
+                    break;
+
+                case "file":
+                    var file = Path.Combine(Path.GetTempPath(), $"trinity-read-{Guid.NewGuid():N}.ttl");
+
+                    File.WriteAllText(file, turtle);
+
+                    try
+                    {
+                        Assert.IsTrue(Model1.Read(new Uri(file), RdfSerializationFormat.Turtle, update));
+                    }
+                    finally
+                    {
+                        File.Delete(file);
+                    }
+                    break;
+
+                default:
+                    throw new ArgumentException(overload, nameof(overload));
+            }
+        }
+
+        private static string NameOf(Uri subject) => $"<{subject}> <http://xmlns.com/foaf/0.1/name> \"Green Goblin\" .";
+
+        private static string AgeOf(Uri subject) => $"<{subject}> <http://xmlns.com/foaf/0.1/age> \"27\"^^<http://www.w3.org/2001/XMLSchema#int> .";
+
+        /// <summary>
+        /// <c>update: true</c> adds to what the model already holds.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="ReadFromStringTest"/> covers the same call but only asserts the value it just
+        /// added, so it passed on a backend whose append was a replace: Oxigraph's Graph Store write
+        /// was always an HTTP <c>PUT</c>, which replaces the graph, so skipping the delete when
+        /// updating changed nothing. The value that was already there is the one to check.
+        /// </remarks>
+        [TestCase("string")]
+        [TestCase("stream")]
+        [TestCase("file")]
+        public virtual void ReadWithUpdateAddsToTheModel(string overload)
+        {
+            var subject = BaseUri.GetUriRef("read-append");
+
+            ReadThrough(overload, NameOf(subject), false);
+            ReadThrough(overload, AgeOf(subject), true);
+
+            var resource = Model1.GetResource(subject);
+
+            Assert.AreEqual("Green Goblin", resource.GetValue(foaf.name), "the value already in the model must survive");
+            Assert.AreEqual(27, resource.GetValue(foaf.age), "...alongside the one just added");
+        }
+
+        /// <summary>
+        /// <c>update: false</c> replaces what the model held — the other half of the contract, so a fix
+        /// for appending cannot pass by never replacing.
+        /// </summary>
+        [TestCase("string")]
+        [TestCase("stream")]
+        [TestCase("file")]
+        public virtual void ReadWithoutUpdateReplacesTheModel(string overload)
+        {
+            var subject = BaseUri.GetUriRef("read-replace");
+
+            ReadThrough(overload, NameOf(subject), false);
+            ReadThrough(overload, AgeOf(subject), false);
+
+            var resource = Model1.GetResource(subject);
+
+            Assert.IsFalse(resource.HasProperty(foaf.name), "the value from the first read must be gone");
+            Assert.AreEqual(27, resource.GetValue(foaf.age));
+        }
+
+        /// <summary>
+        /// <c>leaveOpen: true</c> leaves the caller's stream usable.
+        /// </summary>
+        /// <remarks>
+        /// Wrapping the stream in a <see cref="StreamReader"/> and disposing that reader closes the
+        /// stream underneath it, whatever the flag says.
+        /// </remarks>
+        [Test]
+        public virtual void ReadFromStreamLeavesItOpenWhenAsked()
+        {
+            using (var stream = GenerateStreamFromString(NameOf(BaseUri.GetUriRef("read-open"))))
+            {
+                Store.Read(stream, Model1.Uri, RdfSerializationFormat.Turtle, false, leaveOpen: true);
+
+                Assert.IsTrue(stream.CanRead, "the caller asked for the stream to be left open");
+            }
+        }
+
+        /// <summary>
+        /// <c>leaveOpen: false</c>, the default, closes it.
+        /// </summary>
+        [Test]
+        public virtual void ReadFromStreamClosesItByDefault()
+        {
+            using (var stream = GenerateStreamFromString(NameOf(BaseUri.GetUriRef("read-closed"))))
+            {
+                Store.Read(stream, Model1.Uri, RdfSerializationFormat.Turtle, false);
+
+                Assert.IsFalse(stream.CanRead);
+            }
+        }
+
+        #endregion
     }
 }

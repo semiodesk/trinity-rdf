@@ -29,6 +29,7 @@ using Semiodesk.Trinity.Extensions;
 using System.Collections.Generic;
 using System.IO;
 using System;
+using System.Text;
 using VDS.RDF.Parsing.Handlers;
 using VDS.RDF.Parsing;
 using VDS.RDF.Query;
@@ -166,8 +167,8 @@ namespace Semiodesk.Trinity.Store.Fuseki
             if (resource.IsNew)
             {
                 updateString = string.Format(@"
-                    INSERT DATA {{ GRAPH <{0}> {{  {1} }} }} ",
-                    modelUri.OriginalString,
+                    INSERT DATA {{ GRAPH {0} {{  {1} }} }} ",
+                    SparqlSerializer.SerializeUri(modelUri),
                     SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
             }
             else if (TryBuildDeltaUpdate(resource, modelUri, ignoreUnmappedProperties, out updateString))
@@ -191,9 +192,9 @@ namespace Semiodesk.Trinity.Store.Fuseki
                 // each time, so a blank-node-valued link is duplicated once per triple the subject
                 // already had. Measured on this backend, not inferred.
                 updateString = string.Format(@"
-                    DELETE WHERE {{ GRAPH <{0}> {{ {1} ?p ?o. }} }} ;
-                    INSERT DATA {{ GRAPH <{0}> {{ {2} }} }} ",
-                    modelUri.OriginalString,
+                    DELETE WHERE {{ GRAPH {0} {{ {1} ?p ?o. }} }} ;
+                    INSERT DATA {{ GRAPH {0} {{ {2} }} }} ",
+                    SparqlSerializer.SerializeUri(modelUri),
                     SparqlSerializer.SerializeUri(resource.Uri),
                     SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
             }
@@ -317,12 +318,21 @@ namespace Semiodesk.Trinity.Store.Fuseki
                 graph.BaseUri = graphUri;
 
 
-                if (!update && exists)
+                // SaveGraph is a Graph Store PUT, which replaces the graph, so adding has to go through
+                // UpdateGraph -- as VirtuosoStore always did. Skipping the delete was not enough.
+                if (update)
                 {
-                    Connector.DeleteGraph(graphUri);
+                    Connector.UpdateGraph(graphUri, graph.Triples, new Triple[0]);
                 }
+                else
+                {
+                    if (exists)
+                    {
+                        Connector.DeleteGraph(graphUri);
+                    }
 
-                Connector.SaveGraph(graph);
+                    Connector.SaveGraph(graph);
+                }
 
                 return graphUri;
             }
@@ -340,7 +350,9 @@ namespace Semiodesk.Trinity.Store.Fuseki
         {
             var exists = Connector.HasGraph(graphUri);
             
-            using (TextReader reader = new StreamReader(stream))
+            // leaveOpen has to reach the reader: a plain StreamReader closes the caller's stream
+            // when it is disposed, whatever the flag says.
+            using (TextReader reader = new StreamReader(stream, Encoding.UTF8, true, 1024, leaveOpen))
             {
                 IGraph graph = new Graph(graphUri);
 
@@ -351,16 +363,20 @@ namespace Semiodesk.Trinity.Store.Fuseki
                 graph.BaseUri = graphUri;
 
 
-                if (!update && exists)
+                // SaveGraph is a Graph Store PUT, which replaces the graph, so adding has to go through
+                // UpdateGraph -- as VirtuosoStore always did. Skipping the delete was not enough.
+                if (update)
                 {
-                    Connector.DeleteGraph(graphUri);
+                    Connector.UpdateGraph(graphUri, graph.Triples, new Triple[0]);
                 }
-
-                Connector.SaveGraph(graph);
-
-                if (!leaveOpen)
+                else
                 {
-                    stream.Close();
+                    if (exists)
+                    {
+                        Connector.DeleteGraph(graphUri);
+                    }
+
+                    Connector.SaveGraph(graph);
                 }
 
                 return graphUri;
@@ -418,13 +434,24 @@ namespace Semiodesk.Trinity.Store.Fuseki
                         // have the second replace the first.
                         foreach (var target in GroupByTargetGraph(s, graphUri))
                         {
-                            if (!update && Connector.HasGraph(target.Uri))
+                            if (update)
                             {
-                                Connector.DeleteGraph(target.Uri);
+                                Connector.UpdateGraph(target.Uri, target.Graph.Triples, new Triple[0]);
                             }
+                            else
+                            {
+                                if (Connector.HasGraph(target.Uri))
+                                {
+                                    Connector.DeleteGraph(target.Uri);
+                                }
 
-                            Connector.SaveGraph(target.Graph);
+                                Connector.SaveGraph(target.Graph);
+                            }
                         }
+
+                        // Every graph is written above, so there is no single one left for the end of the
+                        // method -- which returned null here, and callers read null as failure.
+                        return graphUri;
                     }
                     else
                     {
@@ -451,12 +478,21 @@ namespace Semiodesk.Trinity.Store.Fuseki
 
             if (graph != null)
             {
-                if (!update && exists)
+                // SaveGraph is a Graph Store PUT, which replaces the graph, so adding has to go through
+                // UpdateGraph -- as VirtuosoStore always did. Skipping the delete was not enough.
+                if (update)
                 {
-                    Connector.DeleteGraph(graphUri);
+                    Connector.UpdateGraph(graphUri, graph.Triples, new Triple[0]);
                 }
+                else
+                {
+                    if (exists)
+                    {
+                        Connector.DeleteGraph(graphUri);
+                    }
 
-                Connector.SaveGraph(graph);
+                    Connector.SaveGraph(graph);
+                }
 
                 return graphUri;
             }

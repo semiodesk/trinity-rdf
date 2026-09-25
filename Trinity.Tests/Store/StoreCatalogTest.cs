@@ -26,6 +26,7 @@
 // Copyright (c) Semiodesk GmbH 2023
 
 using System;
+using System.Linq;
 using NUnit.Framework;
 
 namespace Semiodesk.Trinity.Tests.Store
@@ -86,6 +87,42 @@ namespace Semiodesk.Trinity.Tests.Store
         {
             Assert.IsFalse(Store.ContainsModel((Uri)null));
             Assert.IsFalse(Store.ContainsModel((IModel)null));
+        }
+
+        /// <summary>
+        /// A graph is addressed by exactly the IRI it was named with, whichever path reaches it.
+        /// </summary>
+        /// <remarks>
+        /// RDF compares IRIs as strings, so <c>http://Example.org/g</c> and <c>http://example.org/g</c>
+        /// are two graphs. <see cref="Uri.AbsoluteUri"/> is not the IRI: it lower-cases the host and
+        /// re-escapes the path. A Graph Store Protocol write that names the graph by
+        /// <c>AbsoluteUri</c> while the SPARQL path uses <c>OriginalString</c> puts the data where
+        /// neither SPARQL nor <see cref="IStore.ListModels"/> will find it under the caller's name.
+        /// </remarks>
+        [Test]
+        public virtual void AGraphIsAddressedByTheExactIriItWasNamedWith()
+        {
+            var graph = new UriRef("http://Example.org/trinity/CatalogCase");
+            var subject = new UriRef("http://example.org/trinity/catalog-case-subject");
+
+            try
+            {
+                // A Read goes through the Graph Store path on the HTTP backends...
+                Store.Read($"<{subject}> <http://example.org/p> \"v\" .", graph, RdfSerializationFormat.Turtle, false);
+
+                // ...and ContainsResource through SPARQL.
+                Assert.IsTrue(Store.GetModel(graph).ContainsResource(subject),
+                    "SPARQL must find what the Graph Store write put under this exact name");
+                Assert.IsTrue(Store.ListModels().Any(m => m.Uri.OriginalString == graph.OriginalString),
+                    "ListModels must report the name as it was written");
+            }
+            finally
+            {
+                Store.GetModel(graph).Clear();
+
+                // Where a broken write actually put it, so a failure here does not leak into other tests.
+                Store.GetModel(new Uri(graph.AbsoluteUri)).Clear();
+            }
         }
     }
 #pragma warning restore CS0618

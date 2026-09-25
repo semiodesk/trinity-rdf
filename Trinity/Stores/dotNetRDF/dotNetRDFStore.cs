@@ -27,6 +27,7 @@
 
 using Semiodesk.Trinity.Extensions;
 using System;
+using System.Text;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -313,7 +314,9 @@ namespace Semiodesk.Trinity.Store
         /// <returns></returns>
         public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update, bool leaveOpen = false)
         {
-            using (TextReader reader = new StreamReader(stream))
+            // leaveOpen has to reach the reader: a plain StreamReader closes the caller's stream
+            // when it is disposed, whatever the flag says.
+            using (TextReader reader = new StreamReader(stream, Encoding.UTF8, true, 1024, leaveOpen))
             {
                 IGraph graph = new Graph(graphUri);
 
@@ -325,9 +328,6 @@ namespace Semiodesk.Trinity.Store
                 }
 
                 _store.Add(graph, update);
-
-                if (!leaveOpen)
-                    stream.Close();
 
                 return graphUri;
             }

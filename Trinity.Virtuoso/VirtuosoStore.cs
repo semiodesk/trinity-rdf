@@ -464,7 +464,9 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
         public override Uri Read(Stream stream, Uri graph, RdfSerializationFormat format, bool update, bool leaveOpen = false)
         {
-            using (TextReader reader = new StreamReader(stream))
+            // leaveOpen has to reach the reader: a plain StreamReader closes the caller's stream
+            // when it is disposed, whatever the flag says.
+            using (TextReader reader = new StreamReader(stream, Encoding.UTF8, true, 1024, leaveOpen))
             {
                 if (format == RdfSerializationFormat.Trig || format == RdfSerializationFormat.NQuads || format == RdfSerializationFormat.JsonLd)
                 {

@@ -139,14 +139,30 @@ namespace Semiodesk.Trinity.Store.Oxigraph
         /// <summary>
         /// Executes a SPARQL query against the Oxigraph server.
         /// </summary>
+        /// <remarks>
+        /// Parses the query to learn its form. Callers that already know it should use
+        /// <see cref="Query(string, bool?)"/>, which does not parse.
+        /// </remarks>
         /// <param name="sparqlQuery">SPARQL query.</param>
         /// <returns>A <see cref="SparqlResultSet"/> or an <see cref="IGraph"/>, by query form.</returns>
         public object Query(string sparqlQuery)
         {
+            return Query(sparqlQuery, ExpectsResultSet(sparqlQuery));
+        }
+
+        /// <summary>
+        /// Executes a SPARQL query whose form the caller already knows.
+        /// </summary>
+        /// <param name="sparqlQuery">SPARQL query.</param>
+        /// <param name="expectsResultSet"><c>true</c> for SELECT and ASK, <c>false</c> for CONSTRUCT and
+        /// DESCRIBE, <c>null</c> if unknown.</param>
+        /// <returns>A <see cref="SparqlResultSet"/> or an <see cref="IGraph"/>, by query form.</returns>
+        public object Query(string sparqlQuery, bool? expectsResultSet)
+        {
             var graph = new Graph();
             var results = new SparqlResultSet();
 
-            Query(new GraphHandler(graph), new ResultSetHandler(results), sparqlQuery);
+            Query(new GraphHandler(graph), new ResultSetHandler(results), sparqlQuery, expectsResultSet);
 
             return results.ResultsType != SparqlResultsType.Unknown ? (object)results : graph;
         }
@@ -159,6 +175,33 @@ namespace Semiodesk.Trinity.Store.Oxigraph
         /// <param name="sparqlQuery">SPARQL query.</param>
         public virtual void Query(IRdfHandler rdfHandler, ISparqlResultsHandler resultsHandler, string sparqlQuery)
         {
+            Query(rdfHandler, resultsHandler, sparqlQuery, ExpectsResultSet(sparqlQuery));
+        }
+
+        /// <summary>
+        /// Executes a SPARQL query whose form the caller already knows, processing the results with
+        /// the given handlers.
+        /// </summary>
+        /// <remarks>
+        /// The form picks both the Accept header and the parser. Neither can be left to the response
+        /// content type:
+        /// <list type="bullet">
+        /// <item>A catch-all Accept header includes the plain-text result formats, and Oxigraph will
+        /// negotiate to them: an ASK then comes back as the five bytes <c>false</c>, which is neither a
+        /// SPARQL result document nor RDF. GraphDB's connector carries the same caveat.</item>
+        /// <item>dotNetRDF maps <c>application/rdf+xml</c> and <c>application/xml</c> to its SPARQL
+        /// results parser, so a CONSTRUCT answered in RDF/XML would be handed to the wrong one.</item>
+        /// </list>
+        /// Only when the form is unknown — a raw query string the strict parser rejects — does the
+        /// content type decide.
+        /// </remarks>
+        /// <param name="rdfHandler">Handler for a graph result.</param>
+        /// <param name="resultsHandler">Handler for a result set.</param>
+        /// <param name="sparqlQuery">SPARQL query.</param>
+        /// <param name="expectsResultSet"><c>true</c> for SELECT and ASK, <c>false</c> for CONSTRUCT and
+        /// DESCRIBE, <c>null</c> if unknown.</param>
+        public virtual void Query(IRdfHandler rdfHandler, ISparqlResultsHandler resultsHandler, string sparqlQuery, bool? expectsResultSet)
+        {
             try
             {
                 // POST with application/sparql-query rather than a GET with the query in the URL:
@@ -169,9 +212,13 @@ namespace Semiodesk.Trinity.Store.Oxigraph
                     Content = new StringContent(sparqlQuery, Encoding.UTF8, MimeTypesHelper.SparqlQuery)
                 };
 
-                request.Headers.Add("Accept", AcceptFor(sparqlQuery));
+                request.Headers.Add("Accept", expectsResultSet == true
+                    ? MimeTypesHelper.HttpSparqlAcceptHeader
+                    : expectsResultSet == false
+                        ? MimeTypesHelper.HttpAcceptHeader
+                        : MimeTypesHelper.HttpRdfOrSparqlAcceptHeader);
 
-                using (var response = HttpClient.SendAsync(request).Result)
+                using (var response = HttpClient.SendAsync(request).GetAwaiter().GetResult())
                 {
                     if (!response.IsSuccessStatusCode)
                     {
@@ -180,32 +227,28 @@ namespace Semiodesk.Trinity.Store.Oxigraph
 
                     var contentType = response.Content.Headers.ContentType?.MediaType;
 
-                    using (var stream = response.Content.ReadAsStreamAsync().Result)
+                    using (var stream = response.Content.ReadAsStreamAsync().GetAwaiter().GetResult())
                     using (var reader = new StreamReader(stream))
                     {
-                        // ASK and SELECT come back as results; CONSTRUCT and DESCRIBE come back as a
-                        // graph. Which one it is can only be known from the response content type.
-                        try
+                        if (expectsResultSet == true)
                         {
-                            ISparqlResultsReader resultsReader = MimeTypesHelper.GetSparqlParser(contentType);
-
-                            resultsReader.Load(resultsHandler, reader);
-
-                            return;
+                            MimeTypesHelper.GetSparqlParser(contentType).Load(resultsHandler, reader);
                         }
-                        catch (RdfParserSelectionException)
+                        else if (expectsResultSet == false)
                         {
-                            // Not a results format, so it is RDF.
+                            MimeTypesHelper.GetParser(contentType).Load(rdfHandler, reader);
                         }
-
-                        IRdfReader rdfReader = MimeTypesHelper.GetParser(contentType);
-
-                        rdfReader.Load(rdfHandler, reader);
+                        else
+                        {
+                            LoadByContentType(rdfHandler, resultsHandler, reader, contentType);
+                        }
                     }
                 }
             }
-            catch (RdfStorageException)
+            catch (RdfException)
             {
+                // Includes the RdfQueryException a rejected query produces, which is not a storage
+                // exception and must not be re-wrapped as one.
                 throw;
             }
             catch (Exception ex)
@@ -214,35 +257,38 @@ namespace Semiodesk.Trinity.Store.Oxigraph
             }
         }
 
-        /// <summary>
-        /// The Accept header to send for a given query.
-        /// </summary>
-        /// <remarks>
-        /// Chosen by query form rather than sent as one catch-all list, because the catch-all
-        /// includes the plain-text result formats and Oxigraph will negotiate to them: an ASK then
-        /// comes back as the five bytes <c>false</c>, which is not a SPARQL result document and not
-        /// RDF, and the response fails to parse rather than answering the question. GraphDB's
-        /// connector carries the same caveat in its own words ("this query fails if
-        /// allowPlainTextResults is true, which is the default in dotNetRdf").
-        ///
-        /// A query that will not parse gets the catch-all: the server, not the Accept header, is
-        /// the right thing to be refused by.
-        /// </remarks>
-        /// <param name="sparqlQuery">The query about to be sent.</param>
-        private static string AcceptFor(string sparqlQuery)
+        private static void LoadByContentType(IRdfHandler rdfHandler, ISparqlResultsHandler resultsHandler, TextReader reader, string contentType)
         {
             try
             {
-                var parsed = new SparqlQueryParser().ParseFromString(sparqlQuery);
+                MimeTypesHelper.GetSparqlParser(contentType).Load(resultsHandler, reader);
 
-                return SparqlSpecsHelper.IsSelectQuery(parsed.QueryType)
-                       || parsed.QueryType == VDS.RDF.Query.SparqlQueryType.Ask
-                    ? MimeTypesHelper.HttpSparqlAcceptHeader
-                    : MimeTypesHelper.HttpAcceptHeader;
+                return;
             }
-            catch
+            catch (RdfParserSelectionException)
             {
-                return MimeTypesHelper.HttpRdfOrSparqlAcceptHeader;
+                // Not a results format, so it is RDF.
+            }
+
+            MimeTypesHelper.GetParser(contentType).Load(rdfHandler, reader);
+        }
+
+        /// <summary>
+        /// Whether a query answers with a result set, by parsing it.
+        /// </summary>
+        /// <returns><c>true</c> for SELECT and ASK, <c>false</c> for CONSTRUCT and DESCRIBE, <c>null</c>
+        /// for a query the strict parser rejects — the server, not this guess, should refuse it.</returns>
+        private static bool? ExpectsResultSet(string sparqlQuery)
+        {
+            try
+            {
+                var type = new SparqlQueryParser().ParseFromString(sparqlQuery).QueryType;
+
+                return SparqlSpecsHelper.IsSelectQuery(type) || type == VDS.RDF.Query.SparqlQueryType.Ask;
+            }
+            catch (RdfParseException)
+            {
+                return null;
             }
         }
 
@@ -259,7 +305,7 @@ namespace Semiodesk.Trinity.Store.Oxigraph
                     Content = new StringContent(sparqlUpdate, Encoding.UTF8, MimeTypesHelper.SparqlUpdate)
                 };
 
-                using (var response = HttpClient.SendAsync(request).Result)
+                using (var response = HttpClient.SendAsync(request).GetAwaiter().GetResult())
                 {
                     if (!response.IsSuccessStatusCode)
                     {
@@ -301,6 +347,25 @@ namespace Semiodesk.Trinity.Store.Oxigraph
         /// goes to the default graph.</param>
         public override void SaveGraph(IGraph g)
         {
+            Send(HttpMethod.Put, g, "saving a Graph to");
+        }
+
+        /// <summary>
+        /// Adds a graph's triples to what the server holds under that name.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="SaveGraph"/> is an HTTP <c>PUT</c>, which the Graph Store Protocol defines as a
+        /// replace; adding is a <c>POST</c>. A store that meant to add but called <c>SaveGraph</c>
+        /// lost everything the graph already held.
+        /// </remarks>
+        /// <param name="g">The triples to add. Its name selects the target graph.</param>
+        public void AppendGraph(IGraph g)
+        {
+            Send(HttpMethod.Post, g, "adding to a Graph in");
+        }
+
+        private void Send(HttpMethod method, IGraph g, string action)
+        {
             if (g == null)
             {
                 throw new ArgumentNullException(nameof(g));
@@ -317,17 +382,17 @@ namespace Semiodesk.Trinity.Store.Oxigraph
                     body = writer.ToString();
                 }
 
-                var request = new HttpRequestMessage(HttpMethod.Put, GraphEndpoint(g.Name))
+                var request = new HttpRequestMessage(method, GraphEndpoint(g.Name))
                 {
                     // UTF8Encoding(false) rather than Encoding.UTF8: the latter prefixes a BOM.
                     Content = new StringContent(body, new UTF8Encoding(false), MimeTypesHelper.Turtle[0])
                 };
 
-                using (var response = HttpClient.SendAsync(request).Result)
+                using (var response = HttpClient.SendAsync(request).GetAwaiter().GetResult())
                 {
                     if (!response.IsSuccessStatusCode)
                     {
-                        throw StorageHelper.HandleHttpError(response, "saving a Graph to");
+                        throw StorageHelper.HandleHttpError(response, action);
                     }
                 }
             }
@@ -337,7 +402,7 @@ namespace Semiodesk.Trinity.Store.Oxigraph
             }
             catch (Exception ex)
             {
-                throw StorageHelper.HandleError(ex, "saving a Graph to");
+                throw StorageHelper.HandleError(ex, action);
             }
         }
 
@@ -351,8 +416,10 @@ namespace Semiodesk.Trinity.Store.Oxigraph
             // held once there rather than copied here. It is a string, not a Uri.
             var store = _serviceUri;
 
+            // OriginalString, never AbsoluteUri: the latter lower-cases the host and re-escapes the
+            // path, so it names a different graph than the SPARQL path, which uses OriginalString.
             return name is IUriNode uri
-                ? new Uri($"{store}?graph={Uri.EscapeDataString(uri.Uri.AbsoluteUri)}")
+                ? new Uri($"{store}?graph={Uri.EscapeDataString(uri.Uri.OriginalString)}")
                 : new Uri($"{store}?default");
         }
 
@@ -368,7 +435,11 @@ namespace Semiodesk.Trinity.Store.Oxigraph
         {
             try
             {
-                if (!(Query("SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } }") is SparqlResultSet results))
+                // STR(?g) alongside ?g: dotNetRDF's result parsers normalize an IRI as they read it
+                // (the host comes back lower-cased), so the node no longer holds the name the graph was
+                // written under. A string literal is left alone. STR of a blank node is an error, so
+                // ?name is simply unbound for a blank-node-named graph.
+                if (!(Query("SELECT DISTINCT ?g (STR(?g) AS ?name) WHERE { GRAPH ?g { ?s ?p ?o } }", true) is SparqlResultSet results))
                 {
                     throw new RdfStorageException(
                         "Tried to list the graphs of an Oxigraph server but did not get a SPARQL result set back.");
@@ -385,8 +456,8 @@ namespace Semiodesk.Trinity.Store.Oxigraph
 
                     switch (result["g"])
                     {
-                        case IUriNode uri:
-                            names.Add(uri.Uri.AbsoluteUri);
+                        case IUriNode _ when result.HasValue("name") && result["name"] is ILiteralNode name:
+                            names.Add(name.Value);
                             break;
 
                         case IBlankNode blank:

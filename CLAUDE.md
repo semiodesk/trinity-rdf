@@ -73,8 +73,8 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all four green** — Fuseki 341/342, Oxigraph 341/342,
-  GraphDB 339/340, Virtuoso 326/327 (0 failed each; the 1 skipped is the shared blank-node-removal
+  hiccup cannot redden it. Current: **all four green** — Fuseki 350/351, Oxigraph 352/353,
+  GraphDB 349/350, Virtuoso 334/335 (0 failed each; the 1 skipped is the shared blank-node-removal
   quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
@@ -355,6 +355,11 @@ Invariants that surprise newcomers:
   plain text `false`. The adapter writes BOM-less Turtle and picks `Accept` by query form.
   `StoreBase.TryParse` is shared for the same reason `GroupByTargetGraph` is — GraphDB's copy had no
   TriG case, so TriG read from a string or stream was handed to the RDF/XML parser.
+  **A Graph Store `SaveGraph` is a `PUT`, i.e. a replace**: `Read(update: true)` must add through
+  `UpdateGraph` (or Oxigraph's `AppendGraph`), and until the PR #46 review Fuseki and GraphDB lost data
+  here. **Name graphs by `OriginalString`, never `AbsoluteUri`**, which lower-cases the host. dotNetRDF's
+  connectors and its SPARQL results parsers both normalize that way; Oxigraph works around both, while
+  Fuseki/GraphDB/Virtuoso are quarantined (`doc/known-test-failures.md`).
 - **Fuseki is a first-class backend** (ADR-0043), not the experimental one the older ADRs describe. Covering
   it found three defects the other backends hid. The layered view's `FROM NAMED` dataset clause was emitted
   **twice**, because `SparqlPreprocessor` never recorded a `FROM NAMED` graph and so could not suppress the

@@ -26,6 +26,7 @@
 
 using System;
 using NUnit.Framework;
+using VDS.RDF.Query;
 using Semiodesk.Trinity.Tests.Store;
 
 namespace Semiodesk.Trinity.Tests.Oxigraph
@@ -43,6 +44,19 @@ namespace Semiodesk.Trinity.Tests.Oxigraph
         public override void TestInferencing()
         {
             Assert.Throws<NotSupportedException>(() => base.TestInferencing());
+        }
+
+        /// <summary>
+        /// A query the server rejects is reported as a query error, not a generic storage failure.
+        /// </summary>
+        /// <remarks>
+        /// Sent raw, past Trinity's own parsing, so it is the server that refuses it. The connector's catch-all must not re-wrap the
+        /// <see cref="RdfQueryException"/> the rejection produces as a storage exception.
+        /// </remarks>
+        [Test]
+        public void AMalformedQueryIsReportedAsAQueryError()
+        {
+            Assert.Throws<RdfQueryException>(() => ((StoreBase)Store).ExecuteQuery("SELECT ?s WHERE { ?s ?p }"));
         }
     }
 }

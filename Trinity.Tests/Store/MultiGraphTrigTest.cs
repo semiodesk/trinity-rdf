@@ -205,6 +205,37 @@ namespace Semiodesk.Trinity.Tests.Store
             Assert.AreEqual(1, Count(target), "the stream overload must parse TriG too");
         }
 
+        /// <summary>
+        /// Reading TriG from a file reports the graph it wrote, as every other read does.
+        /// </summary>
+        /// <remarks>
+        /// The TriG branch writes each graph itself and never sets the single graph the other branches
+        /// write at the end, so it fell through to <c>return null</c> — which callers read as failure,
+        /// after the data had been written. <see cref="UnnamedTrigTriplesGoToTheGraphTheCallerNamed"/>
+        /// takes this path too, but discards the return value.
+        /// </remarks>
+        [Test]
+        public virtual void TrigReadFromAFileReturnsTheGraphItWasReadInto()
+        {
+            var target = BaseUri.GetUriRef("trig-file-return");
+            var subject = BaseUri.GetUriRef("trig-file-subject");
+
+            var file = Path.Combine(Path.GetTempPath(), $"trinity-trig-{Guid.NewGuid():N}.trig");
+
+            File.WriteAllText(file, $"<{target}> {{ <{subject}> <http://example.org/p> \"v\" }}\n");
+
+            try
+            {
+                Assert.AreEqual(target, Store.Read(target, new Uri(file), RdfSerializationFormat.Trig, false));
+                Assert.AreEqual(1, Count(target));
+            }
+            finally
+            {
+                File.Delete(file);
+                Store.GetModel(target).Clear();
+            }
+        }
+
         private bool HasAxiom()
         {
             var query = new SparqlQuery(

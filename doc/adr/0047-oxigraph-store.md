@@ -90,6 +90,36 @@ case, so the document fell to the RDF/XML arm. It is now `StoreBase.TryParse`, s
   defect is upstream and still affects every other backend; it is invisible there only because they
   are lenient.
 
+## Review of the PR: the copies had drifted
+
+Review of the PR found defects in the Graph Store read path that the adapter had copied from
+`FusekiStore`. Each of them is in every copy, so each was fixed in every copy:
+
+- **`Read(update: true)` replaced the graph** on Oxigraph, Fuseki and GraphDB. Each wrote through
+  `SaveGraph`, which is a Graph Store `PUT` and so a replace; skipping the delete when updating made no
+  difference. This was data loss on the two released backends. It went unnoticed because the shared
+  test only checked the value it had just added. Oxigraph now `POST`s (`OxigraphConnector.AppendGraph`);
+  Fuseki and GraphDB go through `UpdateGraph`, as `VirtuosoStore` always did.
+- **`leaveOpen: true` closed the caller's stream** on all five stores, because disposing a plain
+  `StreamReader` closes the stream beneath it.
+- **Reading TriG from a file returned `null`** on the three Graph Store backends, which callers read as
+  failure even though the data had been written.
+
+**Graph names are exact IRIs.** `Uri.AbsoluteUri` lower-cases the host and re-escapes the path, so a
+Graph Store write that names the graph by it addresses a different graph from the one the SPARQL path
+(`OriginalString`) queries. `OxigraphConnector` addresses graphs itself and uses `OriginalString`.
+dotNetRDF's own result parsers normalize IRIs the same way, which is why `ListGraphNames` reads
+`STR(?g)`. Fuseki, GraphDB and Virtuoso still get this wrong inside dotNetRDF's connectors, so it is
+quarantined there (`doc/known-test-failures.md`) until they get the same override.
+
+**The query form travels with the query.** `OxigraphStore.ExecuteQuery` knows whether it is sending a
+SELECT/ASK or a CONSTRUCT/DESCRIBE and passes that to the connector, which picks the Accept header and
+the parser from it. Re-parsing every query to find out cost a second parse on the hot path. The
+content type could not decide either: dotNetRDF maps `application/rdf+xml` to its results parser.
+
+The broader suggestion, moving the Graph Store logic into one base class so the copies cannot drift,
+is deferred to a separate change. This PR already touches every backend.
+
 ## Revival notes
 - The LINQ path materializes results through reflection, so a store's exception reaches the caller
   wrapped in `TargetInvocationException`. Catching `NotSupportedException` around `AsQueryable`

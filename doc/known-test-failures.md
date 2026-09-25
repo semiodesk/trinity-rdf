@@ -32,7 +32,7 @@ only quarantined case that is. No quarantined test is a missing LINQ translation
 
 These are `Assert.Inconclusive` overrides in the per-store fixtures, not `[Ignore]`s, and each names a
 store limitation rather than a Trinity defect. The shared blank-node case above is skipped once per
-store on top of these.
+store on top of these, and so is the exact-IRI defect described after the table.
 
 **Oxigraph's inferencing cases are not here, deliberately.** It has no reasoner, so the four shared
 inferencing tests and the two materialized ones would be the obvious candidates to skip — but the
@@ -44,7 +44,18 @@ fixtures override them to **assert the refusal** instead. Six assertions rather 
 | **Fuseki** | `TestInferencing`, `GetTypedResourcesWithInferencingTest`, `MappingTypeWithInferencingTest`, `MappingTypeCollectionWithInferencingTest` | Fuseki has **no per-query inference switch**: a Jena reasoner is a property of the dataset, so it applies to every query or to none. Giving the test dataset a reasoner would make these four pass and make `inferenceEnabled: false` quietly lie. ADR-0022 makes inferencing a capability a store may ignore; ADR-0043 records the decision |
 | **Virtuoso** | `Int64Test`, `Uint64Test`, `Int16Test`, `Uint16Test`, `UintTest`, `TimeSpanTest`, `TimeSpanResourceTest` | Virtuoso widens the small integer types into an integer box and does not support `xsd:long`/`xsd:duration`. The `Test<TValue>` helper reads the **unmapped** bag, which declares no target type to convert into (ADR-0040) |
 | **Oxigraph** | `Int64Test`, `Uint64Test`, `Int16Test`, `Uint16Test`, `UintTest` | Oxigraph canonicalizes the integer-derived XSD datatypes into `xsd:integer`, so a literal written as `"5"^^xsd:short` reads back as `Int32` — confirmed at the protocol level with raw SPARQL, so it is the store's value-space normalization rather than anything the adapter does. Same split as Virtuoso: mapped properties convert into their declared type (ADR-0040), the unmapped bag has none to convert into |
-| **GraphDB** | — | none |
+| **GraphDB** | — | none, apart from the exact-IRI defect below |
+
+**One per-store skip is a defect, not a limitation: `StoreCatalogTest.AGraphIsAddressedByTheExactIriItWasNamedWith`**,
+skipped on Fuseki, GraphDB and Virtuoso. Their Graph Store writes name the graph by `Uri.AbsoluteUri`, inside
+dotNetRDF's `FusekiConnector`, its Sesame connector (which `GraphDBConnector` builds on) and the Virtuoso
+manager. `AbsoluteUri` lower-cases the host and re-escapes the path, while the SPARQL path uses
+`OriginalString`. So a graph named `http://Example.org/g` is written under one IRI and queried under
+another, and a `Read` into it seems to vanish. Oxigraph passes because `OxigraphConnector` addresses graphs
+itself. Two related findings: dotNetRDF's SPARQL results parsers (JSON and XML) lower-case the host of
+every IRI they return, so `OxigraphConnector.ListGraphNames` reads names through `STR(?g)`; and any IRI
+coming back in a result set has lost its case on the backends that parse results with dotNetRDF (all but Virtuoso). The fix for the three stores is
+the same connector override Oxigraph has; it was left out of the Oxigraph PR to keep that PR reviewable.
 
 **No store suite has a failing test.** Virtuoso and GraphDB each carried four *failing* inferencing
 tests until ADR-0044; both turned out to be provisioning gaps — Virtuoso's rule set was declared only

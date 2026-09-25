@@ -143,25 +143,30 @@ namespace Semiodesk.Trinity.Store.GraphDB
         }
 
         // The HttpMethod overload, not the string one: the latter builds an HttpWebRequest and is
-        // obsolete in dotNetRDF 3.x. FormUrlEncodedContent replaces hand-encoding the body and
-        // writing it to a request stream -- it sets the content type and encodes UTF-8 without a
-        // BOM, which is what the removed global Options class used to supply.
+        // obsolete in dotNetRDF 3.x.
         var request = CreateRequest(url, accept, HttpMethod.Post, parameters);
 
-        request.Content = new FormUrlEncodedContent(new[]
-        {
-          new KeyValuePair<string, string>("query", EscapeQuery(sparqlQuery))
-        });
+        // Encoded by hand, as before the HttpClient move, rather than with FormUrlEncodedContent:
+        // on .NET Framework that type escapes through Uri.EscapeDataString, which throws past about
+        // 64K characters -- a length a batch of VALUES-bound subjects can reach. StringContent
+        // encodes UTF-8 without a BOM.
+        request.Content = new StringContent(
+          "query=" + HttpUtility.UrlEncode(EscapeQuery(sparqlQuery)),
+          new UTF8Encoding(false),
+          "application/x-www-form-urlencoded");
 
-        using (var response = HttpClient.SendAsync(request).Result)
+        // GetAwaiter().GetResult() rather than .Result, so a failure surfaces as itself and not
+        // wrapped in an AggregateException.
+        using (var response = HttpClient.SendAsync(request).GetAwaiter().GetResult())
         {
           if (!response.IsSuccessStatusCode)
           {
-            throw StorageHelper.HandleHttpError(response, "querying");
+            // The query variant, as before the move: a malformed query is an RdfQueryException.
+            throw StorageHelper.HandleHttpQueryError(response);
           }
 
           var contentType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
-          var input = new StreamReader(response.Content.ReadAsStreamAsync().Result);
+          var input = new StreamReader(response.Content.ReadAsStreamAsync().GetAwaiter().GetResult());
 
           try
           {
@@ -174,6 +179,10 @@ namespace Semiodesk.Trinity.Store.GraphDB
               try
               {
                 MimeTypesHelper.GetSparqlParser("application/sparql-results+xml").Load(resultsHandler, input);
+
+                // Parsed, so done. Falling through handed the already-consumed stream to a second
+                // parser, which either threw or reset the handler.
+                return;
               }
               catch (RdfParserSelectionException)
               {
@@ -192,9 +201,15 @@ namespace Semiodesk.Trinity.Store.GraphDB
           }
         }
       }
-      catch (WebException ex)
+      catch (RdfException)
       {
-        throw StorageHelper.HandleHttpQueryError(ex);
+        throw;
+      }
+      catch (Exception ex)
+      {
+        // HttpClient throws HttpRequestException, not WebException, so the old
+        // catch (WebException) could no longer run and transport failures escaped untranslated.
+        throw StorageHelper.HandleError(ex, "querying");
       }
     }
     
