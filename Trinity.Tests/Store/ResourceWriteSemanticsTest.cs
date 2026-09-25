@@ -383,7 +383,8 @@ namespace Semiodesk.Trinity.Tests.Store
         ///
         /// This fixture runs on every backend, and the behaviour was measured on every backend
         /// before it was described: through Trinity, the in-memory store, Fuseki 5.1.0 and GraphDB
-        /// 10.8.0 each gave six links and six children for six existing triples. Virtuoso 7.2.14
+        /// 10.8.0 each gave six links, to six distinct empty nodes, for six existing triples.
+        /// Virtuoso 7.2.14
         /// gave six as well, but only when probed with a <c>_:</c> label in raw SPARQL -- a label
         /// Trinity never emits for it, because Virtuoso's blank ids are <c>nodeID://</c> IRIs. So
         /// Virtuoso passes here for a reason of its own, not because the shape is safe. Worth
@@ -427,10 +428,10 @@ namespace Semiodesk.Trinity.Tests.Store
 
             Model1.UpdateResources(new Resource[] { replaced });
 
+            // The link count is the guard. Counting the child's own nodes is not: its triples are
+            // not in the parent's template, so the broken shape also gave one (links=6, children=1).
             Assert.AreEqual(1, CountValues(subjectUri, foaf.interest),
                 "the link must be inserted once, not once per triple the subject already had");
-            Assert.AreEqual(1, CountSubjects(label),
-                "and it must point at one child node, not a fresh one per instantiation");
         }
 
         /// <summary>
@@ -489,18 +490,6 @@ namespace Semiodesk.Trinity.Tests.Store
                 "and must not merge -- one value, not Before and After");
             Assert.AreEqual(1, CountValues(subjectUri, foaf.interest),
                 "the link must land once, not once per triple the subject already had");
-        }
-
-        /// <summary>
-        /// How many distinct subjects carry a property.
-        /// </summary>
-        private int CountSubjects(Property property)
-        {
-            var query = new SparqlQuery(
-                $"SELECT DISTINCT ?s FROM <{Model1.Uri}> WHERE {{ ?s <{property.Uri}> ?o }}",
-                declarePrefixes: false);
-
-            return Store.ExecuteQuery(query).GetBindings().Count();
         }
 
         /// <summary>

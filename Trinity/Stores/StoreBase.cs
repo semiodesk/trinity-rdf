@@ -544,12 +544,14 @@ namespace Semiodesk.Trinity
                 //
                 // Measured rather than inferred from one backend, because this is a corner of the
                 // spec implementations could reasonably read differently. Through Trinity, the
-                // in-memory store, Fuseki 5.1.0 and GraphDB 10.8.0 each returned six links and six
-                // child nodes for six existing triples. Virtuoso 7.2.14 duplicates too when handed
-                // a _: label in raw SPARQL, but Trinity never hands it one: its blank ids are
-                // nodeID:// IRIs, serialized bracketed, so it is immune here. The cost half stands
-                // on its own regardless -- per-solution instantiation makes it the product of the
-                // subjects' triple counts, and hoisting makes it linear (n=1000: 1870 ms -> 66 ms).
+                // in-memory store, Fuseki 5.1.0 and GraphDB 10.8.0 each returned six links to six
+                // distinct empty nodes for six existing triples; the labelled child itself stays one
+                // node, because its own triples are not in the parent's template. Virtuoso 7.2.14
+                // duplicates too when handed a _: label in raw SPARQL, but Trinity never hands it
+                // one: its blank ids are nodeID:// IRIs, serialized bracketed, so it is immune
+                // here. The cost half stands on its own regardless -- per-solution instantiation
+                // makes it the product of the subjects' triple counts, and hoisting makes it linear
+                // (n=1000: 1870 ms -> 66 ms).
                 //
                 // Blank-node identity is now per operation, so two resources in different chunks
                 // that reference the same blank child get two nodes. That is strictly better than
