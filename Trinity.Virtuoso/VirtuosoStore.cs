@@ -758,16 +758,24 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             {
                 // The resource was never synchronized, so there is no baseline to diff against and the
                 // whole resource has to be replaced.
-                // The insert is hoisted into its own operation for the reason given in
-                // StoreBase: a modify instantiates its ground INSERT template once per solution and
-                // mints a fresh blank node each time. Virtuoso's clause ordering is left alone --
-                // the defect is in carrying both templates, not in where WITH sits.
+                //
+                // Unlike StoreBase and the HTTP backends, the INSERT stays in the modify. The
+                // duplication that made them hoist it -- a template instantiated once per solution,
+                // minting a fresh blank node each time -- needs a _: label in the template, and
+                // Virtuoso never produces one here: its blank ids are nodeID:// IRIs, serialized
+                // bracketed, so every instantiation names the same node. The single OPTIONAL also
+                // keeps an absent subject to one solution rather than none.
+                //
+                // Nor can it be hoisted as written: ExecuteDirectQuery sends a bare SPARQL prefix,
+                // which takes one operation, and a ';' there is SQ074 -- which the error handler
+                // swallows, so Commit() would return normally having written nothing.
+                // CommitOfAnUnsynchronizedResourceReplacesItAndLinksABlankNodeOnce guards both.
                 updateString = string.Format(@"
                     SPARQL
                     WITH <{0}>
                     DELETE {{ {1} ?p ?o. }}
-                    WHERE {{ {1} ?p ?o. }} ;
-                    INSERT DATA {{ GRAPH <{0}> {{ {2} }} }} ",
+                    WHERE {{ OPTIONAL {{ {1} ?p ?o. }} }}
+                    INSERT {{ {2} }} ",
                     modelUri.OriginalString,
                     SparqlSerializer.SerializeUri(resource.Uri),
                     SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));

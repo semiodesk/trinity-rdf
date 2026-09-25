@@ -382,10 +382,13 @@ namespace Semiodesk.Trinity.Tests.Store
         /// existing triple on the subject, each to a different node.
         ///
         /// This fixture runs on every backend, and the behaviour was measured on every backend
-        /// before it was described: the in-memory store, Fuseki 5.1.0, GraphDB 10.8.0 and Virtuoso
-        /// 7.2.14 each gave six links and six children for six existing triples. Worth stating,
-        /// because it is a corner of the spec implementations could reasonably read differently and
-        /// one backend's answer would not have settled it (ADR-0043).
+        /// before it was described: through Trinity, the in-memory store, Fuseki 5.1.0 and GraphDB
+        /// 10.8.0 each gave six links and six children for six existing triples. Virtuoso 7.2.14
+        /// gave six as well, but only when probed with a <c>_:</c> label in raw SPARQL -- a label
+        /// Trinity never emits for it, because Virtuoso's blank ids are <c>nodeID://</c> IRIs. So
+        /// Virtuoso passes here for a reason of its own, not because the shape is safe. Worth
+        /// stating, because it is a corner of the spec implementations could reasonably read
+        /// differently and one backend's answer would not have settled it (ADR-0043).
         ///
         /// This is why the fix hoists the insert into its own <c>INSERT DATA</c> operation rather
         /// than only rearranging the WHERE. A shape that merely stops the cross-product still
@@ -428,6 +431,64 @@ namespace Semiodesk.Trinity.Tests.Store
                 "the link must be inserted once, not once per triple the subject already had");
             Assert.AreEqual(1, CountSubjects(label),
                 "and it must point at one child node, not a fresh one per instantiation");
+        }
+
+        /// <summary>
+        /// A single-resource wholesale write replaces the resource: dropped values go, and a
+        /// blank-node-valued link lands once.
+        /// </summary>
+        /// <remarks>
+        /// <b>Until this test, nothing reached this branch on any backend.</b> It is taken only when
+        /// a resource is neither new nor synchronized, and <c>Resource.Initialize</c> sets
+        /// <c>IsNew = true</c> on every constructed resource -- so a constructed replacement goes
+        /// down the insert branch instead, and a loaded one carries a snapshot and goes down the
+        /// delta. Making the branch throw left every suite green. Four backend-specific strings were
+        /// rewritten in that branch on the strength of suites that could not see any of them, and
+        /// one of the rewrites was a syntax error on Virtuoso that the store swallowed: Commit()
+        /// returned normally and wrote nothing.
+        ///
+        /// <c>IsNew = false</c> is set by hand, which is the only way in. Both assertions matter.
+        /// The link count catches a per-solution INSERT template minting a fresh blank node per
+        /// existing triple. The dropped property catches a write that never happened, which is what
+        /// the Virtuoso failure looked like: no exception, the old values still there.
+        /// </remarks>
+        [Test]
+        public void CommitOfAnUnsynchronizedResourceReplacesItAndLinksABlankNodeOnce()
+        {
+            Model1.Clear();
+
+            var subjectUri = BaseUri.GetUriRef("singular-wholesale");
+            var label = new Property(BaseUri.GetUriRef("label"));
+
+            var seeded = Model1.CreateResource<Person>(subjectUri);
+            seeded.FirstName = "Before";
+            seeded.LastName = "Dropped";
+            seeded.Age = 1;
+            seeded.Status = true;
+            seeded.AccountBalance = 1.5f;
+            seeded.Commit();
+
+            // The untyped overload, because CreateResource<T> rejects blank ids.
+            var child = (Resource)Model1.CreateResource(new UriRef("_:singularChild", true));
+            child.AddProperty(label, "Blank child");
+            child.Commit();
+
+            var replacement = new Person(subjectUri);
+            replacement.SetModel(Model1);
+            replacement.FirstName = "After";
+            replacement.Interests.Add(child);
+
+            // Neither new nor synchronized: the only route to the wholesale branch.
+            replacement.IsNew = false;
+            replacement.Commit();
+
+            Assert.AreEqual(0, CountValues(subjectUri, foaf.lastName),
+                "a replace must drop what the replacement does not carry; a surviving value means "
+                + "the write did not happen at all");
+            Assert.AreEqual(1, CountValues(subjectUri, foaf.firstName),
+                "and must not merge -- one value, not Before and After");
+            Assert.AreEqual(1, CountValues(subjectUri, foaf.interest),
+                "the link must land once, not once per triple the subject already had");
         }
 
         /// <summary>
