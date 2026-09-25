@@ -9,6 +9,23 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A bulk write into a model that holds no triples was silently lost on Fuseki.**
+  `UpdateResources` scoped its updates with `WITH <g>`, and on Jena a graph-scoped modify against a
+  graph containing nothing matches nothing, applies nothing, and answers success — so every resource
+  in the batch vanished, at any batch size, with HTTP 204 in reply. Every `DELETE`/`INSERT` template
+  in `StoreBase` is now `GRAPH`-qualified instead, which the store creates as it inserts. Jena has no
+  empty named graphs, so `CREATE SILENT GRAPH` is not an alternative — measured, not assumed.
+  The same scoping was in the singular `UpdateResource` and in the shared delta builder, so the hole
+  was not limited to bulk writes; all of them are fixed together.
+  Two preconditions kept this invisible: `UpdateResources` had exactly one test and it takes the
+  delta branch, and every other write test inherits a graph an earlier operation filled, so "the
+  model holds nothing" was unreachable.
+- **`VirtuosoStore.UpdateResources` is gone**, not fixed. It was a copy of the base method differing
+  only in clause order, so it silently missed the fix above; Virtuoso now inherits, and its suite is
+  green without it.
+
 ## [2.0.0-rc.4] - 2026-09-23
 
 **A consistency pass over the three `IModel` implementations.** This release began as a fix for one
