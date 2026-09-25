@@ -41,7 +41,7 @@ post-build tooling. Read `doc/adr/README.md` for the decisions and history.
 | `Trinity.Tests` | net8.0 | NUnit in-memory suite (fully generator-driven, no weaver) |
 | `tests/Trinity.Generator.Tests` | net8.0 | Source-generator validation, incl. the TRIN diagnostics |
 | `tests/Trinity.Vocabulary.Tests` | net8.0 | Vocabulary generator + `trinity-vocab`: term classification, all four RDF formats, determinism, sanitization/collisions, manifest reading, the check-mode exit codes, a member-compatibility check against the committed vocabularies, and a round-trip that compiles generated source and asserts `OntologyDiscovery` finds it |
-| `tests/Trinity.Tests.{Virtuoso,Fuseki,GraphDB,Oxigraph}` | net8.0 | Store integration tests — self-provision the server via Testcontainers/Docker (ADR-0036); not in the default CI job |
+| `tests/Trinity.Tests.{Virtuoso,Fuseki,GraphDB,Oxigraph}` | net8.0 | Store integration tests — self-provision the server via Testcontainers/Docker (ADR-0036); run in the `stores` CI matrix job, not the fast `build` job |
 | `doc/adr/` | — | Architecture Decision Records |
 
 Retired in 2.0: `Trinity.CilGenerator` (the cilg weaver, ADR-0013), `Trinity.OntologyGenerator`
@@ -69,7 +69,7 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   in a SPARQL `DELETE` template. No missing LINQ translation or datatype bug remains, and none are
   generator regressions.
 - Store integration tests (`tests/Trinity.Tests.*`) **self-provision** their server in Docker via
-  Testcontainers on a random host port (ADR-0036): run `dotnet test tests/Trinity.Tests.{Virtuoso,GraphDB,Fuseki}`
+  Testcontainers on a random host port (ADR-0036): run `dotnet test tests/Trinity.Tests.{Virtuoso,GraphDB,Fuseki,Oxigraph}`
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
@@ -94,7 +94,7 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   type so Trinity converts into it (ADR-0040), whereas the unmapped bag declares nothing. If `ListValues`
   is ever given a CLR-type-fidelity guarantee, they must come back.
 - **CI:** `.github/workflows/ci.yml` (ubuntu, .NET 10) — a fast `build` job (restore → build → test →
-  pack) plus a `stores` matrix job running the three Dockerized store suites (ADR-0044). NuGet
+  pack) plus a `stores` matrix job running the four Dockerized store suites (ADR-0044). NuGet
   publishing is **manual** (no publish job).
 - Central Package Management: versions live in `Directory.Packages.props`; shared metadata +
   the single `Version` (2.0.0) in `Directory.Build.props`. Projects use versionless `PackageReference`.
