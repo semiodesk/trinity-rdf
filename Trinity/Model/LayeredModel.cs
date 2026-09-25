@@ -259,14 +259,14 @@ namespace Semiodesk.Trinity
         /// exactly three same-ordered variables — keeps returning true. Without that, resource
         /// materialization refuses the query outright.
         /// </remarks>
-        private ISparqlQuery CreateResourceQuery(IEnumerable<Uri> uris)
+        private ISparqlQuery CreateResourceQuery(string subjectBinding)
         {
             var queryString = new StringBuilder();
 
             queryString.Append("SELECT DISTINCT ?s ?p ?o ");
             queryString.Append(_effectiveDatasetClause);
             queryString.Append("WHERE { ");
-            queryString.Append(LayeredModelSparql.BindSubjects("?s", uris));
+            queryString.Append(subjectBinding);
             queryString.Append(Overlay("?s", "?p", "?o"));
             queryString.Append(" }");
 
@@ -274,19 +274,23 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// The <c>VALUES</c> binding for a single subject that has already been checked.
+        /// </summary>
+        /// <remarks>
+        /// <c>Single()</c> asserts the invariant rather than hiding a miss: the caller has run
+        /// <see cref="RequireQueryableSubject"/>, so the binder cannot have skipped this subject.
+        /// </remarks>
+        private static string BindSingleSubject(Uri uri)
+        {
+            return SparqlSerializer.GenerateSubjectBindings("?s", new[] { uri }).Single();
+        }
+
+        /// <summary>
         /// Rejects a subject that cannot appear in a SPARQL query.
         /// </summary>
         private static void RequireQueryableSubject(Uri uri)
         {
-            if (uri == null)
-            {
-                throw new ArgumentNullException(nameof(uri));
-            }
-
-            if (uri is UriRef uriRef && uriRef.IsBlankId)
-            {
-                throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
-            }
+            QuerySubject.Require(uri);
         }
 
         #endregion
@@ -329,7 +333,7 @@ namespace Semiodesk.Trinity
         {
             RequireQueryableSubject(uri);
 
-            ISparqlQueryResult result = ExecuteOverlayQuery(CreateResourceQuery(new[] { uri }), transaction);
+            ISparqlQueryResult result = ExecuteOverlayQuery(CreateResourceQuery(BindSingleSubject(uri)), transaction);
 
             Resource resource = result.GetResources().FirstOrDefault();
 
@@ -360,7 +364,7 @@ namespace Semiodesk.Trinity
         {
             RequireQueryableSubject(uri);
 
-            ISparqlQueryResult result = ExecuteOverlayQuery(CreateResourceQuery(new[] { uri }), transaction);
+            ISparqlQueryResult result = ExecuteOverlayQuery(CreateResourceQuery(BindSingleSubject(uri)), transaction);
 
             T resource = result.GetResources<T>().FirstOrDefault();
 
@@ -388,7 +392,13 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>A resource with all effective properties.</returns>
         public object GetResource(Uri uri, Type type, ITransaction transaction = null)
-        {
+                {
+            // Guarded here rather than relying on the reflective call below reaching the guard inside
+            // GetResource<T>: MethodInfo.Invoke wraps whatever it throws in a TargetInvocationException,
+            // so a caller writing catch (ArgumentException) — which every sibling accessor justifies —
+            // would not catch it.
+            QuerySubject.Require(uri);
+
             if (_getResourceMethod == null)
             {
                 throw new InvalidOperationException("No handle to the generic method T GetResource<T>(Uri)");
@@ -425,14 +435,26 @@ namespace Semiodesk.Trinity
                 return Enumerable.Empty<object>();
             }
 
-            foreach (Uri uri in subjects)
-            {
-                RequireQueryableSubject(uri);
-            }
+            // No RequireQueryableSubject sweep here, unlike the single-resource overloads above.
+            // Asking for one blank node by identity is an error; a blank node among many is skipped,
+            // because refusing the whole call would lose every addressable subject with it — and this
+            // is the lazy-load path, where one blank member of a mapped collection would otherwise
+            // make the entire collection unreadable. The binder does the skipping (ADR-0046).
+            return GetResourcesCore(subjects, type, transaction);
+        }
 
-            ISparqlQueryResult result = ExecuteOverlayQuery(CreateResourceQuery(subjects), transaction);
-
-            return Materialize(result.GetResources(type));
+        private IEnumerable<object> GetResourcesCore(IEnumerable<Uri> subjects, Type type, ITransaction transaction)
+        {
+            // Batched for the same reason as Model and ModelGroup: VALUES lifts the equality chain's
+            // nesting limit but is not itself unbounded — Virtuoso refuses the 4095th operand with
+            // SP030. A layered view reads through this path too, because Attach() makes the view the
+            // resource's model and therefore its ResourceCache's model. Only the query differs.
+            return BulkResourceReader.Read(
+                subjects,
+                type,
+                CreateResourceQuery,
+                query => ExecuteOverlayQuery(query, transaction),
+                Attach);
         }
 
         /// <summary>
@@ -754,7 +776,7 @@ namespace Semiodesk.Trinity
                     continue;
                 }
 
-                RequireQueryableSubject(resource.Uri);
+                QuerySubject.Require(resource.Uri, nameof(resource));
                 staged.Add(resource);
 
                 string subject = SparqlSerializer.SerializeUri(resource.Uri);
@@ -1234,6 +1256,23 @@ namespace Semiodesk.Trinity
         /// </remarks>
         public void DeleteResource(Uri uri, ITransaction transaction = null)
         {
+            // Load-bearing in a way the sibling guards are not, because this path *interpolates* the
+            // subject into the operations below rather than binding it. A bare blank node label there
+            // is not a reference but an existential variable, matching every triple in the baseline:
+            // issued on its own, INSERT { GRAPH removals { _:0 ?p ?o } } WHERE { GRAPH baseline
+            // { _:0 ?p ?o } } stages the entire baseline for removal, without error, on the in-memory
+            // store and on Virtuoso alike (measured).
+            //
+            // The four operations below happen to mask that today, and *how* they do it is the reason
+            // not to rely on it: dotNetRDF refuses to **construct** the DELETE command, so the parse of
+            // the whole joined script fails and the INSERT never runs. Nothing rolled back, because
+            // nothing started -- the protection is not even in the same phase as the damage. Reorder
+            // these operations, split them across two ExecuteNonQuery calls, or change the un-staging
+            // to a shape dotNetRDF will construct, and the INSERT runs and stages the baseline again.
+            // Virtuoso does not even offer that much: with this guard removed it reports no error at all.
+            //
+            // Hence DeleteResourceRefusesABlankSubjectWithoutStagingAnything asserts what was staged
+            // *before* asserting that the call threw -- the only ordering that survives both backends.
             RequireQueryableSubject(uri);
 
             string subject = SparqlSerializer.SerializeUri(uri);

@@ -721,6 +721,9 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
             if (resource.IsNew)
             {
+                // IsBlankId, not CanBeQuerySubject: the semantic question — is this a blank node that
+                // needs a server-minted identifier. Virtuoso then mints a nodeID:// IRI, which *is* a
+                // usable query subject, which is exactly why the two questions must stay apart.
                 if (resource.Uri.IsBlankId)
                 {
                     // Virtuoso does not support the SPARQL 1.1 BNODE constructor. Therefore,
@@ -757,6 +760,18 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             {
                 // The resource was never synchronized, so there is no baseline to diff against and the
                 // whole resource has to be replaced.
+                //
+                // Unlike StoreBase and the HTTP backends, the INSERT stays in the modify. The
+                // duplication that made them hoist it -- a template instantiated once per solution,
+                // minting a fresh blank node each time -- needs a _: label in the template, and
+                // Virtuoso never produces one here: its blank ids are nodeID:// IRIs, serialized
+                // bracketed, so every instantiation names the same node. The single OPTIONAL also
+                // keeps an absent subject to one solution rather than none.
+                //
+                // Nor can it be hoisted as written: ExecuteDirectQuery sends a bare SPARQL prefix,
+                // which takes one operation, and a ';' there is SQ074 -- which the error handler
+                // swallows, so Commit() would return normally having written nothing.
+                // CommitOfAnUnsynchronizedResourceReplacesItAndLinksABlankNodeOnce guards both.
                 updateString = string.Format(@"
                     SPARQL
                     WITH <{0}>
@@ -796,80 +811,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             }
         }
 
-        public override void UpdateResources(IEnumerable<Resource> resources, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
-        {
-            string WITH = $"{SparqlSerializer.SerializeUri(modelUri)} ";
-
-            // Resources that have been synchronized are written as a delta, exactly as in
-            // UpdateResource — a bulk write must not erase other writers' values either.
-            StringBuilder deltaDelete = new StringBuilder();
-            StringBuilder deltaInsert = new StringBuilder();
-
-            // Resources without a baseline still have to be replaced wholesale.
-            StringBuilder INSERT = new StringBuilder();
-            StringBuilder DELETE = new StringBuilder();
-            StringBuilder OPTIONAL = new StringBuilder();
-
-            int count = 0;
-            foreach (var res in resources)
-            {
-                if (SparqlSerializer.TrySerializeResourceDelta(res, ignoreUnmappedProperties, out var deleted, out var inserted))
-                {
-                    var subject = SparqlSerializer.SerializeUri(res.Uri);
-
-                    if (deleted.Count > 0)
-                    {
-                        deltaDelete.Append(SerializeTripleBlock(subject, deleted));
-                    }
-
-                    if (inserted.Count > 0)
-                    {
-                        deltaInsert.Append(SerializeTripleBlock(subject, inserted));
-                    }
-                }
-                else
-                {
-                    DELETE.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p{count} ?o{count}. ");
-                    OPTIONAL.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p{count} ?o{count}. ");
-                    INSERT.Append($" {SparqlSerializer.SerializeResource(res, ignoreUnmappedProperties)} ");
-                    count++;
-                }
-            }
-
-            if (deltaDelete.Length > 0 || deltaInsert.Length > 0)
-            {
-                var delta = new StringBuilder();
-
-                delta.AppendFormat("WITH {0} ", WITH);
-
-                if (deltaDelete.Length > 0)
-                {
-                    delta.AppendFormat("DELETE {{ {0} }} ", deltaDelete);
-                }
-
-                if (deltaInsert.Length > 0)
-                {
-                    delta.AppendFormat("INSERT {{ {0} }} ", deltaInsert);
-                }
-
-                delta.Append("WHERE {}");
-
-                ExecuteNonQuery(new SparqlUpdate(delta.ToString()), transaction);
-            }
-
-            if (count > 0)
-            {
-                string updateString = $"WITH {WITH} DELETE {{ {DELETE} }}  WHERE {{ OPTIONAL {{ {OPTIONAL} }} }} INSERT {{ {INSERT} }}";
-
-                ExecuteNonQuery(new SparqlUpdate(updateString), transaction);
-            }
-
-            foreach (var resource in resources)
-            {
-                resource.IsNew = false;
-                resource.IsSynchronized = true;
-            }
-        }
 
         public override void DeleteResource(Uri modelUri, Uri resourceUri, ITransaction transaction = null)
         {

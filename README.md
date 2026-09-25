@@ -173,7 +173,7 @@ helper for seeding schema or background graphs at startup.
 > **Oxigraph** is the lightweight backend: a single binary, a small container, and strict SPARQL
 > 1.1. It runs the same store suite and passes it in full. It has **no reasoner at all**, so a
 > query asking for inferencing is **refused** rather than answered without it — an un-inferred
-> answer is indistinguishable from a correct one (ADR-0046). There is no dataset or repository to
+> answer is indistinguishable from a correct one (ADR-0047). There is no dataset or repository to
 > name: one server holds one dataset, so `host` is the whole configuration.
 
 ## Why RDF

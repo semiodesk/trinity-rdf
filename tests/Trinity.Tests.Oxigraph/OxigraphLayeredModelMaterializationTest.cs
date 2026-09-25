@@ -44,7 +44,7 @@ namespace Semiodesk.Trinity.Tests.Oxigraph
     ///
     /// Oxigraph's answer to that business is a refusal. It has no reasoner, so honouring the flag is
     /// impossible, and answering without it would return an un-inferred result indistinguishable
-    /// from a correct one (ADR-0046). Materialization lifts Trinity's refusal; it cannot conjure a
+    /// from a correct one (ADR-0047). Materialization lifts Trinity's refusal; it cannot conjure a
     /// reasoner. The first half of each test -- that the rewriting view refuses -- is unchanged and
     /// still asserted, because that half really is store-independent.
     ///

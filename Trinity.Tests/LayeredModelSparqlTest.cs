@@ -331,14 +331,14 @@ namespace Semiodesk.Trinity.Tests
             string dataset = LayeredModelSparql.NamedDatasetClause(view);
             string wildcard = LayeredModelSparql.Overlay(view, "?s", "?p", "?o");
             string typed = LayeredModelSparql.Overlay(view, "?s", "a", "<http://example.org/Thing>");
-            string values = LayeredModelSparql.BindSubjects("?s", new[] { new Uri("http://example.org/r1") });
+            string values = SparqlSerializer.GenerateSubjectBindings("?s", new[] { new Uri("http://example.org/r1") }).Single();
 
             yield return new TestCaseData("subject-bound resource read",
                 $"SELECT DISTINCT ?s ?p ?o {dataset}WHERE {{ {values}{wildcard} }}");
 
             yield return new TestCaseData("multi-subject resource read",
                 "SELECT DISTINCT ?s ?p ?o " + dataset + "WHERE { " +
-                LayeredModelSparql.BindSubjects("?s", new[] { new Uri("http://example.org/r1"), new Uri("http://example.org/r2") }) +
+                SparqlSerializer.GenerateSubjectBindings("?s", new[] { new Uri("http://example.org/r1"), new Uri("http://example.org/r2") }).Single() +
                 wildcard + " }");
 
             yield return new TestCaseData("type-constrained read",

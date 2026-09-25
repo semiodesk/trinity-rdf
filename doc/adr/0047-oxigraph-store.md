@@ -1,4 +1,4 @@
-# 0046. Oxigraph as a fourth store backend
+# 0047. Oxigraph as a fourth store backend
 
 Date: 2026-09-21
 

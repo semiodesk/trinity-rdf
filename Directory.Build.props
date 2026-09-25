@@ -19,6 +19,10 @@
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <FileVersion>2.0.0.0</FileVersion>
     <LangVersion>latest</LangVersion>
+    <!-- Rendered on the nuget.org listing page. Kept to the headline of the current release only —
+         the full history lives in CHANGELOG.md, which this points at. Update both together; the
+         RELEASING.md gate checks for it. -->
+    <PackageReleaseNotes>A consistency pass over the three IModel implementations, which now share one bulk-read loop, one query-subject guard and one blank-node vocabulary. Most severe: ModelGroup.ContainsResource returned true for any blank node on any non-empty model group - a wrong answer on a public accessor, on every backend, that a caller could not detect. Also fixes the defect this release started from, mapped collections capped at a few hundred members on Virtuoso (SP031) because the bulk lazy-load query bound its subjects with an equality chain; subjects are now bound with VALUES, in batches. Plus: an empty or null subject set reading the entire model, percent-encoded subject IRIs breaking the query, and a blank-node-valued link breaking the read of its whole collection. Five of the six are pre-existing rather than regressions. See CHANGELOG.md and doc/adr/0046-bulk-subject-binding-with-values.md.</PackageReleaseNotes>
     <PackageProjectUrl>https://trinity-rdf.net</PackageProjectUrl>
     <RepositoryUrl>https://github.com/semiodesk/trinity-rdf</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
