@@ -84,7 +84,14 @@ future 3.x *minor* can break the build — these should be done before the next 
 indefinitely.
 
 ## Follow-ups
-- The three obsolete-API groups above.
+- ~~The three obsolete-API groups above~~ — **done** alongside the Oxigraph backend
+  ([0047](0047-oxigraph-store.md)); the build has no `CS0618` from them. `UriLoader` became one shared
+  `Loader` behind `StoreBase.LoadGraphFromUrl` (a `Loader` per call would leak sockets). The
+  `SparqlQueryClient` migration was first written as a bare `GetAwaiter().GetResult()` and **deadlocked on a
+  single-threaded synchronization context** — exactly the hazard the table names, and one the obsolete
+  endpoint did not have. It now goes through `Task.Run`, and `SparqlEndpointTest` covers the store over a
+  local stub endpoint, including that deadlock and the credential challenge, where before its only tests
+  pointed at a public endpoint that no longer exists.
 - ~~Re-check the quarantined `DateTime` round-trip bug~~ — **done**: it was a Trinity bug in
   `DeserializeDateTime`, not an engine change (ADR-0026).
 - ~~Revisit the in-memory inferencing tests under `InferencingTripleStore`~~ — **done**: diagnosed as an
