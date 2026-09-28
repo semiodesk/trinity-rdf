@@ -34,7 +34,7 @@ namespace Semiodesk.Trinity.Tests
 
         /// <summary>
         /// A mapped <c>string</c> serializes as a plain literal, with no <c>@lang</c>, because a string
-        /// property is untagged by construction (ADR-0047).
+        /// property is untagged by construction (ADR-0048).
         /// </summary>
         /// <remarks>
         /// This used to assert the same thing by setting <c>contact.Language = "DE"</c> and requiring the

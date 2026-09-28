@@ -412,7 +412,7 @@ namespace Semiodesk.Trinity.Tests
 
     /// <summary>
     /// Exercises the localized-text containers, which hold every language at once rather than showing
-    /// one at a time (ADR-0047).
+    /// one at a time (ADR-0048).
     /// </summary>
     public class LocalizedMappingTestClass : Resource
     {

@@ -1278,7 +1278,7 @@ namespace Semiodesk.Trinity.Tests.Store
 
         /// <summary>
         /// The same contract through the generator instead of a hand-written mapping, declared get-only
-        /// as ADR-0047 recommends.
+        /// as ADR-0048 recommends.
         /// </summary>
         /// <remarks>
         /// Both authoring routes have to stay first-class (ADR-0018), and this is the one that was
@@ -1389,7 +1389,7 @@ namespace Semiodesk.Trinity.Tests.Store
         /// The untyped read surface reports values, not tagged nulls.
         /// </summary>
         /// <remarks>
-        /// Successor to the characterization test from step 2, which reproduced ADR-0047 defect 1 by
+        /// Successor to the characterization test from step 2, which reproduced ADR-0048 defect 1 by
         /// asking this of a mapped property while a language was active. There is no active language
         /// now, so the same question is put to a container -- whose GetValueObject() is the container
         /// itself, and which would therefore report one unusable value if EnumerateValues were ever

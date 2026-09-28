@@ -38,7 +38,7 @@ namespace Semiodesk.Trinity
     /// <remarks>
     /// The two containers differ only in how many values they let a language carry, so everything else —
     /// storage, tag normalization, RFC 4647 lookup — lives here once. That matters more than the code it
-    /// saves: a second copy of the matching rules is exactly how the four representations ADR-0047
+    /// saves: a second copy of the matching rules is exactly how the four representations ADR-0048
     /// replaced came to disagree with each other.
     /// </remarks>
     internal sealed class LocalizedValueStore

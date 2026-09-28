@@ -563,7 +563,7 @@ namespace Semiodesk.Trinity
             // State-free. This used to wrap the value in a tag taken from ambient state, which is what
             // made the result depend on when Resource.Language was last assigned - and, through the
             // double-wrap in ListValues, what made the untyped read surface return a tagged null
-            // (ADR-0047). A mapped string is now an untagged literal, and a tagged one lives in a
+            // (ADR-0048). A mapped string is now an untagged literal, and a tagged one lives in a
             // container that carries its own tags.
             return _value;
         }

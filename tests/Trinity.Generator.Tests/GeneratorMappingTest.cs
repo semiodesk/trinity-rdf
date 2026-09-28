@@ -39,7 +39,7 @@ namespace Semiodesk.Trinity.Generator.Tests
     /// <remarks>
     /// This used to hide <c>Resource.Language</c>, which was the sharper example while that member
     /// existed: hiding the name made the ambient language switch harder to reach without making it
-    /// inactive. ADR-0047 removed the member, so the collision it guarded is gone — but the modifier
+    /// inactive. ADR-0048 removed the member, so the collision it guarded is gone — but the modifier
     /// round-trip it also guards is not, and <c>Model</c> is the same hazard under a name that still
     /// exists.
     /// </remarks>

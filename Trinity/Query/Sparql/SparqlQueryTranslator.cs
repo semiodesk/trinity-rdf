@@ -690,7 +690,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                     // Refused rather than approximated. Projecting the bound variable would yield every
                     // language of the property, not the one indexed, and adding the LANG constraint here
                     // would duplicate the filter machinery in the projection path. Filter by language in
-                    // Where and project the resource, or enumerate and index in memory (ADR-0047).
+                    // Where and project the resource, or enumerate and index in memory (ADR-0048).
                     throw new NotSupportedException(
                         "Projecting a single language of a localized property is not supported. Filter " +
                         "on the language in Where and project the resource, then index the property in " +
@@ -1652,7 +1652,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                     // the untagged value. langMatches() is a different rule and would return different
                     // rows, so translating it would answer a question the caller did not ask. Index the
                     // property with the language you want instead, or materialize and call Best() in
-                    // memory (ADR-0047).
+                    // memory (ADR-0048).
                     throw new NotSupportedException(
                         $"{call.Method.Name}() cannot be translated to SPARQL: RFC 4647 lookup is a " +
                         "client-side fallback walk with no faithful SPARQL equivalent. Index the " +
@@ -1739,7 +1739,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                             // RFC 4647 lookup walks a preference list, truncating each range until
                             // something matches, then falls back to the untagged value. langMatches() is
                             // a different rule and would return different rows, so this is refused
-                            // rather than approximated (ADR-0047, and the posture of ADR-0041).
+                            // rather than approximated (ADR-0048, and the posture of ADR-0041).
                             throw new NotSupportedException(
                                 $"{localizedCall.Method.Name}() cannot be translated to SPARQL: RFC 4647 " +
                                 "lookup is a client-side fallback walk with no faithful SPARQL " +
@@ -2635,12 +2635,12 @@ namespace Semiodesk.Trinity.Query.Sparql
                 case LangString langString:
                     // The tag is part of the RDF term, so it has to reach the query or `== "Hallo"@de`
                     // would match a differently-tagged literal. This is what finally populates
-                    // LiteralTerm.Language, which the writer has always been able to emit (ADR-0047).
+                    // LiteralTerm.Language, which the writer has always been able to emit (ADR-0048).
                     return new LiteralTerm(langString.Value, language: langString.Language);
                 case string text:
                     // A mapped string is an untagged literal, so a plain term is the exact match. This
                     // used to be a workaround for the translator having no way to express a tag; since
-                    // ADR-0047 gave `string` that meaning, it is simply correct.
+                    // ADR-0048 gave `string` that meaning, it is simply correct.
                     return new LiteralTerm(text);
                 default:
                     return new LiteralTerm(XsdTypeMapper.SerializeObject(value), XsdTypeMapper.GetXsdTypeUri(value.GetType()));

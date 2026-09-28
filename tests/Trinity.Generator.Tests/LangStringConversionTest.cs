@@ -35,7 +35,7 @@ namespace Trinity.Generator.Tests
 {
     /// <summary>
     /// Guards the decision that <see cref="LangString"/> has no conversion to or from
-    /// <see cref="string"/> (ADR-0047), by asserting that the hazardous expressions do not compile.
+    /// <see cref="string"/> (ADR-0048), by asserting that the hazardous expressions do not compile.
     /// </summary>
     /// <remarks>
     /// <para>

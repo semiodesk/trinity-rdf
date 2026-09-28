@@ -442,7 +442,9 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                     }
                 }
             }
-            else if (url.Scheme == "http")
+            // https as well as http: rejecting it returned null rather than raising, so loading a
+            // graph from an https URL failed silently. Fuseki already accepted both.
+            else if (url.Scheme == "http" || url.Scheme == "https")
             {
                 if (format == RdfSerializationFormat.Trig)
                 {
@@ -462,7 +464,9 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
         public override Uri Read(Stream stream, Uri graph, RdfSerializationFormat format, bool update, bool leaveOpen = false)
         {
-            using (TextReader reader = new StreamReader(stream))
+            // leaveOpen has to reach the reader: a plain StreamReader closes the caller's stream
+            // when it is disposed, whatever the flag says.
+            using (TextReader reader = new StreamReader(stream, Encoding.UTF8, true, 1024, leaveOpen))
             {
                 if (format == RdfSerializationFormat.Trig || format == RdfSerializationFormat.NQuads || format == RdfSerializationFormat.JsonLd)
                 {
@@ -590,7 +594,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             {
                 using (VDS.RDF.Graph graph = new VDS.RDF.Graph(graphUri))
                 {
-                    dotNetRDFStore.TryParse(reader, graph, format);
+                    TryParse(reader, graph, format);
 
                     if (update)
                     {
@@ -638,7 +642,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             {
                 using (VDS.RDF.Graph g = new VDS.RDF.Graph(graph))
                 {
-                    UriLoader.Load(g, location);
+                    LoadGraphFromUrl(g, location);
 
                     manager.SaveGraph(g);
                 }
@@ -758,6 +762,18 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             {
                 // The resource was never synchronized, so there is no baseline to diff against and the
                 // whole resource has to be replaced.
+                //
+                // Unlike StoreBase and the HTTP backends, the INSERT stays in the modify. The
+                // duplication that made them hoist it -- a template instantiated once per solution,
+                // minting a fresh blank node each time -- needs a _: label in the template, and
+                // Virtuoso never produces one here: its blank ids are nodeID:// IRIs, serialized
+                // bracketed, so every instantiation names the same node. The single OPTIONAL also
+                // keeps an absent subject to one solution rather than none.
+                //
+                // Nor can it be hoisted as written: ExecuteDirectQuery sends a bare SPARQL prefix,
+                // which takes one operation, and a ';' there is SQ074 -- which the error handler
+                // swallows, so Commit() would return normally having written nothing.
+                // CommitOfAnUnsynchronizedResourceReplacesItAndLinksABlankNodeOnce guards both.
                 updateString = string.Format(@"
                     SPARQL
                     WITH <{0}>
@@ -797,80 +813,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             }
         }
 
-        public override void UpdateResources(IEnumerable<Resource> resources, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
-        {
-            string WITH = $"{SparqlSerializer.SerializeUri(modelUri)} ";
-
-            // Resources that have been synchronized are written as a delta, exactly as in
-            // UpdateResource — a bulk write must not erase other writers' values either.
-            StringBuilder deltaDelete = new StringBuilder();
-            StringBuilder deltaInsert = new StringBuilder();
-
-            // Resources without a baseline still have to be replaced wholesale.
-            StringBuilder INSERT = new StringBuilder();
-            StringBuilder DELETE = new StringBuilder();
-            StringBuilder OPTIONAL = new StringBuilder();
-
-            int count = 0;
-            foreach (var res in resources)
-            {
-                if (SparqlSerializer.TrySerializeResourceDelta(res, ignoreUnmappedProperties, out var deleted, out var inserted))
-                {
-                    var subject = SparqlSerializer.SerializeUri(res.Uri);
-
-                    if (deleted.Count > 0)
-                    {
-                        deltaDelete.Append(SerializeTripleBlock(subject, deleted));
-                    }
-
-                    if (inserted.Count > 0)
-                    {
-                        deltaInsert.Append(SerializeTripleBlock(subject, inserted));
-                    }
-                }
-                else
-                {
-                    DELETE.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p{count} ?o{count}. ");
-                    OPTIONAL.Append($" {SparqlSerializer.SerializeUri(res.Uri)} ?p{count} ?o{count}. ");
-                    INSERT.Append($" {SparqlSerializer.SerializeResource(res, ignoreUnmappedProperties)} ");
-                    count++;
-                }
-            }
-
-            if (deltaDelete.Length > 0 || deltaInsert.Length > 0)
-            {
-                var delta = new StringBuilder();
-
-                delta.AppendFormat("WITH {0} ", WITH);
-
-                if (deltaDelete.Length > 0)
-                {
-                    delta.AppendFormat("DELETE {{ {0} }} ", deltaDelete);
-                }
-
-                if (deltaInsert.Length > 0)
-                {
-                    delta.AppendFormat("INSERT {{ {0} }} ", deltaInsert);
-                }
-
-                delta.Append("WHERE {}");
-
-                ExecuteNonQuery(new SparqlUpdate(delta.ToString()), transaction);
-            }
-
-            if (count > 0)
-            {
-                string updateString = $"WITH {WITH} DELETE {{ {DELETE} }}  WHERE {{ OPTIONAL {{ {OPTIONAL} }} }} INSERT {{ {INSERT} }}";
-
-                ExecuteNonQuery(new SparqlUpdate(updateString), transaction);
-            }
-
-            foreach (var resource in resources)
-            {
-                resource.IsNew = false;
-                resource.IsSynchronized = true;
-            }
-        }
 
         public override void DeleteResource(Uri modelUri, Uri resourceUri, ITransaction transaction = null)
         {

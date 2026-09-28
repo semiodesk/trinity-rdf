@@ -71,7 +71,7 @@ namespace Semiodesk.Trinity
         /// <remarks>
         /// Kept for one release so that 1.x call sites get an explanation rather than CS1501. The flag
         /// is redundant now: a <c>string</c> property is language-invariant by construction, and a
-        /// language-tagged one declares a container that carries its own tags (ADR-0047). The old flag
+        /// language-tagged one declares a container that carries its own tags (ADR-0048). The old flag
         /// turns out to be an exact partition of the migration - <c>true</c> stays <c>string</c>,
         /// everything else string-typed becomes <c>LocalizedString</c>.
         /// </remarks>

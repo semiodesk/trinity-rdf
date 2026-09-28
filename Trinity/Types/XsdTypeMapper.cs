@@ -332,7 +332,7 @@ namespace Semiodesk.Trinity
         /// <c>SparqlSerializer.SerializeTranslatedString</c> appends the <c>@lang</c> - so this returns the
         /// value alone, as the two serializers it replaced did. Unlike them it cannot lose the tag, because
         /// the tag never reaches this method: the previous <c>Tuple&lt;string,CultureInfo&gt;</c> serializer
-        /// silently discarded a culture that no caller could recover (ADR-0047).
+        /// silently discarded a culture that no caller could recover (ADR-0048).
         /// </remarks>
         /// <param name="obj">A <see cref="LangString"/>.</param>
         /// <returns>The lexical form.</returns>

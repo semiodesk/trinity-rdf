@@ -130,7 +130,7 @@ namespace Semiodesk.Trinity.Generator
             category: Category,
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true,
-            description: "A LocalizedString or LocalizedStringCollection is a mutable view owned by the mapping, not a value to assign. A setter admits two hazards the get-only form removes at compile time: assigning null, after which every use is a NullReferenceException, and assigning another resource's container, which aliases one instance across both so a write through either is visible through the other. Write label[\"de\"] = \"Hallo\" instead of label = something (ADR-0047).");
+            description: "A LocalizedString or LocalizedStringCollection is a mutable view owned by the mapping, not a value to assign. A setter admits two hazards the get-only form removes at compile time: assigning null, after which every use is a NullReferenceException, and assigning another resource's container, which aliases one instance across both so a write through either is visible through the other. Write label[\"de\"] = \"Hallo\" instead of label = something (ADR-0048).");
 
         /// <summary>TRIN008: <c>[RdfProperty(uri, languageInvariant)]</c>, which no longer does anything.</summary>
         public static readonly DiagnosticDescriptor LanguageInvariantIsObsolete = new DiagnosticDescriptor(
@@ -140,6 +140,6 @@ namespace Semiodesk.Trinity.Generator
             category: Category,
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true,
-            description: "A string property is language-invariant by construction: it sees untagged literals only. Declare LocalizedString (one value per language) or LocalizedStringCollection (several) for language-tagged values, or LangString for the raw tagged literal. The old flag is an exact partition of the migration - languageInvariant:true stays string, every other string-typed mapped property becomes LocalizedString. Reported rather than silently ignored because a flag that no longer does anything is otherwise indistinguishable from one that does (ADR-0047).");
+            description: "A string property is language-invariant by construction: it sees untagged literals only. Declare LocalizedString (one value per language) or LocalizedStringCollection (several) for language-tagged values, or LangString for the raw tagged literal. The old flag is an exact partition of the migration - languageInvariant:true stays string, every other string-typed mapped property becomes LocalizedString. Reported rather than silently ignored because a flag that no longer does anything is otherwise indistinguishable from one that does (ADR-0048).");
     }
 }

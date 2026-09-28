@@ -956,7 +956,7 @@ namespace Semiodesk.Trinity
         /// <remarks>
         /// The direct answer to "which languages does this resource have?" — a question the previous
         /// design could not answer from the mapped surface at all, because a mapped property held one
-        /// language at a time and the rest sat in the untyped bag (ADR-0047).
+        /// language at a time and the rest sat in the untyped bag (ADR-0048).
         /// </remarks>
         /// <param name="property">A RDF property.</param>
         /// <returns>The language tags, ordered. Empty when no value carries one.</returns>
@@ -1087,7 +1087,7 @@ namespace Semiodesk.Trinity
                     // One enumeration for all three shapes. This used to re-tag an already-tagged value
                     // with `x as string`, which is null on a tagged value, so the untyped read surface
                     // reported a tagged null while the mapped getter beside it reported the right string
-                    // (ADR-0047 defect 1).
+                    // (ADR-0048 defect 1).
                     foreach (object value in propertyMapping.EnumerateValues())
                     {
                         yield return value;

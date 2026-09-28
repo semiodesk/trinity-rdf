@@ -35,10 +35,10 @@ namespace Semiodesk.Trinity
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This is the one representation of a language-tagged literal in Trinity (ADR-0047). It replaces the
+    /// This is the one representation of a language-tagged literal in Trinity (ADR-0048). It replaces the
     /// four shapes that preceded it — <c>Tuple&lt;string,string&gt;</c>, <c>Tuple&lt;string,CultureInfo&gt;</c>,
     /// <c>string[] { value, lang }</c>, and a bare string carrying its tag out of band on the mapping.
-    /// Those disagreed with each other, and every defect in ADR-0047 followed from a call site re-deriving
+    /// Those disagreed with each other, and every defect in ADR-0048 followed from a call site re-deriving
     /// what a tagged literal is.
     /// </para>
     /// <para>

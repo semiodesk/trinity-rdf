@@ -102,7 +102,7 @@ namespace Semiodesk.Trinity
                 }
                 else if (obj is LangString langString)
                 {
-                    // One branch, because there is now one representation of a tagged literal (ADR-0047).
+                    // One branch, because there is now one representation of a tagged literal (ADR-0048).
                     // This replaced three - string[], Tuple<string,CultureInfo> and Tuple<string,string> -
                     // which carried the identical comment and did not agree on the type.
                     return SerializeTranslatedString(langString.Value, langString.Language);

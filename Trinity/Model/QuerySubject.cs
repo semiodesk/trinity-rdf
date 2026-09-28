@@ -64,7 +64,13 @@ namespace Semiodesk.Trinity
 
             if (!uri.CanBeQuerySubject())
             {
-                throw new ArgumentException("Blank nodes are not supported as query subjects in SPARQL 1.1");
+                // Names the offender. On a single guarded accessor the subject is the call's only
+                // argument and the caller knows which it passed; in a batch of a thousand resources
+                // it does not, and a message that identifies none of them is no help. The precedent
+                // is SerializeUri, which refuses naming the IRI it refused (ADR-0046).
+                throw new ArgumentException(
+                    $"<{uri.OriginalString}> is a blank node identifier, and a blank node cannot be "
+                    + "named as a subject in a SPARQL query.", paramName);
             }
         }
     }

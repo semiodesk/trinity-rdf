@@ -37,7 +37,7 @@ namespace Semiodesk.Trinity
     /// <para>
     /// This is the scalar of the pair: <c>LocalizedString</c> is to languages what <c>string</c> is to a
     /// predicate, and <see cref="LocalizedStringCollection"/> is what <c>List&lt;string&gt;</c> is
-    /// (ADR-0047). Unlike the design it replaces, the property holds <b>every</b> language at once, so
+    /// (ADR-0048). Unlike the design it replaces, the property holds <b>every</b> language at once, so
     /// <see cref="Languages"/> can answer which ones exist and reading one never hides another.
     /// </para>
     /// <para>

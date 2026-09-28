@@ -106,7 +106,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                 // a language-tagged literal also carries rdf:langString, so a datatype-first test can
                 // misread one as a plain typed literal. Virtuoso happens to leave StrType null for tagged
                 // literals, which is why the old datatype-first order worked - but it was the inverse of
-                // the documented rule and would break the moment that changed (ADR-0047).
+                // the documented rule and would break the moment that changed (ADR-0048).
                 if (!string.IsNullOrEmpty(box.StrLang))
                 {
                     return new LangString(box.Value.ToString(), box.StrLang);

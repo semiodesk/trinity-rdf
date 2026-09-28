@@ -9,7 +9,7 @@ namespace Semiodesk.Trinity.Tests
         #region Members
         
         // These carried languageInvariant:true. The flag is gone: a string property sees untagged
-        // literals only, which is exactly what it meant (ADR-0047).
+        // literals only, which is exactly what it meant (ADR-0048).
         [RdfProperty(NCO.nameGiven)]
         public partial string NameGiven { get; set; }
 

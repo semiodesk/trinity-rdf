@@ -60,7 +60,7 @@ mapped/dynamic duality, models & groups, discovery, stores, and querying.
 | [0024](0024-sparql-reuses-registered-prefixes.md) | SPARQL queries reuse registered ontology prefixes | Accepted |
 | [0025](0025-resource-identity-uriref-blanknodes.md) | Resource identity: fragment-aware URIs (UriRef), URNs, blank nodes | Accepted |
 | [0026](0026-xsd-dotnet-datatype-mapping.md) | XSD ↔ .NET datatype mapping (culture-invariant literals) | Accepted |
-| [0027](0027-localized-literals.md) | Language-tagged (localized) literals (rudimentary; replacement designed in [0047](0047-localized-literals-typed-containers.md)) | Accepted |
+| [0027](0027-localized-literals.md) | Language-tagged (localized) literals (rudimentary; replacement designed in [0048](0048-localized-literals-typed-containers.md)) | Accepted |
 | [0028](0028-store-level-transactions.md) | Store-level transactions (ADO-style `ITransaction`) | Accepted |
 | [0029](0029-resource-commit-rollback-change-tracking.md) | Resource change tracking & object-level Commit/Rollback (no cascade) | Accepted |
 | [0030](0030-delete-removes-subject-and-object-triples.md) | Deleting a resource removes all triples referencing it (subject + object) | Accepted |
@@ -85,13 +85,14 @@ mapped/dynamic duality, models & groups, discovery, stores, and querying.
 | [0044](0044-store-suites-green-and-in-ci.md) | Provision the inference configuration the store suites depend on, and run them in CI | Accepted |
 | [0045](0045-in-memory-rdfs-inferencing.md) | Finish in-memory inferencing: entail into a side graph, union it in per query | Accepted |
 | [0046](0046-bulk-subject-binding-with-values.md) | Bulk subject binding uses VALUES, never an equality chain | Accepted |
+| [0047](0047-oxigraph-store.md) | Oxigraph as a fourth backend; it refuses inferencing rather than ignoring it | Accepted |
 
 ### Proposed (revival)
 | # | Title | Status |
 |---|-------|--------|
 | [0015](0015-modernize-target-frameworks-and-ci.md) | Modernize target frameworks, build, and CI | Proposed |
 | [0042](0042-staged-writes-and-accept.md) | Staged writes: the layered view as a working copy (accept/discard, materialization, conflicts) | Accepted (staging, materialization) / Proposed (merge, validation) |
-| [0047](0047-localized-literals-typed-containers.md) | Localized literals are typed containers, not ambient resource state (supersedes [0027](0027-localized-literals.md) on landing) | Proposed |
+| [0048](0048-localized-literals-typed-containers.md) | Localized literals are typed containers, not ambient resource state (supersedes [0027](0027-localized-literals.md) on landing) | Proposed |
 
 ## Revival north star
 

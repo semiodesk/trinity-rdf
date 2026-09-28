@@ -97,7 +97,7 @@ namespace Semiodesk.Trinity.Tests.Query.Sparql
 
             // A tagged literal on the same predicate a mapped string maps. Projecting that string used
             // to throw InvalidCastException for every row because one resource carried a tag
-            // (ADR-0047 defect 3).
+            // (ADR-0048 defect 3).
             Document tagged = _model.CreateResource<Document>(new Uri("http://example.org/doc/tagged"));
             tagged.Title = "Tagged";
             tagged.AddProperty(
@@ -116,7 +116,7 @@ namespace Semiodesk.Trinity.Tests.Query.Sparql
         /// </summary>
         /// <remarks>
         /// Both documents carry the lexical form "Bericht" - one tagged @de, one @en - so a translator
-        /// that dropped the tag would return both. Before ADR-0047 the translator could not express a
+        /// that dropped the tag would return both. Before ADR-0048 the translator could not express a
         /// tag at all: LiteralTerm carried one and the writer could emit it, but every construction site
         /// passed null.
         /// </remarks>
@@ -220,7 +220,7 @@ namespace Semiodesk.Trinity.Tests.Query.Sparql
         /// rather than throwing.
         /// </summary>
         /// <remarks>
-        /// ADR-0047 defect 3: a tagged literal binds as a LangString, which is not IConvertible, so
+        /// ADR-0048 defect 3: a tagged literal binds as a LangString, which is not IConvertible, so
         /// Convert.ChangeType raised InvalidCastException and the whole projection failed because some
         /// other resource happened to carry a tag on the same predicate.
         /// </remarks>

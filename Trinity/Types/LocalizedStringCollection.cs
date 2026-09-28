@@ -39,7 +39,7 @@ namespace Semiodesk.Trinity
     /// <para>
     /// This is the collection of the pair: <c>LocalizedStringCollection</c> is to languages what
     /// <c>List&lt;string&gt;</c> is to a predicate, and <see cref="LocalizedString"/> is what
-    /// <c>string</c> is (ADR-0047). Declare it for predicates that are genuinely multi-valued per
+    /// <c>string</c> is (ADR-0048). Declare it for predicates that are genuinely multi-valued per
     /// language — <c>skos:altLabel</c> is the obvious one — where <see cref="LocalizedString"/> would
     /// keep the last value and let a later <c>Commit()</c> delete the rest.
     /// </para>

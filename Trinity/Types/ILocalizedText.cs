@@ -35,7 +35,7 @@ namespace Semiodesk.Trinity
     /// <remarks>
     /// The two differ only in multiplicity — one value per language, or several — which is the same
     /// choice an author already makes between <c>string</c> and <c>List&lt;string&gt;</c> one level up
-    /// (ADR-0047). Everything that does not depend on that choice lives here, including the question the
+    /// (ADR-0048). Everything that does not depend on that choice lives here, including the question the
     /// previous design could not answer at all: <see cref="Languages"/>.
     /// </remarks>
     public interface ILocalizedText : IEnumerable<LangString>

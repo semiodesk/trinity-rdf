@@ -1,11 +1,11 @@
-# 0047. Localized literals are typed containers, not ambient resource state
+# 0048. Localized literals are typed containers, not ambient resource state
 
 Date: 2026-09-17
 
 ## Status
 
 Proposed (2.0). The design below is agreed; implementation follows. On landing, this supersedes
-[0027](0027-localized-literals.md), whose status becomes *Superseded by 0047*.
+[0027](0027-localized-literals.md), whose status becomes *Superseded by 0048*.
 
 ## Context
 

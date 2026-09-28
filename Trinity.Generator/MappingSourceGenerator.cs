@@ -598,7 +598,7 @@ namespace Semiodesk.Trinity.Generator
                 }
 
                 // Reported, not obeyed. The flag no longer changes what is emitted, and a flag that
-                // silently does nothing is indistinguishable from one that works (ADR-0047). Detected
+                // silently does nothing is indistinguishable from one that works (ADR-0048). Detected
                 // whether it was passed positionally or by name, and at either value: passing
                 // languageInvariant:false is just as stale as passing true.
                 bool languageInvariantSpecified =

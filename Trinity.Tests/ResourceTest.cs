@@ -586,7 +586,7 @@ namespace Semiodesk.Trinity.Tests
                 {
                     // The tagged literal needs no special case any more. It used to have one guarded by
                     // `obj is string[]`, a shape this path never produced, so the branch was dead and the
-                    // value fell through to Contains anyway (ADR-0047).
+                    // value fell through to Contains anyway (ADR-0048).
                     Assert.AreEqual(true, expected.Contains(obj), string.Format("Object {0} not in expected list.", obj));
                 }
             }

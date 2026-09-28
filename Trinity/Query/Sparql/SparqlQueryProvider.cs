@@ -295,7 +295,7 @@ namespace Semiodesk.Trinity.Query.Sparql
 
             // The same wall, for the same reason: a language-tagged literal binds as a LangString, which
             // is not IConvertible either, so projecting one into a string threw InvalidCastException
-            // rather than returning the text (ADR-0047). Projecting the tag away is the reasonable
+            // rather than returning the text (ADR-0048). Projecting the tag away is the reasonable
             // reading of 'select x.Name' -- the caller asked for a string and gets the lexical form;
             // asking for a LangString keeps the tag, via the IsInstanceOfType check above.
             if (type == typeof(string) && value is LangString langString)

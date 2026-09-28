@@ -3,7 +3,7 @@ using System;
 namespace Semiodesk.Trinity.Tests
 {
     /// <summary>
-    /// A generator-authored mapped class using the localized-text containers, in the shape ADR-0047
+    /// A generator-authored mapped class using the localized-text containers, in the shape ADR-0048
     /// recommends: <c>partial</c>, attribute-mapped, and <b>get-only</b>.
     /// </summary>
     /// <remarks>

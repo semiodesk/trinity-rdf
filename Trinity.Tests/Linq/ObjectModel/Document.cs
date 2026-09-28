@@ -40,7 +40,7 @@ namespace Semiodesk.Trinity.Tests.Linq
         [RdfProperty("http://www.w3.org/2000/01/rdf-schema#label")]
         public partial string Title { get; set; }
 
-        /// <summary>Localized, so the translator's language handling can be queried (ADR-0047).</summary>
+        /// <summary>Localized, so the translator's language handling can be queried (ADR-0048).</summary>
         [RdfProperty("http://purl.org/dc/terms/title")]
         public partial LocalizedString LocalizedTitle { get; }
 

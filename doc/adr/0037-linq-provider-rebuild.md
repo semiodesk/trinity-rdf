@@ -63,7 +63,7 @@ LINQ-to-Objects over the same data) drove two semantic questions to a decision:
   ordered (so `"Zoe"` precedes `"alice"`), whereas .NET's default comparer is culture-sensitive.
   Matching .NET would mean sorting client-side and giving up `LIMIT`/`OFFSET` pushdown, so the SPARQL
   behaviour stands and the corpus asserts it with `StringComparer.Ordinal` on the oracle side.
-  [0047](0047-localized-literals-typed-containers.md) narrows this: the statement holds for *plain*
+  [0048](0048-localized-literals-typed-containers.md) narrows this: the statement holds for *plain*
   literals, but SPARQL 1.1 §15.1 leaves the relative order of literals carrying **different language
   tags** implementation-defined, so a raw `ORDER BY` over localized values diverges across backends.
   A localized order key is therefore emitted as `ORDER BY STR(?v)`.

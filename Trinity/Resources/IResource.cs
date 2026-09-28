@@ -373,7 +373,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <remarks>
         /// The direct answer to "which languages does this resource have?", which the previous design
-        /// could not give from the mapped surface at all (ADR-0047).
+        /// could not give from the mapped surface at all (ADR-0048).
         /// </remarks>
         /// <param name="property">A RDF property.</param>
         /// <returns>The language tags, ordered. Empty when no value carries one.</returns>

@@ -395,7 +395,7 @@ namespace Semiodesk.Trinity.Generator.Tests
         /// <remarks>
         /// A flag that no longer does anything is indistinguishable, at the call site, from one that
         /// works — and this one used to decide whether a property saw tagged literals, so silence would
-        /// leave the author believing a guarantee they no longer have (ADR-0047).
+        /// leave the author believing a guarantee they no longer have (ADR-0048).
         /// </remarks>
         [Test]
         public void ReportsTheObsoleteLanguageInvariantFlag()
