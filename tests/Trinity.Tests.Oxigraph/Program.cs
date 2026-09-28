@@ -21,9 +21,8 @@
 // AUTHORS:
 //
 //  Moritz Eberl <moritz@semiodesk.com>
-//  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2015-2019
+// Copyright (c) Semiodesk GmbH 2026
 
 using System;
 using System.Collections.Generic;

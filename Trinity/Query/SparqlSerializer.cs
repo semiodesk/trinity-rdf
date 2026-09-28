@@ -82,7 +82,9 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string SerializeTypedLiteral(object obj, Uri typeUri)
         {
-            return string.Format("'{0}'^^<{1}>", XsdTypeMapper.SerializeObject(obj), typeUri);
+            // SerializeUri, not the raw Uri: interpolating one calls Uri.ToString(), which returns the
+            // display form and unescapes percent-encoding. See SerializeUri and ADR-0046.
+            return string.Format("'{0}'^^{1}", XsdTypeMapper.SerializeObject(obj), SerializeIriRef(typeUri));
         }
 
         /// <summary>
@@ -151,13 +153,265 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Serializes a URI.
+        /// The characters SPARQL forbids inside an <c>IRIREF</c>.
         /// </summary>
+        /// <remarks>
+        /// From the grammar: <c>IRIREF ::= '&lt;' ([^&lt;&gt;"{}|^`\]-[#x00-#x20])* '&gt;'</c>. The
+        /// control-and-space range is checked separately below.
+        /// </remarks>
+        private static readonly char[] IriRefForbidden = { '<', '>', '"', '{', '}', '|', '^', '`', '\\' };
+
+        /// <summary>
+        /// Rejects an identifier that cannot be written into a SPARQL query.
+        /// </summary>
+        /// <remarks>
+        /// Trinity serializes from <c>OriginalString</c> rather than <c>AbsoluteUri</c>, so an IRI is
+        /// emitted exactly as the caller spelled it. That is deliberate and load-bearing — see
+        /// <see cref="SerializeUri"/> — but it means nothing escapes a character the grammar forbids,
+        /// and an unescaped one is a parse error that takes every other term in the same query down
+        /// with it. Failing here names the offending identifier instead.
+        /// </remarks>
+        private static void RequireWritableIri(Uri uri)
+        {
+            string value = uri.OriginalString;
+
+            if (value.IndexOfAny(IriRefForbidden) < 0)
+            {
+                bool clean = true;
+
+                foreach (char c in value)
+                {
+                    if (c <= '\u0020')
+                    {
+                        clean = false;
+                        break;
+                    }
+                }
+
+                if (clean)
+                {
+                    return;
+                }
+            }
+
+            throw new NotSupportedException(
+                $"The IRI <{value}> cannot be written into a SPARQL query: it contains a character "
+                + "that is not allowed in an IRIREF (one of <>\"{}|^`\\, a space, or a control "
+                + "character). Percent-encode it before using it as a resource identifier.");
+        }
+
+        /// <summary>
+        /// Serializes a URI as an RDF term: an <c>IRIREF</c>, or a bare label for a blank node.
+        /// </summary>
+        /// <remarks>
+        /// <c>OriginalString</c>, never <c>AbsoluteUri</c>. <c>AbsoluteUri</c> normalizes
+        /// percent-encoding case, dot-segments, default ports and host casing, so a resource stored
+        /// under its original spelling could not be found by a query built from the very same
+        /// <see cref="Uri"/>. That is not theoretical: <see cref="Resource"/> compares and hashes on
+        /// the ordinal <c>OriginalString</c>, the LINQ provider joins two result sets on it, and
+        /// <c>XsdTypeMapper</c> records that Virtuoso specifically cannot take the lower-cased host
+        /// .NET would produce. <c>SparqlQueryWriter.WriteIri</c> makes the same choice on the read
+        /// path. Anything that cannot be emitted verbatim is therefore refused, not rewritten.
+        /// <para>
+        /// A blank node label is emitted bare, which is only valid in the few positions that accept
+        /// one. Use <see cref="SerializeIriRef"/> wherever the grammar demands an <c>IRIREF</c>.
+        /// </para>
+        /// </remarks>
         /// <param name="uri">A uniform resource identifier.</param>
         /// <returns></returns>
         public static string SerializeUri(Uri uri)
         {
-            return uri.OriginalString.StartsWith("_") ? uri.OriginalString : $"<{uri.OriginalString}>";
+            if (uri == null)
+            {
+                throw new ArgumentNullException(nameof(uri));
+            }
+
+            // The spelling decides, not the IsBlankId flag: Virtuoso's blank identifiers are
+            // nodeID:// IRIs that must stay bracketed. See UriExtensions.IsBlankNodeLabel.
+            if (uri.IsBlankNodeLabel())
+            {
+                return uri.OriginalString;
+            }
+
+            RequireWritableIri(uri);
+
+            return $"<{uri.OriginalString}>";
+        }
+
+        /// <summary>
+        /// Serializes a URI in a position where the grammar demands an <c>IRIREF</c> — a
+        /// <c>PREFIX</c> declaration, a datatype, a dataset clause.
+        /// </summary>
+        /// <remarks>
+        /// Always bracketed. <see cref="SerializeUri"/> emits a blank node label bare, which is a
+        /// syntax error in any of these positions, so this refuses one outright rather than
+        /// producing a query that cannot parse.
+        /// </remarks>
+        /// <param name="uri">A uniform resource identifier.</param>
+        internal static string SerializeIriRef(Uri uri)
+        {
+            if (uri == null)
+            {
+                throw new ArgumentNullException(nameof(uri));
+            }
+
+            if (uri.IsBlankNodeLabel())
+            {
+                throw new NotSupportedException(
+                    $"A blank node identifier ({uri.OriginalString}) cannot be used where SPARQL "
+                    + "requires an IRI, such as a PREFIX declaration, a datatype or a dataset clause.");
+            }
+
+            RequireWritableIri(uri);
+
+            return $"<{uri.OriginalString}>";
+        }
+
+        /// <summary>
+        /// The number of subjects bound by a single <c>VALUES</c> block before
+        /// <see cref="GenerateSubjectBindings"/> starts a new one.
+        /// </summary>
+        /// <remarks>
+        /// <c>VALUES</c> removes the nesting limit that sinks the equality chain, but it is not
+        /// unbounded: Virtuoso compiles the block into one built-in call and refuses the 4095th
+        /// operand with <c>SP030: Too many arguments for standard built-in function</c> (measured
+        /// on 7.2.12 and 7.2.14 alike — a compile-time cap, not a query-text-length limit, and
+        /// unmoved by <c>ThreadStackSize</c>). 1000 keeps a 4x margin under that, which matters
+        /// because the ceiling is a property of the server build rather than of this code, and it
+        /// is where the measured advantage already saturates: 1000 subjects answered in 83 ms
+        /// against the chain's 957 ms. See <c>doc/adr/0046-bulk-subject-binding-with-values.md</c>.
+        /// </remarks>
+        internal const int SubjectBindingBatchSize = 1000;
+
+        /// <summary>
+        /// Binds a variable to one or more known subjects with <c>VALUES</c>.
+        /// </summary>
+        /// <remarks>
+        /// This has to be emitted <b>before</b> the pattern it constrains. Restricting the
+        /// subject afterwards with <c>FILTER (?s = ...)</c> instead leaves the engine to push the
+        /// filter into a <c>UNION</c> containing an anti-join, which neither the in-memory engine
+        /// nor GraphDB does — measured at 15x and 38x respectively, against 1.0x for the
+        /// <c>VALUES</c> form. Binding up front turns every read into an indexed probe.
+        /// <para>
+        /// The equality chain it replaces is also a correctness problem, not only a slow one:
+        /// Virtuoso parses <c>?s = &lt;a&gt; || ?s = &lt;b&gt; || ...</c> as nested binary pairs and
+        /// its compiler caps the nesting depth, answering <c>SP031: The nesting depth of
+        /// subexpressions exceed limits of SPARQL compiler</c> beyond it. The same subjects bound
+        /// with <c>VALUES</c> compile fine.
+        /// </para>
+        /// </remarks>
+        /// <param name="variable">The variable to bind, including its leading <c>?</c>.</param>
+        /// <param name="uris">The subjects to bind it to.</param>
+        private static string GenerateSubjectBinding(string variable, IEnumerable<Uri> uris)
+        {
+            var result = new StringBuilder();
+
+            result.Append("VALUES ").Append(variable).Append(" { ");
+
+            foreach (Uri uri in uris)
+            {
+                result.Append(SerializeUri(uri)).Append(' ');
+            }
+
+            result.Append("} ");
+
+            return result.ToString();
+        }
+
+        /// <summary>
+        /// The query every bulk resource read issues, for one batch of subjects.
+        /// </summary>
+        /// <remarks>
+        /// Shared so the emitted shape cannot drift between implementations — three copies of this
+        /// read are what let the equality chain survive (ADR-0046). The projection stays
+        /// <c>?s ?p ?o</c> in that order and the triple pattern keeps its trailing <c>.</c>, because
+        /// <c>ISparqlQuery.ProvidesStatements()</c> is a token-level heuristic that latches only when
+        /// a pattern terminator is reached while exactly those three variables are in scope, in that
+        /// order. If it returns false, resource materialization refuses the query outright — a
+        /// failure that does not look like a query problem. <c>SparqlSerializerTest</c> pins both.
+        /// </remarks>
+        /// <param name="subjectBinding">A <c>VALUES</c> block from <see cref="GenerateSubjectBindings"/>.</param>
+        internal static string GenerateResourceQuery(string subjectBinding)
+        {
+            return "SELECT ?s ?p ?o WHERE { " + subjectBinding + "?s ?p ?o. }";
+        }
+
+        /// <summary>
+        /// Splits a set of subjects into <c>VALUES</c> blocks of at most
+        /// <paramref name="batchSize"/> entries, dropping the ones SPARQL cannot address.
+        /// </summary>
+        /// <remarks>
+        /// Blank node identifiers are <b>skipped rather than serialized</b>. A blank node label is
+        /// not a legal <c>DataBlockValue</c> (<c>iri | RDFLiteral | NumericLiteral |
+        /// BooleanLiteral | 'UNDEF'</c>) and is not legal in a <c>FILTER</c> expression either, so
+        /// there is no query shape that can address one by label — a label in a query is an
+        /// existential variable, not a reference. <see cref="SerializeUri"/> would happily emit a
+        /// bare <c>_:b0</c> and the store would reject the whole query, taking the addressable
+        /// subjects down with it. Callers that need the stricter contract reject blank ids before
+        /// calling; <c>ResourceCache.LoadCachedValues</c> instead materializes whatever does not
+        /// come back as an unresolved resource, which is the right outcome here.
+        /// <para>
+        /// Yields nothing for an empty, all-blank or <c>null</c> subject set, so a caller that
+        /// iterates the result issues no query at all rather than an unconstrained one.
+        /// </para>
+        /// </remarks>
+        /// <param name="variable">The variable to bind, including its leading <c>?</c>.</param>
+        /// <param name="uris">The subjects to bind it to.</param>
+        /// <param name="batchSize">The maximum number of subjects per block.</param>
+        internal static IEnumerable<string> GenerateSubjectBindings(string variable, IEnumerable<Uri> uris, int batchSize = SubjectBindingBatchSize)
+        {
+            // Validated eagerly, outside the iterator below: a check inside one does not run until the
+            // caller's foreach, which reports the bad argument at the consumer rather than at the call.
+            if (string.IsNullOrEmpty(variable))
+            {
+                throw new ArgumentException("A subject binding needs a variable to bind.", nameof(variable));
+            }
+
+            if (batchSize < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(batchSize));
+            }
+
+            return GenerateSubjectBindingsCore(variable, uris, batchSize);
+        }
+
+        private static IEnumerable<string> GenerateSubjectBindingsCore(string variable, IEnumerable<Uri> uris, int batchSize)
+        {
+            if (uris == null)
+            {
+                yield break;
+            }
+
+            var batch = new List<Uri>(batchSize);
+
+            foreach (Uri uri in uris)
+            {
+                // CanBeQuerySubject, which is broader than the IsBlankId property alone: a
+                // consumer-built new UriRef("_:0", UriKind.RelativeOrAbsolute) does not set the
+                // property, and letting that through puts a bare label into the block, where it is not
+                // a legal DataBlockValue and fails the whole batch. Binding a blank node is futile in
+                // any case -- a bound IRI term never matches a blank-node subject -- so the caller
+                // gets it back unresolved, which is what ResourceCache already does for a link that
+                // did not come back.
+                if (!uri.CanBeQuerySubject())
+                {
+                    continue;
+                }
+
+                batch.Add(uri);
+
+                if (batch.Count == batchSize)
+                {
+                    yield return GenerateSubjectBinding(variable, batch);
+
+                    batch.Clear();
+                }
+            }
+
+            if (batch.Count > 0)
+            {
+                yield return GenerateSubjectBinding(variable, batch);
+            }
         }
 
         /// <summary>

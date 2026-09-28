@@ -7,12 +7,17 @@ are pre-existing or net472→net8 runtime-behavior differences. Revisit as noted
 | Test | Bucket | Why | Follow-up |
 |---|---|---|---|
 | `LinqTestBase.CanSelectResourcesWithOperatorTypeOf` | semantics | Needs **polymorphic base-type queries**: its last assertion expects `Query<Agent>()` to also return resources typed with a subclass (`Person`). `is T`, `GetType() == typeof(T)` and `OfType<T>().Count()` are all implemented now — only that assertion fails | **Open decision** (ADR-0037): `GetTypes()` emits a class's own `[RdfClass]` only, so a `Person` is not typed `foaf:Agent`. Either expand a base-type constraint to a UNION over registered subclasses, or leave it to store-side `rdfs:subClassOf` inference |
-| `ResourceWriteSemanticsTest.CanRemoveBlankNodeValuedLink` | defect (read path) | Reading a mapped collection whose value is a **blank node** throws `RdfParseException: "Cannot resolve a Relative URI Reference since there is no in-scope Base URI"` from dotNetRDF's expression parser while it resolves the lazy-load filter. Confirmed to fail *before* the write by cutting the test short — so it is a read-path limitation, not a write-semantics one | Fix blank-node handling in the lazy-load query. Until then the hazard the test was written for is **uncovered**: blank nodes are illegal in SPARQL `DELETE` templates, and delta writes (ADR-0039) name triples directly where the old whole-resource rewrite deleted through variables. Extends item 6 of `doc/trinity-write-semantics.md` |
+| `ResourceWriteSemanticsTest.CanRemoveBlankNodeValuedLink` | defect (**write** path) | **The read half of this was fixed by ADR-0046** and is now covered by the split-out `CanReadBlankNodeValuedLink`, which passes. The test now reaches the delta it was written for and fails there: `SparqlUpdateException: "Cannot create a DELETE command where any of the Triple Patterns are not constructable triple patterns (Blank Node Variables are not permitted)"`. The recorded cause until then — `RdfParseException: "Cannot resolve a Relative URI Reference since there is no in-scope Base URI"` — was the lazy-load filter interpolating the blank id as `<_:0>`; that shape is gone | Make the delta delete a blank-node-valued triple **through a variable bound by a WHERE** instead of naming the node, which is what the old whole-resource rewrite did implicitly. Extends item 6 of `doc/trinity-write-semantics.md` |
 
 `CanSelectResourcesWithOperatorTypeOf` runs under both `LinqModelTest` and `LinqModelGroupTest`
 (2 results); with the blank-node case that is the entire quarantined set in `Trinity.Tests`. The
 blank-node entry lives in the shared `ResourceWriteSemanticsTest<T>` fixture, so it is also skipped once
 per store suite.
+
+**The blank-node entry changed cause, not just wording (ADR-0046).** It was quarantined as a *read*
+defect; the read is fixed and covered, and what remains is the write hazard the test was originally
+written for. That is the outcome the previous follow-up note predicted — fixing the read moves the
+failure one layer in — so the entry is narrower now, not resolved.
 
 The two `…WithInferencingEnabled` cases were quarantined here until **ADR-0045** finished in-memory
 inferencing; they now pass. `CanSelectResourcesWithOperatorTypeOf` stays, because it is not an
@@ -27,11 +32,11 @@ only quarantined case that is. No quarantined test is a missing LINQ translation
 
 These are `Assert.Inconclusive` overrides in the per-store fixtures, not `[Ignore]`s, and each names a
 store limitation rather than a Trinity defect. The shared blank-node case above is skipped once per
-store on top of these.
+store on top of these, and so is the exact-IRI defect described after the table.
 
 **Oxigraph's inferencing cases are not here, deliberately.** It has no reasoner, so the four shared
 inferencing tests and the two materialized ones would be the obvious candidates to skip — but the
-store *refuses* an inferencing query rather than answering it without (ADR-0046), so the per-store
+store *refuses* an inferencing query rather than answering it without (ADR-0047), so the per-store
 fixtures override them to **assert the refusal** instead. Six assertions rather than six skips.
 
 | Store | Skipped | Why |
@@ -39,7 +44,18 @@ fixtures override them to **assert the refusal** instead. Six assertions rather 
 | **Fuseki** | `TestInferencing`, `GetTypedResourcesWithInferencingTest`, `MappingTypeWithInferencingTest`, `MappingTypeCollectionWithInferencingTest` | Fuseki has **no per-query inference switch**: a Jena reasoner is a property of the dataset, so it applies to every query or to none. Giving the test dataset a reasoner would make these four pass and make `inferenceEnabled: false` quietly lie. ADR-0022 makes inferencing a capability a store may ignore; ADR-0043 records the decision |
 | **Virtuoso** | `Int64Test`, `Uint64Test`, `Int16Test`, `Uint16Test`, `UintTest`, `TimeSpanTest`, `TimeSpanResourceTest` | Virtuoso widens the small integer types into an integer box and does not support `xsd:long`/`xsd:duration`. The `Test<TValue>` helper reads the **unmapped** bag, which declares no target type to convert into (ADR-0040) |
 | **Oxigraph** | `Int64Test`, `Uint64Test`, `Int16Test`, `Uint16Test`, `UintTest` | Oxigraph canonicalizes the integer-derived XSD datatypes into `xsd:integer`, so a literal written as `"5"^^xsd:short` reads back as `Int32` — confirmed at the protocol level with raw SPARQL, so it is the store's value-space normalization rather than anything the adapter does. Same split as Virtuoso: mapped properties convert into their declared type (ADR-0040), the unmapped bag has none to convert into |
-| **GraphDB** | — | none |
+| **GraphDB** | — | none, apart from the exact-IRI defect below |
+
+**One per-store skip is a defect, not a limitation: `StoreCatalogTest.AGraphIsAddressedByTheExactIriItWasNamedWith`**,
+skipped on Fuseki, GraphDB and Virtuoso. Their Graph Store writes name the graph by `Uri.AbsoluteUri`, inside
+dotNetRDF's `FusekiConnector`, its Sesame connector (which `GraphDBConnector` builds on) and the Virtuoso
+manager. `AbsoluteUri` lower-cases the host and re-escapes the path, while the SPARQL path uses
+`OriginalString`. So a graph named `http://Example.org/g` is written under one IRI and queried under
+another, and a `Read` into it seems to vanish. Oxigraph passes because `OxigraphConnector` addresses graphs
+itself. Two related findings: dotNetRDF's SPARQL results parsers (JSON and XML) lower-case the host of
+every IRI they return, so `OxigraphConnector.ListGraphNames` reads names through `STR(?g)`; and any IRI
+coming back in a result set has lost its case on the backends that parse results with dotNetRDF (all but Virtuoso). The fix for the three stores is
+the same connector override Oxigraph has; it was left out of the Oxigraph PR to keep that PR reviewable.
 
 **No store suite has a failing test.** Virtuoso and GraphDB each carried four *failing* inferencing
 tests until ADR-0044; both turned out to be provisioning gaps — Virtuoso's rule set was declared only

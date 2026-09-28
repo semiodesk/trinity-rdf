@@ -37,15 +37,16 @@ Do **not** publish until every gate holds:
    - `dotnet test Trinity.Tests/Trinity.Tests.csproj -c Release` → passing, with only the known
      `[Ignore]`d skips (see `doc/known-test-failures.md`).
    - `dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj -c Release` → passing.
-   - Store integration tests (`tests/Trinity.Tests.{Virtuoso,Fuseki,GraphDB}`) need live servers
+   - Store integration tests (`tests/Trinity.Tests.{Virtuoso,Fuseki,GraphDB,Oxigraph}`) need live servers
      and are **not** a release gate.
 6. **nuget.org will accept the push** — packages are pushed **unsigned** (nuget.org applies its own
    repository signature; author/code signing is intentionally not used). Make sure there is **no
    active required-signer enforcement**: on nuget.org, under the owning account's **Certificates**,
    remove any expired/registered certificates so unsigned pushes are accepted. If unsure, dry-run
    with a `-rc`/prerelease id first and unlist it afterward.
-7. **Release notes** — CHANGELOG / release notes updated for this version, including the breaking
-   changes (see Notes).
+7. **Release notes** — `CHANGELOG.md` has a section for this version, and `PackageReleaseNotes` in
+   `Directory.Build.props` carries its headline (that is what renders on the nuget.org listing page).
+   Update both together, and call out the breaking changes (see Notes).
 
 ## Steps
 

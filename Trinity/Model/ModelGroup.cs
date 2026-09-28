@@ -363,6 +363,11 @@ namespace Semiodesk.Trinity
         /// <returns>True if the resource is part of the model, False if not.</returns>
         public bool ContainsResource(Uri uri, ITransaction transaction = null)
         {
+            // Load-bearing: this interpolates the identifier into a triple pattern, where a bare
+            // blank node label is a fresh existential variable rather than a reference — it would
+            // match any subject with any property and answer true for any non-empty group.
+            QuerySubject.Require(uri);
+
             return ExecuteQuery(new SparqlQuery(string.Format(@"ASK {0} {{ {1} ?p ?o . }}",
                 DatasetClause,
                 SparqlSerializer.SerializeUri(uri))), transaction: transaction).GetAnwser();
@@ -402,6 +407,8 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IResource GetResource(Uri uri, ITransaction transaction = null)
         {
+            QuerySubject.Require(uri);
+
             ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?s ?p ?o " + DatasetClause + " WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
             query.Bind("@subject", uri);
 
@@ -444,6 +451,8 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public T GetResource<T>(Uri uri, ITransaction transaction = null) where T : Resource
         {
+            QuerySubject.Require(uri);
+
             ISparqlQuery query = new SparqlQuery("SELECT DISTINCT ?s ?p ?o " + DatasetClause + " WHERE { ?s ?p ?o. FILTER (?s = @subject) }");
             query.Bind("@subject", uri);
 
@@ -486,7 +495,13 @@ namespace Semiodesk.Trinity
         /// <param name="transaction">Transaction associated with this action.</param>
         /// <returns>A resource with all asserted properties.</returns>
         public object GetResource(Uri uri, Type type, ITransaction transaction = null)
-        {
+                {
+            // Guarded here rather than relying on the reflective call below reaching the guard inside
+            // GetResource<T>: MethodInfo.Invoke wraps whatever it throws in a TargetInvocationException,
+            // so a caller writing catch (ArgumentException) — which every sibling accessor justifies —
+            // would not catch it.
+            QuerySubject.Require(uri);
+
             if (_getResourceMethod != null)
             {
                 if (typeof(IResource).IsAssignableFrom(type))
@@ -548,38 +563,42 @@ namespace Semiodesk.Trinity
         /// <returns>A resource with all asserted properties.</returns>
         public IEnumerable<object> GetResources(IEnumerable<Uri> uris, Type type, ITransaction transaction = null)
         {
-            if (typeof(IResource).IsAssignableFrom(type))
-            {
-                StringBuilder queryString = new StringBuilder();
-                queryString.Append("SELECT ?s ?p ?o WHERE { ?s ?p ?o. FILTER ( ");
-                queryString.Append(string.Join("||", from s in uris select $"?s = <{s}>"));
-                queryString.Append(")}");
-                var query = new SparqlQuery(queryString.ToString());
-
-                ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);
-
-                IEnumerable<Resource> resources = result.GetResources(type);
-
-                foreach (Resource r in resources)
-                {
-                    // NOTE: This safeguard is required because of a bug in ExecuteQuery where 
-                    // it returns null objects when a rdf:type triple is missing..
-                    if (r == null) continue;
-
-                    r.SetModel(this);
-                    r.IsNew = false;
-                    r.IsSynchronized = true;
-                    r.IsReadOnly = true;
-
-                    yield return r;
-                }
-
-            }
-            else
+            if (!typeof(IResource).IsAssignableFrom(type))
             {
                 string msg = string.Format("Error: The given type {0} does not implement the IResource interface.", type);
                 throw new ArgumentException(msg);
             }
+
+            // Materialized here, once, and for two independent reasons. The subjects are enumerated
+            // several times below (once per batch), and the sole caller — ResourceCache.LoadCachedValues —
+            // passes its live cache set and removes from it while consuming the result, so anything
+            // still enumerating `uris` past the first yield would see it mutate.
+            List<Uri> subjects = (uris ?? Enumerable.Empty<Uri>()).ToList();
+
+            if (subjects.Count == 0)
+            {
+                // No subjects means no resources. This used to emit "FILTER ( )", a syntax error,
+                // and to throw NullReferenceException for a null argument.
+                return Enumerable.Empty<object>();
+            }
+
+            return GetResourcesCore(subjects, type, transaction);
+        }
+
+        private IEnumerable<object> GetResourcesCore(IEnumerable<Uri> subjects, Type type, ITransaction transaction)
+        {
+            return BulkResourceReader.Read(
+                subjects,
+                type,
+                binding => new SparqlQuery(SparqlSerializer.GenerateResourceQuery(binding)),
+                query => ExecuteQuery(query, transaction: transaction),
+                resource =>
+                {
+                    resource.SetModel(this);
+                    resource.IsNew = false;
+                    resource.IsSynchronized = true;
+                    resource.IsReadOnly = true;
+                });
         }
 
         /// <summary>

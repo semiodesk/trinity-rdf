@@ -25,6 +25,7 @@
 //
 // Copyright (c) Semiodesk GmbH 2023
 
+using System;
 using NUnit.Framework;
 using Semiodesk.Trinity.Tests.Linq;
 using System.Linq;
@@ -216,6 +217,295 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         /// <summary>
+        /// The bulk API must write resources that do not exist yet, into a model that does not exist
+        /// yet.
+        /// </summary>
+        /// <remarks>
+        /// Two preconditions have to hold at once, and nothing else in this suite arranges either.
+        ///
+        /// <b>The resources have no baseline</b>, so they take the wholesale branch --
+        /// <c>UpdateResources</c>' other one, and the one that had never run on any backend.
+        /// The existing <c>UpdateResources</c> test passes resources that were committed and then
+        /// reloaded, so it takes the delta path by construction.
+        ///
+        /// <b>The model holds no triples.</b> That is the precondition the defect needs and the
+        /// reason this assertion is here: a graph-scoped modify against a graph with nothing in it
+        /// matched nothing, applied nothing and returned success, so a bulk write into a fresh model
+        /// was lost on Fuseki at any batch size. Every other write test inherits a graph an earlier
+        /// operation filled, which is why the suite could not see it.
+        ///
+        /// <c>ContainsModel</c> rather than <c>IsEmpty</c>: the distinction the defect turns on is
+        /// *absent* versus *empty*, and an <c>ASK</c> cannot tell them apart. Jena has no empty named
+        /// graphs, so on Fuseki the two coincide -- but asserting the one that is actually meant is
+        /// what keeps this test honest on the backends where they do not.
+        /// </remarks>
+        [Test]
+        public void BulkUpdateWritesNewResourcesIntoAnEmptyModel()
+        {
+            // Load-bearing, not redundant with TearDown: an earlier fixture in the same run may
+            // have left the graph populated, and this test is only meaningful starting from nothing.
+            Model1.Clear();
+
+            Assert.IsFalse(Store.ContainsModel(Model1.Uri),
+                "precondition: the graph must hold nothing for the defect to be reachable");
+
+            var firstUri = BaseUri.GetUriRef("bulk-new-1");
+            var secondUri = BaseUri.GetUriRef("bulk-new-2");
+
+            var first = Model1.CreateResource<Person>(firstUri);
+            first.FirstName = "First";
+
+            var second = Model1.CreateResource<Person>(secondUri);
+            second.FirstName = "Second";
+
+            Model1.UpdateResources(new Resource[] { first, second });
+
+            Assert.IsFalse(Model1.IsEmpty, "a bulk write of new resources must reach the store");
+
+            Assert.AreEqual("First", Model1.GetResource<Person>(firstUri).FirstName);
+            Assert.AreEqual("Second", Model1.GetResource<Person>(secondUri).FirstName);
+        }
+
+        /// <summary>
+        /// A bulk write mixing new resources with modified existing ones must land both.
+        /// </summary>
+        /// <remarks>
+        /// The two branches are emitted as separate updates, so a batch spanning both is what says
+        /// they compose. <c>replaced</c> is the case the wholesale branch exists for and the one that
+        /// is easy to get wrong: a resource that is <i>already in the store</i> but was constructed
+        /// rather than loaded has no baseline to diff against, so it must be <b>replaced</b>, not
+        /// merged. Routing it to an insert leaves both the old and the new value on a single-valued
+        /// property, and a mapped read then shows one of them -- silent, and exactly the failure
+        /// ADR-0042 describes.
+        ///
+        /// A regression guard rather than a reproduction: it passes without the Fuseki fix, because
+        /// the <c>Commit()</c> that seeds the store puts triples in the graph first, which is why the
+        /// suite was blind to that defect for as long as it was.
+        /// </remarks>
+        [Test]
+        public void BulkUpdateReplacesUnsynchronizedResourcesRatherThanMergingThem()
+        {
+            Model1.Clear();
+
+            var replacedUri = BaseUri.GetUriRef("bulk-mixed-replaced");
+            var modifiedUri = BaseUri.GetUriRef("bulk-mixed-modified");
+
+            var seeded = Model1.CreateResource<Person>(replacedUri);
+            seeded.FirstName = "Before";
+            seeded.Commit();
+
+            var alsoSeeded = Model1.CreateResource<Person>(modifiedUri);
+            alsoSeeded.FirstName = "Loaded";
+            alsoSeeded.Commit();
+
+            // No baseline: constructed, not loaded, though the store already holds it. Wholesale.
+            var replaced = new Person(replacedUri);
+            replaced.SetModel(Model1);
+            replaced.FirstName = "After";
+
+            // Loaded, so it carries a snapshot. Delta.
+            var modified = Model1.GetResource<Person>(modifiedUri);
+            modified.FirstName = "Changed";
+
+            Model1.UpdateResources(new Resource[] { replaced, modified });
+
+            Assert.AreEqual("After", Model1.GetResource<Person>(replacedUri).FirstName);
+
+            // Asked of the store, not of the mapped resource. A merge leaves two values on a
+            // single-valued property and the mapped read surfaces exactly one of them -- so reading
+            // it back through the mapping cannot see the corruption, which is the whole reason
+            // ADR-0042 calls it silent. Counting the triples is the only probe that can.
+            Assert.AreEqual(1, CountValues(replacedUri, foaf.firstName),
+                "a resource with no baseline must be replaced, not merged -- two values for a "
+                + "single-valued property is the silent corruption ADR-0042 warns about");
+
+            Assert.AreEqual("Changed", Model1.GetResource<Person>(modifiedUri).FirstName);
+        }
+
+        /// <summary>
+        /// Several resources replaced in one batch, where one of them is not in the store yet.
+        /// </summary>
+        /// <remarks>
+        /// The guarantee under test is the same one
+        /// <see cref="BulkUpdateReplacesUnsynchronizedResourcesRatherThanMergingThem"/> states, but at
+        /// <c>n &gt; 1</c> -- and it used to hold only at <c>n = 1</c>. The wholesale branch put every
+        /// resource's pattern in a single <c>OPTIONAL</c> block, which is a conjunction: one subject
+        /// with no triples yields zero solutions for the whole group, every <c>DELETE</c> template
+        /// triple is skipped for having an unbound variable, and the ground <c>INSERT</c> applies to
+        /// all of them. So one absent resource turned every other replace in the batch into a merge.
+        ///
+        /// Counted in the store rather than read back through the mapping, for the reason given on
+        /// the single-resource test: a single-valued mapping surfaces one value and cannot see a
+        /// merge.
+        /// </remarks>
+        [Test]
+        public void BulkUpdateReplacesEveryResourceEvenWhenOneIsAbsent()
+        {
+            Model1.Clear();
+
+            var seededUri = BaseUri.GetUriRef("bulk-absent-seeded");
+            var absentUri = BaseUri.GetUriRef("bulk-absent-new");
+
+            var seeded = Model1.CreateResource<Person>(seededUri);
+            seeded.FirstName = "Before";
+            seeded.Commit();
+
+            // Both constructed, so neither carries a baseline: both take the wholesale branch. Only
+            // the first is in the store, and that asymmetry is the whole point.
+            var replaced = new Person(seededUri);
+            replaced.SetModel(Model1);
+            replaced.FirstName = "After";
+
+            var added = new Person(absentUri);
+            added.SetModel(Model1);
+            added.FirstName = "Added";
+
+            Model1.UpdateResources(new Resource[] { replaced, added });
+
+            Assert.AreEqual(1, CountValues(seededUri, foaf.firstName),
+                "a resource absent from the batch's graph must not stop the others being replaced");
+            Assert.AreEqual(1, CountValues(absentUri, foaf.firstName));
+
+            Assert.AreEqual("After", Model1.GetResource<Person>(seededUri).FirstName);
+            Assert.AreEqual("Added", Model1.GetResource<Person>(absentUri).FirstName);
+        }
+
+        /// <summary>
+        /// A wholesale write must insert a blank-node-valued link once, however many triples the
+        /// subject already had.
+        /// </summary>
+        /// <remarks>
+        /// The wholesale branch used to carry both templates in one modify, and a modify instantiates
+        /// its INSERT template <b>once per solution</b>. The template is ground, so repeated IRIs
+        /// collapse into the same triples and nothing looked wrong -- but a blank node in a template
+        /// is minted fresh per instantiation, so a blank-node-valued link became one link per
+        /// existing triple on the subject, each to a different node.
+        ///
+        /// This fixture runs on every backend, and the behaviour was measured on every backend
+        /// before it was described: through Trinity, the in-memory store, Fuseki 5.1.0 and GraphDB
+        /// 10.8.0 each gave six links, to six distinct empty nodes, for six existing triples.
+        /// Virtuoso 7.2.14
+        /// gave six as well, but only when probed with a <c>_:</c> label in raw SPARQL -- a label
+        /// Trinity never emits for it, because Virtuoso's blank ids are <c>nodeID://</c> IRIs. So
+        /// Virtuoso passes here for a reason of its own, not because the shape is safe. Worth
+        /// stating, because it is a corner of the spec implementations could reasonably read
+        /// differently and one backend's answer would not have settled it (ADR-0043).
+        ///
+        /// This is why the fix hoists the insert into its own <c>INSERT DATA</c> operation rather
+        /// than only rearranging the WHERE. A shape that merely stops the cross-product still
+        /// duplicates here.
+        ///
+        /// Counted in the store: the mapped collection would report whatever came back, and the
+        /// defect is that there is more of it than was written.
+        /// </remarks>
+        [Test]
+        public void BulkUpdateInsertsABlankNodeValuedLinkOnlyOnce()
+        {
+            Model1.Clear();
+
+            var subjectUri = BaseUri.GetUriRef("bulk-blank-link");
+            var label = new Property(BaseUri.GetUriRef("label"));
+
+            // Six triples on the subject first, so a per-solution template would instantiate six
+            // times. The untyped overload is used because CreateResource<T> rejects blank ids.
+            var seeded = Model1.CreateResource<Person>(subjectUri);
+            seeded.FirstName = "a";
+            seeded.LastName = "b";
+            seeded.Age = 1;
+            seeded.Status = true;
+            seeded.AccountBalance = 1.5f;
+            seeded.Commit();
+
+            var child = (Resource)Model1.CreateResource(new UriRef("_:blankChild", true));
+            child.AddProperty(label, "Blank child");
+            child.Commit();
+
+            // Constructed rather than loaded, so it has no baseline and takes the wholesale branch.
+            var replaced = new Person(subjectUri);
+            replaced.SetModel(Model1);
+            replaced.FirstName = "a";
+            replaced.Interests.Add(child);
+
+            Model1.UpdateResources(new Resource[] { replaced });
+
+            // The link count is the guard. Counting the child's own nodes is not: its triples are
+            // not in the parent's template, so the broken shape also gave one (links=6, children=1).
+            Assert.AreEqual(1, CountValues(subjectUri, foaf.interest),
+                "the link must be inserted once, not once per triple the subject already had");
+        }
+
+        /// <summary>
+        /// A single-resource wholesale write replaces the resource: dropped values go, and a
+        /// blank-node-valued link lands once.
+        /// </summary>
+        /// <remarks>
+        /// <b>Until this test, nothing reached this branch on any backend.</b> It is taken only when
+        /// a resource is neither new nor synchronized, and <c>Resource.Initialize</c> sets
+        /// <c>IsNew = true</c> on every constructed resource -- so a constructed replacement goes
+        /// down the insert branch instead, and a loaded one carries a snapshot and goes down the
+        /// delta. Making the branch throw left every suite green. Four backend-specific strings were
+        /// rewritten in that branch on the strength of suites that could not see any of them, and
+        /// one of the rewrites was a syntax error on Virtuoso that the store swallowed: Commit()
+        /// returned normally and wrote nothing.
+        ///
+        /// <c>IsNew = false</c> is set by hand, which is the only way in. Both assertions matter.
+        /// The link count catches a per-solution INSERT template minting a fresh blank node per
+        /// existing triple. The dropped property catches a write that never happened, which is what
+        /// the Virtuoso failure looked like: no exception, the old values still there.
+        /// </remarks>
+        [Test]
+        public void CommitOfAnUnsynchronizedResourceReplacesItAndLinksABlankNodeOnce()
+        {
+            Model1.Clear();
+
+            var subjectUri = BaseUri.GetUriRef("singular-wholesale");
+            var label = new Property(BaseUri.GetUriRef("label"));
+
+            var seeded = Model1.CreateResource<Person>(subjectUri);
+            seeded.FirstName = "Before";
+            seeded.LastName = "Dropped";
+            seeded.Age = 1;
+            seeded.Status = true;
+            seeded.AccountBalance = 1.5f;
+            seeded.Commit();
+
+            // The untyped overload, because CreateResource<T> rejects blank ids.
+            var child = (Resource)Model1.CreateResource(new UriRef("_:singularChild", true));
+            child.AddProperty(label, "Blank child");
+            child.Commit();
+
+            var replacement = new Person(subjectUri);
+            replacement.SetModel(Model1);
+            replacement.FirstName = "After";
+            replacement.Interests.Add(child);
+
+            // Neither new nor synchronized: the only route to the wholesale branch.
+            replacement.IsNew = false;
+            replacement.Commit();
+
+            Assert.AreEqual(0, CountValues(subjectUri, foaf.lastName),
+                "a replace must drop what the replacement does not carry; a surviving value means "
+                + "the write did not happen at all");
+            Assert.AreEqual(1, CountValues(subjectUri, foaf.firstName),
+                "and must not merge -- one value, not Before and After");
+            Assert.AreEqual(1, CountValues(subjectUri, foaf.interest),
+                "the link must land once, not once per triple the subject already had");
+        }
+
+        /// <summary>
+        /// How many values the store holds for a property, asked of the store rather than of a mapped
+        /// resource -- a single-valued mapping surfaces one value and so cannot see a merge.
+        /// </summary>
+        private int CountValues(Uri subject, Property property)
+        {
+            return Store.ExecuteQuery(new SparqlQuery(
+                    $"SELECT ?o FROM <{Model1.Uri}> WHERE {{ <{subject}> <{property.Uri}> ?o }}",
+                    declarePrefixes: false))
+                .GetBindings()
+                .Count();
+        }
+
+        /// <summary>
         /// The bulk API has the same obligation as a single commit: write the caller's changes without
         /// disturbing anything else on the resources involved.
         /// </summary>
@@ -282,21 +572,59 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         /// <summary>
+        /// A blank-node-valued link must round-trip through a mapped collection. This is the read
+        /// half of what <see cref="CanRemoveBlankNodeValuedLink"/> covers, and it passes — it is
+        /// split out so the half that works stays covered while the write half is quarantined.
+        /// </summary>
+        /// <remarks>
+        /// The blank node cannot be resolved by label — no SPARQL query can address one, because a
+        /// label in a query is an existential variable rather than a reference (ADR-0046). It is
+        /// therefore skipped when the lazy load binds its subjects, and
+        /// <c>ResourceCache.LoadCachedValues</c> materializes it as an unresolved resource: present
+        /// in the collection, with its identity, without its properties. Before ADR-0046 this threw
+        /// <c>RdfParseException: "Cannot resolve a Relative URI Reference since there is no in-scope
+        /// Base URI"</c>, because the subject was interpolated into the lazy-load filter as the
+        /// invalid relative IRI <c>&lt;_:0&gt;</c>.
+        /// </remarks>
+        [Test]
+        public void CanReadBlankNodeValuedLink()
+        {
+            var parentUri = BaseUri.GetUriRef("parent");
+
+            // The typed CreateResource<T> overload rejects blank ids, so the untyped one is used here.
+            var child = (Resource)Model1.CreateResource(new UriRef("_:0", true));
+            child.AddProperty(new Property(BaseUri.GetUriRef("label")), "Blank child");
+            child.Commit();
+
+            var parent = Model1.CreateResource<Person>(parentUri);
+            parent.FirstName = "Parent";
+            parent.Interests.Add(child);
+            parent.Commit();
+
+            var loaded = Model1.GetResource<Person>(parentUri);
+
+            Assert.AreEqual(1, loaded.Interests.Count, "The blank-node link must round-trip.");
+            Assert.IsTrue(((UriRef)loaded.Interests.First().Uri).IsBlankId,
+                "and it must still be identified as a blank node.");
+        }
+
+        /// <summary>
         /// Blank nodes are not legal in a SPARQL DELETE template, so a delta that removes a
         /// blank-node-valued triple cannot name it directly — a hazard the old whole-resource rewrite
         /// never hit because it deleted through variables.
         /// </summary>
         /// <remarks>
-        /// Quarantined: this never reaches the delta. Reading a mapped collection whose value is a blank
-        /// node already fails on the query side with
-        /// <c>"Cannot resolve a Relative URI Reference since there is no in-scope Base URI"</c>, thrown
-        /// from dotNetRDF's expression parser while resolving the lazy-load filter. That is a pre-existing
-        /// limitation of blank-node handling in the read path, independent of write semantics, and it
-        /// extends item 6 of <c>doc/trinity-write-semantics.md</c>. The test is kept because the delta
-        /// hazard is real and will need covering once blank-node reads work.
+        /// Quarantined on the <b>write</b> half. The read half was fixed by ADR-0046 and is covered
+        /// by <see cref="CanReadBlankNodeValuedLink"/>; this test now gets as far as the delta and
+        /// fails there with
+        /// <c>SparqlUpdateException: "Cannot create a DELETE command where any of the Triple Patterns
+        /// are not constructable triple patterns (Blank Node Variables are not permitted)"</c> —
+        /// which is exactly the hazard the test was written for. Removing a blank-node-valued link
+        /// needs the delta to delete through a variable bound by a WHERE, not to name the node.
+        /// Extends item 6 of <c>doc/trinity-write-semantics.md</c>.
         /// </remarks>
         [Test]
-        [Ignore("Pre-existing: blank-node values in mapped collections fail on the read path. See doc/known-test-failures.md.")]
+        [Ignore("Blank-node-valued links cannot be removed: a blank node is not legal in a SPARQL DELETE template. See doc/known-test-failures.md.")]
         public void CanRemoveBlankNodeValuedLink()
         {
             var parentUri = BaseUri.GetUriRef("parent");

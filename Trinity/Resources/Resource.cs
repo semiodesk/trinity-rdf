@@ -130,6 +130,20 @@ namespace Semiodesk.Trinity
         public bool IsUnresolved { get; internal set; }
 
         /// <summary>
+        /// True if loading a mapped property failed partway, so one of this resource's collections may
+        /// hold fewer values than the store does.
+        /// </summary>
+        /// <remarks>
+        /// A mapped collection is loaded in batches (ADR-0046), so a store failure mid-read leaves the
+        /// earlier batches in the collection and the rest missing. The exception propagates to the
+        /// caller, and the load is recoverable — reading the property again re-queries what is missing
+        /// — but a caller that catches the exception and carries on would otherwise see a silently
+        /// short collection. Check this before trusting one whose load threw.
+        /// </remarks>
+        [Browsable(false), JsonIgnore, IgnoreDataMember]
+        public bool IsPartiallyLoaded => ResourceCache != null && ResourceCache.IsPartiallyLoaded;
+
+        /// <summary>
         /// True if the properties of the resources has been committed to the model.
         /// </summary>
         /// <remarks>

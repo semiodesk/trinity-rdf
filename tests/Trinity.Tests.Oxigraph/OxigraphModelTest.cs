@@ -37,7 +37,7 @@ namespace Semiodesk.Trinity.Tests.Oxigraph
     public class OxigraphModelTest : ModelTest<OxigraphTestSetup>
     {
         /// <summary>
-        /// Asserts the refusal rather than skipping it. Oxigraph has no reasoner, so the store refuses a query that asks for inferencing rather than answering it without (ADR-0046). ADR-0022 lets a store ignore the flag -- Fuseki does -- but its Consequences name that as the defect: an un-inferred answer is indistinguishable from a correct one.
+        /// Asserts the refusal rather than skipping it. Oxigraph has no reasoner, so the store refuses a query that asks for inferencing rather than answering it without (ADR-0047). ADR-0022 lets a store ignore the flag -- Fuseki does -- but its Consequences name that as the defect: an un-inferred answer is indistinguishable from a correct one.
         /// </summary>
         [Test]
         public override void GetTypedResourcesWithInferencingTest()

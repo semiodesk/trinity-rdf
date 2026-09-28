@@ -31,6 +31,7 @@ using System.Linq;
 using System.Text;
 using System.Net;
 using System.Net.Http;
+using System.Threading.Tasks;
 using System.Collections.Specialized;
 using System.Web;
 using VDS.RDF.Query;
@@ -190,17 +191,22 @@ namespace Semiodesk.Trinity.Store
 
             SparqlEndpointQueryResult result = null;
 
+            string queryString = x.ToString();
+
+            // IStore.ExecuteQuery is synchronous and SparqlQueryClient offers no synchronous overload.
+            // Task.Run is not optional: SparqlQueryClient's awaits capture the caller's
+            // SynchronizationContext, so blocking on it directly from a UI thread (or any
+            // single-threaded context) deadlocks — measured, where SparqlRemoteEndpoint did not.
+            // GetAwaiter().GetResult() rather than .Result surfaces the original exception instead
+            // of an AggregateException. See ADR-0038.
             if (query.QueryType == SparqlQueryType.Describe || query.QueryType == SparqlQueryType.Construct)
             {
-                // GetAwaiter().GetResult() rather than .Result: IStore.ExecuteQuery is synchronous
-                // and SparqlQueryClient offers no synchronous overload, and this form surfaces the
-                // original exception instead of wrapping it in an AggregateException.
-                var r = _endpoint.QueryWithResultGraphAsync(x.ToString()).GetAwaiter().GetResult();
-                result = new SparqlEndpointQueryResult(r, query); 
+                var r = Task.Run(() => _endpoint.QueryWithResultGraphAsync(queryString)).GetAwaiter().GetResult();
+                result = new SparqlEndpointQueryResult(r, query);
             }
             else
             {
-                var r = _endpoint.QueryWithResultSetAsync(x.ToString()).GetAwaiter().GetResult();
+                var r = Task.Run(() => _endpoint.QueryWithResultSetAsync(queryString)).GetAwaiter().GetResult();
                 result = new SparqlEndpointQueryResult(r,  query);
             }
 

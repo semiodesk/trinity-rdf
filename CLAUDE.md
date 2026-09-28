@@ -41,7 +41,7 @@ post-build tooling. Read `doc/adr/README.md` for the decisions and history.
 | `Trinity.Tests` | net8.0 | NUnit in-memory suite (fully generator-driven, no weaver) |
 | `tests/Trinity.Generator.Tests` | net8.0 | Source-generator validation, incl. the TRIN diagnostics |
 | `tests/Trinity.Vocabulary.Tests` | net8.0 | Vocabulary generator + `trinity-vocab`: term classification, all four RDF formats, determinism, sanitization/collisions, manifest reading, the check-mode exit codes, a member-compatibility check against the committed vocabularies, and a round-trip that compiles generated source and asserts `OntologyDiscovery` finds it |
-| `tests/Trinity.Tests.{Virtuoso,Fuseki,GraphDB,Oxigraph}` | net8.0 | Store integration tests — self-provision the server via Testcontainers/Docker (ADR-0036); not in the default CI job |
+| `tests/Trinity.Tests.{Virtuoso,Fuseki,GraphDB,Oxigraph}` | net8.0 | Store integration tests — self-provision the server via Testcontainers/Docker (ADR-0036); run in the `stores` CI matrix job, not the fast `build` job |
 | `doc/adr/` | — | Architecture Decision Records |
 
 Retired in 2.0: `Trinity.CilGenerator` (the cilg weaver, ADR-0013), `Trinity.OntologyGenerator`
@@ -56,24 +56,25 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 3 skipped (quarantined); 0 failed on net8.0
-dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 23 passed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 793 passed, 3 skipped (quarantined), 0 failed
+dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 26 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
 
-- The 7 skipped tests are `[Ignore]`d and tracked in `doc/known-test-failures.md`: in-memory
-  inferencing (store-level, ADR-0022), one open semantics decision (polymorphic base-type queries,
-  ADR-0037), and blank-node values in mapped collections failing on the read path (ADR-0039) — the only
-  quarantined case that is an outright defect. No missing LINQ translation or datatype bug remains, and
-  none are generator regressions.
+- The 3 skipped tests are `[Ignore]`d and tracked in `doc/known-test-failures.md`: one open semantics
+  decision counted twice (polymorphic base-type queries, ADR-0037), and **removing** a blank-node-valued
+  link (ADR-0039) — the only quarantined case that is an outright defect. Its *read* half was fixed by
+  ADR-0046 and is covered by `CanReadBlankNodeValuedLink`; what remains is that a blank node is not legal
+  in a SPARQL `DELETE` template. No missing LINQ translation or datatype bug remains, and none are
+  generator regressions.
 - Store integration tests (`tests/Trinity.Tests.*`) **self-provision** their server in Docker via
-  Testcontainers on a random host port (ADR-0036): run `dotnet test tests/Trinity.Tests.{Virtuoso,GraphDB,Fuseki}`
+  Testcontainers on a random host port (ADR-0036): run `dotnet test tests/Trinity.Tests.{Virtuoso,GraphDB,Fuseki,Oxigraph}`
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all four green** — Fuseki 318/319, Oxigraph 318/319,
-  GraphDB 316/317, Virtuoso 303/304 (0 failed each; the 1 skipped is the shared blank-node
+  hiccup cannot redden it. Current: **all four green** — Fuseki 350/351, Oxigraph 352/353,
+  GraphDB 349/350, Virtuoso 334/335 (0 failed each; the 1 skipped is the shared blank-node-removal
   quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
@@ -93,7 +94,7 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   type so Trinity converts into it (ADR-0040), whereas the unmapped bag declares nothing. If `ListValues`
   is ever given a CLR-type-fidelity guarantee, they must come back.
 - **CI:** `.github/workflows/ci.yml` (ubuntu, .NET 10) — a fast `build` job (restore → build → test →
-  pack) plus a `stores` matrix job running the three Dockerized store suites (ADR-0044). NuGet
+  pack) plus a `stores` matrix job running the four Dockerized store suites (ADR-0044). NuGet
   publishing is **manual** (no publish job).
 - Central Package Management: versions live in `Directory.Packages.props`; shared metadata +
   the single `Version` (2.0.0) in `Directory.Build.props`. Projects use versionless `PackageReference`.
@@ -247,6 +248,62 @@ Invariants that surprise newcomers:
   (its docstrings are stale — trust the code).
 - **Lazy loading of linked resources is always on** (0023, via `ResourceCache`) — not disablable.
   A latent bug (#30) lives here: `SetValue` doesn't invalidate the cache (ADR-0029).
+- **Bulk subject constraints are `VALUES`, never an equality chain** (0046): the lazy load under every
+  mapped-property dereference binds its subjects with `VALUES ?s { … }`, emitted *before* the pattern,
+  in batches of 1000, via the shared `SparqlSerializer.GenerateSubjectBinding(s)`. The chain it
+  replaced (`FILTER(?s = <a>||…)`) is a **correctness** problem, not just a slow one: Virtuoso parses it
+  as nested binary pairs and refuses past a compile-time depth with `SP031` — measured at 1024 subjects
+  on 7.2.12/7.2.14, reported at 157 by a consumer, and **not** movable via `ThreadStackSize`. Because it
+  sits under reads *and* writes (`Add`/`Remove` read before mutating), a capped collection is unusable
+  in both directions. Three things are load-bearing and easy to break: the projection stays `?s ?p ?o`
+  **in that order**, the triple pattern keeps its **trailing `.`** (both required for
+  `ProvidesStatements()`, or materialization refuses the query outright), and **blank ids are skipped**
+  rather than serialized — no SPARQL query can address a blank node by label. An empty or null subject
+  set returns empty; it must never degrade to a whole-model scan. **All three `IModel` implementations
+  share one loop** (`BulkResourceReader`) — the fix originally landed in two of them and `LayeredModel`
+  kept issuing one unbounded block, which is why the reader exists rather than three copies. Neither a
+  300-member nor a 2000-subject store test guards the shape: with batching at 1000, 2000 subjects are
+  two queries of 1000, both under the 1024-term chain limit. `BulkResourceQueryShapeTest` captures the
+  SPARQL each model actually emits and is the guard — verified by reverting the shape while keeping
+  the batching.
+- **Every IRI reaching SPARQL text goes through `SparqlSerializer.SerializeUri`** (0046). Interpolating
+  a `Uri` calls `Uri.ToString()`, which returns the *display* form and unescapes percent-encoding;
+  where the unescaped character is one SPARQL forbids in an `IRIREF` (`%20`, `%3E`) the whole query
+  becomes `RdfParseException: Illegal white space in URI` — so it fails loudly, and takes unrelated
+  subjects in the same query with it. **`OriginalString` is the only correct source.** `AbsoluteUri` is
+  *not* a safe alternative, as this file previously claimed: it normalizes host casing, default ports,
+  dot-segments and percent-encoding case, while `Resource.Equals`/`GetHashCode` compare the **ordinal**
+  `OriginalString` and the LINQ provider joins two result sets on it — so normalizing silently breaks
+  mapped-collection dedup, drops LINQ rows, and hands Virtuoso the lower-cased host `XsdTypeMapper`
+  warns about. An IRI that cannot be written verbatim is therefore **refused** by `SerializeUri`,
+  naming itself, rather than rewritten. `SerializesVerbatimAndNeverNormalizes` is the guard.
+  Blank nodes split two ways and conflating them is a real defect. `IsBlankId()` asks *is this a blank
+  node*; `IsBlankNodeLabel()` asks *is it spelled `_:`*. Virtuoso's blank ids are `nodeID://`
+  **absolute IRIs**, so they must be **bracketed** — deciding serialization on the flag emits them
+  bare and breaks writing them. **Serialization decides on the spelling.** But *using* one as a query
+  subject is refused on **every** store, uniformly and by decision: Virtuoso's look addressable and
+  `ContainsResource` does find them (the identifier goes straight into a pattern), yet `GetResource`
+  binds the subject and a bound IRI term never matches a blank-node subject — a half-working
+  capability on one backend is worse than none. Guards therefore call `CanBeQuerySubject()`, which is
+  named for the decision so a guard asking the other question *looks* wrong; `IsBlankId` stays where
+  the question really is "is this a blank node" (`CreateResource`'s existence check, the stores'
+  mint-an-identifier branch). The guard itself is **one shared `QuerySubject.Require`**, because the
+  contract was documented as uniform while `ModelGroup` had none — and its `ContainsResource` puts the
+  identifier in a bare pattern position, where a `_:` label matches *everything* and answered `true`
+  for any non-empty group. The test that enforces this **discovers** its call sites by reflecting over
+  `IModel` (every method taking a `Uri` first, minus a reasoned exclusion list), because the previous
+  hand-written list of nine was green while a tenth accessor went unguarded — a hand-maintained list
+  cannot detect its own omission.
+  The invariant underneath is **bind versus interpolate, not read versus write**: a bound term fails
+  closed (matches nothing), an interpolated label fails open (an existential variable matching
+  *everything*). So `Model.DeleteResource` is deliberately unguarded — it binds, the store refuses the
+  blank `DELETE` template loudly (ADR-0039) and nothing changes — while `LayeredModel.DeleteResource`
+  interpolates and must guard: that shape stages the whole baseline for removal, silently, on both
+  backends. This is **not** the .NET 10 `Uri`
+  equality problem (0025): that one is identity, this one is serialization, and it is identical on
+  .NET 8/9/10. An audit fixed four sites;
+  `Trinity.Tests/ObjectModel/EncodedUriContact.cs` is a mapped class with `%20` in its class and
+  property IRIs that exists purely to keep query builders honest.
 - **SPARQL reuses registered ontology prefixes** (0024): `foaf:name` needs no `PREFIX` line.
 - **URI identity is fragment-aware** (0025): use `UriRef`, not raw `Uri` — .NET's `Uri.Equals`
   ignores the fragment, which is wrong for RDF. Blank nodes/URNs have their own identity.
@@ -286,7 +343,7 @@ Invariants that surprise newcomers:
   (own SPARQL AST → serializer → `Model.ExecuteQuery`/`GetResources`); re-linq / Remotion.Linq retired.
   `IModel.AsQueryable<T>()` routes to it, and it emits SPARQL strings — so it's decoupled from
   dotNetRDF's Query Builder and the 3.x upgrade won't touch it. A few LINQ-provider gaps stay quarantined.
-- **Oxigraph refuses what it cannot do** (ADR-0046). It is the thinnest backend: no reasoner, no
+- **Oxigraph refuses what it cannot do** (ADR-0047). It is the thinnest backend: no reasoner, no
   client-visible transactions, no auth, and no dataset/repository concept — one server is one store,
   so `host` is the whole connection string. `inferenceEnabled: true` **throws** rather than being
   ignored the way Fuseki ignores it: ADR-0022 permits either, but its Consequences name the silent
@@ -298,6 +355,11 @@ Invariants that surprise newcomers:
   plain text `false`. The adapter writes BOM-less Turtle and picks `Accept` by query form.
   `StoreBase.TryParse` is shared for the same reason `GroupByTargetGraph` is — GraphDB's copy had no
   TriG case, so TriG read from a string or stream was handed to the RDF/XML parser.
+  **A Graph Store `SaveGraph` is a `PUT`, i.e. a replace**: `Read(update: true)` must add through
+  `UpdateGraph` (or Oxigraph's `AppendGraph`), and until the PR #46 review Fuseki and GraphDB lost data
+  here. **Name graphs by `OriginalString`, never `AbsoluteUri`**, which lower-cases the host. dotNetRDF's
+  connectors and its SPARQL results parsers both normalize that way; Oxigraph works around both, while
+  Fuseki/GraphDB/Virtuoso are quarantined (`doc/known-test-failures.md`).
 - **Fuseki is a first-class backend** (ADR-0043), not the experimental one the older ADRs describe. Covering
   it found three defects the other backends hid. The layered view's `FROM NAMED` dataset clause was emitted
   **twice**, because `SparqlPreprocessor` never recorded a `FROM NAMED` graph and so could not suppress the
@@ -314,8 +376,10 @@ Invariants that surprise newcomers:
 
 ## Conventions
 
-- Every `.cs` starts with the MIT license header block (authors Moritz Eberl / Sebastian
-  Faubel, Copyright Semiodesk GmbH). Preserve it on new files.
+- Every `.cs` starts with the MIT license header block (Copyright Semiodesk GmbH). Preserve it on new
+  files. **New files name only Moritz Eberl** in the `AUTHORS` block — Sebastian Faubel no longer
+  contributes. Existing files keep both names; the attribution was accurate when they were written, so
+  there is nothing to correct.
 - 4-space indent, Allman braces, XML-doc comments on public members. No `.editorconfig` yet.
 - Nullable/ImplicitUsings are **not** enabled repo-wide (a deliberate later pass).
 

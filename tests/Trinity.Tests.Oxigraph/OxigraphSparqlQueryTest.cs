@@ -26,6 +26,7 @@
 
 using System;
 using NUnit.Framework;
+using VDS.RDF.Query;
 using Semiodesk.Trinity.Tests.Store;
 
 namespace Semiodesk.Trinity.Tests.Oxigraph
@@ -37,12 +38,25 @@ namespace Semiodesk.Trinity.Tests.Oxigraph
     public class OxigraphSparqlQueryTest : SparqlQueryTest<OxigraphTestSetup>
     {
         /// <summary>
-        /// Asserts the refusal rather than skipping it. Oxigraph has no reasoner, so the store refuses a query that asks for inferencing rather than answering it without (ADR-0046). ADR-0022 lets a store ignore the flag -- Fuseki does -- but its Consequences name that as the defect: an un-inferred answer is indistinguishable from a correct one.
+        /// Asserts the refusal rather than skipping it. Oxigraph has no reasoner, so the store refuses a query that asks for inferencing rather than answering it without (ADR-0047). ADR-0022 lets a store ignore the flag -- Fuseki does -- but its Consequences name that as the defect: an un-inferred answer is indistinguishable from a correct one.
         /// </summary>
         [Test]
         public override void TestInferencing()
         {
             Assert.Throws<NotSupportedException>(() => base.TestInferencing());
+        }
+
+        /// <summary>
+        /// A query the server rejects is reported as a query error, not a generic storage failure.
+        /// </summary>
+        /// <remarks>
+        /// Sent raw, past Trinity's own parsing, so it is the server that refuses it. The connector's catch-all must not re-wrap the
+        /// <see cref="RdfQueryException"/> the rejection produces as a storage exception.
+        /// </remarks>
+        [Test]
+        public void AMalformedQueryIsReportedAsAQueryError()
+        {
+            Assert.Throws<RdfQueryException>(() => ((StoreBase)Store).ExecuteQuery("SELECT ?s WHERE { ?s ?p }"));
         }
     }
 }
