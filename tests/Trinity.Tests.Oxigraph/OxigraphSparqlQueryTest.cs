@@ -1,4 +1,4 @@
-﻿// LICENSE:
+// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,27 +21,37 @@
 // AUTHORS:
 //
 //  Moritz Eberl <moritz@semiodesk.com>
-//  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2023
+// Copyright (c) Semiodesk GmbH 2026
 
+using System;
 using NUnit.Framework;
 using VDS.RDF.Query;
 using Semiodesk.Trinity.Tests.Store;
 
-namespace Semiodesk.Trinity.Tests.GraphDB
+namespace Semiodesk.Trinity.Tests.Oxigraph
 {
+    /// <summary>
+    /// Runs the store-independent SPARQL query suite against Oxigraph.
+    /// </summary>
     [TestFixture]
-    public class GraphDBSparqlQueryTest : SparqlQueryTest<GraphDBTestSetup>
+    public class OxigraphSparqlQueryTest : SparqlQueryTest<OxigraphTestSetup>
     {
+        /// <summary>
+        /// Asserts the refusal rather than skipping it. Oxigraph has no reasoner, so the store refuses a query that asks for inferencing rather than answering it without (ADR-0047). ADR-0022 lets a store ignore the flag -- Fuseki does -- but its Consequences name that as the defect: an un-inferred answer is indistinguishable from a correct one.
+        /// </summary>
+        [Test]
+        public override void TestInferencing()
+        {
+            Assert.Throws<NotSupportedException>(() => base.TestInferencing());
+        }
+
         /// <summary>
         /// A query the server rejects is reported as a query error, not a generic storage failure.
         /// </summary>
         /// <remarks>
-        /// Sent raw, past Trinity's own parsing, so it is the server that refuses it. The move to
-        /// HttpClient left a <c>catch (WebException)</c> in the connector that could no longer run
-        /// (HttpClient throws <c>HttpRequestException</c>), so a rejected query stopped being translated
-        /// into an <see cref="RdfQueryException"/>.
+        /// Sent raw, past Trinity's own parsing, so it is the server that refuses it. The connector's catch-all must not re-wrap the
+        /// <see cref="RdfQueryException"/> the rejection produces as a storage exception.
         /// </remarks>
         [Test]
         public void AMalformedQueryIsReportedAsAQueryError()

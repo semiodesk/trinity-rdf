@@ -1,4 +1,4 @@
-﻿// LICENSE:
+// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,31 +21,42 @@
 // AUTHORS:
 //
 //  Moritz Eberl <moritz@semiodesk.com>
-//  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2023
+// Copyright (c) Semiodesk GmbH 2026
 
-using NUnit.Framework;
+using Semiodesk.Trinity.Store.Oxigraph;
 using Semiodesk.Trinity.Tests.Store;
 
-namespace Semiodesk.Trinity.Tests.Virtuoso
+namespace Semiodesk.Trinity.Tests.Oxigraph
 {
     /// <summary>
-    /// Runs the store-independent model-catalog suite against Virtuoso.
+    /// Binds the shared store fixtures to the Dockerized Oxigraph server.
     /// </summary>
-    [TestFixture]
-    public class VirtuosoCatalogTest : StoreCatalogTest<VirtuosoTestSetup>
+    /// <remarks>
+    /// The server is started for this assembly by the <see cref="OxigraphContainer"/>
+    /// <c>[SetUpFixture]</c> via Testcontainers (Docker). Nothing needs provisioning afterwards --
+    /// an Oxigraph server holds exactly one dataset, so there is no repository or dataset to create
+    /// and no <c>AfterSeed</c> hook to implement.
+    /// </remarks>
+    public class OxigraphTestSetup : IStoreTestSetup
     {
-        /// <summary>
-        /// Quarantined: the Virtuoso manager names the graph of a write by Uri.AbsoluteUri, and ContainsModel does too, which lower-cases the host and re-escapes the path, while the SPARQL
-        /// path uses OriginalString. A graph named with upper case in its host is written under one IRI
-        /// and queried under another. Fixing it means overriding the connector's graph addressing, as
-        /// OxigraphConnector does. See doc/known-test-failures.md.
-        /// </summary>
-        [Test]
-        public override void AGraphIsAddressedByTheExactIriItWasNamedWith()
+        #region Members
+
+        // A fixed identifier, deliberately not tracking the mapped container port: this names
+        // graphs, it does not address the server (ADR-0036).
+        public UriRef BaseUri => new UriRef("http://localhost:7878/graph/trinity-rdf/");
+
+        public string ConnectionString => OxigraphContainer.ConnectionString;
+
+        #endregion
+
+        #region Methods
+
+        public void LoadProvider()
         {
-            Assert.Inconclusive("Graph Store writes address the graph by AbsoluteUri, not the exact IRI; see doc/known-test-failures.md.");
+            StoreFactory.LoadProvider<OxigraphStoreProvider>();
         }
+
+        #endregion
     }
 }

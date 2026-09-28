@@ -1,4 +1,4 @@
-﻿// LICENSE:
+// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,31 +21,32 @@
 // AUTHORS:
 //
 //  Moritz Eberl <moritz@semiodesk.com>
-//  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2023
+// Copyright (c) Semiodesk GmbH 2026
 
 using NUnit.Framework;
-using Semiodesk.Trinity.Tests.Store;
+using Semiodesk.Trinity.Store.Oxigraph;
 
-namespace Semiodesk.Trinity.Tests.Virtuoso
+namespace Semiodesk.Trinity.Tests.Oxigraph
 {
     /// <summary>
-    /// Runs the store-independent model-catalog suite against Virtuoso.
+    /// The connection string resolves to the Oxigraph store -- the one thing the shared store
+    /// fixtures cannot cover, because they take the store as given.
     /// </summary>
     [TestFixture]
-    public class VirtuosoCatalogTest : StoreCatalogTest<VirtuosoTestSetup>
+    public class StoreProviderTest
     {
-        /// <summary>
-        /// Quarantined: the Virtuoso manager names the graph of a write by Uri.AbsoluteUri, and ContainsModel does too, which lower-cases the host and re-escapes the path, while the SPARQL
-        /// path uses OriginalString. A graph named with upper case in its host is written under one IRI
-        /// and queried under another. Fixing it means overriding the connector's graph addressing, as
-        /// OxigraphConnector does. See doc/known-test-failures.md.
-        /// </summary>
         [Test]
-        public override void AGraphIsAddressedByTheExactIriItWasNamedWith()
+        public void ConnectionStringResolvesToAnOxigraphStore()
         {
-            Assert.Inconclusive("Graph Store writes address the graph by AbsoluteUri, not the exact IRI; see doc/known-test-failures.md.");
+            StoreFactory.LoadProvider<OxigraphStoreProvider>();
+
+            using (var store = StoreFactory.CreateStore(OxigraphContainer.ConnectionString))
+            {
+                Assert.IsNotNull(store);
+                Assert.IsInstanceOf<OxigraphStore>(store);
+                Assert.IsTrue(store.IsReady);
+            }
         }
     }
 }

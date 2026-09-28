@@ -1,4 +1,4 @@
-﻿// LICENSE:
+// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,14 +21,12 @@
 // AUTHORS:
 //
 //  Moritz Eberl <moritz@semiodesk.com>
-//  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2023
+// Copyright (c) Semiodesk GmbH 2026
 
 using Semiodesk.Trinity.Extensions;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System;
 using System.Text;
 using VDS.RDF.Parsing.Handlers;
@@ -37,130 +35,110 @@ using VDS.RDF.Query;
 using VDS.RDF.Storage;
 using VDS.RDF;
 
-namespace Semiodesk.Trinity.Store.GraphDB
+namespace Semiodesk.Trinity.Store.Oxigraph
 {
     /// <summary>
-    /// This class is the implementation of the IStorage inteface for GraphDB.
+    /// This class is the implementation of the IStorage interface for Oxigraph.
     /// </summary>
-    public class GraphDBStore : StoreBase
+    public class OxigraphStore : StoreBase
     {
         #region Members
 
-        private bool _isDisposed;
+        /// <summary>
+        /// Handle to the Oxigraph connection.
+        /// </summary>
+        protected OxigraphConnector Connector;
+
+        /// <summary>
+        /// The host of the storage service, without a trailing slash.
+        /// </summary>
+        public string Hostname { get; protected set; }
+
+        /// <summary>
+        /// Indicates if the store is connected and awaiting queries.
+        /// </summary>
+        public override bool IsReady => Connector != null && Connector.IsReady;
         
-        /// <summary>
-        /// Graph which contains the inferred triples in an Ontotext GraphDB repository.
-        /// </summary>
-        private readonly IModel _inplicitModel;
-        
-        /// <summary>
-        /// Indicates if the store is ready to be queried.
-        /// </summary>
-        public override bool IsReady => _connector != null && _connector.IsReady;
-
-        /// <summary>
-        /// Handle to the database connection.
-        /// </summary>
-        private readonly GraphDBConnector  _connector;
-
-        /// <summary>
-        /// Get the URL of the GraphDB database service.
-        /// </summary>
-        public string HostUri { get; }
-
         #endregion
 
         #region Constructors
         
         /// <summary>
-        /// Creates a new connection to the Virtuoso storage. 
+        /// Creates a new connection to an Oxigraph storage.
         /// </summary>
-        /// <param name="hostUri">The URL of the GraphDB database service.</param>
-        /// <param name="repositoryName">Name of the GraphDB repository.</param>
+        /// <remarks>
+        /// There is no dataset or repository name to supply: an Oxigraph server holds exactly one
+        /// RDF dataset, so the server is the store.
+        /// </remarks>
+        /// <param name="host">Base URI of the Oxigraph server, e.g. <c>http://localhost:7878</c>.</param>
         /// <param name="username">Username used to connect to storage.</param>
         /// <param name="password">Password needed to connect to storage.</param>
-        public GraphDBStore(string hostUri, string repositoryName, string username = null, string password = null)
+        public OxigraphStore(string host, string username = null, string password = null)
         {
-            _inplicitModel = new Model(this, new UriRef("http://www.ontotext.com/implicit"));
-            
-            HostUri = hostUri;
-            
-            _connector = new GraphDBConnector(HostUri, repositoryName, username, password);
+            if (string.IsNullOrEmpty(host))
+            {
+                throw new ArgumentException("An Oxigraph host is required.", nameof(host));
+            }
+
+            // Trim the trailing slash a caller may or may not supply, or the composed URL ends up
+            // with a double slash (the provider's default host carries one, a mapped container
+            // host does not).
+            Hostname = host.TrimEnd('/');
+
+            Connector = new OxigraphConnector(Hostname);
 
             if (!string.IsNullOrEmpty(username) || !string.IsNullOrEmpty(password))
             {
-                _connector.SetCredentials(username, password);
+                Connector.SetCredentials(username ?? "", password ?? "");
             }
         }
 
-        ~GraphDBStore()
-        {
-            Dispose();
-        }
-        
         #endregion
 
         #region Methods
 
+
         /// <summary>
-        /// Closes the store. It is not usable after this call.
+        /// Adds a new model with the given URI to the store.
         /// </summary>
-        public override void Dispose()
-        {
-            if (_isDisposed) return;
-            
-            _isDisposed = true;
-                
-            IsReady = false;
-            
-            GC.SuppressFinalize(this);
-
-            _connector.Dispose();
-        }
-
+        /// <param name="uri">URI of the model.</param>
+        /// <returns>Handle to the model.</returns>
         [Obsolete("It is not necessary to create models explicitly. Use GetModel() instead, if the model does not exist, it will be created implicitly.")]
         public override IModel CreateModel(Uri uri)
         {
             return GetModel(uri);
         }
 
+        /// <summary>
+        /// Removes the model with the given URI from the store.
+        /// </summary>
+        /// <param name="uri">URI of the model.</param>
         public override void RemoveModel(Uri uri)
         {
-            if (!_connector.DeleteSupported)
+            if (uri == null)
+            {
+                throw new ArgumentNullException(nameof(uri));
+            }
+
+            if (!Connector.DeleteSupported)
             {
                 throw new NotSupportedException("This store does not support the deletion of graphs.");
             }
 
-            _connector.DeleteGraph(uri);
-        }
-
-        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
-        public override bool ContainsModel(Uri uri)
-        {
-            return ContainsGraph(uri);
+            // The string overloads with OriginalString: the Uri ones name the graph by AbsoluteUri,
+            // which is a different IRI whenever the host has upper case or the path re-escapes.
+            Connector.DeleteGraph(uri.OriginalString);
         }
 
         /// <summary>
-        /// Indicates whether the store holds a graph with the given name.
+        /// Queries whether the model exists in the store.
         /// </summary>
-        /// <remarks>
-        /// Not <c>ListGraphs().Contains(uri)</c>: that resolves to
-        /// <c>EqualityComparer&lt;Uri&gt;.Default</c>, which ignores the fragment (and does so
-        /// unconditionally on .NET 10), so two graphs differing only by fragment would be treated as
-        /// one. <see cref="UriRef"/> compares fragments -- see ADR-0025.
-        /// </remarks>
-        /// <param name="graphUri">Name of the graph to look for.</param>
-        /// <returns><c>true</c> if the store holds the graph, <c>false</c> otherwise.</returns>
-        private bool ContainsGraph(Uri graphUri)
+        /// <param name="uri">URI of the model.</param>
+        /// <returns><c>true</c> if the store holds a graph with that URI.</returns>
+        [Obsolete("This method does not list empty models. At the moment you should just call GetModel() and test for IsEmpty()")]
+        public override bool ContainsModel(Uri uri)
         {
-            if (graphUri == null)
-            {
-                return false;
-            }
-
-            UriRef target = graphUri.ToUriRef();
-
-            return _connector.ListGraphs().Any(g => target.Equals(g));
+            return uri != null && Connector.HasGraph(uri.OriginalString);
         }
 
         /// <summary>
@@ -172,9 +150,6 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// <param name="ignoreUnmappedProperties">Set this to true to update only mapped properties.</param>
         public override void UpdateResource(Resource resource, Uri modelUri, ITransaction transaction = null, bool ignoreUnmappedProperties = false)
         {
-            if (resource == null) throw new ArgumentNullException(nameof(resource));
-            if (modelUri == null) throw new ArgumentNullException(nameof(modelUri));
-            
             string updateString;
 
             if (resource.IsNew)
@@ -203,7 +178,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
                 // Two operations, as StoreBase does: a modify instantiates its ground INSERT
                 // template once per solution, and a blank node in that template is minted fresh
                 // each time, so a blank-node-valued link is duplicated once per triple the subject
-                // already had. Measured on this backend, not inferred.
+                // already had.
                 updateString = string.Format(@"
                     DELETE WHERE {{ GRAPH {0} {{ {1} ?p ?o. }} }} ;
                     INSERT DATA {{ GRAPH {0} {{ {2} }} }} ",
@@ -229,18 +204,62 @@ namespace Semiodesk.Trinity.Store.GraphDB
 
             Log?.Invoke(q);
 
-            _connector.Update(q);
+            Connector.Update(q);
         }
 
         /// <summary>
         /// Executes a SparqlQuery on the store.
         /// </summary>
-        /// <param name="query"></param>
-        /// <param name="transaction"></param>
-        /// <returns></returns>
+        /// <remarks>
+        /// <b>A query asking for inferencing is refused.</b> Oxigraph has no reasoner at all -- not
+        /// a dataset-wide one, not a per-query switch, not a rule set -- so there is nothing to
+        /// honour and nothing to configure. ADR-0022 permits a store to ignore the flag, and Fuseki
+        /// does, but its own Consequences record what that costs: a capability the store lacks
+        /// "silently no-ops with no discoverable signal". Answering without inferencing when
+        /// inferencing was asked for returns a smaller result set that is indistinguishable from a
+        /// correct one. A layered model already throws on this same flag, for this same reason.
+        /// </remarks>
+        /// <param name="query">The query to be executed.</param>
+        /// <param name="transaction">Transaction associated with this action. Ignored; Oxigraph is
+        /// not transactional through this adapter (see <see cref="BeginTransaction"/>).</param>
+        /// <returns>The query result, or <c>null</c> for a query form the connector does not answer
+        /// with a graph or a result set.</returns>
+        /// <exception cref="NotSupportedException">If the query requests inferencing.</exception>
         public override ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
-            var results = ExecuteQuery(query.ToString(), query.IsInferenceEnabled);
+            if (query.IsInferenceEnabled)
+            {
+                throw new NotSupportedException(
+                    "Oxigraph has no reasoner, so inferenceEnabled: true cannot be honoured. Answering "
+                    + "the query anyway would return an un-inferred result indistinguishable from a "
+                    + "correct one. Use a backend with a reasoner, or materialize the entailments into "
+                    + "the model before querying.");
+            }
+
+            var q = query.ToString();
+
+            Log?.Invoke(q);
+
+            // The form is known here, so the connector need not parse the query again to learn it --
+            // this is the path every lazy load and LINQ query takes.
+            bool? expectsResultSet;
+
+            switch (query.QueryType)
+            {
+                case SparqlQueryType.Select:
+                case SparqlQueryType.Ask:
+                    expectsResultSet = true;
+                    break;
+                case SparqlQueryType.Construct:
+                case SparqlQueryType.Describe:
+                    expectsResultSet = false;
+                    break;
+                default:
+                    expectsResultSet = null;
+                    break;
+            }
+
+            var results = Connector.Query(q, expectsResultSet);
 
             switch (results)
             {
@@ -254,46 +273,15 @@ namespace Semiodesk.Trinity.Store.GraphDB
         }
 
         /// <summary>
-        /// This method queries the GraphDB store directly.
+        /// This method queries the Oxigraph store directly.
         /// </summary>
         /// <param name="queryString">The SPARQL query to be executed.</param>
-        /// <returns></returns>
+        /// <returns>An <c>IGraph</c> or a <c>SparqlResultSet</c>, depending on the query form.</returns>
         public override object ExecuteQuery(string queryString)
         {
             Log?.Invoke(queryString);
             
-            return _connector.Query(queryString, false, false);
-        }
-        
-        /// <summary>
-        /// This method queries the GraphDB store directly.
-        /// </summary>
-        /// <param name="queryString">The SPARQL query to be executed.</param>
-        /// <param name="inferenceEnabled">Indicate if the query should be executed with reasoning.</param>
-        /// <returns></returns>
-        public object ExecuteQuery(string queryString, bool inferenceEnabled)
-        {
-            Log?.Invoke(queryString);
-
-            if (!inferenceEnabled)
-            {
-                return _connector.Query(queryString, false, false);
-            }
-            
-            // To enable inference in GraphDB we need to add a FROM <http://www.ontotext.com/implicit> clause.
-            var query = new SparqlQuery(queryString);
-
-            var group = CreateModelGroup();
-            group.Add(_inplicitModel);
-
-            foreach (var model in query.GetDefaultModels())
-            {
-                group.Add(new Model(this, new UriRef(model)));
-            }
-
-            query.Model = group;
-            
-            return _connector.Query(query.ToString(), false, true);
+            return Connector.Query(queryString);
         }
 
         /// <summary>
@@ -312,9 +300,21 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// <returns>All handles to existing models.</returns>
         public override IEnumerable<IModel> ListModels()
         {
-            foreach (var graph in _connector.ListGraphs())
+            // ListGraphNames rather than the obsolete ListGraphs; it yields the names as strings
+            // (ADR-0038).
+            foreach (var graph in Connector.ListGraphNames())
             {
-                yield return new Model(this, new UriRef(graph));   
+                // A dataset may hold blank-node-named graphs, which arrive here as bare labels
+                // ("b0") rather than IRIs. An IModel is IRI-keyed and has no way to address one, and
+                // new UriRef("b0") throws -- which would abort the whole enumeration part-way rather
+                // than skip the one graph nobody can name. The obsolete ListGraphs() omitted them
+                // silently, so the switch to ListGraphNames is what exposes this.
+                if (!Uri.IsWellFormedUriString(graph, UriKind.Absolute))
+                {
+                    continue;
+                }
+
+                yield return new Model(this, new UriRef(graph));
             }
         }
 
@@ -329,11 +329,9 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// <returns></returns>
         public override Uri Read(string content, Uri graphUri, RdfSerializationFormat format, bool update)
         {
-            var exists = ContainsGraph(graphUri);
-            
-            using (var reader = new StringReader(content))
+            using (StringReader reader = new StringReader(content))
             {
-                var graph = new Graph(graphUri);
+                IGraph graph = new Graph(graphUri);
 
                 TryParse(reader, graph, format);
 
@@ -341,21 +339,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
                 // dotNetRDF connectors still derive the graph they write to from BaseUri.
                 graph.BaseUri = graphUri;
 
-                // SaveGraph is a Graph Store PUT, which replaces the graph, so adding has to go through
-                // UpdateGraph -- as VirtuosoStore always did. Skipping the delete was not enough.
-                if (update)
-                {
-                    _connector.UpdateGraph(graphUri, graph.Triples, new Triple[0]);
-                }
-                else
-                {
-                    if (exists)
-                    {
-                        _connector.DeleteGraph(graphUri);
-                    }
-
-                    _connector.SaveGraph(graph);
-                }
+                Write(graph, update);
 
                 return graphUri;
             }
@@ -371,13 +355,11 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// <returns></returns>
         public override Uri Read(Stream stream, Uri graphUri, RdfSerializationFormat format, bool update, bool leaveOpen = false)
         {
-            var exists = ContainsGraph(graphUri);
-            
-            // leaveOpen has to reach the reader: a plain StreamReader closes the caller's stream
-            // when it is disposed, whatever the flag says.
+            // The reader owns the stream unless told otherwise, so leaveOpen has to reach it: a plain
+            // StreamReader closes the caller's stream when it is disposed, whatever the flag says.
             using (TextReader reader = new StreamReader(stream, Encoding.UTF8, true, 1024, leaveOpen))
             {
-                var graph = new Graph(graphUri);
+                IGraph graph = new Graph(graphUri);
 
                 TryParse(reader, graph, format);
 
@@ -385,22 +367,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
                 // dotNetRDF connectors still derive the graph they write to from BaseUri.
                 graph.BaseUri = graphUri;
 
-
-                // SaveGraph is a Graph Store PUT, which replaces the graph, so adding has to go through
-                // UpdateGraph -- as VirtuosoStore always did. Skipping the delete was not enough.
-                if (update)
-                {
-                    _connector.UpdateGraph(graphUri, graph.Triples, new Triple[0]);
-                }
-                else
-                {
-                    if (exists)
-                    {
-                        _connector.DeleteGraph(graphUri);
-                    }
-
-                    _connector.SaveGraph(graph);
-                }
+                Write(graph, update);
 
                 return graphUri;
             }
@@ -417,8 +384,6 @@ namespace Semiodesk.Trinity.Store.GraphDB
         public override Uri Read(Uri graphUri, Uri url, RdfSerializationFormat format, bool update)
         {
             IGraph graph = null;
-            
-            var exists = ContainsGraph(graphUri);
 
             if (url.AbsoluteUri.StartsWith("file:"))
             {
@@ -437,31 +402,31 @@ namespace Semiodesk.Trinity.Store.GraphDB
                 {
                     if (format == RdfSerializationFormat.Trig)
                     {
-                        var store = new TripleStore();
-                        store.LoadFromFile(path, new TriGParser());
+                        TripleStore s = new TripleStore();
+                        s.LoadFromFile(path, new TriGParser());
 
-                        // See the matching comment in FusekiStore.Read for why each graph is written
-                        // under its own name, why BaseUri has to be set, and why unnamed triples go to
-                        // graphUri rather than being dropped.
-                        foreach (var target in GroupByTargetGraph(store, graphUri))
+                        // A TriG file names its own graphs; graphUri names the *file*, not each graph
+                        // inside it. Three things follow:
+                        //
+                        //  - The delete has to target the graph being written. Deleting graphUri once
+                        //    per iteration meant the second graph's turn wiped what the first wrote.
+                        //  - BaseUri has to be set per graph. The connector derives its target from it
+                        //    (ADR-0038), so leaving it null sent every graph to the *default* graph,
+                        //    where the last one silently overwrote the rest.
+                        //  - Triples carrying no graph name of their own have no home of their own, so
+                        //    they go to the graph the caller asked for. Dropping them would lose data
+                        //    silently, which is the failure mode this whole change is about.
+                        //
+                        // Graphs are grouped by target first: two of them can share one (a file with
+                        // both unnamed triples and a graph named graphUri), and writing twice would
+                        // have the second replace the first.
+                        foreach (var target in GroupByTargetGraph(s, graphUri))
                         {
-                            if (update)
-                            {
-                                _connector.UpdateGraph(target.Uri, target.Graph.Triples, new Triple[0]);
-                            }
-                            else
-                            {
-                                if (ContainsGraph(target.Uri))
-                                {
-                                    _connector.DeleteGraph(target.Uri);
-                                }
-
-                                _connector.SaveGraph(target.Graph);
-                            }
+                            Write(target.Graph, update);
                         }
 
-                        // Every graph is written above, so there is no single one left for the end of the
-                        // method -- which returned null here, and callers read null as failure.
+                        // Every graph is written above, so there is no single one left for the end
+                        // of the method -- which returned null here, and callers read null as failure.
                         return graphUri;
                     }
                     else
@@ -475,8 +440,6 @@ namespace Semiodesk.Trinity.Store.GraphDB
                     }
                 }
             }
-            // https as well as http: rejecting it returned null rather than raising, so loading a
-            // graph from an https URL failed silently. Fuseki already accepted both.
             else if (url.Scheme == "http" || url.Scheme == "https")
             {
                 graph = new Graph(graphUri);
@@ -491,26 +454,31 @@ namespace Semiodesk.Trinity.Store.GraphDB
 
             if (graph != null)
             {
-                // SaveGraph is a Graph Store PUT, which replaces the graph, so adding has to go through
-                // UpdateGraph -- as VirtuosoStore always did. Skipping the delete was not enough.
-                if (update)
-                {
-                    _connector.UpdateGraph(graphUri, graph.Triples, new Triple[0]);
-                }
-                else
-                {
-                    if (exists)
-                    {
-                        _connector.DeleteGraph(graphUri);
-                    }
-
-                    _connector.SaveGraph(graph);
-                }
+                Write(graph, update);
 
                 return graphUri;
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Writes a parsed graph under its name, adding to or replacing what the store holds there.
+        /// </summary>
+        /// <remarks>
+        /// A replace needs no delete first: <see cref="OxigraphConnector.SaveGraph"/> is a Graph Store
+        /// <c>PUT</c>, which replaces by definition. That is also why an add must not use it.
+        /// </remarks>
+        private void Write(IGraph graph, bool update)
+        {
+            if (update)
+            {
+                Connector.AppendGraph(graph);
+            }
+            else
+            {
+                Connector.SaveGraph(graph);
+            }
         }
 
 
@@ -527,23 +495,24 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// <returns></returns>
         public override void Write(Stream stream, Uri graphUri, RdfSerializationFormat format, INamespaceMap namespaces = null, Uri baseUri = null, bool leaveOpen = false)
         {
-            if (!ContainsGraph(graphUri)) return;
-            
-            var graph = new Graph(graphUri);
+            if (Connector.HasGraph(graphUri.OriginalString))
+            {
+                IGraph graph = new Graph(graphUri);
                 
-            _connector.LoadGraph(graph, graphUri);
+                Connector.LoadGraph(graph, graphUri.OriginalString);
 
-            if (namespaces != null)
-            {
-                graph.NamespaceMap.ImportNamespaces(namespaces);
+                if (namespaces != null)
+                {
+                    graph.NamespaceMap.ImportNamespaces(namespaces);
+                }
+
+                if (baseUri != null)
+                {
+                    graph.BaseUri = baseUri;
+                }
+
+                Write(stream, graph, format, leaveOpen);
             }
-
-            if (baseUri != null)
-            {
-                graph.BaseUri = baseUri;
-            }
-
-            Write(stream, graph, format, leaveOpen);
         }
 
         /// <summary>
@@ -556,76 +525,63 @@ namespace Semiodesk.Trinity.Store.GraphDB
         /// <returns></returns>
         public override void Write(Stream stream, Uri graphUri, IRdfWriter formatWriter, bool leaveOpen = false)
         {
-            if (!ContainsGraph(graphUri)) return;
-            
-            IGraph graph = new Graph(graphUri);
-            
-            _connector.LoadGraph(graph, graphUri);
+            if (Connector.HasGraph(graphUri.OriginalString))
+            {
+                IGraph graph = new Graph(graphUri);
+                
+                Connector.LoadGraph(graph, graphUri.OriginalString);
 
-            Write(stream, graph, formatWriter, leaveOpen);
+                Write(stream, graph, formatWriter, leaveOpen);
+            }
         }
 
         /// <summary>
+        /// Returns a no-op transaction handle. Oxigraph is not transactional through this adapter.
         /// </summary>
-        /// <param name="isolationLevel"></param>
-        /// <returns></returns>
+        /// <param name="isolationLevel">Ignored; there is no isolation to configure.</param>
+        /// <returns>A handle whose Commit and Rollback do nothing (ADR-0028, ADR-0039).</returns>
         public override ITransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
-            // Not transactional — the GraphDB connector exposes no transaction handle. A no-op handle is returned rather
-            // than null so callers need not null-check and so transaction code stays testable.
+            // Oxigraph's storage engine is transactional, but its HTTP surface exposes no
+            // client-controlled transaction: each request commits on its own. A no-op handle is
+            // returned rather than null so callers need not null-check (ADR-0039).
             return new NoOpTransaction();
         }
 
         /// <summary>
-        /// Creates a model group which allows for queries to be made on multiple models at once.
+        /// Closes the store. It is not usable after this call.
         /// </summary>
-        /// <param name="models"></param>
-        /// <returns></returns>
-        public override IModelGroup CreateModelGroup(params Uri[] models)
+        public override void Dispose()
         {
-            var modelList = models.Select(m => GetModel(m)).ToList();
+            if (Connector == null)
+            {
+                return;
+            }
 
-            return new ModelGroup(this, modelList);
+            Connector.Dispose();
+            Connector = null;
         }
 
         /// <summary>
-        /// Creates a model group which allows for queries to be made on multiple models at once.
+        /// Gets a SPARQL query which is used to retrieve all triples about a subject.
         /// </summary>
-        /// <param name="models"></param>
-        /// <returns></returns>
-        public new IModelGroup CreateModelGroup(params IModel[] models)
-        {
-            // This approach might seem a bit redundant, but we want to make sure to get the model from the right store.
-            var modelList = models.Select(m => GetModel(m.Uri)).ToList();
-
-            return new ModelGroup(this, modelList);
-        }
-
-        /// <summary>
-        /// Gets a SPARQL query which is used to retrieve all triples about a subject that is
-        /// either referenced using a URI or blank node.
-        /// </summary>
+        /// <remarks>
+        /// URI subjects only. The subject is bound through <c>VALUES</c>, which admits an IRI or a
+        /// literal but never a blank node, so a blank-node subject would emit unparseable SPARQL.
+        /// Unreachable in practice: <c>Model.GetResource</c> rejects a blank id before it gets here.
+        /// </remarks>
         /// <param name="modelUri">The graph to be queried.</param>
         /// <param name="subjectUri">The subject to be described.</param>
         /// <returns>An instance of <c>ISparqlQuery</c></returns>
         public override ISparqlQuery GetDescribeQuery(Uri modelUri, Uri subjectUri)
         {
-            var query = new SparqlQuery("DESCRIBE ?s FROM @model WHERE { ?s ?p ?o . VALUES ?s { @subject } }");
+            ISparqlQuery query = new SparqlQuery("DESCRIBE ?s FROM @model WHERE { ?s ?p ?o . VALUES ?s { @subject } }");
             query.Bind("@model", modelUri);
             query.Bind("@subject", subjectUri);
 
             return query;
         }
 
-        /// <summary>
-        /// Get a handle to the native dotNetRDF triple storage implementation.
-        /// </summary>
-        /// <returns>The IUpdatableStorage instance used to communicate with the database.</returns>
-        public IUpdateableStorage GetStorage()
-        {
-            return _connector;
-        }
-        
         #endregion
     }
 }

@@ -21,31 +21,41 @@
 // AUTHORS:
 //
 //  Moritz Eberl <moritz@semiodesk.com>
-//  Sebastian Faubel <sebastian@semiodesk.com>
 //
-// Copyright (c) Semiodesk GmbH 2023
+// Copyright (c) Semiodesk GmbH 2026
 
-using NUnit.Framework;
-using Semiodesk.Trinity.Tests.Store;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Reflection;
 
-namespace Semiodesk.Trinity.Tests.Virtuoso
+namespace Semiodesk.Trinity.Tests
 {
-    /// <summary>
-    /// Runs the store-independent model-catalog suite against Virtuoso.
-    /// </summary>
-    [TestFixture]
-    public class VirtuosoCatalogTest : StoreCatalogTest<VirtuosoTestSetup>
+    class TestRunner
     {
-        /// <summary>
-        /// Quarantined: the Virtuoso manager names the graph of a write by Uri.AbsoluteUri, and ContainsModel does too, which lower-cases the host and re-escapes the path, while the SPARQL
-        /// path uses OriginalString. A graph named with upper case in its host is written under one IRI
-        /// and queried under another. Fixing it means overriding the connector's graph addressing, as
-        /// OxigraphConnector does. See doc/known-test-failures.md.
-        /// </summary>
-        [Test]
-        public override void AGraphIsAddressedByTheExactIriItWasNamedWith()
-        {
-            Assert.Inconclusive("Graph Store writes address the graph by AbsoluteUri, not the exact IRI; see doc/known-test-failures.md.");
+       [STAThread]
+       static void Main(string[] args)
+       { 
+            string[] nunitArg = new string[args.Count() + 1];
+
+            int i = 0;
+            foreach (string arg in args)
+            {
+                nunitArg[i] = arg;
+                i++;
+            }
+
+            nunitArg[i] = Assembly.GetExecutingAssembly().Location;
+
+            if (i == 0)
+            {
+               // NUnit.AppEntry.Main(nunitArg);
+            }
+            else
+            {
+              //  NUnit.ConsoleRunner.Runner.Main(nunitArg);
+            }
         }
     }
 }
