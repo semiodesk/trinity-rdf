@@ -41,7 +41,37 @@ import subprocess
 import sys
 
 CONTINUE_COMMITS = {"merge", "cherry-pick", "revert", "rebase", "am"}
-WRAPPERS = {"env", "command", "exec", "nice", "nohup", "time", "builtin"}
+# Commands that run another command: name -> (options taking a separate value, plain arguments
+# before the wrapped command). A wrapper missing here hides a commit behind it -- `timeout 60 git
+# commit` used to go through unchecked -- so the table errs towards listing more.
+_TIMEOUT = ({"-s", "--signal", "-k", "--kill-after"}, 1)
+WRAPPERS = {
+    "env": ({"-u", "--unset", "-C", "--chdir", "-S", "--split-string"}, 0),
+    "command": (set(), 0),
+    "builtin": (set(), 0),
+    "exec": ({"-a"}, 0),
+    "nice": ({"-n", "--adjustment"}, 0),
+    "nohup": (set(), 0),
+    "time": ({"-f", "--format", "-o", "--output"}, 0),
+    "timeout": _TIMEOUT,
+    "gtimeout": _TIMEOUT,
+    "sudo": ({"-u", "--user", "-g", "--group", "-h", "--host", "-p", "--prompt", "-C", "--close-from",
+              "-D", "--chdir", "-R", "--chroot", "-T", "--command-timeout", "-U", "--other-user"}, 0),
+    "doas": ({"-u", "-C"}, 0),
+    "xargs": ({"-I", "-n", "--max-args", "-L", "--max-lines", "-s", "--max-chars", "-P", "--max-procs",
+               "-d", "--delimiter", "-E", "-a", "--arg-file"}, 0),
+    "stdbuf": ({"-i", "--input", "-o", "--output", "-e", "--error"}, 0),
+    "ionice": ({"-c", "--class", "-n", "--classdata", "-p", "--pid"}, 0),
+    "setsid": (set(), 0),
+    "chronic": (set(), 0),
+    "unbuffer": (set(), 0),
+    "flock": ({"-w", "--timeout", "-E", "--conflict-exit-code", "-c", "--command"}, 1),
+    "taskset": (set(), 1),
+}
+# Wrapper options that move the wrapped command to another directory, and those whose value is a
+# command line of its own.
+CHDIR_OPTIONS = {("env", "-C"), ("env", "--chdir"), ("sudo", "-D"), ("sudo", "--chdir")}
+COMMAND_OPTIONS = {("env", "-S"), ("env", "--split-string"), ("flock", "-c"), ("flock", "--command")}
 SHELLS = {"bash", "sh", "zsh", "dash"}
 SEPARATORS = {";", "&&", "||", "|", "|&", "&", "(", ")", "\n", ";;", "{", "}", "!"}
 REDIRECTS = {">", ">>", "<", "<<<", ">&", "<&", "&>", "&>>", ">|", "<>"}
@@ -155,25 +185,60 @@ def commits(command, cwd, depth=0):
         found += commits(inner, here, depth + 1)
 
     for argv in simple_commands(words):
-        while argv and (_ASSIGNMENT.match(argv[0]) or argv[0] in WRAPPERS):
-            argv = argv[1:]
-            while argv and argv[0].startswith("-") and argv[0] != "-":  # e.g. `env -i`, `nice -n 5`
-                argv = argv[1:] if argv[0] not in ("-n", "-u") else argv[2:]
+        argv, there, inner = unwrap(argv, here)
+        for line in inner:
+            found += commits(line, there, depth + 1)
         if not argv:
             continue
         name = os.path.basename(argv[0])
 
         if name in ("cd", "pushd"):
             target = next((a for a in argv[1:] if not a.startswith("-")), os.path.expanduser("~"))
-            here = os.path.normpath(os.path.join(here, os.path.expanduser(target)))
+            here = os.path.normpath(os.path.join(there, os.path.expanduser(target)))
         elif name in SHELLS and "-c" in argv[1:-1]:
-            found += commits(argv[argv.index("-c") + 1], here, depth + 1)
+            found += commits(argv[argv.index("-c") + 1], there, depth + 1)
         elif name in ("git", "git.exe"):
-            where = git_commit_tree(argv[1:], here)
+            where = git_commit_tree(argv[1:], there)
             if where:
                 found.append(where)
     # An unquoted $(...) is seen twice -- by the substitution scan and as parenthesised words.
     return list(dict.fromkeys(found))
+
+
+def unwrap(argv, here):
+    """Strip leading assignments and wrappers from one simple command.
+
+    Returns the wrapped command's argv, the directory it runs in (`env -C`, `sudo -D`), and any
+    command lines a wrapper runs itself (`env -S`, `flock -c`).
+    """
+    inner = []
+    while argv:
+        if _ASSIGNMENT.match(argv[0]):
+            argv = argv[1:]
+            continue
+        name = os.path.basename(argv[0])
+        if name not in WRAPPERS:
+            break
+        with_value, positional = WRAPPERS[name]
+        argv = argv[1:]
+        while argv and argv[0].startswith("-") and argv[0] != "-":
+            if argv[0] == "--":
+                argv = argv[1:]
+                break
+            key, has_value, value = argv[0].partition("=")
+            if key in with_value and not has_value and len(argv) > 1:
+                value, argv = argv[1], argv[2:]
+            else:
+                argv = argv[1:]
+            if (name, key) in CHDIR_OPTIONS:
+                here = os.path.normpath(os.path.join(here, os.path.expanduser(value)))
+            elif (name, key) in COMMAND_OPTIONS:
+                inner.append(value)
+        argv = argv[positional:]
+        if name == "flock" and argv[:1] and argv[0] in ("-c", "--command"):  # flock FILE -c CMD
+            inner.append(argv[1] if len(argv) > 1 else "")
+            argv = []
+    return argv, here, inner
 
 
 def git_commit_tree(args, here):

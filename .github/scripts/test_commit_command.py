@@ -50,6 +50,18 @@ class DecidesFromTokens(unittest.TestCase):
             "git merge --continue",
             "git -c core.editor=true rebase --continue",
             "git cherry-pick --continue",
+            # Wrappers that run another command (review leftovers on #58).
+            "timeout 60 git commit -m x",
+            "timeout -k 5 --signal=TERM 60 git commit",
+            "gtimeout 60 git commit",
+            "sudo git commit -m x",
+            "sudo -u me -- git commit",
+            "printf 'a\\n' | xargs git commit -m x",
+            "xargs -n 1 -P 2 git commit",
+            "stdbuf -oL nice -n 5 git commit",
+            "env -S 'git commit -m x'",
+            "flock /tmp/l git commit",
+            "flock -w 5 /tmp/l -c 'git commit -m x'",
         ]
         for command in cases:
             with self.subTest(command=command):
@@ -70,6 +82,9 @@ class DecidesFromTokens(unittest.TestCase):
             "cat <<-EOF\n\tgit commit\n\tEOF",
             "python3 -c 'import os; os.system(\"git commit\")'",
             "git help commit",
+            "timeout 60 git status",
+            "sudo git log commit",
+            "xargs -I {} echo git commit {}",
         ]
         for command in cases:
             with self.subTest(command=command):
@@ -83,6 +98,9 @@ class DecidesFromTokens(unittest.TestCase):
         self.assertEqual(committed_in("cd sub; git -C .. commit"), ["/work/repo"])
         self.assertEqual(committed_in("git --work-tree=/wt commit"), ["/wt"])
         self.assertEqual(committed_in("git --work-tree /wt commit"), ["/wt"])
+        self.assertEqual(committed_in("env -C /other git commit"), ["/other"])
+        self.assertEqual(committed_in("sudo -D /other git commit"), ["/other"])
+        self.assertEqual(committed_in("sudo -C 3 git commit"), [HERE])  # -C is --close-from for sudo
 
     def test_unbalanced_quotes_cannot_be_parsed(self):
         from commit_command import Undecidable
