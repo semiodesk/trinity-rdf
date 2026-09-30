@@ -29,6 +29,7 @@ import argparse
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -43,7 +44,11 @@ REPORT = os.path.join("duplication", "jscpd-report.json")
 
 
 class ScanError(Exception):
-    pass
+    """jscpd did not produce a report. `reason` is one line; `details` is its full output."""
+
+    def __init__(self, reason, details=""):
+        super().__init__(f"{reason}\n{details}".rstrip())
+        self.reason = reason
 
 
 def scan(directory, config):
@@ -52,12 +57,23 @@ def scan(directory, config):
     if os.path.exists(report):
         os.remove(report)
 
+    # shutil.which, not a bare "npx": on Windows the executable is npx.cmd.
+    npx = shutil.which("npx")
+    if npx is None:
+        raise ScanError("npx was not found; jscpd runs on Node.js")
+
     # --silent drops jscpd's own console summary; the table below replaces it.
-    result = subprocess.run(["npx", "--yes", JSCPD, "--silent", "--config", config, "."],
-                            cwd=directory, capture_output=True, text=True)
+    try:
+        result = subprocess.run([npx, "--yes", JSCPD, "--silent", "--config", config, "."],
+                                cwd=directory, capture_output=True, text=True)
+    except OSError as error:
+        raise ScanError(f"npx could not be started: {error}")
     if result.returncode != 0 or not os.path.isfile(report):
-        raise ScanError(f"jscpd failed (exit {result.returncode}) and wrote no report at {report}\n"
-                        f"{result.stdout}{result.stderr}")
+        output = f"{result.stdout}{result.stderr}"
+        # Offline, before jscpd is cached, the fetch fails with an `npm error` line; say which.
+        hint = next((l.strip() for l in output.splitlines() if l.startswith("npm error")), "")
+        raise ScanError(f"jscpd failed (exit {result.returncode}) and wrote no report"
+                        + (f": {hint}" if hint else ""), output)
 
     with open(report, encoding="utf-8") as handle:
         return json.load(handle)
@@ -161,8 +177,14 @@ def main(ceiling, revision):
     try:
         report = scan(root, config)
     except ScanError as error:
-        print(f"::error::{error}", file=sys.stderr)
-        return 1
+        # CI enforces the ceiling, so a scan that cannot run fails there. Locally a missing or
+        # offline npx is an absent optional tool, reported as not run -- like Docker for the store
+        # suites -- rather than blocking every commit on a machine without Node.
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            print(f"::error::{error}", file=sys.stderr)
+            return 1
+        print(f"Duplication not run: {error.reason}. CI enforces the {ceiling:.1f}% ceiling regardless.")
+        return 0
 
     sources = report["statistics"]["formats"].get("csharp", {}).get("sources", {})
     clones = report["duplicates"]
