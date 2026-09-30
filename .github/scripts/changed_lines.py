@@ -39,12 +39,23 @@ def git(*args, text=False, **kwargs):
     """
     if text:
         kwargs.update(encoding="utf-8", errors="replace")
+    # Always from the top level. `git ls-files` prints paths relative to the working directory while
+    # diff output is root-relative, so a script run from a subdirectory silently dropped every file
+    # and reported 0.0% coverage with nothing pointing at paths.
+    kwargs.setdefault("cwd", repo_root())
     return subprocess.run(["git", "-c", "core.quotePath=false", *args],
                           capture_output=True, check=True, **kwargs).stdout
 
 
+_root = None
+
+
 def repo_root():
-    return git("rev-parse", "--show-toplevel", text=True).strip()
+    global _root
+    if _root is None:
+        _root = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, check=True,
+                               encoding="utf-8").stdout.strip()
+    return _root
 
 
 def is_product_source(path):

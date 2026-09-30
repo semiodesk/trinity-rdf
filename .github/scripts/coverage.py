@@ -261,6 +261,12 @@ def main(directory, floor, stores_dir, revision, gate):
     if not count:
         print(f"::error::No Cobertura reports found under {directory}", file=sys.stderr)
         return 1
+    if not memory:
+        # Reports exist but name no product file of this checkout: their paths point elsewhere. Say
+        # so, rather than let "0.0% is below the floor" suggest the tests stopped covering anything.
+        print(f"::error::The {count} report(s) under {directory} name no product source file of the "
+              f"checkout at {root}; their paths do not resolve here.", file=sys.stderr)
+        return 1
 
     totals = per_assembly(memory)
     covered = sum(e[0] for e in totals.values())
