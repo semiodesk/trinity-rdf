@@ -27,7 +27,9 @@
 # The check runs under its own time limit, below the 900 s in settings.json, because a hook that
 # outlives its timeout is killed and the tool call proceeds -- silently, with no report. A hang would
 # otherwise turn into a commit nothing checked. Exceeding this limit blocks instead. `timeout`
-# signals its whole process group, so the dotnet processes underneath stop too.
+# signals its whole process group, so the dotnet processes underneath stop too. The limit is one
+# deadline for the whole command, shared by every tree it commits in: 840 s *each* let
+# `git -C a commit && git -C b commit` outlive the hook's 900 s and pass unchecked after all.
 #
 # The tree checked is the one the command commits in -- the hook input's cwd, moved by `cd` and
 # git's -C/--work-tree -- not $CLAUDE_PROJECT_DIR. Judging the main checkout let a broken commit in
@@ -37,6 +39,10 @@
 # A change that touches only Markdown skips the run: nothing it could affect is measured.
 
 input=$(cat)
+
+# One deadline for everything this hook does; $SECONDS counts from the hook's start. 840 s plus
+# the 15 s --kill-after grace stays under the 900 s in settings.json.
+budget=840
 
 block() {
     printf '%s\n' "$1" >&2
@@ -84,12 +90,19 @@ while IFS= read -r tree; do
         continue
     fi
 
-    report=$("$timeout_cmd" --kill-after=15 840 bash .github/scripts/check.sh 2>&1)
+    # What is left of the one deadline. Under a minute cannot hold even a check without store suites,
+    # so rather than start one bound to be cut off, say how to get each tree its full budget.
+    left=$((budget - SECONDS))
+    if [ "$left" -lt 60 ]; then
+        block "Pre-commit checks ran out of time before checking $tree: the hook allows $budget s for everything one command commits, and earlier trees used it. The commit was blocked rather than let through unchecked; commit in each tree with a separate command."
+    fi
+
+    report=$("$timeout_cmd" --kill-after=15 "$left" bash .github/scripts/check.sh 2>&1)
     status=$?
 
     if [ "$status" -eq 124 ] || [ "$status" -eq 137 ]; then
-        printf 'Pre-commit checks in %s did not finish within 840 s, so the commit was blocked rather than let through unchecked. Output so far:\n\n%s\n' \
-            "$tree" "$report" >&2
+        printf 'Pre-commit checks in %s did not finish within the %s s left of the hook'"'"'s %s s, so the commit was blocked rather than let through unchecked. Output so far:\n\n%s\n' \
+            "$tree" "$left" "$budget" "$report" >&2
         exit 2
     fi
     if [ "$status" -ne 0 ]; then
