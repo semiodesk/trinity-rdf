@@ -55,7 +55,7 @@ category with its own baseline, so every `Ratio` is against the right thing.
 | `ModelGroupBenchmarks` | reads through a group of 1/4/16 member graphs | the same read on one model holding the union | ADR-0019 |
 | `LayeredReadBenchmarks` | reads through a layered view, rewriting and materialized | the same read on the plain baseline | ADR-0041's read table (1.31x / 3.45x / 2.24x / 4.23x) |
 | `LayeredStagingBenchmarks` | staging a change, a delete, `Accept()`, `Discard()` | the minimal writes into the layers | ADR-0042: 0.7 ms stage, 3 ms delete |
-| `LayeredMaterializeBenchmarks` | a full `Refresh()` | copying the baseline graph | ADR-0042: 31.5 s at 1M — **does not reproduce** (5.1 min in memory; see ADR-0049) |
+| `LayeredMaterializeBenchmarks` | a full `Refresh()` | copying the baseline graph | ADR-0042: 31.5 s at 1M — 5.1 min in memory, where it is 11× a plain copy; on the servers ≈ a copy (ADR-0049) |
 | `WideResourceBenchmarks` | twenty mapped values per resource, both directions | typed literals by hand | ADR-0040 |
 | `LinqShapeBenchmarks` | paging, `Count()`, `Any()`, `Contains` | the SPARQL each should become | ADR-0037 |
 | `SerializationBenchmarks` | `IStore.Read`/`Write` in Turtle, N-Triples, JSON-LD | `INSERT DATA` / a bindings fetch | ADR-0034 |

@@ -78,81 +78,84 @@ profiler. BenchmarkDotNet's `EventPipeProfiler` needs an out-of-process toolchai
 containers rule out.
 
 ## What building it found
-The first smoke passes, before any tuning, and on the in-memory store unless noted. They are leads
-for the profiling work this harness exists for, recorded here so they are not rediscovered. The
-figures are single-iteration smoke numbers, which is enough for the orders of magnitude.
+Measured with the full job (one warmup, ten iterations) on 2026-09-30. The default tier ran completely
+on the in-memory store, Oxigraph and Fuseki, and for 187 of its 232 cases on GraphDB. Virtuoso and the
+1M tier were not run, by decision: the 1M tier because the realistic question at that size is already
+answered at 100k, Virtuoso for time. Absolute figures belong to that machine; the ratios and the growth
+with size are what carry over.
 
-- **`Model.GetResource<T>(uri)` is O(model) in memory:** 3.2 ms per lookup at 1,000 resources,
-  376 ms at 100,000, against a flat ~37 µs for the subject-bound `SELECT`. `dotNetRDFStore.GetDescribeQuery`
-  places its `VALUES` *after* the `?s ?p ?o` it constrains, so the engine enumerates the graph before
-  binding the subject — the "VALUES before the pattern" rule ADR-0041 states for the overlay. The
-  untyped `GetResource(uri)`, with its `FILTER`, stays flat at ~300 µs. A layered view's
-  `GetResource<T>` is *faster* than the plain model's for the same reason (276 µs against 160 ms at
-  100k), which inverts ADR-0041's in-memory ratio.
-- **The LINQ equality lookup is O(model) too:** 3.6 ms at 1k, 596 ms at 100k, against a flat 143 µs.
-- **Traversing a large mapped collection is super-linear:** 158 links take 34 ms, 1,000 take 551 ms,
-  2,000 take 1.8 s and allocate 3.4 GB — against 2–32 ms for the same VALUES queries issued by hand.
-  The query shape ADR-0046 chose is not the cost; what Trinity does with the result is.
-- **An in-memory `ModelGroup` is O(data) per query.** Any query with more than one `FROM` costs about
-  1 s at 100,000 triples, raw or mapped alike, because dotNetRDF rebuilds the merged default graph
-  each time. The group adds little of its own; the engine is the cost. A layered view, which scopes
-  with `GRAPH` rather than merging, does not pay it. This is a property of dotNetRDF's in-memory
-  engine, not evidence about groups on a server backend.
-- **A mapped `long` above `int.MaxValue` cannot be read back from Oxigraph** (#54; any out-of-range `xsd:integer` throws, on every store) — found by
-  `WideResourceBenchmarks`, whose setup fails there with an `OverflowException`. Oxigraph canonicalizes
-  every integer-derived datatype to `xsd:integer`, in all four result formats (verified against the
-  pinned 0.5.5 image), and `XsdTypeMapper` deserializes `xsd:integer` as `Int32` before ADR-0040's
-  conversion to the declared type ever runs. So a value Trinity wrote as `xsd:long` overflows on the way
-  back. `NumericRoundTripTest` round-trips a mapped `400L`, which fits in an `Int32`, so it does not catch
-  this. The fix belongs in `XsdTypeMapper` (`xsd:integer` is unbounded) with a test in the shared numeric
-  round-trip suite; the benchmark is left failing on Oxigraph until then, since shrinking its values to
-  fit would hide the defect.
-- **Virtuoso cannot read N-Triples from a string** (#55). `VirtuosoStore.ReadTripleFormat` keeps its own
-  parser switch, with no N-Triples case, and throws `NotSupportedException` — the duplicated-switch
-  pattern ADR-0047 replaced with `StoreBase.TryParse` elsewhere, surviving in Virtuoso's string path.
-  The harness seeds as Turtle for that reason; `SerializationBenchmarks`' N-Triples read keeps failing
-  there until it is fixed.
-- **Virtuoso cannot read JSON-LD, TriG or N-Quads from a string at all** (#55). `ReadQuadFormat(string, …)`
-  hands the document to `IStoreReader.Load(ITripleStore, string)`, whose string is a **file name**, so
-  the content is opened as a path (`PathTooLongException` for any realistic document). Virtuoso has no
-  `MultiGraphTrigTest` subclass, so nothing exercises this path.
-- **`ModelGroup.GetResources<T>()` throws `NotImplementedException`** (#56). The group workload goes
-  through the query overload instead.
-- **`GetResources<T>(ISparqlQuery)` does not accept the `;` shorthand.** It requires the
-  preprocessor to see exactly `?s ?p ?o` in scope, and does not follow `?s a <T> ; ?p ?o`.
-- **ADR-0042's 31.5 s full build does not reproduce: `Refresh()` takes 5.1 minutes at 1M in memory**
-  (`LayeredMaterializeLargeBenchmarks`, one iteration). It scales roughly linearly: 10.5 s at 50k,
-  22.7 s at 100k. So the cost is a constant factor, not a complexity class, and it is about 10x a raw
-  `INSERT … WHERE` copy of the baseline (0.97 s at 50k, 2.4 s at 100k). Either the overlay became
-  more expensive after ADR-0042 was measured — ADR-0041 records the set-semantics fix adding a nested
-  `NOT EXISTS` to the additions branch — or the figure was taken on a different path. It is the first
-  lead to profile (`profile LayeredMaterializeBenchmarks.Refresh --param BaselineTriples=100000`).
-  This is an in-memory figure, which is the right comparison with ADR-0042 (measured in memory too) but
-  says little about production cost; a server backend's number is the one that matters there.
-- **A clean `Accept()` of ~100 changes takes ~4.6 s on a 10k in-memory baseline**, where staging the
-  same changes takes well under a millisecond each.
-- **Mapping is 15–25x the raw query for a full `GetResources<T>()`** in memory, and allocates 14–17x
-  as much.
+The test that sorts these findings is whether a cost follows Trinity across backends. Allocation is
+the clean signal, because the store's own work happens in another process.
 
-Against the four Docker backends, the smoke pass runs all 108 cases on Fuseki and GraphDB without a
-failure. Oxigraph fails the one wide-resource read above, and Virtuoso fails the N-Triples and JSON-LD
-string reads above. Each failing cell is a defect in Trinity, not in the harness.
+**Trinity's own costs, the same on every backend**
+- **`GetResource<T>` is O(n²) in the described resource's triple count** (#63). A resource with 2000
+  values takes 1.5–2.1 s and allocates 2.8–3.4 GB (in-memory, Oxigraph, Fuseki). On GraphDB it takes
+  26.5 s and 16 GB, because its reasoner adds inferred triples to each `DESCRIBE`. `GraphTripleProvider`
+  reads triple k with `Triples.ElementAt(k)`, walking the collection each time, and the in-memory store's
+  `DESCRIBE` override describes the subject once per triple. Fixing both, measured in a throwaway
+  worktree, makes it linear: 16 ms and 9.9 MB at 2000. The lazy load underneath, which the fan-out
+  benchmark was built to measure, turned out linear (32 MB for 2000 members). It had looked guilty only
+  because every traversal starts with a `GetResource<T>` of the hub.
+- **Materializing allocates ~25 KB per two-triple resource** (#67): 24.6–25.6 MB for 1000 resources on
+  all four backends, 35× the raw query's time in memory and 4–5× on Fuseki and GraphDB. Not yet traced.
 
-Apart from the full build above, the ADR figures the harness was built to reproduce hold in shape: staging through a materialized view
-costs ~0.4 ms per change (ADR-0042: 0.7 ms), a materialized `DeleteResource` stays in the hundreds of
-microseconds, and the view's `ContainsResource` and selective caller query come out at 1.4–4.9x the
-baseline (ADR-0041: 3.45x and 4.23x in memory).
+**Query shapes Trinity emits that some engines cannot index.** The fix is in Trinity either way.
+- **A LINQ equality lookup filters instead of binding** (#64). At 100k resources it takes 725 ms in
+  memory and 749 ms on Oxigraph, against a flat 0.2–0.6 ms by hand. Fuseki and GraphDB optimize the
+  shape and stay flat. #52 made the comparison lexical (`STR(?v) = …`), which is no more indexable, so a
+  fix must keep that semantics.
+- **A layered view's `GetResource<T>` grows with the baseline on Oxigraph and Fuseki** (#65): 314 ms
+  (446×) and 46 ms (12.8×) at 100k. GraphDB (0.9×) and the in-memory store stay flat, and so do
+  materialized views everywhere. `VALUES` precedes the overlay, as ADR-0041 requires, but the binding has
+  to be pushed through `MINUS` and a nested `FILTER NOT EXISTS`, and those engines don't do it.
+- **`Model.GetResource(uri)` and `ModelGroup.GetResource` bind the subject with `FILTER (?s = …)`** (#66),
+  the shape ADR-0042 replaced in the staging paths. On Oxigraph that is 129 ms at 100k (286×), and 47×
+  through a 16-member group. It is flat elsewhere.
+
+**Costs of dotNetRDF's in-memory engine.** They matter for tests and development, not production.
+- **`Accept()` is O(baseline) in memory only:** 2.4 s at 10k and 30 s at 100k for the same ~100 changes,
+  allocating 12 GB. The servers take 8–86 ms.
+- **`Refresh()` is 11× a plain copy in memory only.** The 5.1 minutes measured at 1M is why ADR-0042's
+  31.5 s did not reproduce there. On the servers the overlay costs the same as the copy (0.8–1.2×):
+  1.0–5.0 s at 100k.
+- **Any query with more than one `FROM` rebuilds the merged default graph**, so an in-memory `ModelGroup`
+  is O(data) per query (60 ms per lookup across 16 members, 7× one model). The same reads through a group
+  on Fuseki and GraphDB are 0.6–1.1× one model. Oxigraph's 47× is #66's `FILTER`, not the group.
+- **`GetResource<T>` is also O(model) in memory**, independently of #63: the override's `VALUES` follows
+  the pattern it constrains. That is 441 ms per lookup at 100k resources, against 36 µs by hand.
+
+**Defects the backends surfaced**, each left failing in its cell so it stays visible:
+- **A mapped `long` above `int.MaxValue` cannot be read back from Oxigraph** (#54). More generally,
+  any `xsd:integer` outside the `Int32` range throws on every store. Oxigraph turns every integer
+  datatype into `xsd:integer`, and `XsdTypeMapper` deserializes that as `Int32` before ADR-0040's
+  conversion runs. `WideResourceBenchmarks` fails its setup there, so all eight of its Oxigraph cells
+  fail.
+- **Virtuoso cannot read N-Triples, JSON-LD, TriG or N-Quads from a string** (#55). Its string path has
+  its own parser switch with no N-Triples case, and it passes quad-format content to a dotNetRDF overload
+  that takes a file name. The harness seeds as Turtle for that reason.
+- **`ModelGroup.GetResources<T>()` throws `NotImplementedException`** (#56). The group workload uses the
+  query overload instead.
+- **`GetResources<T>(ISparqlQuery)` does not follow the `;` shorthand.** It needs the preprocessor to see
+  exactly `?s ?p ?o` in scope.
+
+**What reproduced.** Staging through a view stays O(changes) on every backend: 0.25–22 ms per change,
+1.8–4.3× the minimal writes by hand, flat from 10k to 100k. So does a materialized `DeleteResource`, at
+0.8–23 ms. The view's `ContainsResource` and selective caller query come out at 1.0–3.4× the baseline,
+in line with ADR-0041. Writes, deletes, literal updates, paging, `Count`, `Contains` and serialization
+are all within 0.9–1.5× of hand-written SPARQL on the servers. Mapping is not where those spend their
+time.
 
 ## Consequences
 - An optimization starts from a named workload and ends with a before/after pair from one machine,
   rather than from a harness written for the occasion.
 - An ADR that makes a performance claim can point at the class that reproduces it; the README's
   workload table maps each class to the ADR it reproduces.
-- The benchmarks cost the fast CI job about a minute and a half. They are not a correctness suite: a
+- The benchmarks cost the fast CI job about two minutes. They are not a correctness suite: a
   guard that fires is a harness failure, and the defect it points at still needs a test in the right
   project.
-- Virtuoso's materialized 1M cells fail in setup, and its raw 1M copy fails its verification. That
-  is ADR-0042's finding reproduced, and the README says so beside the table.
+- Virtuoso's materialized 1M cells are expected to fail in setup, and its raw 1M copy to fail its
+  verification: ADR-0042's silent-zero finding, which the guards exist to catch. That is a prediction;
+  the 1M tier has not been run on Virtuoso.
 - GraphDB's container runs with reasoning on (`rdfsplus-optimized`); its write numbers include
   inference and are not comparable to the other backends' without saying so.
 - The harness holds a mapped model of its own (`BenchmarkPerson`, `BenchmarkWideResource`) rather
