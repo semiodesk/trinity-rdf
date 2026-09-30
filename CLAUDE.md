@@ -42,6 +42,7 @@ post-build tooling. Read `doc/adr/README.md` for the decisions and history.
 | `tests/Trinity.Generator.Tests` | net8.0 | Source-generator validation, incl. the TRIN diagnostics |
 | `tests/Trinity.Vocabulary.Tests` | net8.0 | Vocabulary generator + `trinity-vocab`: term classification, all four RDF formats, determinism, sanitization/collisions, manifest reading, the check-mode exit codes, a member-compatibility check against the committed vocabularies, and a round-trip that compiles generated source and asserts `OntologyDiscovery` finds it |
 | `tests/Trinity.Tests.{Virtuoso,Fuseki,GraphDB,Oxigraph}` | net8.0 | Store integration tests — self-provision the server via Testcontainers/Docker (ADR-0036); run in the `stores` CI matrix job, not the fast `build` job |
+| `benchmarks/Trinity.Benchmarks` | net8.0 | BenchmarkDotNet cross-store harness (ADR-0050) — reuses the store suites' container fixtures; each workload pairs the mapped path with its raw-SPARQL baseline and verifies the work landed. Not a test suite; only a smoke run is in CI |
 | `doc/adr/` | — | Architecture Decision Records |
 
 Retired in 2.0: `Trinity.CilGenerator` (the cilg weaver, ADR-0013), `Trinity.OntologyGenerator`
@@ -68,6 +69,7 @@ dotnet test Trinity.Tests/Trinity.Tests.csproj         # 940 passed, 3 skipped (
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 42 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
+TRINITY_BENCH_BACKENDS=InMemory dotnet run -c Release --project benchmarks/Trinity.Benchmarks -- --filter "*"   # see benchmarks/README.md
 ```
 
 - The 3 skipped tests are `[Ignore]`d and tracked in `doc/known-test-failures.md`: one open semantics
@@ -105,7 +107,9 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   coverage → pack), a `duplication` job, a `stores` matrix job running the four Dockerized store suites (ADR-0044),
   and a `coverage` job merging both kinds of report. It runs on **pull requests** and on pushes to
   `develop`/`master` only — also triggering on `feature/**` pushes ran everything twice per PR push —
-  and a newer commit on a PR cancels the superseded run. NuGet publishing is **manual** (no publish job).
+  and a newer commit on a PR cancels the superseded run. The `build` job also runs the benchmarks with
+  `--smoke` (every case once, smallest sizes, in memory) so a workload that throws cannot rot unnoticed;
+  no timing gates anything (ADR-0050). NuGet publishing is **manual** (no publish job).
 - **Coverage** is collected by the collector bundled with `Microsoft.NET.Test.Sdk` (no package or tool
   to add), merged by `.github/scripts/coverage.py`, printed to the job summary as a per-assembly table,
   and **gated at a 78% floor**. Two things about that number are easy to get wrong. The three

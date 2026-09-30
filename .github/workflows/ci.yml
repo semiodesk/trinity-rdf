@@ -92,6 +92,14 @@ jobs:
           path: ./coverage/**/*.cobertura.xml
           if-no-files-found: error
 
+      # The benchmarks are not a test suite and their timings gate nothing (ADR-0050). This runs every
+      # workload once, at its smallest size, against the in-memory store only -- --smoke defaults
+      # TRINITY_BENCH_BACKENDS to InMemory, so no Docker. What it catches is a workload that throws,
+      # including the guards that refuse to time a write which did nothing; the exit code is non-zero
+      # if any case failed.
+      - name: Benchmark smoke run
+        run: dotnet run --project benchmarks/Trinity.Benchmarks/Trinity.Benchmarks.csproj -c Release --no-build -- --filter "*" --smoke
+
       # Artifacts are only produced on the release branches; publishing stays manual (RELEASING.md).
       # Packs the solution rather than the core project alone, so every shipping package is produced --
       # including the trinity-vocab tool, which was previously built but never packed anywhere.

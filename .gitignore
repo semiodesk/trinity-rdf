@@ -18,3 +18,5 @@ coverage-stores/
 duplication/
 __pycache__/
 *.trx
+# BenchmarkDotNet writes its reports here; they are run output, not source.
+BenchmarkDotNet.Artifacts/
