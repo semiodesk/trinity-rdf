@@ -63,6 +63,51 @@ namespace Semiodesk.Trinity.Benchmarks
     }
 
     /// <summary>
+    /// A resource with twenty mapped properties of mixed types, for the per-property cost of mapping.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="BenchmarkPerson"/> is deliberately minimal, so its numbers are dominated by the round
+    /// trip. This is its opposite: the same number of requests, but twenty values each to serialize on
+    /// the way out and to convert on the way back -- <c>XsdTypeMapper</c>, <c>PropertyMapping&lt;T&gt;</c>
+    /// and the numeric conversion on read (ADR-0040). A separate type rather than new properties on
+    /// <see cref="BenchmarkPerson"/>, whose remarks explain why its shape must not move.
+    ///
+    /// No language-tagged string: localized strings are represented inconsistently (ADR-0026/0027),
+    /// so a benchmark of them would measure whichever representation happened to be chosen.
+    /// </remarks>
+    [RdfClass(Vocabulary.WideClass)]
+    public partial class BenchmarkWideResource : Resource
+    {
+        public BenchmarkWideResource(Uri uri) : base(uri) { }
+
+        [RdfProperty(Vocabulary.Wide + "s1")] public partial string S1 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "s2")] public partial string S2 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "s3")] public partial string S3 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "s4")] public partial string S4 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "s5")] public partial string S5 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "i1")] public partial int I1 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "i2")] public partial int I2 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "i3")] public partial int I3 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "l1")] public partial long L1 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "l2")] public partial long L2 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "d1")] public partial double D1 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "d2")] public partial double D2 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "f1")] public partial float F1 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "m1")] public partial decimal M1 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "m2")] public partial decimal M2 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "b1")] public partial bool B1 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "b2")] public partial bool B2 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "t1")] public partial DateTime T1 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "t2")] public partial DateTime T2 { get; set; }
+        [RdfProperty(Vocabulary.Wide + "ref")] public partial BenchmarkPerson Ref { get; set; }
+
+        /// <summary>
+        /// Mapped properties, so a guard can count what a write should have produced.
+        /// </summary>
+        public const int MappedProperties = 20;
+    }
+
+    /// <summary>
     /// The FOAF terms the benchmarks use, as constants an attribute can take.
     /// </summary>
     public static class Vocabulary
@@ -72,5 +117,13 @@ namespace Semiodesk.Trinity.Benchmarks
         public const string FirstNameProperty = "http://xmlns.com/foaf/0.1/firstName";
 
         public const string KnowsProperty = "http://xmlns.com/foaf/0.1/knows";
+
+        /// <summary>
+        /// The namespace of <see cref="BenchmarkWideResource"/>'s properties. Not a real vocabulary,
+        /// and not one Trinity has generated, so no TRIN006 check applies to it.
+        /// </summary>
+        public const string Wide = "http://localhost/benchmark/wide#";
+
+        public const string WideClass = Wide + "WideResource";
     }
 }
