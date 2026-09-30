@@ -56,7 +56,11 @@ python3 "$scripts/duplication.py" --diff "$revision" || status=1
 echo
 echo "## Build"
 if ! dotnet build Semiodesk.Trinity.sln -c Release -nologo -v q > "$logs/build.txt" 2>&1; then
-    grep -E ': error ' "$logs/build.txt" | sort -u | head -20
+    # Compiler errors if there are any; otherwise the log's tail. An SDK that cannot be found, an
+    # MSBuild node crash or a missing dotnet print no ": error " line at all, and a bare "Build
+    # failed" leaves whoever reads a blocked commit nothing to act on.
+    errors=$(grep -E ': error ' "$logs/build.txt" | sort -u | head -20)
+    echo "${errors:-$(tail -20 "$logs/build.txt")}"
     echo "Build failed; nothing further can run."
     exit 1
 fi
