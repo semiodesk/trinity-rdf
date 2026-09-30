@@ -1821,17 +1821,7 @@ namespace Semiodesk.Trinity.Query.Sparql
 
                 case "Best" when IsLocalizedContainer(call.Method.DeclaringType):
                 case "TryGetBest" when IsLocalizedContainer(call.Method.DeclaringType):
-                    // Refused rather than approximated. Best() is an RFC 4647 Lookup: it walks a
-                    // preference list, truncating each range until something matches, and falls back to
-                    // the untagged value. langMatches() is a different rule and would return different
-                    // rows, so translating it would answer a question the caller did not ask. Index the
-                    // property with the language you want instead, or materialize and call Best() in
-                    // memory (ADR-0048).
-                    throw new NotSupportedException(
-                        $"{call.Method.Name}() cannot be translated to SPARQL: RFC 4647 lookup is a " +
-                        "client-side fallback walk with no faithful SPARQL equivalent. Index the " +
-                        "localized property with an explicit language tag, or enumerate the results " +
-                        "and call it in memory.");
+                    throw LookupNotTranslatable(call.Method.Name);
 
                 default:
                     throw new NotSupportedException($"Unsupported method call in predicate: {call.Method.Name}.");
@@ -1910,15 +1900,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                             && IsLocalizedContainer(localizedCall.Method.DeclaringType)
                             && (localizedCall.Method.Name == "Best" || localizedCall.Method.Name == "TryGetBest"))
                         {
-                            // RFC 4647 lookup walks a preference list, truncating each range until
-                            // something matches, then falls back to the untagged value. langMatches() is
-                            // a different rule and would return different rows, so this is refused
-                            // rather than approximated (ADR-0048, and the posture of ADR-0041).
-                            throw new NotSupportedException(
-                                $"{localizedCall.Method.Name}() cannot be translated to SPARQL: RFC 4647 " +
-                                "lookup is a client-side fallback walk with no faithful SPARQL " +
-                                "equivalent. Index the localized property with an explicit language tag, " +
-                                "or enumerate the results and call it in memory.");
+                            throw LookupNotTranslatable(localizedCall.Method.Name);
                         }
 
                         throw new NotSupportedException($"Unsupported operand expression: {expression.NodeType}.");
@@ -2143,6 +2125,28 @@ namespace Semiodesk.Trinity.Query.Sparql
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// The refusal for <c>Best()</c> / <c>TryGetBest()</c> inside a query.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4647 Lookup walks a preference list, truncating each range until something matches, and
+        /// falls back to the untagged value. <c>langMatches()</c> is a different rule and would return
+        /// different rows, so translating it would answer a question the caller did not ask - refused
+        /// rather than approximated, in the posture of ADR-0041.
+        /// <para>
+        /// One method rather than two identical throws: a predicate call and an operand call reach this
+        /// by different routes, and the two copies could drift apart into refusing on one path and
+        /// mistranslating on the other.
+        /// </para>
+        /// </remarks>
+        private static NotSupportedException LookupNotTranslatable(string method)
+        {
+            return new NotSupportedException(
+                $"{method}() cannot be translated to SPARQL: RFC 4647 lookup is a client-side " +
+                "fallback walk with no faithful SPARQL equivalent. Index the localized property with " +
+                "an explicit language tag, or enumerate the results and call it in memory.");
         }
 
         /// <summary>

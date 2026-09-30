@@ -82,11 +82,6 @@ namespace Semiodesk.Trinity
         bool IsValueCompatible(object value);
 
         /// <summary>
-        /// True if the property is mapped to a localized-text container.
-        /// </summary>
-        bool IsContainer { get; }
-
-        /// <summary>
         /// Gets the value or values mapped to this property.
         /// </summary>
         /// <returns></returns>

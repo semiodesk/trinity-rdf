@@ -286,6 +286,21 @@ namespace Semiodesk.Trinity.Generator
         }
 
         /// <summary>
+        /// True when the mapped type is a localized-text container.
+        /// </summary>
+        /// <remarks>
+        /// Asked of the interface rather than the two concrete names. The generator's job here is to
+        /// recognise the <i>shape</i> so TRIN009 can warn about a setter; which containers actually
+        /// work is the runtime's decision, and <c>PropertyMapping</c> refuses anything that is not one
+        /// of the two built-in ones (ADR-0048).
+        /// </remarks>
+        private static bool IsLocalizedContainer(ITypeSymbol type)
+        {
+            return type.AllInterfaces.Any(i =>
+                i.ToDisplayString() == "Semiodesk.Trinity.ILocalizedText");
+        }
+
+        /// <summary>
         /// Indicates whether a mapped property stores <c>System.Uri</c> values, either directly or as
         /// the element type of a mapped collection.
         /// </summary>
@@ -294,19 +309,6 @@ namespace Semiodesk.Trinity.Generator
         /// wrong for RDF identity and <c>UriRef</c>, which derives from it, is the fix. A check phrased
         /// as "assignable to Uri" would flag the fix as well as the defect.
         /// </remarks>
-        /// <summary>
-        /// True when the mapped type is a localized-text container.
-        /// </summary>
-        /// <remarks>
-        /// Asked of the interface rather than the two concrete names, so a container written outside
-        /// Trinity is treated the same way.
-        /// </remarks>
-        private static bool IsLocalizedContainer(ITypeSymbol type)
-        {
-            return type.AllInterfaces.Any(i =>
-                i.ToDisplayString() == "Semiodesk.Trinity.ILocalizedText");
-        }
-
         private static bool IsRawUri(ITypeSymbol type)
         {
             ITypeSymbol candidate = GetCollectionContainer(type) is null

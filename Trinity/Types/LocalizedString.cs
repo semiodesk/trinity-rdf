@@ -42,9 +42,15 @@ namespace Semiodesk.Trinity
     /// </para>
     /// <para>
     /// <b>Declaring this against genuinely multi-valued data is lossy, deliberately.</b> If the store
-    /// holds two <c>@de</c> labels, the second replaces the first — exactly what a mapped <c>string</c>
-    /// already does to a multi-valued predicate, and with the same consequence: a later <c>Commit()</c>
-    /// computes its removals from what the resource now holds, so the dropped value is deleted.
+    /// holds two <c>@de</c> labels, the second replaces the first on the mapped surface — exactly what
+    /// a mapped <c>string</c> already does to a multi-valued predicate.
+    /// </para>
+    /// <para>
+    /// The dropped value is <b>orphaned, not deleted</b>. The commit snapshot is taken from
+    /// <c>ListValues()</c>, which is the resource after this container already dropped the duplicate,
+    /// so the value is in neither side of the ADR-0039 delta: <c>HasUnsavedChanges()</c> reports
+    /// <c>false</c> and <c>Commit()</c> emits nothing for it. It therefore stays in the store,
+    /// permanently invisible through this property, and no commit will ever remove it.
     /// <see cref="LocalizedStringCollection"/> is the escape hatch, as <c>List&lt;string&gt;</c> is today.
     /// </para>
     /// <para>
@@ -187,21 +193,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public override string ToString() => Best() ?? string.Empty;
 
-        private static string CultureName(CultureInfo culture)
-        {
-            if (culture == null)
-            {
-                throw new System.ArgumentNullException(nameof(culture));
-            }
-
-            if (string.IsNullOrEmpty(culture.Name))
-            {
-                throw new System.ArgumentException(
-                    "The invariant culture names no language; use the Invariant property for an untagged literal.",
-                    nameof(culture));
-            }
-
-            return culture.Name;
-        }
+        private static string CultureName(CultureInfo culture) =>
+            LangString.CultureName(culture, nameof(culture));
     }
 }

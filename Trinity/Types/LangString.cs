@@ -235,22 +235,31 @@ namespace Semiodesk.Trinity
         /// names no language.
         /// </exception>
         public LangString(string value, CultureInfo culture)
-            : this(value, CultureName(culture))
+            : this(value, CultureName(culture, nameof(culture)))
         {
         }
 
-        private static string CultureName(CultureInfo culture)
+        /// <summary>
+        /// The language tag a culture names: the single implementation the containers share.
+        /// </summary>
+        /// <remarks>
+        /// There were three identical copies of this, differing only in the wording of the exception.
+        /// Nothing kept them in step, which is how the four representations ADR-0048 replaced came to
+        /// disagree in the first place.
+        /// </remarks>
+        internal static string CultureName(CultureInfo culture, string parameterName)
         {
             if (culture == null)
             {
-                throw new ArgumentNullException(nameof(culture));
+                throw new ArgumentNullException(parameterName);
             }
 
             if (string.IsNullOrEmpty(culture.Name))
             {
                 throw new ArgumentException(
-                    "The invariant culture names no language; use a plain string for an untagged literal.",
-                    nameof(culture));
+                    "The invariant culture names no language; use a plain string for an untagged " +
+                    "literal, or the container's Invariant property.",
+                    parameterName);
             }
 
             return culture.Name;

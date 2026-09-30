@@ -94,14 +94,6 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// True if the property is mapped to a localized-text container.
-        /// </summary>
-        bool IPropertyMapping.IsContainer
-        {
-            get { return _isContainer; }
-        }
-
-        /// <summary>
         /// True if the value has not been set.
         /// </summary>
         private bool _isUnsetValue = true;

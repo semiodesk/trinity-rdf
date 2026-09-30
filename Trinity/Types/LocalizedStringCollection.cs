@@ -207,21 +207,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public override string ToString() => Best() ?? string.Empty;
 
-        private static string CultureName(CultureInfo culture)
-        {
-            if (culture == null)
-            {
-                throw new ArgumentNullException(nameof(culture));
-            }
-
-            if (string.IsNullOrEmpty(culture.Name))
-            {
-                throw new ArgumentException(
-                    "The invariant culture names no language; use the Invariant property for untagged literals.",
-                    nameof(culture));
-            }
-
-            return culture.Name;
-        }
+        private static string CultureName(CultureInfo culture) =>
+            LangString.CultureName(culture, nameof(culture));
     }
 }

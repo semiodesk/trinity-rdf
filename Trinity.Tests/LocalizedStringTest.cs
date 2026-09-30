@@ -636,6 +636,53 @@ namespace Semiodesk.Trinity.Tests
             StringAssert.Contains(nameof(LocalizedStringCollection), thrown.Message);
         }
 
+        /// <summary>
+        /// A value a single-valued container drops is orphaned in the store, not deleted from it.
+        /// </summary>
+        /// <remarks>
+        /// ADR-0048 originally claimed the opposite - that the delta computes removals from what the
+        /// resource now holds, so a later Commit() deletes the dropped value. It does not: the commit
+        /// snapshot is taken from ListValues(), which is the resource *after* the container dropped
+        /// the duplicate, so the value is in neither side of the delta. This test is what the claim
+        /// rests on now, rather than the reasoning.
+        /// </remarks>
+        [Test]
+        public void AValueDroppedByASingleValuedContainerSurvivesInTheStore()
+        {
+            var store = StoreFactory.CreateStore("provider=dotnetrdf");
+            var model = store.CreateModel(new Uri("http://example.org/orphan"));
+            model.Clear();
+
+            var uri = new Uri("semio:test:orphan");
+            var p = to.localizedStringTest;
+
+            var raw = model.CreateResource(uri);
+            raw.AddProperty(p, "Erste", "de");
+            raw.AddProperty(p, "Zweite", "de");
+            raw.Commit();
+
+            Assert.AreEqual(2, StoredValues(model, uri, p).Count, "Both values start out in the store.");
+
+            var mapped = model.GetResource<LocalizedMappingTestClass>(uri);
+
+            Assert.AreEqual(1, mapped.Title.Count, "The container keeps one value per language.");
+            Assert.IsFalse(mapped.HasUnsavedChanges(),
+                "Dropping a value on read is not a pending change, which is why nothing removes it.");
+
+            mapped.Commit();
+
+            Assert.AreEqual(2, StoredValues(model, uri, p).Count,
+                "The dropped value is orphaned - invisible through the property, still in the store.");
+        }
+
+        private static List<string> StoredValues(IModel model, Uri subject, Property property)
+        {
+            var query = new SparqlQuery(
+                $"SELECT ?o WHERE {{ <{subject.OriginalString}> <{property.Uri.OriginalString}> ?o }}");
+
+            return model.ExecuteQuery(query).GetBindings().Select(b => b["o"].ToString()).ToList();
+        }
+
         #endregion
     }
 }

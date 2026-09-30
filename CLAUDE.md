@@ -342,16 +342,21 @@ Invariants that surprise newcomers:
   `NoOpTransaction` rather than `null` (0039) — never null, but never isolating either.
 - **Query results are multi-modal** (0031): `GetResources`/`GetBindings`/`GetAnwser`(sic)/`Count` —
   pick the accessor matching the query form (with offset/limit paging).
-- **Datatype & i18n mapping** (0026/0027/0047): `XsdTypeMapper` (culture-invariant via `XmlConvert`).
+- **Datatype & i18n mapping** (0026/0027/0048): `XsdTypeMapper` (culture-invariant via `XmlConvert`).
   A language-tagged literal is a **`LangString`** — one type, replacing the four shapes 0027 lived with.
-  It normalizes the tag with `ToLowerInvariant` at construction, which is why `AddProperty`/`HasProperty`
-  cannot disagree about casing and why the 0039 delta is stable across a read/commit cycle. An
+  It **validates** the tag against BCP-47's `[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*` and normalizes it with
+  `ToLowerInvariant` at construction — one implementation, which `LocalizedValueStore.Normalize` calls
+  rather than repeating, so a validated constructor cannot end up beside an unvalidated indexer. This is
+  why `AddProperty`/`HasProperty` cannot disagree about casing and why the 0039 delta is stable across a
+  read/commit cycle. Validation is **load-bearing, not cosmetic**: a tag reaches the store as *syntax*
+  (`'x'@de` has no place for a quoted tag), so `SparqlSerializer` escapes the value and interpolates the
+  tag raw — an unvalidated tag from request data would carry query text into an update on `Commit()`. An
   **untagged literal is a plain `string`**: `LangString.Language` is never null, so there is no second
   way to spell "no tag", and `"Hallo"` can never equal `new LangString("Hallo","de")`. There is
   deliberately **no conversion to or from `string`** (ADR-0025 applied, not repeated — `label ==
   "Hallo"` must not compile), but `==`/`!=` between two `LangString`s are declared, or a class compares
   by reference.
-- **The property's declared type decides how tags are handled** (0047). `Resource.Language` and the
+- **The property's declared type decides how tags are handled** (0048). `Resource.Language` and the
   `languageInvariant` flag are **gone** — there is no ambient state, so a resource is safe to read in
   two locales at once:
 
@@ -366,25 +371,53 @@ Invariants that surprise newcomers:
   editing one never disturbs another. `Best()` is RFC 4647 **Lookup**, which truncates the *request* —
   `de-DE` finds a `de` value, `de` does not find `de-DE`. Indexers are exact-match on get *and* set, so
   `t[k] = t[k]` cannot move a value between languages. Declaring `LocalizedString` against genuinely
-  multi-valued data is **lossy** — it keeps the last value and a later `Commit()` deletes the rest,
-  exactly as a mapped `string` already does to a multi-valued predicate; `LocalizedStringCollection` is
-  the escape hatch. `[RdfProperty(uri, languageInvariant)]` still compiles for one release and raises
+  multi-valued data is **lossy** — it keeps the last value — exactly as a mapped `string` already does
+  to a multi-valued predicate; `LocalizedStringCollection` is the escape hatch. The dropped value is
+  **orphaned, not deleted**, and this file previously claimed the opposite. The commit snapshot comes
+  from `ListValues()`, i.e. the resource *after* the container dropped the duplicate, so it sits in
+  neither side of the 0039 delta: `HasUnsavedChanges()` is `false` and `Commit()` emits nothing. The
+  value stays in the store, permanently invisible through that property, and nothing will ever remove
+  it. Same for a mapped `string` over a multi-valued predicate — both measured, and pinned by
+  `AValueDroppedByASingleValuedContainerSurvivesInTheStore`.
+  `[RdfProperty(uri, languageInvariant)]` still compiles for one release and raises
   **TRIN008**; `RdfPropertyAttribute`'s two-argument constructor is `[Obsolete]` and goes in 2.1.
   Containers are declared **get-only** — they are mutated in place, not assigned, and a setter both
-  admits `null` and aliases one container across two resources, so **TRIN009** warns. The generator emits
+  admits `null` and aliases one container across two resources, so **TRIN009** warns. The diagnostic is
+  not the guarantee, though: a hand-written mapping never reaches the generator, so `SetValue` **copies
+  into** the container the mapping owns rather than assigning the reference. Assigning `null` empties it
+  (it used to leave the mapping holding none, so the next `ListValues()` threw and took `Commit()`,
+  `HasUnsavedChanges()` and the snapshot with it) and `a.Title = b.Title` copies rather than aliases.
+  Only `LocalizedString` and `LocalizedStringCollection` can be mapped — `ILocalizedText` is their
+  shared surface, **not an extension point**, and anything else is refused at registration rather than
+  accepted and silently dropped. The generator emits
   exactly the accessors the declaring half declares (each with its own modifiers, so `private set` and
   `init` round-trip); emitting `get`+`set` unconditionally used to make the get-only form CS9253.
   **LINQ** queries one language at a time: `Where(d => d.Label["de"] == "Hallo")`. The tag must be a
   constant, because it becomes part of the query text — a closure is folded to one by the partial
-  evaluator, a per-row value is refused. The emitted form is `STR(?v) = "…" && LANG(?v) = "de"`, **not**
-  `?v = "…"@de`: measured on dotNetRDF 3.5.2, a language-tagged literal inside a `FILTER` comparison
-  matches regardless of its tag (`"x"@fr` matched a `@de` value), while the same literal in a *triple
-  pattern* matches correctly and `STR`/`LANG` evaluate correctly. Two things are **refused rather than
-  approximated** (the ADR-0041 posture): `Best()`/`TryGetBest()`, because RFC 4647 lookup is a
-  client-side fallback walk that `langMatches` would answer differently, and projecting a single
-  language (`Select(d => d.Label["de"])`), because the bound variable carries every language. Filter on
-  the language in `Where` and project the resource instead. A mapped `string` still emits a plain
-  literal and so never matches a tagged one — which is now correct rather than a workaround.
+  evaluator, a per-row value is refused.
+  **The tag is attached where the variable is bound, and it is part of the binding's cache key.** Both
+  halves are load-bearing and neither fails loudly. Keying by predicate path alone gave `Label["de"]`
+  and `Label["en"]` in one query *the same* variable, so the constraints met as
+  `LANG(?v)="de" && LANG(?v)="en"` — unsatisfiable. Constraining at comparison time instead left every
+  other consumer of that variable — `StartsWith`, `Contains`, `IN`, `ORDER BY`, a comparison against
+  another member — reading it bound to all languages. Consumers therefore pass the whole `ChainInfo`
+  to `BindChain`, so dropping the tag is not expressible. `BindCount` already keyed this way.
+  The emitted form is `LCASE(LANG(?v)) = "de"` plus `STR(?v) = "…"`, **not** `?v = "…"@de`: measured on
+  dotNetRDF 3.5.2, a language-tagged literal inside a `FILTER` comparison matches regardless of its tag
+  (`"x"@fr` matched a `@de` value), while the same literal in a *triple pattern* matches correctly and
+  `STR`/`LANG` evaluate correctly. `LCASE` wraps `LANG` because stores disagree about casing a tag back
+  — Jena canonicalizes `de-de` to `de-DE`, RDF4J returns it as written — which bare `de`/`en` test tags
+  never reveal. Three things are **refused rather than approximated** (the ADR-0041 posture):
+  `Best()`/`TryGetBest()`, because RFC 4647 lookup is a client-side fallback walk that `langMatches`
+  would answer differently; projecting a single language (`Select(d => d.Label["de"])`), because the
+  bound variable carries every language; and `.Count`/`.Any()` on a container, because
+  `LocalizedString` counts *languages* while `LocalizedStringCollection` counts *values*, so no single
+  triple count is right for both. Filter on the language in `Where` and project the resource instead.
+  A mapped `string` binds with `LANG(?v) = ""`, so it never matches a tagged literal — previously true
+  only for `==`, since a plain literal term matches only a plain literal, but *not* for `StartsWith`
+  (SPARQL argument compatibility makes `STRSTARTS("x"@de, "x")` true) nor for `Select`, which returned
+  tagged values unwrapped. Measured before keeping: over 20k documents the added filter is below the
+  run-to-run noise floor.
 
 ## Other architecture notes
 

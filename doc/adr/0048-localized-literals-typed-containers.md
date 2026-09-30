@@ -253,31 +253,71 @@ Under this design `string` genuinely means untagged, so the translator's existin
 *"Stored as a plain literal; emit plain so term equality matches"* — becomes **true** rather than a
 workaround. The default `==` path does not change. What is added:
 
-- `ToTerm` gains a `LangString` case populating the dormant `LiteralTerm.Language`
-  (`SparqlAst.cs:224`); `SparqlQueryWriter.WriteLiteral:333-335` already emits it.
-- A chain kind for `LocalizedString.get_Item`, so `Where(a => a.Label["de"] == "Hallo")` constrains
-  both the lexical form and the tag. **Not** as `FILTER (?v = "Hallo"@de)`, which this ADR originally
-  specified: measured on dotNetRDF 3.5.2, a language-tagged literal inside a `FILTER` comparison
-  matches *regardless of its tag* — `"Bericht"@fr` matched a value tagged `@de` — while the same
-  literal in a triple pattern matches correctly, and `STR`/`LANG` both evaluate correctly. The emitted
-  form is therefore `STR(?v) = "Hallo" && LANG(?v) = "de"`, equivalent for an `rdf:langString` and
-  keeping the indexer's exact-tag semantics. It gives up the index-friendliness term equality would
-  have had; binding the term in the triple pattern instead would recover it, and is the obvious
-  follow-up if it ever shows up in a profile. The tag must be a **constant** — it becomes part of the
-  query text — so a closure is folded to one by the partial evaluator and a per-row value is refused.
+- **The tag is attached where the variable is bound, and it is part of the binding's cache key.**
+  This ADR first specified the constraint at *comparison* time, with the binding keyed by predicate
+  path alone. Both halves of that were wrong, and neither failed loudly:
+
+  - keying by path alone gave `Label["de"]` and `Label["en"]` in one predicate *the same* variable, so
+    the two constraints met on it as `LANG(?v) = "de" && LANG(?v) = "en"` — unsatisfiable, so a query
+    with an obvious answer returned nothing;
+  - constraining at comparison time left every other consumer of the variable — `StartsWith`,
+    `Contains`, `IN`, `ORDER BY`, a comparison against another member — reading it bound to every
+    language of the property at once.
+
+  `BindChain` therefore takes the tag, includes it in the key (as `BindCount` already did for its own)
+  and emits the constraint when it creates the binding; consumers pass the whole `ChainInfo` through an
+  overload, so dropping the tag on the way is not expressible rather than merely discouraged. The
+  constraint moves into the `OPTIONAL` group when a binding is upgraded, or it would discard the rows
+  the `OPTIONAL` exists to keep.
+
+- The comparison itself is `STR(?v) = "Hallo"`, **not** `FILTER (?v = "Hallo"@de)`: measured on
+  dotNetRDF 3.5.2, a language-tagged literal inside a `FILTER` comparison matches *regardless of its
+  tag* — `"Bericht"@fr` matched a value tagged `@de` — while the same literal in a triple pattern
+  matches correctly, and `STR`/`LANG` both evaluate correctly. It gives up the index-friendliness term
+  equality would have had; binding the term in the triple pattern instead would recover it, and is the
+  obvious follow-up if it ever shows up in a profile. The tag must be a **constant** — it becomes part
+  of the query text — so a closure is folded to one by the partial evaluator and a per-row value is
+  refused.
+
+- The tag test is `LCASE(LANG(?v)) = "de"`, lower-cased on **both** sides. Stores do not agree on how
+  they hand a tag back: Jena canonicalizes `de-de` to `de-DE`, RDF4J returns it as written. Comparing
+  a lower-cased constant against a raw `LANG()` therefore matches on some backends and not others —
+  and bare `de`/`en` test tags, which is what the first round of tests used, never show it.
+
+- `ToTerm` **refuses** a `LangString` rather than emitting `"Hallo"@de`. Every one of its callers puts
+  the result in a filter expression, where that form is the tag-blind one measured above; this ADR
+  originally had it populate `LiteralTerm.Language` there, which reintroduced the defect it had just
+  documented. A tagged constant is split into `STR`/`LANG` against the bound variable instead, and an
+  `IN` list of tagged literals expands into a disjunction of those comparisons for the same reason —
+  SPARQL's `IN` is a chain of `=`.
+
+- A mapped `string` binds with `LANG(?v) = ""`, which is what finally makes *"a mapped `string` means
+  untagged"* true in LINQ rather than only when materializing. Without it the claim held for `==`
+  alone — a plain literal term matches only a plain literal — and failed for string functions, where
+  SPARQL argument compatibility makes `STRSTARTS("Markiert"@de, "Mark")` true, and for `Select`, which
+  returned tagged values unwrapped into strings. Measured before keeping, since it lands on every
+  mapped-string binding: over 20k documents the delta is below the run-to-run noise floor, and the
+  in-memory engine's variance on an untouched query exceeded any difference attributable to it.
 - Query-marker extension methods — `HasLanguage(range)` → `langMatches(lang(?v), "…")`, `IsPlain()` →
   `lang(?v) = ""`, `LanguageTag()` → `lang(?v)`, `Lexical()` → `STR(?v)` — need no new AST node,
   because `SparqlFunctionExpression` takes an arbitrary name. **Not built.** Indexing by language
   covers the cases that motivated this ADR, and the helpers are worth adding when something actually
   needs them rather than on speculation.
-- Defect 3 is fixed by adding a `LangString` case to `CoerceValue`/`ExecuteBindings`, mirroring the
-  `Uri` → `UriRef` case beside it.
+- Defect 3 is fixed by the binding constraint, not by a marshalling case. Adding a `LangString` →
+  `string` case to `CoerceValue` was the first attempt: it removed the `InvalidCastException` and
+  replaced it with a quieter bug, since the projection then returned tagged values as though they
+  were untagged — the very leak that projecting a single language is refused for. `CoerceValue` now
+  **throws** on that combination instead, as a diagnostic for a constraint that failed to apply.
 - **`Best(...)`/`TryGetBest(...)` inside a query throw `NotSupportedException`.** RFC 4647 Lookup is a
   client-side fallback walk with no faithful SPARQL; quietly translating it to `langMatches` would
   return the wrong rows. Refusing loudly is the posture [0041](0041-layered-read-views.md)
   established. **Projecting a single language** — `Select(d => d.Label["de"])` — is refused for the
   same reason: the bound variable carries every language of the property, so projecting it would
   silently return the wrong rows. Filter on the language in `Where` and project the resource.
+  **`.Count`/`.Count()`/`.Any()` on a container** is refused on the same grounds: `LocalizedString`
+  counts *languages* and `LocalizedStringCollection` counts *values*, so no single count of matching
+  triples is right for both — and the one that was emitted also counted untagged literals, which
+  neither container holds.
 - `ORDER BY` on a localized member should emit `ORDER BY STR(?v)`. **Not built**, for the same reason
   as the helpers. SPARQL 1.1 §15.1 leaves the relative
   order of literals with *different* language tags implementation-defined, so the raw form diverges
@@ -331,12 +371,23 @@ honest.
 - **Nine defects addressed**, four of them by construction rather than by patch.
 - **Concurrency becomes possible.** A `Resource` is still single-threaded for writes, as it always
   was, but reading it in two locales no longer involves shared mutable state.
-- **`LocalizedString` against multi-valued data is lossy, deliberately.** If the store holds two
-  `@de` labels for a `LocalizedString` property, one is dropped — and because
-  `TrySerializeResourceDelta` computes removals from what the resource currently holds
-  (`SparqlSerializer.cs:503`), the dropped value is then **deleted from the store** on the next
-  `Commit()`. This is exactly what a scalar `string` already does to a multi-valued predicate.
-  `LocalizedStringCollection` is the escape hatch, as `List<string>` is today.
+- **`LocalizedString` against multi-valued data is lossy, deliberately — but the value is orphaned,
+  not deleted.** If the store holds two `@de` labels for a `LocalizedString` property, the mapped
+  surface shows one. An earlier draft of this ADR claimed the other was then deleted on the next
+  `Commit()`, reasoning that the delta computes removals from what the resource currently holds.
+  That is wrong, and measured: the snapshot `CapturePersistedValues` takes is built from
+  `ListValues()`, which is the resource *after* the container dropped the duplicate, so the dropped
+  value is in neither side of the delta. `HasUnsavedChanges()` returns `false` and `Commit()` emits
+  nothing for it.
+
+  So the value **survives in the store, permanently invisible through that property** — no mapped
+  read will show it and no commit will ever remove it. That is the safer of the two behaviours and
+  the more confusing one, so it is worth stating plainly rather than leaving as a footnote.
+
+  The same correction applies to the analogy: a scalar `string` over a multi-valued predicate
+  behaves identically — both values stay in the store, the mapping shows one. Measured alongside.
+  `LocalizedStringCollection` is still the escape hatch, as `List<string>` is today, and it is now
+  the escape hatch from *hidden* data rather than from *destroyed* data.
 - **Tag casing is normalized.** A store returning `de-DE` round-trips as `de-de`. Semantically
   identical under RDF 1.1, visible in a Turtle dump.
 - **Both store read paths change together**, including the easily-missed second one in a different
