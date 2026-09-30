@@ -209,4 +209,18 @@ namespace Semiodesk.Trinity.Benchmarks
             }
         }
     }
+
+    /// <summary>
+    /// Thrown by a fixture for a parameter value it cannot build, such as a layered size that is not a
+    /// multiple of 5.
+    /// </summary>
+    /// <remarks>
+    /// Its own type, so the <c>profile</c> runner can report it as a usage error without doing the same
+    /// to the <see cref="ArgumentException"/>s Trinity throws on real failures, which need their stack
+    /// trace and the fixture's cleanup.
+    /// </remarks>
+    public sealed class BenchmarkParameterException : Exception
+    {
+        public BenchmarkParameterException(string message) : base(message) { }
+    }
 }

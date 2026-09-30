@@ -160,10 +160,15 @@ the clean signal, because the store's own work happens in another process.
   its own parser switch with no N-Triples case, and it passes quad-format content to a dotNetRDF overload
   that takes a file name. The harness seeds as Turtle for that reason.
 - **Virtuoso refuses any single statement over 10,000 entries** (#70). `Read` of more than about 10k
-  triples throws. Materializing a view past 10,000 effective triples writes nothing, because the error
-  is swallowed (#50), and `Refresh()`'s own check then throws. So a materialized view cannot be used on
+  triples throws. Everything else writes nothing, because the error is swallowed (#50):
+  - materializing a view past 10,000 effective triples, where `Refresh()`'s own check then throws;
+  - `UpdateResources`, which chunks by 1000 subjects, not by triples, so 1000 wide resources are
+    21,000 triples in one statement;
+  - any caller update of that size through `ExecuteNonQuery`. So a materialized view cannot be used on
   Virtuoso past 10k. Found only after the review below unbalanced the layered changeset: the old one
-  produced exactly 10,000 effective triples.
+  produced exactly 10,000 effective triples. The timed rows that cross the limit are left failing:
+  `SerializationBenchmarks`' reads at 10k people and `WideResourceBenchmarks`' writes at 1000
+  resources. Their fixtures are seeded in chunks, so the rest of each class still measures.
 - **`CreateModelGroup(params IModel[])` returns an empty group** on `SparqlEndpointStore`, and on
   `dotNetRDFStore` when called through the concrete type rather than `IStore` (#68).
 - **`ModelGroup.GetResources<T>()` throws `NotImplementedException`** (#56). The group workload uses the
@@ -193,6 +198,13 @@ a regression would have read as a speedup. All of it was fixed before merge:
 - The CI smoke run inherited the two-hour per-case timeout.
 - Duplicate cells: the serialization raw rows, and the baseline and group rows of the layered read,
   ran once per value of a parameter they don't depend on. Both are now one method per variant.
+
+A second review pass found three more gaps, fixed the same way:
+- The serialization export guard looked for one IRI, while an export's order is up to the store. It
+  now parses the document back, locally, and counts triples.
+- `profile` treated every `ArgumentException` from setup as a usage error. It now catches only the
+  fixtures' own `BenchmarkParameterException`, and cleans up and rethrows anything else.
+- Two fixture seeds exceeded Virtuoso's limit.
 
 Each new guard was checked by breaking its path in a throwaway worktree and watching it fail. The
 stronger guards immediately found #70 on Virtuoso. Deferred to #69: routing the raw rows' IRIs through

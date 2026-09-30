@@ -77,7 +77,16 @@ namespace Semiodesk.Trinity.Benchmarks
             _readModel = Store.GetModel(BaseUri.GetUriRef("wide-read"));
             _readModel.Clear();
 
-            Store.UpdateResources(Build(), _readModel.Uri);
+            // Seeded in chunks as typed literals, not through UpdateResources: this is fixture, and one
+            // UpdateResources of 1000 wide resources is 21,000 triples in a single statement, which
+            // Virtuoso refuses and then reports as written (#50, #70). The timed write rows keep that
+            // path, and fail there so the defect stays visible.
+            BenchmarkData.Seed(Store, _readModel.Uri, Count, (buffer, i) =>
+            {
+                AppendRaw(buffer, i);
+
+                return 1 + BenchmarkWideResource.MappedProperties;
+            });
 
             AssertSeeded(ExpectedTriples, _readModel.Uri);
 

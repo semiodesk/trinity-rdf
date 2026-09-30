@@ -145,6 +145,13 @@ here: it needs an out-of-process toolchain, and this harness is in-process so th
     N-Triples parser and treats a quad-format document as a file name (#55).
   - Every materialized layered cell on Virtuoso: a view past 10,000 effective triples cannot be
     materialized there (#70).
+  - On Virtuoso, the timed rows whose single statement crosses 10,000 entries (#70):
+    - `SerializationBenchmarks`' four Read rows at `People=10000`: Turtle throws, and the raw
+      `INSERT DATA` writes 0.
+    - `WideResourceBenchmarks`' two Write rows at `Count=1000`: the mapped `UpdateResources` and the
+      raw `INSERT DATA` both write 0.
+
+    Their fixtures are seeded in chunks, so the other rows of both classes still produce numbers.
 - **Layered baselines persist between cases.** BenchmarkDotNet runs `[GlobalSetup]` once per case,
   and reseeding a million triples each time would dominate the run, so a layered baseline graph is
   named after its size and reseeded only when its count is wrong. Anything that changes a baseline

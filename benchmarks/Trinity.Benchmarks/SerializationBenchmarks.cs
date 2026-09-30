@@ -57,6 +57,10 @@ namespace Semiodesk.Trinity.Benchmarks
 
         private string _jsonLd;
 
+        private string _exported;
+
+        private RdfSerializationFormat _exportedFormat;
+
         private string _insert;
 
         private IModel _exportModel;
@@ -84,9 +88,12 @@ namespace Semiodesk.Trinity.Benchmarks
             _exportModel = Store.GetModel(BaseUri.GetUriRef("export"));
             _exportModel.Clear();
 
-            // As Turtle, like BenchmarkData: this is fixture setup, and Virtuoso cannot read N-Triples
-            // from a string (#55). The timed ReadNTriples row does, so that cell fails there.
-            Store.Read(_ntriples, _exportModel.Uri, RdfSerializationFormat.Turtle, update: true);
+            // Through BenchmarkData, in chunks and as Turtle: this is fixture, not what is measured.
+            // One Read of 20,000 triples exceeds Virtuoso's 10,000-entry statement limit (#70), and
+            // Virtuoso cannot read N-Triples from a string (#55). The timed Read rows use neither
+            // workaround, so they fail there and the defects stay visible.
+            BenchmarkData.Seed(Store, _exportModel.Uri, People,
+                (buffer, i) => BenchmarkData.AppendPerson(buffer, PersonUri(i), $"Person {i}"));
 
             AssertSeeded(People * 2, _exportModel.Uri);
         }
@@ -174,17 +181,53 @@ namespace Semiodesk.Trinity.Benchmarks
         }
 
         /// <summary>
-        /// Exports the graph and checks the document names every resource, so an export that dropped
-        /// the graph's content is not timed as a fast one.
+        /// Exports the graph and keeps the document for <see cref="VerifyExport"/>.
         /// </summary>
         private int Exported(RdfSerializationFormat format)
         {
-            var document = Export(format);
+            _exported = Export(format);
+            _exportedFormat = format;
 
-            // The last resource written is the one a truncated export would lose first.
-            Expect(document.Contains($"person-{People - 1}"), true, $"{format} export naming every resource");
+            return _exported.Length;
+        }
 
-            return document.Length;
+        /// <summary>
+        /// Parses the exported document back and requires every triple of the graph in it.
+        /// </summary>
+        /// <remarks>
+        /// By content, outside the timed region. Looking for one IRI in the text proves little: the
+        /// order of an export is up to the store, so a document that lost most of the graph could still
+        /// name any given resource. Parsed locally, with dotNetRDF's own parser rather than
+        /// <c>Store.Read</c>, so a store's read defect (#55 on Virtuoso) cannot fail an export that is
+        /// fine.
+        /// </remarks>
+        [IterationCleanup(Targets = new[] { nameof(WriteTurtle), nameof(WriteNTriples), nameof(WriteJsonLd) })]
+        public void VerifyExport()
+        {
+            int parsed;
+
+            using (var reader = new StringReader(_exported))
+            {
+                if (_exportedFormat == RdfSerializationFormat.JsonLd)
+                {
+                    var store = new VDS.RDF.TripleStore();
+
+                    new VDS.RDF.Parsing.JsonLdParser().Load(store, reader);
+                    parsed = store.Graphs.Sum(g => g.Triples.Count);
+                }
+                else
+                {
+                    var graph = new VDS.RDF.Graph();
+                    VDS.RDF.IRdfReader parser = _exportedFormat == RdfSerializationFormat.NTriples
+                        ? new VDS.RDF.Parsing.NTriplesParser()
+                        : (VDS.RDF.IRdfReader)new VDS.RDF.Parsing.TurtleParser();
+
+                    parser.Load(graph, reader);
+                    parsed = graph.Triples.Count;
+                }
+            }
+
+            Expect(parsed, People * 2, $"{_exportedFormat} export, parsed back");
         }
 
         private string Export(RdfSerializationFormat format)

@@ -78,21 +78,39 @@ namespace Semiodesk.Trinity.Benchmarks
             for (var i = 1; i < args.Length; i++)
             {
                 var value = i + 1 < args.Length ? args[i + 1] : null;
+                var flag = args[i];
 
-                if (value == null || value.StartsWith("--", StringComparison.Ordinal))
+                // Only the flags that take a value ask for one, so an unknown flag (--help, say) is
+                // reported as unknown rather than as missing its value.
+                bool MissingValue()
                 {
-                    Console.Error.WriteLine($"{args[i]} needs a value.\n{Usage}");
-                    return 2;
+                    if (value != null && !value.StartsWith("--", StringComparison.Ordinal))
+                    {
+                        return false;
+                    }
+
+                    Console.Error.WriteLine($"{flag} needs a value.\n{Usage}");
+                    return true;
                 }
 
                 switch (args[i])
                 {
                     case "--backend":
+                        if (MissingValue())
+                        {
+                            return 2;
+                        }
+
                         parameters[nameof(StoreBenchmarkBase.Backend)] = value;
                         i++;
                         break;
 
                     case "--iterations":
+                        if (MissingValue())
+                        {
+                            return 2;
+                        }
+
                         // Checked here, before any setup: a bad count used to surface only after a
                         // container had started and the fixture had been seeded.
                         if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out iterations)
@@ -106,6 +124,11 @@ namespace Semiodesk.Trinity.Benchmarks
                         break;
 
                     case "--param":
+                        if (MissingValue())
+                        {
+                            return 2;
+                        }
+
                         var pair = value.Split(new[] { '=' }, 2);
 
                         if (pair.Length != 2)
@@ -185,12 +208,27 @@ namespace Semiodesk.Trinity.Benchmarks
             {
                 Invoke(globalSetup, instance);
             }
-            catch (ArgumentException e)
+            catch (BenchmarkParameterException e)
             {
                 // A fixture refusing a parameter it cannot build (a layered size that is not a multiple
                 // of 5, say) is a usage error, reported like the others rather than as a crash.
                 Console.Error.WriteLine($"{e.Message}\n{Usage}");
                 return 2;
+            }
+            catch
+            {
+                // A real failure keeps its stack trace, and the fixture is cleaned up first: a setup that
+                // got as far as creating graphs, or starting a view, should not leave them behind.
+                try
+                {
+                    Invoke(globalCleanup, instance);
+                }
+                catch
+                {
+                    // The setup failure is the one worth reporting.
+                }
+
+                throw;
             }
 
             var timings = new List<double>(iterations);

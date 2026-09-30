@@ -132,7 +132,7 @@ namespace Semiodesk.Trinity.Benchmarks
             // container start.
             if (BaselineTriples % (2 + Links) != 0 || People < 2 * RemovedNames)
             {
-                throw new ArgumentException(
+                throw new BenchmarkParameterException(
                     $"BaselineTriples={BaselineTriples} does not fit the layered fixture: it must be a multiple of "
                     + $"{2 + Links} (triples per resource) and at least {2 * RemovedNames * (2 + Links)}, so that "
                     + "the removed names and the resources the staging rows change are distinct.");

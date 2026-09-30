@@ -74,7 +74,7 @@ namespace Semiodesk.Trinity.Benchmarks
         {
             if (People < Deletes)
             {
-                throw new ArgumentException(
+                throw new BenchmarkParameterException(
                     $"People={People} is below the {Deletes} resources each invocation deletes.");
             }
 
