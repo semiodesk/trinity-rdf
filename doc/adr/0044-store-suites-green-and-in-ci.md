@@ -3,7 +3,8 @@
 Date: 2026-08-24
 
 ## Status
-Accepted (2.0).
+Accepted (2.0). Amended by [0049](0049-quality-gates-and-pre-commit-check.md): the `stores` legs also
+collect coverage, merged by a `coverage` job and reported, not gated.
 
 ## Context
 
@@ -169,6 +170,7 @@ under their own names and survive re-reading, which `MultiGraphTrigTest<T>` now 
   in wall-clock: expect the matrix to take a few minutes. It does not gate the fast `build` job.
 
 ## Related
+- [0049](0049-quality-gates-and-pre-commit-check.md) — the stores legs also collect coverage
 - [0043](0043-fuseki-store-revival.md) — the Fuseki revival, and the same class of provisioning defect
 - [0036](0036-integration-tests-testcontainers.md) — Testcontainers, and the CI exclusion this reverses
 - [0011](0011-configuration-model.md) — the retired configuration subsystem that used to build the rule set

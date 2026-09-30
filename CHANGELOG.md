@@ -23,7 +23,7 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
   across all five backends, and reproduce the performance figures ADR-0041, 0042 and 0046 were
   written from. Every measurement verifies that the work landed before its time counts. CI runs a
   one-iteration in-memory smoke pass; no timing gates anything. It includes a `profile` mode for
-  `dotnet-trace`. ([ADR-0049](doc/adr/0049-benchmark-harness.md))
+  `dotnet-trace`. ([ADR-0050](doc/adr/0050-benchmark-harness.md))
 
 ### Fixed
 

@@ -86,7 +86,8 @@ mapped/dynamic duality, models & groups, discovery, stores, and querying.
 | [0045](0045-in-memory-rdfs-inferencing.md) | Finish in-memory inferencing: entail into a side graph, union it in per query | Accepted |
 | [0046](0046-bulk-subject-binding-with-values.md) | Bulk subject binding uses VALUES, never an equality chain | Accepted |
 | [0047](0047-oxigraph-store.md) | Oxigraph as a fourth backend; it refuses inferencing rather than ignoring it | Accepted |
-| [0049](0049-benchmark-harness.md) | Cross-store benchmark harness: in-process, verified, never a gate | Accepted |
+| [0049](0049-quality-gates-and-pre-commit-check.md) | Quality gates: duplication, changed-line reports, store coverage and a pre-commit check (amends [0044](0044-store-suites-green-and-in-ci.md)) | Accepted |
+| [0050](0050-benchmark-harness.md) | Cross-store benchmark harness: in-process, verified, never a gate | Accepted |
 
 ### Proposed (revival)
 | # | Title | Status |

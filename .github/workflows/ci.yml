@@ -1,10 +1,21 @@
 name: CI
 
+# Pull requests cover every topic branch -- feature/, fix/, docs/ alike -- so pushes build only the
+# two release branches. Listing feature/** under push as well ran the whole workflow twice for every
+# push to a branch with an open pull request, once per event, the four Docker store legs included.
+# A branch without a pull request yet can still be built by hand (workflow_dispatch).
 on:
   push:
-    branches: [ develop, master, 'feature/**' ]
+    branches: [ develop, master ]
   pull_request:
   workflow_dispatch:
+
+# A newer commit on a pull request supersedes the run for the older one, which is cancelled. Nothing
+# else shares a group: GitHub cancels a *pending* run in a group even without cancel-in-progress, so a
+# shared group on develop would drop builds -- and each commit there produces its own package.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || format('ci-run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Least privilege: this workflow only checks out, builds, tests and packs.
 # Declaring the block sets every unlisted scope to 'none'.
@@ -59,7 +70,8 @@ jobs:
       # Coverage comes from the collector bundled with Microsoft.NET.Test.Sdk, so there is no package
       # or tool to add. Each suite writes its own Cobertura report into ./coverage; they are merged
       # in the next step rather than here, because the three overlap heavily -- Trinity core is
-      # exercised by all of them.
+      # exercised by all of them. .github/scripts/check.sh runs the same suites locally; keep the
+      # two lists in step.
       - name: Test
         run: |
           dotnet test Trinity.Tests/Trinity.Tests.csproj -c Release --no-build --collect "Code Coverage;Format=Cobertura" --results-directory ./coverage
@@ -67,15 +79,11 @@ jobs:
           dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj -c Release --no-build --collect "Code Coverage;Format=Cobertura" --results-directory ./coverage
 
       # Merges the reports, writes a per-assembly table to the job summary, and fails below the floor.
-      #
-      # The floor is deliberately a little under the current number (80.9% at the time of writing)
-      # rather than at it: a ratchet set to the exact current value turns any honest refactor that
-      # deletes well-covered code into a red build. It is a floor against drift, not a target.
-      #
-      # Test assemblies are excluded by the script. They are ~96% covered by construction -- they are
-      # what is being run -- and including them reported 88.9% where the product is at 80.9%.
+      # The floor, and why it sits where it does, live in the script: .github/scripts/check.sh runs
+      # the same gate locally, and two copies of a number drift. The changed-line report is not made
+      # here but in the `coverage` job below, which also has the store suites' reports.
       - name: Coverage
-        run: python3 .github/scripts/coverage.py ./coverage 78
+        run: python3 .github/scripts/coverage.py ./coverage
 
       - uses: actions/upload-artifact@v7
         if: always()
@@ -84,7 +92,7 @@ jobs:
           path: ./coverage/**/*.cobertura.xml
           if-no-files-found: error
 
-      # The benchmarks are not a test suite and their timings gate nothing (ADR-0049). This runs every
+      # The benchmarks are not a test suite and their timings gate nothing (ADR-0050). This runs every
       # workload once, at its smallest size, against the in-memory store only -- --smoke defaults
       # TRINITY_BENCH_BACKENDS to InMemory, so no Docker. What it catches is a workload that throws,
       # including the guards that refuse to time a write which did nothing; the exit code is non-zero
@@ -106,6 +114,49 @@ jobs:
           name: nupkg
           path: ./artifacts/*.nupkg
 
+  # Copy/paste detection over the product code. Its own job because it needs no build: it reads
+  # source only, so it reports in seconds and a failure here never hides a test result or vice versa.
+  #
+  # jscpd runs on the Node the runner image ships (as coverage.py runs on its Python). The script
+  # pins its version and holds the ceiling, so this job and a local .github/scripts/check.sh agree;
+  # what is scanned lives in .jscpd.json.
+  duplication:
+    runs-on: ubuntu-latest
+    steps:
+      # Depth 2 so a pull request's merge commit has its base parent: `--diff HEAD^1` needs it, here and
+      # in the `coverage` job. The build job checks out at the default depth 1 and runs no --diff.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      # Writes a per-project table and the clone pairs to the job summary, and fails above the ceiling.
+      # The measure counts both sides of every clone, because each duplicated line has a twin a fix
+      # must also reach.
+      #
+      # On a pull request it also annotates edits that landed on one side of a clone only -- judged
+      # against the clones at the base, since an edit to one copy is what stops the copies matching --
+      # and new code that repeats existing code.
+      - name: Duplication
+        run: python3 .github/scripts/duplication.py ${{ github.event_name == 'pull_request' && '--diff HEAD^1' || '' }}
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: duplication
+          path: ./duplication/jscpd-report.json
+          if-no-files-found: error
+
+  # The quality scripts' own unit tests: commit detection, diff parsing. Seconds, and no build. The
+  # hook and the reports depend on these scripts, and a mistake in them fails open or closed quietly.
+  scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Script tests
+        run: python3 -m unittest discover -s .github/scripts -v
+
   # Store-integration suites (ADR-0036). These self-provision Virtuoso, GraphDB and Fuseki in Docker
   # via Testcontainers, so they need a Docker daemon -- which ubuntu-latest has preinstalled.
   #
@@ -115,14 +166,20 @@ jobs:
   #
   # A matrix rather than one job, so each backend pulls only its own image, they run in parallel, and
   # a failure names the store in the check title rather than hiding in a combined log.
+  #
+  # Each leg also collects coverage of its adapter, which only these suites can exercise, for the
+  # `coverage` job to merge. A leg that times out holds that job too, hence the limit: without one a
+  # container that never becomes ready waits out GitHub's six-hour default.
   stores:
     name: stores (${{ matrix.store }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       # One store failing should not cancel the others -- the interesting question is usually
       # "which backends does this break?", not "does anything break?".
       fail-fast: false
       matrix:
+        # The same four as STORES in .github/scripts/stores.py, which the local check reads.
         store: [ Fuseki, GraphDB, Oxigraph, Virtuoso ]
     steps:
       - uses: actions/checkout@v7
@@ -141,12 +198,64 @@ jobs:
 
       # Testcontainers pulls the pinned image (all four are pinned to a version tag) and binds the
       # service port to a random free host port, so nothing here depends on the runner's ports.
+      #
+      # --results-directory moves the TRX file as well as the coverage report, so the TRX upload below
+      # reads it from ./coverage; the old TestResults path would match nothing, and silently.
       - name: Test
-        run: dotnet test tests/Trinity.Tests.${{ matrix.store }}/Trinity.Tests.${{ matrix.store }}.csproj -c Release --no-build --logger "trx;LogFileName=${{ matrix.store }}.trx"
+        id: test
+        run: dotnet test tests/Trinity.Tests.${{ matrix.store }}/Trinity.Tests.${{ matrix.store }}.csproj -c Release --no-build --logger "trx;LogFileName=${{ matrix.store }}.trx" --collect "Code Coverage;Format=Cobertura" --results-directory ./coverage
+
+      # The coverage job sees only the matrix's aggregate result, so each leg records its own. A failed
+      # leg's partial report must be left out -- it would make covered adapter code look uncovered.
+      - name: Record outcome
+        if: ${{ !cancelled() && steps.test.outcome != 'skipped' }}
+        run: mkdir -p ./coverage && echo "${{ steps.test.outcome }}" > ./coverage/outcome
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() && steps.test.outcome != 'skipped' }}
+        with:
+          name: coverage-store-${{ matrix.store }}
+          path: |
+            ./coverage/**/*.cobertura.xml
+            ./coverage/outcome
+          if-no-files-found: error
+          overwrite: true
 
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results-${{ matrix.store }}
-          path: tests/Trinity.Tests.${{ matrix.store }}/TestResults/*.trx
+          path: ./coverage/${{ matrix.store }}.trx
           if-no-files-found: warn
+          overwrite: true
+
+  # Coverage including the store suites, and the changed-line report for pull requests. Reported,
+  # never gated: the build job holds the floor, over the in-memory suites only (see coverage.py).
+  #
+  # It runs when a store leg failed too -- which backends a change breaks is exactly when the report
+  # matters -- but not without the build job's in-memory reports, which are its baseline.
+  coverage:
+    name: coverage (with store suites)
+    needs: [ build, stores ]
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Depth 2 so a pull request's merge commit has its base parent: HEAD^1 is the base branch.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: coverage
+          path: ./coverage
+
+      # No merge-multiple: each store keeps its own directory, which coverage.py reads per suite.
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-store-*
+          path: ./coverage-stores
+
+      - name: Coverage
+        run: python3 .github/scripts/coverage.py ./coverage --stores ./coverage-stores --no-gate ${{ github.event_name == 'pull_request' && '--diff HEAD^1' || '' }}

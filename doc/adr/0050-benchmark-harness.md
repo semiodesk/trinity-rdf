@@ -1,4 +1,4 @@
-# 0049. Cross-store benchmark harness: in-process, verified, never a gate
+# 0050. Cross-store benchmark harness: in-process, verified, never a gate
 
 Date: 2026-09-28
 

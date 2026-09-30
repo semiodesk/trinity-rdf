@@ -13,6 +13,10 @@ artifacts/**
 # Test run output (dotnet test --logger trx)
 TestResults/
 coverage/
+coverage-stores/
+.check-lock/
+duplication/
+__pycache__/
 *.trx
 # BenchmarkDotNet writes its reports here; they are run output, not source.
 BenchmarkDotNet.Artifacts/

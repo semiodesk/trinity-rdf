@@ -2,7 +2,7 @@
 
 Cross-store performance measurement for Trinity, **through the lens of the library** — not a
 SPARQL-engine shootout. The decisions behind the harness are in
-[ADR-0049](../doc/adr/0049-benchmark-harness.md).
+[ADR-0050](../doc/adr/0050-benchmark-harness.md).
 
 ```bash
 # everything, every backend (needs Docker; pulls four images)
@@ -55,7 +55,7 @@ category with its own baseline, so every `Ratio` is against the right thing.
 | `ModelGroupBenchmarks` | reads through a group of 1/4/16 member graphs | the same read on one model holding the union | ADR-0019 |
 | `LayeredReadBenchmarks` | reads through a layered view, rewriting and materialized | the same read on the plain baseline | ADR-0041's read table (1.31x / 3.45x / 2.24x / 4.23x) |
 | `LayeredStagingBenchmarks` | staging a change, a delete, `Accept()`, `Discard()` | the minimal writes into the layers | ADR-0042: 0.7 ms stage, 3 ms delete |
-| `LayeredMaterializeBenchmarks` | a full `Refresh()` | copying the baseline graph | ADR-0042: 31.5 s at 1M — 5.1 min in memory, where it is 11× a plain copy; on the servers ≈ a copy (ADR-0049) |
+| `LayeredMaterializeBenchmarks` | a full `Refresh()` | copying the baseline graph | ADR-0042: 31.5 s at 1M — 5.1 min in memory, where it is 11× a plain copy; on the servers ≈ a copy (ADR-0050) |
 | `WideResourceBenchmarks` | twenty mapped values per resource, both directions | typed literals by hand | ADR-0040 |
 | `LinqShapeBenchmarks` | paging, `Count()`, `Any()`, `Contains` | the SPARQL each should become | ADR-0037 |
 | `SerializationBenchmarks` | `IStore.Read`/`Write` in Turtle, N-Triples, JSON-LD | `INSERT DATA` / a bindings fetch | ADR-0034 |
@@ -139,7 +139,7 @@ here: it needs an out-of-process toolchain, and this harness is in-process so th
   where a count could come out right by accident. Every read benchmark verifies its fixture and checks
   its own answer. Keep that in anything new.
 - **Some cells fail because Trinity has a defect there, and are left failing so it stays visible.**
-  ADR-0049 records each one. Fix the defect, not the workload.
+  ADR-0050 records each one. Fix the defect, not the workload.
   - `WideResourceBenchmarks` on Oxigraph: a mapped `long` above `int.MaxValue` overflows on read (#54).
   - `SerializationBenchmarks`' N-Triples and JSON-LD reads on Virtuoso: its string read path has no
     N-Triples parser and treats a quad-format document as a file name (#55).
