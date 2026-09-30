@@ -54,6 +54,14 @@ project (removed from the solution; docs build separately).
 Prereq: **.NET 10 SDK only** — no .NET Framework targeting packs, no Visual Studio. Everything
 is netstandard2.0 / net8.0 and builds cross-platform.
 
+The **quality gates** and the pre-commit hook need more (ADR-0049):
+- **python3** and **GNU `timeout`** — the hook's own prerequisites; without either a commit is
+  blocked, naming the missing one. Stock macOS has no `timeout`: `brew install coreutils` (as `gtimeout`).
+- **Node/`npx`**, with network access on first use to fetch the pinned jscpd — optional locally
+  (duplication is reported *not run* without it), enforced in CI.
+- **Docker** with the store suites' pinned images — optional locally (those suites are reported
+  *not run*), enforced in CI.
+
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
 dotnet test Trinity.Tests/Trinity.Tests.csproj         # 940 passed, 3 skipped (quarantined), 0 failed
@@ -94,8 +102,10 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   type so Trinity converts into it (ADR-0040), whereas the unmapped bag declares nothing. If `ListValues`
   is ever given a CLR-type-fidelity guarantee, they must come back.
 - **CI:** `.github/workflows/ci.yml` (ubuntu, .NET 10) — a fast `build` job (restore → build → test →
-  coverage → pack) plus a `stores` matrix job running the four Dockerized store suites (ADR-0044).
-  NuGet publishing is **manual** (no publish job).
+  coverage → pack), a `duplication` job, a `stores` matrix job running the four Dockerized store suites (ADR-0044),
+  and a `coverage` job merging both kinds of report. It runs on **pull requests** and on pushes to
+  `develop`/`master` only — also triggering on `feature/**` pushes ran everything twice per PR push —
+  and a newer commit on a PR cancels the superseded run. NuGet publishing is **manual** (no publish job).
 - **Coverage** is collected by the collector bundled with `Microsoft.NET.Test.Sdk` (no package or tool
   to add), merged by `.github/scripts/coverage.py`, printed to the job summary as a per-assembly table,
   and **gated at a 78% floor**. Two things about that number are easy to get wrong. The three
@@ -104,9 +114,68 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   repeatedly. And **test assemblies are excluded**: they are ~96% covered by construction, and counting
   them reported 88.9% where the product was at 80.9%. The floor sits deliberately *below* the current
   figure rather than at it — a ratchet pinned to the exact value turns any honest refactor that deletes
-  well-covered code red.
-  Run it locally with `dotnet test … --collect "Code Coverage;Format=Cobertura" --results-directory ./coverage`
-  then `python3 .github/scripts/coverage.py ./coverage 78`.
+  well-covered code red. The floor lives in the script (as the ceiling and the jscpd pin live in
+  `duplication.py`), so CI and the local check below cannot disagree about it.
+  Only **product source files of this repo** count, decided by path, not assembly: the store suites
+  also instrument **Testcontainers** (its package ships symbols — 2930 lines, a merged 69.8%), and
+  rewriting its `/_/src/…` build paths to repo-relative makes them *look* like product files, so a
+  file must also be one git knows (tracked or untracked-not-ignored).
+  The **store suites' coverage** (`--stores`; merged in CI by the `coverage` job) is **reported, not
+  gated**, one row per adapter and no merged grand total — adapters entering the denominator would pull
+  it below the gated figure for no reason. A floor there now would mostly measure
+  `Trinity.Virtuoso/VirtuosoManager.cs`, a vendored connector whose unused API is ~400 of Virtuoso's
+  ~550 uncovered lines; trim it before adding one. An adapter counts only from **its own** suite, and a
+  **failed** suite's report is dropped — partial data makes covered code look uncovered.
+- **Duplication** is measured by jscpd (pinned `4.3.0`, run via `npx` — no install) over **product code
+  only**, comments ignored; scope lives in `.jscpd.json`. `.github/scripts/duplication.py` counts the
+  lines in a clone on **either side** — 9.6% when added, where jscpd's own headline says 5.4% because it
+  counts roughly one side — and **gates at a 10.5% ceiling**, above the current figure for the coverage
+  floor's reason inverted (deleting unduplicated code raises the share). Both sides count because that is
+  this codebase's recurring defect: a fix landing in one copy. The store adapters are the bulk of it —
+  Fuseki is 67% cloned, mostly with Oxigraph, and the `AbsoluteUri` quarantine is exactly a fix present
+  in Oxigraph's copy only.
+- **Changed-line reports** (`--diff <rev>` on both scripts; CI passes `HEAD^1` on pull requests and
+  annotates the diff): which changed product lines no test covers, which edits landed on **one side of
+  a clone only**, and which new code repeats existing code. Reported, **never gated**. Two things are
+  load-bearing. One-sided edits are judged against clones **scanned at the base revision**: editing one
+  copy is exactly what stops the copies matching, so a scan of the result no longer contains the clone —
+  the first version scanned the result and missed every real edit, finding only comment-only ones. And
+  a changed file nothing measured is listed **with the reason** (its store suite did not run, failed,
+  or nothing loads the file) rather than counted uncovered or dropped. On PRs the `coverage` job makes
+  this report, so annotations wait for the slowest store leg; it runs even when a leg failed.
+- **Local check:** `.github/scripts/check.sh [<rev>]` (default `HEAD`, i.e. everything uncommitted,
+  untracked files included) runs the `build` and `duplication` jobs' gates plus both changed-line
+  reports, and the **store suites the change affects** (`.github/scripts/stores.py`, the one store
+  list): an adapter or its test project runs that suite; core, the generator, `Trinity.Tests/` (the
+  shared fixtures) or a root build file runs **all four** — about 82% of commits. They start in the
+  background after the build, 300 s limit each. Without Docker or a pinned image a suite is reported
+  *not run*, never failed; once it runs, its failures fail the check. Its in-memory suite list must stay
+  in step with CI's Test step.
+  **Claude Code runs it before every commit** (`.claude/settings.json` → `.claude/hooks/pre-commit.sh`):
+  a failing gate blocks the commit and hands Claude the report; a passing one hands it the report as
+  context; Markdown-only changes skip it. What it holds to (ADR-0049):
+  - **"Is this a commit" is decided once, by parsing** (`.github/scripts/commit_command.py`, with unit
+    tests): tokens, not a text search; heredoc bodies dropped; `$(…)`, backticks and `bash -c`
+    followed; `git` by basename with its global options skipped. It counts `git commit` and the
+    `--continue` forms of merge/cherry-pick/revert/rebase/am — the plain forms produce their tree only
+    when they run, after the hook. The hook runs for **every** Bash command with no `if` filter: that
+    filter's prefix matching never matched `git -C <dir> commit`, which bypassed the hook entirely.
+    Backticks inside **double** quotes are executed by bash, so `--body "… \`git commit\`"` really
+    commits and counts as one; single quotes do not.
+  - **It checks the tree being committed** — the hook input's `cwd`, moved by `cd` and `git -C`/
+    `--work-tree` — with that tree's own `check.sh`, not `$CLAUDE_PROJECT_DIR`. Another repository is
+    let through with a "not checked" note.
+  - **A commit is never let through silently.** Missing `python3` or GNU `timeout` (the hook's own
+    prerequisites), or a command it cannot parse, **blocks** with a message naming the cause; a
+    command that is not a commit is never blocked. Missing *optional* tools (Docker, `npx`) are
+    reported by `check.sh` as *not run* and CI still enforces them.
+  - **A hook that outlives its timeout is killed and the command proceeds, silently**, so the check is
+    bounded at 840 s under the 900 s hook limit and blocks when exceeded. `check.sh` takes a lock
+    (`.check-lock/`) and stops store suites a killed run left behind before reusing their directories.
+  - **It sees the tree *before* the command runs.** Edits made by the same command that commits
+    (`sed -i … && git commit`) are not checked — edit, then commit, in separate commands.
+  To bypass it deliberately, disable the hook via `/hooks` — there is intentionally no in-command
+  escape hatch Claude could use.
 - Central Package Management: versions live in `Directory.Packages.props`; shared metadata +
   the single `Version` (2.0.0) in `Directory.Build.props`. Projects use versionless `PackageReference`.
 

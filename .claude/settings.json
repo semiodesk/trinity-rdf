@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-commit.sh",
+            "timeout": 900,
+            "statusMessage": "Pre-commit hook: checks build, tests, coverage and duplication if this command commits"
+          }
+        ]
+      }
+    ]
+  }
+}
