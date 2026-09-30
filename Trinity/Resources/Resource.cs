@@ -367,18 +367,30 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Clears every multi-valued mapping before deserialization refills it.
+        /// Clears every list mapping before deserialization refills it.
         /// </summary>
         /// <remarks>
-        /// Containers are cleared alongside lists. They are multi-valued without being an
-        /// <see cref="System.Collections.IList"/>, so testing <c>IsList</c> alone left their contents
-        /// in place and whatever arrived was merged with them rather than replacing them (ADR-0048).
+        /// <para>
+        /// Localized-text containers are deliberately <b>not</b> cleared here, although they are
+        /// multi-valued too. Clearing them was tried and is destructive: the JSON converter loads the
+        /// resource from its model first — which takes the commit snapshot — and Newtonsoft then skips
+        /// a get-only container entirely, so nothing refills it. An <i>unedited</i> round trip
+        /// followed by <c>Commit()</c> therefore deleted every stored value of that property, because
+        /// the ADR-0039 delta saw the snapshot on one side and an empty container on the other. The
+        /// converter sets <c>Model</c> precisely so the result can be committed, so that is the
+        /// intended use, not an exotic one.
+        /// </para>
+        /// <para>
+        /// Leaving them alone means JSON edits to a container are ignored rather than applied — the
+        /// pre-existing limitation, and the lesser one, since it loses an edit rather than the data.
+        /// Issue #51 covers making containers round-trip properly.
+        /// </para>
         /// </remarks>
         internal void ClearListPropertyMappings()
         {
             foreach (var mapping in _mappings)
             {
-                if (mapping.Value.IsList || mapping.Value.GetValueObject() is ILocalizedText)
+                if(mapping.Value.IsList)
                 {
                     mapping.Value.Clear();
                 }

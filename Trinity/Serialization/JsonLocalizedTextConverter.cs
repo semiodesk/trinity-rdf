@@ -41,12 +41,19 @@ namespace Semiodesk.Trinity.Serialization
     /// consumer of the JSON could tell was missing.
     /// </para>
     /// <para>
-    /// Reading is <b>refused rather than approximated</b>. A container is a mutable view the mapping
-    /// owns (ADR-0048): it is get-only, so Newtonsoft cannot assign one, and populating the existing
-    /// instance would have to decide whether to merge with or replace what the resource already holds
-    /// — a decision that belongs with the redesign in issue #51, not with a converter. Without this
-    /// the attempt failed anyway, with an opaque "unable to find a constructor to use for type
-    /// LangString"; this says what actually happened.
+    /// Reading is <b>refused rather than approximated</b>, where reading is attempted at all.
+    /// Populating a container would have to decide whether to merge with or replace what the resource
+    /// already holds, and that decision belongs with the redesign in issue #51, not with a converter;
+    /// without the refusal the attempt failed anyway, with an opaque "unable to find a constructor to
+    /// use for type LangString".
+    /// </para>
+    /// <para>
+    /// <b>The refusal only fires for a container property that declares a setter</b> — the shape
+    /// TRIN009 warns about. For the recommended get-only shape Newtonsoft skips the property outright
+    /// and never consults a converter, so such a container is silently left as it was: a JSON edit to
+    /// it is ignored. That is the limitation to know about, and it is deliberately preferred to the
+    /// alternative that was tried — clearing containers before deserialization, which made an
+    /// unedited round trip followed by <c>Commit()</c> delete every stored value of the property.
     /// </para>
     /// </remarks>
     public class JsonLocalizedTextConverter : JsonConverter

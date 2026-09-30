@@ -508,9 +508,24 @@ honest.
 - **`LocalizedString` picks a value, not a merge.** Where several values share a tag, the container
   surfaces the first in arrival order — stable within an object, arbitrary across sessions because
   store row order is.
-- **`JsonResourceConverter` is unexamined.** A sealed type with getter-only properties and no
-  parameterless constructor does not round-trip through Newtonsoft by default; this needs verifying
-  before implementation, and may need an explicit converter.
+- **Containers do not round-trip through `JsonResourceConverter`, and that is the safe state.**
+  Serializing keeps both the tagged values and the untagged `Invariant` (both containers are
+  `IEnumerable<LangString>`, so the default handling wrote a bare array and dropped `Invariant`).
+  Deserializing **ignores** a container: it is get-only, so Newtonsoft skips the property and the
+  converter is never consulted — a JSON edit to it is silently lost.
+
+  Trying to improve on that made it far worse, so the attempt is recorded rather than left for
+  someone to repeat. Clearing containers before deserialization — as list mappings already are, so the
+  JSON replaces rather than merges — turned a lost *edit* into lost *data*: the converter loads the
+  resource from its model first, which takes the [0039](0039-resource-write-semantics.md) commit
+  snapshot; the clear empties the container; nothing refills it; and the delta then **deletes every
+  stored value of that property** on the next `Commit()`. The converter assigns `Model` precisely so
+  the result can be committed, so round-trip-then-commit is the intended use, and every step of the
+  failure is silent. `AnUneditedJsonRoundTripDoesNotDisturbTheStore` is the guard, and it asserts on
+  the commit rather than on the deserialized object — a test that checked only whether the container
+  came back empty passed happily while the data was being deleted.
+
+  Issue #51 covers making this round-trip properly, or retiring the converter for per-resource RDF.
 - **No IRI or datatype containers.** This ADR covers `rdf:langString` only. The extensible datatype
   registry [0026](0026-xsd-dotnet-datatype-mapping.md) asks for remains future work.
 

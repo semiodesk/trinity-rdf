@@ -742,15 +742,62 @@ namespace Semiodesk.Trinity.Tests
 
             // Reading one back is a known limitation, recorded here so it is a stated fact rather
             // than a surprise: a container is get-only, so Newtonsoft skips the property outright and
-            // the converter is never consulted. What it must NOT do is merge the JSON into whatever
-            // the instance already holds, which is why ClearListPropertyMappings now covers containers
-            // as well as lists. The redesign is issue #51.
-            var back = JsonConvert.DeserializeObject<LocalizedDocument>(json, new JsonResourceSerializerSettings(store));
+            // the converter is never consulted. An edit made in the JSON is therefore ignored.
+            // The redesign is issue #51.
+            var back = JsonConvert.DeserializeObject<LocalizedDocument>(
+                json.Replace("Hallo", "Servus"), new JsonResourceSerializerSettings(store));
 
-            Assert.IsNotNull(back.Title, "The mapping still owns a container.");
-            Assert.IsTrue(back.Title.IsEmpty,
-                "Containers do not round-trip: deserialization leaves the property empty rather than " +
-                "merging the JSON with stale values.");
+            Assert.AreEqual("Hallo", back.Title["de"],
+                "A JSON edit to a container is ignored, because Newtonsoft skips the get-only property.");
+        }
+
+        /// <summary>
+        /// An unedited JSON round trip followed by <c>Commit()</c> must leave the store alone.
+        /// </summary>
+        /// <remarks>
+        /// This is the guard for a regression that was briefly introduced and is far worse than the
+        /// limitation above. Clearing containers before deserialization looks like the tidy thing to
+        /// do — a list mapping is cleared so the JSON replaces it rather than merging — but every step
+        /// after it is silent. The converter loads the resource from its model, which takes the
+        /// ADR-0039 commit snapshot; the clear empties the container; Newtonsoft then skips the
+        /// get-only property and never refills it; and the delta, seeing the snapshot on one side and
+        /// an empty container on the other, <b>deletes every stored value of that property</b>. The
+        /// converter assigns <c>Model</c> exactly so the result can be committed, so round-trip then
+        /// commit is the intended use.
+        /// <para>
+        /// Asserting only that the deserialized container is empty — which the previous version of the
+        /// test above did — passes happily while that is true. The commit is the assertion that matters.
+        /// </para>
+        /// </remarks>
+        [Test]
+        public void AnUneditedJsonRoundTripDoesNotDisturbTheStore()
+        {
+            var store = StoreFactory.CreateStore("provider=dotnetrdf");
+            var model = store.CreateModel(new Uri("http://example.org/roundtrip"));
+            model.Clear();
+
+            var uri = new Uri("semio:test:roundtrip");
+            var p = new Property(new Uri("semio:test:documentTitle"));
+
+            var d = model.CreateResource<LocalizedDocument>(uri);
+            d.Title["de"] = "Hallo";
+            d.Title.Invariant = "plain";
+            d.Commit();
+
+            Assert.AreEqual(2, StoredValues(model, uri, p).Count, "precondition: both values are stored.");
+
+            var settings = new JsonResourceSerializerSettings(store);
+            var back = JsonConvert.DeserializeObject<LocalizedDocument>(
+                JsonConvert.SerializeObject(d, settings), settings);
+
+            Assert.IsFalse(back.Title.IsEmpty, "The container still holds what the store holds.");
+            Assert.IsFalse(back.HasUnsavedChanges(),
+                "An unedited round trip is not a change; if it looks like one, the commit will act on it.");
+
+            back.Commit();
+
+            Assert.AreEqual(2, StoredValues(model, uri, p).Count,
+                "Committing an unedited round trip must not delete the stored values.");
         }
 
         private static List<string> StoredValues(IModel model, Uri subject, Property property)
