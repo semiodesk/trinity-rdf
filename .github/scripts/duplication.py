@@ -35,14 +35,11 @@ import tarfile
 import tempfile
 from collections import defaultdict
 
-from changed_lines import added_lines, annotate, git, hunks, repo_root, touched_old_lines
+from changed_lines import MAX_ANNOTATIONS, added_lines, annotate, git, hunks, repo_root, touched_old_lines
 
 CEILING = 10.5
 JSCPD = "jscpd@4.3.0"
 REPORT = os.path.join("duplication", "jscpd-report.json")
-
-# GitHub shows at most 10 warning annotations per step; the job summary lists everything.
-MAX_ANNOTATIONS = 10
 
 
 class ScanError(Exception):

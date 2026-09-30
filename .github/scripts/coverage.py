@@ -47,20 +47,13 @@ import sys
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 
-from changed_lines import added_lines, annotate, git, hunks, is_product_source, ranges, repo_root
-from stores import STORES
+from changed_lines import (MAX_ANNOTATIONS, added_lines, annotate, hunks, is_product_source, known_files,
+                           ranges, repo_root)
+from stores import adapter_dir, adapter_of
 
 FLOOR = 78.0
 
-# GitHub shows at most 10 warning annotations per step; the job summary lists everything.
-MAX_ANNOTATIONS = 10
-
 STORE_PREFIX = "coverage-store-"
-
-
-def repo_files():
-    listed = git("ls-files", "--cached", "--others", "--exclude-standard", "-z", text=True)
-    return {path for path in listed.split("\0") if path}
 
 
 def product_path(filename, root, files):
@@ -94,15 +87,6 @@ def load(directory, root, files):
                     hits[key] = max(hits[key], int(line.get("hits", "0")))
 
     return hits, len(reports)
-
-
-def adapter_dir(store):
-    return f"Trinity.{store}/"
-
-
-def adapter_of(path):
-    """The store whose adapter `path` belongs to, or None for shared code."""
-    return next((s for s in STORES if path.startswith(adapter_dir(s))), None)
 
 
 def load_stores(directory, root, files):
@@ -258,7 +242,7 @@ def why_unmeasured(path, stores):
 
 def main(directory, floor, stores_dir, revision, gate):
     root = repo_root()
-    files = repo_files()
+    files = known_files()
 
     memory, count = load(directory, root, files)
     if not count:

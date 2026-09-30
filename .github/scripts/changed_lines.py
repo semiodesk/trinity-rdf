@@ -15,13 +15,11 @@ only the *old* side still shows the clone the edit landed in.
 
 Paths are repo-relative with forward slashes, the form both jscpd and git print.
 """
+import json
 import os
 import re
 import subprocess
 from collections import namedtuple
-
-# Kept in step with the ignore list in .jscpd.json: product code is everything else.
-NON_PRODUCT_PREFIXES = ("Trinity.Tests/", "tests/", "Documentation/")
 
 Hunk = namedtuple("Hunk", "old_path old_start old_count new_path new_start new_count")
 
@@ -58,8 +56,47 @@ def repo_root():
     return _root
 
 
+def untracked_files():
+    """Untracked files git does not ignore, repo-relative. A pre-commit check runs before `git add`."""
+    return [p for p in git("ls-files", "--others", "--exclude-standard", "-z", text=True).split("\0") if p]
+
+
+def known_files():
+    """Every file git knows about: tracked, or untracked and not ignored."""
+    listed = git("ls-files", "--cached", "--others", "--exclude-standard", "-z", text=True)
+    return {p for p in listed.split("\0") if p}
+
+
+def _glob(pattern):
+    """A .jscpd.json ignore glob as a regex: `**/` spans directories, `*` stays within one."""
+    out, i = "", 0
+    while i < len(pattern):
+        if pattern.startswith("**/", i):
+            out, i = out + "(?:.*/)?", i + 3
+        elif pattern.startswith("**", i):
+            out, i = out + ".*", i + 2
+        elif pattern[i] == "*":
+            out, i = out + "[^/]*", i + 1
+        else:
+            out, i = out + re.escape(pattern[i]), i + 1
+    return re.compile(out + r"\Z")
+
+
+_non_product = None
+
+
 def is_product_source(path):
-    return path.endswith(".cs") and not path.startswith(NON_PRODUCT_PREFIXES)
+    """Product C#, by the same rule the duplication scan uses: a .cs file .jscpd.json does not ignore.
+
+    Read from .jscpd.json rather than kept beside it. The copy that used to live here was "kept in
+    step" with that file and had already drifted from it -- it lacked `**/*.g.cs` -- so coverage and
+    duplication could disagree about what product code is.
+    """
+    global _non_product
+    if _non_product is None:
+        with open(os.path.join(repo_root(), ".jscpd.json"), encoding="utf-8") as handle:
+            _non_product = [_glob(g) for g in json.load(handle).get("ignore", [])]
+    return path.endswith(".cs") and not any(g.match(path) for g in _non_product)
 
 
 def _path(header):
@@ -104,9 +141,7 @@ def hunks(revision):
                 yield hunk
 
     root = repo_root()
-    for path in git("ls-files", "--others", "--exclude-standard", "-z", text=True).split("\0"):
-        if not path:
-            continue
+    for path in untracked_files():
         try:
             with open(os.path.join(root, path), encoding="utf-8", errors="replace") as handle:
                 count = sum(1 for _ in handle)
@@ -151,6 +186,10 @@ def ranges(lines, joinable=lambda gap: False):
         else:
             runs.append([n, n])
     return [tuple(r) for r in runs]
+
+
+# GitHub shows at most 10 warning annotations per step; the job summary lists everything.
+MAX_ANNOTATIONS = 10
 
 
 def annotate(kind, path, first, last, title, message):

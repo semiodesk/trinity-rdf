@@ -26,7 +26,7 @@ import os
 import re
 import sys
 
-from changed_lines import git, repo_root
+from changed_lines import git, repo_root, untracked_files
 
 STORES = ("Fuseki", "GraphDB", "Oxigraph", "Virtuoso")
 
@@ -34,10 +34,18 @@ SHARED_DIRS = ("Trinity/", "Trinity.Generator/", "Trinity.Tests/")
 SHARED_FILES = ("Directory.Build.props", "Directory.Packages.props", "global.json", "NuGet.config")
 
 
+def adapter_dir(store):
+    return f"Trinity.{store}/"
+
+
+def adapter_of(path):
+    """The store whose adapter `path` belongs to, or None for shared code."""
+    return next((s for s in STORES if path.startswith(adapter_dir(s))), None)
+
+
 def changed_paths(revision):
     diff = git("diff", "--name-only", "--no-renames", revision, text=True).splitlines()
-    untracked = git("ls-files", "--others", "--exclude-standard", "-z", text=True).split("\0")
-    return {p for p in diff + untracked if p}
+    return {p for p in diff + untracked_files() if p}
 
 
 def affected(revision):
@@ -46,7 +54,7 @@ def affected(revision):
         if path.startswith(SHARED_DIRS) or path in SHARED_FILES:
             return list(STORES)
         for store in STORES:
-            if path.startswith((f"Trinity.{store}/", f"tests/Trinity.Tests.{store}/")):
+            if path.startswith((adapter_dir(store), f"tests/Trinity.Tests.{store}/")):
                 hit.add(store)
     return [s for s in STORES if s in hit]
 
