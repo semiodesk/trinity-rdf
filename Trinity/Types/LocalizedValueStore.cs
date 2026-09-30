@@ -59,22 +59,19 @@ namespace Semiodesk.Trinity
             _tagged.Select(x => x.Language).Distinct().OrderBy(x => x, StringComparer.Ordinal).ToList();
 
         /// <summary>
-        /// Normalizes a tag the same way <see cref="LangString"/> does, so a lookup and a stored value
-        /// cannot disagree about casing.
+        /// Normalizes a tag by delegating to <see cref="LangString"/>, so a lookup and a stored value
+        /// cannot disagree about casing <i>or</i> about what counts as a tag at all.
         /// </summary>
+        /// <remarks>
+        /// This used to be a second copy of the constructor's null / empty / lower-case logic, kept in
+        /// step by a comment. That is precisely how a validated constructor ends up beside an
+        /// unvalidated indexer: <c>new LangString(v, "de DE")</c> would be refused while
+        /// <c>container["de DE"] = v</c> was accepted, and the two would then disagree about what the
+        /// container holds. One implementation, called from both.
+        /// </remarks>
         internal static string Normalize(string language)
         {
-            if (language == null)
-            {
-                throw new ArgumentNullException(nameof(language));
-            }
-
-            if (string.IsNullOrWhiteSpace(language))
-            {
-                throw new ArgumentException("The language tag must not be empty.", nameof(language));
-            }
-
-            return language.Trim().ToLowerInvariant();
+            return LangString.NormalizeLanguage(language, nameof(language));
         }
 
         internal bool Contains(string language)
@@ -164,6 +161,33 @@ namespace Semiodesk.Trinity
         internal bool RemoveInvariant(string value)
         {
             return _invariant.Remove(value);
+        }
+
+        /// <summary>
+        /// Replaces this store's contents with another's.
+        /// </summary>
+        /// <remarks>
+        /// What makes assigning a container property work without handing the mapping's instance away.
+        /// The mapping owns its container for its lifetime (ADR-0048); an assignment copies into it
+        /// rather than replacing it, so two resources can never end up sharing one.
+        /// </remarks>
+        internal void CopyFrom(LocalizedValueStore other)
+        {
+            if (ReferenceEquals(this, other))
+            {
+                return;
+            }
+
+            Clear();
+
+            if (other == null)
+            {
+                return;
+            }
+
+            // LangString is immutable, so the instances can be shared; the lists must not be.
+            _tagged.AddRange(other._tagged);
+            _invariant.AddRange(other._invariant);
         }
 
         internal void Clear()

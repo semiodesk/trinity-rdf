@@ -725,11 +725,14 @@ namespace Semiodesk.Trinity
                     result = resource.Value;
                 }
             }
-            else if (lang != null)
+            else if (!string.IsNullOrEmpty(lang?.Value))
             {
                 return new LangString(result.ToString(), lang.Value);
             }
 
+            // An empty xml:lang is legal RDF/XML and means "no language" -- it undoes an inherited
+            // xml:lang from an ancestor element. Testing the attribute for null alone made that throw,
+            // because a LangString cannot carry an empty tag: an untagged literal is a plain string.
             return result;
         }
 

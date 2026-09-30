@@ -27,6 +27,7 @@
 using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 
 namespace Semiodesk.Trinity
 {
@@ -122,7 +123,105 @@ namespace Semiodesk.Trinity
             }
 
             Value = value;
-            Language = language.Trim().ToLowerInvariant();
+            Language = NormalizeLanguage(language, nameof(language));
+        }
+
+        /// <summary>
+        /// Validates and normalizes a language tag: the single place a tag is checked and lower-cased.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The shape check is not cosmetic. A tag is written into SPARQL update text unescaped -- there
+        /// is no way to escape one, because a tag is grammar rather than a string literal -- so an
+        /// unvalidated tag taken from a request reaches the store as query syntax. Rejecting anything
+        /// that is not a well-formed tag closes that at the only point every tag passes through.
+        /// </para>
+        /// <para>
+        /// It also converts a class of silent failures into an immediate, located one: a tag such as
+        /// <c>de DE</c> or <c>de-DE_phonebook</c> used to be accepted here and then fail the entire
+        /// <c>Commit()</c>, naming neither the property nor the tag.
+        /// </para>
+        /// <para>
+        /// The grammar enforced is BCP-47's <c>[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*</c>: a well-formedness
+        /// check, not a registry lookup, so <c>de-XX</c> passes while <c>de--DE</c> and a nine-character
+        /// subtag do not. It is hand-rolled rather than a <see cref="System.Text.RegularExpressions.Regex"/>
+        /// because every language-tagged literal read from a store passes through here.
+        /// </para>
+        /// </remarks>
+        internal static string NormalizeLanguage(string language, string parameterName)
+        {
+            if (language == null)
+            {
+                throw new ArgumentNullException(parameterName,
+                    "A LangString always carries a tag. An untagged literal is a plain string.");
+            }
+
+            string tag = language.Trim();
+
+            if (tag.Length == 0)
+            {
+                throw new ArgumentException(
+                    "The language tag must not be empty. An untagged literal is a plain string, not a " +
+                    "LangString with an empty tag - an empty tag would serialize to the invalid SPARQL \"...\"@.",
+                    parameterName);
+            }
+
+            if (!IsWellFormedLanguageTag(tag))
+            {
+                throw new ArgumentException(
+                    $"'{language}' is not a well-formed BCP-47 language tag. A tag is a language subtag " +
+                    "of one to eight letters, optionally followed by '-'-separated subtags of one to " +
+                    "eight letters or digits, such as 'de', 'en-GB' or 'zh-Hans-CN'. Tags are written " +
+                    "into SPARQL as syntax rather than as escapable text, so one that is not well " +
+                    "formed is refused here rather than passed on.",
+                    parameterName);
+            }
+
+            return tag.ToLowerInvariant();
+        }
+
+        /// <summary>
+        /// Indicates whether a tag matches BCP-47's <c>[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*</c>.
+        /// </summary>
+        private static bool IsWellFormedLanguageTag(string tag)
+        {
+            int length = 0;
+            bool primary = true;
+
+            for (int i = 0; i < tag.Length; i++)
+            {
+                char c = tag[i];
+
+                if (c == '-')
+                {
+                    // Catches a leading, trailing or doubled separator, all of which would otherwise
+                    // produce an empty subtag.
+                    if (length == 0)
+                    {
+                        return false;
+                    }
+
+                    length = 0;
+                    primary = false;
+
+                    continue;
+                }
+
+                bool letter = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+
+                // The primary language subtag is letters only; later subtags may also carry digits.
+                if (!letter && !(!primary && c >= '0' && c <= '9'))
+                {
+                    return false;
+                }
+
+                if (++length > 8)
+                {
+                    return false;
+                }
+            }
+
+            return length > 0;
         }
 
         /// <summary>
@@ -200,9 +299,34 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Returns the N-Triples form of this literal, such as <c>"Hallo"@de</c>.
         /// </summary>
+        /// <remarks>
+        /// The lexical form is escaped per N-Triples, so a value containing a quote, a backslash or a
+        /// newline still produces something parseable rather than something that merely looks right.
+        /// The tag needs no escaping: it is validated at construction and can only be letters, digits
+        /// and hyphens. Note that this is <b>not</b> the path a literal takes into a query --
+        /// <c>SparqlSerializer</c> does its own escaping -- so this is for diagnostics and for callers
+        /// writing N-Triples themselves.
+        /// </remarks>
         public string ToNTriples()
         {
-            return string.Concat("\"", Value, "\"@", Language);
+            var text = new StringBuilder(Value.Length + Language.Length + 8);
+
+            text.Append('"');
+
+            foreach (char c in Value)
+            {
+                switch (c)
+                {
+                    case '\\': text.Append("\\\\"); break;
+                    case '"': text.Append("\\\""); break;
+                    case '\n': text.Append("\\n"); break;
+                    case '\r': text.Append("\\r"); break;
+                    case '\t': text.Append("\\t"); break;
+                    default: text.Append(c); break;
+                }
+            }
+
+            return text.Append('"').Append('@').Append(Language).ToString();
         }
 
         /// <summary>

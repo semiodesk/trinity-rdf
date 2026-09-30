@@ -555,5 +555,87 @@ namespace Semiodesk.Trinity.Tests
         }
 
         #endregion
+
+        #region Container ownership
+
+        /// <summary>
+        /// Assigning a container copies into the one the mapping owns rather than replacing it.
+        /// </summary>
+        /// <remarks>
+        /// The container is a mutable view owned by the mapping for its lifetime. Replacing the
+        /// reference aliased one container across two resources, so editing either edited both -- a
+        /// data-corrupting bug with no error anywhere. TRIN009 warns about a container property that
+        /// declares a setter, but a hand-written mapping never reaches the generator, so the runtime
+        /// has to hold this on its own (ADR-0048).
+        /// </remarks>
+        [Test]
+        public void AssigningAContainerCopiesItRatherThanSharingIt()
+        {
+            var a = new LocalizedMappingTestClass(new Uri("semio:test:a"));
+            var b = new LocalizedMappingTestClass(new Uri("semio:test:b"));
+
+            b.Title["de"] = "B";
+
+            LocalizedString before = a.Title;
+
+            a.Title = b.Title;
+
+            Assert.AreSame(before, a.Title, "The mapping keeps its own container instance.");
+            Assert.AreEqual("B", a.Title["de"], "...but takes on the assigned contents.");
+
+            a.Title["de"] = "A";
+
+            Assert.AreEqual("B", b.Title["de"], "Editing one resource must not touch the other.");
+        }
+
+        /// <summary>
+        /// Assigning null empties the container instead of discarding it.
+        /// </summary>
+        /// <remarks>
+        /// A null container is not merely an odd state: every subsequent read enumerates the mapping,
+        /// so <c>ListValues()</c> threw a NullReferenceException and took <c>Commit()</c>,
+        /// <c>HasUnsavedChanges()</c> and the commit snapshot down with it.
+        /// </remarks>
+        [Test]
+        public void AssigningNullEmptiesTheContainerRatherThanDiscardingIt()
+        {
+            var r = new LocalizedMappingTestClass(new Uri("semio:test:n"));
+
+            r.Title["de"] = "Hallo";
+            r.Title.Invariant = "plain";
+
+            LocalizedString before = r.Title;
+
+            r.Title = null;
+
+            Assert.AreSame(before, r.Title);
+            Assert.IsNotNull(r.Title);
+            Assert.IsTrue(r.Title.IsEmpty, "Assigning null means the property holds nothing.");
+
+            // The operations that used to fail on a null container.
+            Assert.DoesNotThrow(() => r.ListValues().ToList());
+            Assert.DoesNotThrow(() => r.HasUnsavedChanges());
+        }
+
+        /// <summary>
+        /// Only the two built-in containers can be mapped; any other ILocalizedText is refused.
+        /// </summary>
+        /// <remarks>
+        /// The engine dispatches on the concrete container types to add a value and to copy one
+        /// container into another, so a third implementation was accepted at registration and then
+        /// silently dropped every value it was given. The interface itself failed later and more
+        /// obscurely still: Activator cannot instantiate an interface.
+        /// </remarks>
+        [Test]
+        public void RefusesAnILocalizedTextThatIsNotABuiltInContainer()
+        {
+            var thrown = Assert.Throws<ArgumentException>(
+                () => new PropertyMapping<ILocalizedText>("Label", to.localizedStringTestString));
+
+            StringAssert.Contains(nameof(LocalizedString), thrown.Message);
+            StringAssert.Contains(nameof(LocalizedStringCollection), thrown.Message);
+        }
+
+        #endregion
     }
 }

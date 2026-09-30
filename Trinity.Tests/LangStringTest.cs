@@ -28,6 +28,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Xml;
 using System.Linq;
 using System.Threading;
 
@@ -108,6 +109,72 @@ namespace Semiodesk.Trinity.Tests
         {
             Assert.AreEqual(string.Empty, new LangString("", "de").Value,
                 "An empty string is a legal RDF literal; only the tag may not be empty.");
+        }
+
+        /// <summary>
+        /// A tag that is not well formed is refused at construction rather than written into SPARQL.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A language tag reaches the store as <i>syntax</i> -- <c>'text'@de</c> -- and there is no way
+        /// to escape one, because the grammar has no place for a quoted tag. Every other value Trinity
+        /// writes is escaped by <c>SparqlSerializer</c>; the tag was the one thing interpolated raw.
+        /// A tag built from request data could therefore carry query text into an update on
+        /// <c>Commit()</c>, so it is validated at the single point every tag passes through.
+        /// </para>
+        /// <para>
+        /// The everyday half matters as much: <c>de DE</c> used to be accepted here and then fail the
+        /// whole commit with an error naming neither the property nor the tag.
+        /// </para>
+        /// </remarks>
+        [TestCase("de DE", TestName = "RefusesAMalformedTag(space)")]
+        [TestCase("de-DE_phonebook", TestName = "RefusesAMalformedTag(underscore)")]
+        [TestCase("de--DE", TestName = "RefusesAMalformedTag(empty subtag)")]
+        [TestCase("-de", TestName = "RefusesAMalformedTag(leading separator)")]
+        [TestCase("de-", TestName = "RefusesAMalformedTag(trailing separator)")]
+        [TestCase("abcdefghi", TestName = "RefusesAMalformedTag(subtag over eight characters)")]
+        [TestCase("1de", TestName = "RefusesAMalformedTag(primary subtag starting with a digit)")]
+        [TestCase("de'@x", TestName = "RefusesAMalformedTag(quote)")]
+        [TestCase("de . ?s ?p ?o } ; DROP", TestName = "RefusesAMalformedTag(injected update)")]
+        public void RefusesAMalformedTag(string tag)
+        {
+            var thrown = Assert.Throws<ArgumentException>(() => new LangString("x", tag));
+
+            StringAssert.Contains("BCP-47", thrown.Message);
+        }
+
+        /// <summary>
+        /// Well-formedness, not registry membership: an unregistered but well-shaped tag is accepted.
+        /// </summary>
+        [TestCase("de")]
+        [TestCase("en-GB")]
+        [TestCase("de-DE-1901")]
+        [TestCase("zh-Hans-CN")]
+        [TestCase("x-private")]
+        [TestCase("qqq")]
+        [TestCase("de-XX")]
+        public void AcceptsAWellFormedTag(string tag)
+        {
+            Assert.AreEqual(tag.ToLowerInvariant(), new LangString("x", tag).Language);
+        }
+
+        /// <summary>
+        /// The container indexers validate the same way the constructor does, because they share the
+        /// implementation rather than repeating it.
+        /// </summary>
+        /// <remarks>
+        /// These were two copies of the null / empty / lower-case logic kept in step by a comment,
+        /// which is how a validated constructor ends up beside an unvalidated indexer.
+        /// </remarks>
+        [Test]
+        public void TheContainersValidateTagsTheSameWay()
+        {
+            var single = new LocalizedString();
+            var many = new LocalizedStringCollection();
+
+            Assert.Throws<ArgumentException>(() => single["de DE"] = "x");
+            Assert.Throws<ArgumentException>(() => many.Add("de DE", "x"));
+            Assert.Throws<ArgumentException>(() => single.Contains("de-"));
         }
 
         #endregion
@@ -260,6 +327,41 @@ namespace Semiodesk.Trinity.Tests
             Assert.AreEqual("Hallo", s.ToString(), "Interpolating a value must yield the text, not its RDF notation.");
             Assert.AreEqual("Hallo", $"{s}");
             Assert.AreEqual("\"Hallo\"@de", s.ToNTriples());
+        }
+
+        /// <summary>
+        /// An empty <c>xml:lang</c> means "no language" and deserializes as a plain string.
+        /// </summary>
+        /// <remarks>
+        /// <c>xml:lang=""</c> is legal RDF/XML: it undoes an <c>xml:lang</c> inherited from an ancestor
+        /// element. Testing the attribute for null alone made it throw, because a LangString cannot
+        /// carry an empty tag - an untagged literal is a plain string, which is exactly what this is.
+        /// </remarks>
+        [Test]
+        public void AnEmptyXmlLangDeserializesAsAPlainString()
+        {
+            var document = new XmlDocument();
+            document.LoadXml(
+                "<root xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>" +
+                "<a xml:lang=''>plain</a><b xml:lang='de'>getaggt</b><c>bare</c></root>");
+
+            Assert.AreEqual("plain", XsdTypeMapper.DeserializeXmlNode(document.DocumentElement.ChildNodes[0]));
+            Assert.AreEqual(new LangString("getaggt", "de"),
+                XsdTypeMapper.DeserializeXmlNode(document.DocumentElement.ChildNodes[1]));
+            Assert.AreEqual("bare", XsdTypeMapper.DeserializeXmlNode(document.DocumentElement.ChildNodes[2]));
+        }
+
+        /// <summary>
+        /// The N-Triples form escapes its lexical form, so a value carrying a quote or a newline still
+        /// renders as something parseable rather than as something that merely looks right.
+        /// </summary>
+        [Test]
+        public void ToNTriplesEscapesTheLexicalForm()
+        {
+            Assert.AreEqual("\"say \\\"hi\\\"\"@en", new LangString("say \"hi\"", "en").ToNTriples());
+            Assert.AreEqual("\"a\\\\b\"@en", new LangString("a\\b", "en").ToNTriples());
+            Assert.AreEqual("\"line1\\nline2\"@en", new LangString("line1\nline2", "en").ToNTriples());
+            Assert.AreEqual("\"a\\tb\"@en", new LangString("a\tb", "en").ToNTriples());
         }
 
         #endregion

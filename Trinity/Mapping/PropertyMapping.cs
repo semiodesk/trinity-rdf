@@ -182,6 +182,25 @@ namespace Semiodesk.Trinity
 
             if (typeof(ILocalizedText).IsAssignableFrom(_dataType))
             {
+                // Only the two built-in containers are actually wired up: the engine dispatches on
+                // their concrete types to add a value and to copy one container into another. Any
+                // other ILocalizedText was accepted here and then silently dropped every value it was
+                // given, while the interface itself failed later and more obscurely -- Activator
+                // cannot instantiate an interface, so a property declared as ILocalizedText died with
+                // MissingMethodException. Refused here instead, naming what is supported.
+                if (_dataType != typeof(LocalizedString) && _dataType != typeof(LocalizedStringCollection))
+                {
+                    throw new ArgumentException(string.Format(
+                        "The mapped property '{0}' is typed '{1}'. ILocalizedText is the shared surface " +
+                        "of the localized-text containers, not an extension point: only " +
+                        "'{2}' (one value per language) and '{3}' (several values per language) can be " +
+                        "mapped. Declare the property as one of those.",
+                        propertyName,
+                        _dataType.FullName,
+                        typeof(LocalizedString).Name,
+                        typeof(LocalizedStringCollection).Name));
+                }
+
                 // Seeded here rather than by the generator: unlike IList<T>, the container types are
                 // concrete, so there is nothing for the caller to choose and no new constructor shape.
                 _isContainer = true;
@@ -333,11 +352,52 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Sets the property value.
         /// </summary>
+        /// <remarks>
+        /// A localized-text container is <b>copied into</b> rather than assigned. The container is a
+        /// mutable view the mapping owns for its lifetime, and replacing the reference breaks that in
+        /// two ways that TRIN009 can only warn about, because a hand-written mapping never sees the
+        /// generator: assigning <c>null</c> leaves the mapping holding no container, so the next
+        /// <c>ListValues()</c> throws and takes <c>Commit()</c>, <c>HasUnsavedChanges()</c> and the
+        /// snapshot with it; and assigning another resource's container makes the two resources share
+        /// one instance, so editing either edits both. Copying keeps the reference stable and gives
+        /// the assignment the meaning a caller expects (ADR-0048).
+        /// </remarks>
         /// <param name="value">A value.</param>
         internal void SetValue(T value)
         {
+            if (_isContainer)
+            {
+                CopyIntoContainer(value);
+
+                return;
+            }
+
             _isUnsetValue = false;
             _value = value;
+        }
+
+        /// <summary>
+        /// Replaces the contents of the mapped container, keeping the instance the mapping owns.
+        /// </summary>
+        private void CopyIntoContainer(T value)
+        {
+            LocalizedValueStore source =
+                value is LocalizedString single ? single.Store :
+                value is LocalizedStringCollection many ? many.Store : null;
+
+            // A null assignment clears the container rather than discarding it: the caller asked for
+            // the property to hold nothing, which is what an empty container means.
+            switch (_value)
+            {
+                case LocalizedString target:
+                    target.Store.CopyFrom(source);
+                    break;
+                case LocalizedStringCollection target:
+                    target.Store.CopyFrom(source);
+                    break;
+            }
+
+            _isUnsetValue = false;
         }
 
         /// <summary>

@@ -52,6 +52,9 @@ namespace Semiodesk.Trinity
     {
         private readonly LocalizedValueStore _store = new LocalizedValueStore();
 
+        /// <summary>The backing store, so the mapping engine can copy into this container.</summary>
+        internal LocalizedValueStore Store => _store;
+
         /// <summary>
         /// Creates an empty property.
         /// </summary>

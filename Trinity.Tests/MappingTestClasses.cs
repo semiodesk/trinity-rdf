@@ -447,6 +447,24 @@ namespace Semiodesk.Trinity.Tests
             get { return GetValue(aliasesPropertyMapping); }
         }
 
+        /// <summary>
+        /// A container property that <b>does</b> expose a setter, which a mapped class should not do.
+        /// </summary>
+        /// <remarks>
+        /// TRIN009 warns about this shape, but a hand-written mapping never passes through the
+        /// generator, so the diagnostic cannot reach it and the runtime has to hold the invariant on
+        /// its own. This exists so the assign-null and assign-another-resource's-container cases are
+        /// actually exercised (ADR-0048).
+        /// </remarks>
+        public PropertyMapping<LocalizedString> titlePropertyMapping =
+            new PropertyMapping<LocalizedString>("Title", to.localizedStringTestString);
+
+        public LocalizedString Title
+        {
+            get { return GetValue(titlePropertyMapping); }
+            set { SetValue(titlePropertyMapping, value); }
+        }
+
         #endregion
     }
 
