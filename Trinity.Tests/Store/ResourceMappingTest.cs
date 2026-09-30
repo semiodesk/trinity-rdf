@@ -32,6 +32,7 @@ using Semiodesk.Trinity.Query.Sparql;
 using Semiodesk.Trinity.Serialization;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System;
 
 namespace Semiodesk.Trinity.Tests.Store
@@ -959,9 +960,76 @@ namespace Semiodesk.Trinity.Tests.Store
             r1.Commit();
 
             actual = Model1.GetResource<MappingTestClass>(_r1);
-            
+
             Assert.AreEqual(r2, actual.uniqueResourceTest);
             Assert.AreEqual(typeof(MappingTestClass), Model1.GetResource(_r1).GetType());
+        }
+
+        /// <summary>
+        /// How many integers, and how many links, <see cref="SeedResourceWithThousandsOfValues"/> gives a resource.
+        /// </summary>
+        protected const int ValuesPerKind = 1500;
+
+        /// <summary>
+        /// Writes <c>r1</c> as a <see cref="MappingTestClass"/> with <see cref="ValuesPerKind"/> integers,
+        /// as many links and one scalar: about 3000 triples. The linked members are not written; a link reads
+        /// back without them, as <see cref="AddRemoveResourceListTest"/> relies on too.
+        /// </summary>
+        /// <remarks>
+        /// Seeded as Turtle, not through the mapper, because reading is what is under test and Virtuoso cannot
+        /// take this resource as one <c>Commit()</c>. That goes out as a single <c>INSERT { … }</c> template,
+        /// which Virtuoso compiles to SQL and refuses at this size (<c>SP031</c>: generated SQL text exceeded
+        /// 10000 lines). The adapter swallows the error (#50), so the commit returns normally having written
+        /// nothing. <c>Read</c> sends <c>INSERT DATA</c> instead, which holds up to #70's 10,000 triples.
+        /// </remarks>
+        protected UriRef SeedResourceWithThousandsOfValues()
+        {
+            string subject = SparqlSerializer.SerializeUri(_r1);
+
+            var turtle = new StringBuilder();
+
+            void Triple(Property predicate, string value)
+            {
+                turtle.Append(subject).Append(' ').Append(SparqlSerializer.SerializeUri(predicate.Uri))
+                    .Append(' ').Append(value).Append(" .\n");
+            }
+
+            Triple(rdf.type, SparqlSerializer.SerializeUri(to.TestClass.Uri));
+            Triple(to.uniqueStringTest, "\"hub\"");
+
+            for (int i = 0; i < ValuesPerKind; i++)
+            {
+                Triple(to.intTest, "\"" + i + "\"^^<http://www.w3.org/2001/XMLSchema#int>");
+                Triple(to.resourceTest, SparqlSerializer.SerializeUri(BaseUri.GetUriRef("member" + i)));
+            }
+
+            Assert.IsTrue(Model1.Read(turtle.ToString(), RdfSerializationFormat.Turtle, true));
+
+            return _r1;
+        }
+
+        /// <summary>
+        /// A resource with a few thousand values reads back whole: its scalar, every integer, every link.
+        /// </summary>
+        /// <remarks>
+        /// Every other resource this fixture reads is small, and reading one was quadratic in its own size
+        /// (#63): 26.5 s on GraphDB at 2000 links. The answer was right, only slow, so this asserts the answer
+        /// at a size where the old cost shows.
+        /// </remarks>
+        [Test]
+        public virtual void ReadsAResourceWithThousandsOfValues()
+        {
+            var uri = SeedResourceWithThousandsOfValues();
+
+            var actual = Model1.GetResource<MappingTestClass>(uri);
+
+            Assert.AreEqual("hub", actual.uniqueStringTest);
+
+            CollectionAssert.AreEquivalent(Enumerable.Range(0, ValuesPerKind), actual.intTest);
+
+            CollectionAssert.AreEquivalent(
+                Enumerable.Range(0, ValuesPerKind).Select(i => BaseUri.GetUriRef("member" + i).OriginalString),
+                actual.resourceTest.Select(r => r.Uri.OriginalString));
         }
 
         [Test]

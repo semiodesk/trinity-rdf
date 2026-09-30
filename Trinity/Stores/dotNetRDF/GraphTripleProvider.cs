@@ -37,31 +37,31 @@ namespace Semiodesk.Trinity.Store
 
         private int _n;
 
-        private IGraph _graph;
+        private readonly Triple[] _triples;
 
         public INode S
         {
-            get { return _graph.Triples.ElementAt(_n).Subject; }
+            get { return _triples[_n].Subject; }
         }
 
         public Uri P
         {
-            get { return (_graph.Triples.ElementAt(_n).Predicate as UriNode).Uri; }
+            get { return (_triples[_n].Predicate as UriNode).Uri; }
         }
 
         public INode O
         {
-            get { return _graph.Triples.ElementAt(_n).Object; }
+            get { return _triples[_n].Object; }
         }
 
         public int Count
         {
-            get { return _graph.Triples.Count; }
+            get { return _triples.Length; }
         }
 
         public bool HasNext
         {
-            get { return _n < _graph.Triples.Count; }
+            get { return _n < _triples.Length; }
         }
 
         #endregion
@@ -71,7 +71,12 @@ namespace Semiodesk.Trinity.Store
         public GraphTripleProvider(IGraph graph)
         {
             _n = 0;
-            _graph = graph;
+
+            // IGraph.Triples has no indexer: ElementAt(k) re-enumerates from the start, which made reading
+            // a graph of n triples O(n^2) -- every GetResource<T>, since each is a DESCRIBE (#63). One
+            // snapshot, then index into it. It enumerates in the order ElementAt did, and GenerateResources
+            // depends on that order, because it keeps a handle on the current subject.
+            _triples = graph.Triples.ToArray();
         }
 
         #endregion
