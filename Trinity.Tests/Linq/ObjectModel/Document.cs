@@ -44,6 +44,13 @@ namespace Semiodesk.Trinity.Tests.Linq
         [RdfProperty("http://purl.org/dc/terms/title")]
         public partial LocalizedString LocalizedTitle { get; }
 
+        /// <summary>
+        /// The raw tagged view over a predicate: a LangString mapping keeps the tag rather than
+        /// selecting one language, which is the other side of the translator's language handling.
+        /// </summary>
+        [RdfProperty("http://purl.org/dc/terms/alternative")]
+        public partial LangString Alternative { get; set; }
+
         #endregion
 
         #region Constructors

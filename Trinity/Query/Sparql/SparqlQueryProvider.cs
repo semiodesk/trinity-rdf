@@ -293,14 +293,20 @@ namespace Semiodesk.Trinity.Query.Sparql
                 return uri.ToUriRef();
             }
 
-            // The same wall, for the same reason: a language-tagged literal binds as a LangString, which
-            // is not IConvertible either, so projecting one into a string threw InvalidCastException
-            // rather than returning the text (ADR-0048). Projecting the tag away is the reasonable
-            // reading of 'select x.Name' -- the caller asked for a string and gets the lexical form;
-            // asking for a LangString keeps the tag, via the IsInstanceOfType check above.
+            // A LangString reaching a string column means the query did not constrain the language,
+            // and silently unwrapping it to its lexical form is what made `Select(d => d.Name)` return
+            // tagged values -- the very leak that projecting a single language is refused for.
+            //
+            // Since ADR-0048 a mapped string binds with LANG(?v) = "", so this is unreachable; it is
+            // kept as a diagnostic rather than deleted, because the failure it guards is a wrong
+            // answer rather than an error, and Convert.ChangeType below would report it only as an
+            // opaque InvalidCastException.
             if (type == typeof(string) && value is LangString langString)
             {
-                return langString.Value;
+                throw new InvalidOperationException(
+                    $"A language-tagged literal ({langString.ToNTriples()}) was bound to a column " +
+                    "declared as an untagged string. This means the query did not constrain the " +
+                    "language of that property; returning the lexical form here would hide the tag.");
             }
 
             return Convert.ChangeType(value, type, CultureInfo.InvariantCulture);

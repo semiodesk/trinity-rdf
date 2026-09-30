@@ -93,7 +93,16 @@ namespace Semiodesk.Trinity.Tests.Query.Sparql
             english.Title = "Report";
             english.LocalizedTitle["en"] = "Bericht";
             english.LocalizedTitle["de"] = "Jahresbericht";
+            english.Alternative = new LangString("Annual report", "en");
             english.Commit();
+
+            // A region subtag, which is where stores stop agreeing: Jena canonicalizes a tag it was
+            // given as "de-de" back to "de-DE", RDF4J returns it as written. A LANG() comparison
+            // against a lower-cased constant therefore matches on some backends and not others, and
+            // bare "de"/"en" tags -- which is all the rest of this fixture uses -- never show it.
+            Document austrian = _model.CreateResource<Document>(new Uri("http://example.org/doc/at"));
+            austrian.LocalizedTitle["de-AT"] = "Jahresbericht";
+            austrian.Commit();
 
             // A tagged literal on the same predicate a mapped string maps. Projecting that string used
             // to throw InvalidCastException for every row because one resource carried a tag
@@ -216,13 +225,21 @@ namespace Semiodesk.Trinity.Tests.Query.Sparql
         }
 
         /// <summary>
-        /// Projecting a mapped string whose predicate also carries tagged literals returns the text
-        /// rather than throwing.
+        /// Projecting a mapped string whose predicate also carries tagged literals returns the untagged
+        /// text only - it neither throws nor leaks the tagged values.
         /// </summary>
         /// <remarks>
         /// ADR-0048 defect 3: a tagged literal binds as a LangString, which is not IConvertible, so
         /// Convert.ChangeType raised InvalidCastException and the whole projection failed because some
-        /// other resource happened to carry a tag on the same predicate.
+        /// other resource happened to carry a tag on the same predicate. Unwrapping it to its lexical
+        /// form fixed the exception and introduced a quieter bug in its place: the projection then
+        /// returned tagged values as though they were untagged, which is the very leak that projecting
+        /// a single language is refused for. The mapped string is constrained to the empty tag when it
+        /// is bound, so neither happens.
+        /// <para>
+        /// The absence assertion is the whole point. Asserting only that the untagged values are
+        /// present passes under all three behaviours.
+        /// </para>
         /// </remarks>
         [Test]
         public void ProjectsAPredicateThatAlsoCarriesTaggedLiterals()
@@ -233,6 +250,163 @@ namespace Semiodesk.Trinity.Tests.Query.Sparql
 
             CollectionAssert.Contains(titles, "Bericht");
             CollectionAssert.Contains(titles, "Tagged");
+            CollectionAssert.DoesNotContain(titles, "Markiert",
+                "'Markiert' exists only as a @de literal; a mapped string must not project it.");
+        }
+
+        /// <summary>
+        /// Two languages of the same property in one predicate each get their own variable.
+        /// </summary>
+        /// <remarks>
+        /// The binding used to be cached by predicate path alone, so both indexers resolved to one
+        /// variable and the two constraints met on it as <c>LANG(?v) = "de" AND LANG(?v) = "en"</c> -
+        /// unsatisfiable, so a query with an obvious answer returned nothing.
+        /// </remarks>
+        [Test]
+        public void MatchesTwoLanguagesOfTheSamePropertyInOnePredicate()
+        {
+            var both = _model.AsSparqlQueryable<Document>()
+                .Where(d => d.LocalizedTitle["de"] == "Jahresbericht" && d.LocalizedTitle["en"] == "Bericht")
+                .ToList();
+
+            Assert.AreEqual(1, both.Count);
+            Assert.AreEqual(new Uri("http://example.org/doc/en"), both[0].Uri);
+        }
+
+        /// <summary>
+        /// A string function over a localized property honours the tag, like equality does.
+        /// </summary>
+        /// <remarks>
+        /// The tag used to be attached only by the equality branch, so every other consumer of the
+        /// bound variable - string functions, IN, ORDER BY, a comparison against another member - read
+        /// a variable bound to every language of the property at once. StartsWith is the cheapest
+        /// witness: "Bericht" is a @de title on one document and an @en title on another.
+        /// </remarks>
+        [Test]
+        public void AStringFunctionOverALocalizedPropertyHonoursTheTag()
+        {
+            var german = _model.AsSparqlQueryable<Document>()
+                .Where(d => d.LocalizedTitle["de"].StartsWith("Bericht"))
+                .ToList();
+
+            Assert.AreEqual(1, german.Count);
+            Assert.AreEqual(new Uri("http://example.org/doc/de"), german[0].Uri);
+
+            var french = _model.AsSparqlQueryable<Document>()
+                .Where(d => d.LocalizedTitle["fr"].Contains("Bericht"))
+                .ToList();
+
+            CollectionAssert.IsEmpty(french, "No document carries an @fr title.");
+        }
+
+        /// <summary>
+        /// Ordering by a localized property orders within one language rather than across all of them.
+        /// </summary>
+        [Test]
+        public void OrdersWithinOneLanguage()
+        {
+            var ordered = _model.AsSparqlQueryable<Document>()
+                .OrderBy(d => d.LocalizedTitle["de"])
+                .ToList();
+
+            // Exactly the documents carrying an *exact* @de title, ordered by it. doc/at is absent
+            // because its tag is @de-AT and the indexer is exact-match on get (ADR-0048) - a lookup
+            // with fallback is Best(), which is refused in a query. doc/tagged has no dcterms:title
+            // at all. An unconstrained variable would bind the @en and @de-AT titles too, pulling
+            // those documents in and sorting the rows by whichever language happened to bind.
+            CollectionAssert.AreEqual(
+                new[]
+                {
+                    new Uri("http://example.org/doc/de"),
+                    new Uri("http://example.org/doc/en")
+                },
+                ordered.Select(d => d.Uri).ToList());
+        }
+
+        /// <summary>
+        /// A string function over a mapped string does not match tagged literals either.
+        /// </summary>
+        /// <remarks>
+        /// Equality already behaved, because a plain literal term only matches a plain literal. String
+        /// functions do not: SPARQL argument compatibility makes <c>STRSTARTS("Markiert"@de, "Mark")</c>
+        /// true, so the half of ADR-0048 that says a mapped string never sees a tagged literal held for
+        /// <c>==</c> and not for <c>StartsWith</c>.
+        /// </remarks>
+        [Test]
+        public void AStringFunctionOverAMappedStringDoesNotMatchATaggedLiteral()
+        {
+            var tagged = _model.AsSparqlQueryable<Document>()
+                .Where(d => d.Title.StartsWith("Markiert"))
+                .ToList();
+
+            CollectionAssert.IsEmpty(tagged, "'Markiert' exists only as a @de literal.");
+        }
+
+        /// <summary>
+        /// A LangString-typed mapping compares against a tagged constant, tag included.
+        /// </summary>
+        /// <remarks>
+        /// The obvious translation - <c>FILTER(?v = "Annual report"@en)</c> - is tag-blind on
+        /// dotNetRDF 3.5.2, which this branch measured and then used anyway for this path. The lexical
+        /// form and the tag are compared separately instead.
+        /// </remarks>
+        [Test]
+        public void ComparesALangStringMappingAgainstATaggedConstant()
+        {
+            var match = _model.AsSparqlQueryable<Document>()
+                .Where(d => d.Alternative == new LangString("Annual report", "en"))
+                .ToList();
+
+            Assert.AreEqual(1, match.Count);
+            Assert.AreEqual(new Uri("http://example.org/doc/en"), match[0].Uri);
+
+            var wrongTag = _model.AsSparqlQueryable<Document>()
+                .Where(d => d.Alternative == new LangString("Annual report", "fr"))
+                .ToList();
+
+            CollectionAssert.IsEmpty(wrongTag, "Same text, different tag: a different literal.");
+        }
+
+        /// <summary>
+        /// A region subtag matches regardless of how the store cased it back.
+        /// </summary>
+        /// <remarks>
+        /// In-memory this passes either way; it earns its keep in the store suites, where Jena returns
+        /// <c>de-DE</c> for a tag written as <c>de-de</c> and a raw <c>LANG(?v) = "de-at"</c> comparison
+        /// therefore matches nothing. Both sides are lower-cased.
+        /// </remarks>
+        [Test]
+        public void MatchesARegionSubtagWhateverCaseTheStoreReturns()
+        {
+            foreach (string tag in new[] { "de-AT", "de-at", "DE-AT" })
+            {
+                var austrian = _model.AsSparqlQueryable<Document>()
+                    .Where(d => d.LocalizedTitle[tag] == "Jahresbericht")
+                    .ToList();
+
+                Assert.AreEqual(1, austrian.Count, $"Tag '{tag}' should match the @de-AT title.");
+                Assert.AreEqual(new Uri("http://example.org/doc/at"), austrian[0].Uri);
+            }
+        }
+
+        /// <summary>
+        /// Counting a localized container is refused rather than answered with a triple count.
+        /// </summary>
+        /// <remarks>
+        /// The two containers disagree about what a count is - LocalizedString counts languages,
+        /// LocalizedStringCollection counts values - so no single count of matching triples is right
+        /// for both, and the one that was emitted also counted untagged literals, which neither
+        /// container holds.
+        /// </remarks>
+        [Test]
+        public void RefusesCountingALocalizedContainer()
+        {
+            var thrown = Assert.Throws<NotSupportedException>(() =>
+                _model.AsSparqlQueryable<Document>()
+                    .Where(d => d.LocalizedTitle.Count > 1)
+                    .ToList());
+
+            StringAssert.Contains("LocalizedTitle", thrown.Message);
         }
 
         /// <summary>

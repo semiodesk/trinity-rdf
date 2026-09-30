@@ -252,6 +252,14 @@ namespace Semiodesk.Trinity.Query.Sparql
 
             /// <summary>The group the triple was added to (for upgrading to OPTIONAL).</summary>
             public GroupGraphPattern Container { get; set; }
+
+            /// <summary>
+            /// The language constraint attached when this variable was bound (ADR-0048), if any. Kept
+            /// on the binding because <see cref="UpgradeToOptional"/> has to move it into the OPTIONAL
+            /// group along with the triple: left outside, it would filter away the very rows the
+            /// OPTIONAL exists to keep.
+            /// </summary>
+            public SparqlExpression LanguageConstraint { get; set; }
         }
 
         private QueryScope ResolveScope(QueryScope scope, ParameterExpression parameter)
@@ -275,12 +283,50 @@ namespace Semiodesk.Trinity.Query.Sparql
         }
 
         /// <summary>
+        /// Binds a decorated member chain, carrying its language tag across to the binding.
+        /// </summary>
+        /// <remarks>
+        /// Every consumer of a chain goes through this overload rather than reaching for
+        /// <see cref="ChainInfo.Chain"/> and dropping the tag on the way. That was the actual shape of
+        /// the bug this fixes: the tag was applied in one branch — equality against a constant — and
+        /// every other consumer silently queried across all languages. Passing the whole
+        /// <see cref="ChainInfo"/> makes forgetting it impossible rather than merely discouraged.
+        /// </remarks>
+        private MemberBinding BindChain(QueryScope scope, ChainInfo chain, bool optional)
+        {
+            return BindChain(scope, chain.Chain, optional,
+                chain.Kind == ChainKind.Localized ? chain.Language?.ToLowerInvariant() : null);
+        }
+
+        /// <summary>
         /// Binds a mapped-property member chain to a variable, emitting the triple pattern(s) that
         /// reach it from the scope subject. Parent steps of a chain are always mandatory; only the
         /// final step is wrapped in <c>OPTIONAL</c> when requested. Bindings are cached per scope so
         /// filters, orderings and projections on the same member share one variable.
         /// </summary>
-        private MemberBinding BindChain(QueryScope scope, MemberExpression member, bool optional)
+        /// <remarks>
+        /// <para>
+        /// The language constraint is attached <b>here</b>, when the variable is created, and the tag
+        /// is part of the cache key (ADR-0048). Both halves matter, and getting either wrong is a
+        /// silent wrong-answer bug rather than an error:
+        /// </para>
+        /// <para>
+        /// Keying by path alone would give <c>Label["de"]</c> and <c>Label["en"]</c> in one query the
+        /// same variable, so the two tag constraints would meet on it as
+        /// <c>LANG(?v) = "de" &amp;&amp; LANG(?v) = "en"</c> — never true, for a query that plainly has
+        /// answers. Constraining at comparison time instead would leave every other consumer of the
+        /// variable — <c>StartsWith</c>, <c>Contains</c>, <c>IN</c>, <c>ORDER BY</c>, a comparison
+        /// against another member — reading a variable bound to every language at once.
+        /// </para>
+        /// <para>
+        /// <paramref name="language"/> is the tag a localized indexer selected. When it is null the
+        /// constraint is derived from the member's declared type instead, which is what gives a plain
+        /// mapped <c>string</c> the "untagged literals only" meaning ADR-0048 gives it — enforced
+        /// until now only when materializing, so LINQ and the runtime disagreed about the same
+        /// property.
+        /// </para>
+        /// </remarks>
+        private MemberBinding BindChain(QueryScope scope, MemberExpression member, bool optional, string language = null)
         {
             ParameterExpression root = GetRootParameter(member);
 
@@ -290,7 +336,12 @@ namespace Semiodesk.Trinity.Query.Sparql
             }
 
             QueryScope owner = ResolveScope(scope, root);
-            string key = PathKey(member);
+
+            string tag = language ?? ImpliedLanguage(GetMemberType(member.Member));
+
+            // The tag discriminates the cache entry, in the same way BindCount discriminates its own.
+            // An unconstrained binding keeps the bare path as its key, so nothing else moves.
+            string key = tag == null ? PathKey(member) : PathKey(member) + "@" + tag;
 
             MemberBinding binding;
 
@@ -334,7 +385,8 @@ namespace Semiodesk.Trinity.Query.Sparql
                 Variable = variable,
                 MemberType = GetMemberType(member.Member),
                 Triple = triple,
-                Container = owner.Patterns
+                Container = owner.Patterns,
+                LanguageConstraint = tag == null ? null : LanguageConstraintFor(variable, tag)
             };
 
             if (optional)
@@ -342,17 +394,83 @@ namespace Semiodesk.Trinity.Query.Sparql
                 var group = new GroupGraphPattern();
                 group.Add(triple);
 
+                if (binding.LanguageConstraint != null)
+                {
+                    group.AddFilter(binding.LanguageConstraint);
+                }
+
                 binding.IsOptional = true;
                 owner.Patterns.Add(new OptionalPattern(group));
             }
             else
             {
                 owner.Patterns.Add(triple);
+
+                if (binding.LanguageConstraint != null)
+                {
+                    owner.Patterns.AddFilter(binding.LanguageConstraint);
+                }
             }
 
             owner.Bindings[key] = binding;
 
             return binding;
+        }
+
+        /// <summary>
+        /// The language constraint a mapped member's declared type implies (ADR-0048), or <c>null</c>
+        /// when the type implies none.
+        /// </summary>
+        /// <remarks>
+        /// A mapped <c>string</c> (or a collection of them) means "untagged literals only", so its
+        /// variable is constrained to the empty tag. <c>LangString</c> is the deliberate raw view over
+        /// tagged literals and constrains nothing; resource references and value types have no tag to
+        /// speak of.
+        /// </remarks>
+        private static string ImpliedLanguage(Type memberType)
+        {
+            if (memberType == null)
+            {
+                return null;
+            }
+
+            if (memberType == typeof(string))
+            {
+                return string.Empty;
+            }
+
+            if (memberType.IsGenericType && typeof(IEnumerable).IsAssignableFrom(memberType))
+            {
+                Type[] arguments = memberType.GetGenericArguments();
+
+                if (arguments.Length == 1 && arguments[0] == typeof(string))
+                {
+                    return string.Empty;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Builds the filter constraining a bound variable to one language tag, or to no tag at all
+        /// when <paramref name="tag"/> is empty.
+        /// </summary>
+        /// <remarks>
+        /// <c>LCASE</c> wraps <c>LANG</c> because stores do not agree on how they return a tag they
+        /// were given: Jena canonicalizes <c>de-de</c> to <c>de-DE</c>, RDF4J returns it as written.
+        /// Comparing a lower-cased constant against a raw <c>LANG()</c> therefore matches on some
+        /// backends and not others — invisible in the in-memory suite, which is why it has to be
+        /// written here rather than relied on.
+        /// </remarks>
+        private static SparqlExpression LanguageConstraintFor(VariableTerm variable, string tag)
+        {
+            var language = new SparqlFunctionExpression("LANG", new SparqlVariableExpression(variable.Name));
+
+            return new SparqlBinaryExpression(
+                SparqlBinaryOperator.Equal,
+                tag.Length == 0 ? (SparqlExpression)language : new SparqlFunctionExpression("LCASE", language),
+                new SparqlConstantExpression(new LiteralTerm(tag)));
         }
 
         /// <summary>
@@ -363,6 +481,15 @@ namespace Semiodesk.Trinity.Query.Sparql
         {
             var group = new GroupGraphPattern();
             group.Add(binding.Triple);
+
+            // The language constraint moves with the triple. Left behind in the enclosing group it
+            // would be evaluated against an unbound variable and drop exactly the rows the OPTIONAL
+            // was introduced to keep (ADR-0048).
+            if (binding.LanguageConstraint != null)
+            {
+                binding.Container.Filters.Remove(binding.LanguageConstraint);
+                group.AddFilter(binding.LanguageConstraint);
+            }
 
             int index = binding.Container.Patterns.IndexOf(binding.Triple);
             var optional = new OptionalPattern(group);
@@ -658,7 +785,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                 {
                     // Resource-valued member: still a resource query, but the member variable becomes
                     // the result subject. The root scope is swapped so later operators bind against it.
-                    MemberBinding member = BindChain(_rootScope, chain.Chain, false);
+                    MemberBinding member = BindChain(_rootScope, chain, false);
 
                     _rootScope = new QueryScope(null, member.Variable, _subjectPatterns, null);
                     _elementType = chain.MemberType;
@@ -677,7 +804,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                         // mandatorily (parity with the re-linq provider).
                         bool optional = chain.MemberType.IsValueType && chain.MemberType != typeof(string);
 
-                        binding = BindChain(_rootScope, chain.Chain, optional);
+                        binding = BindChain(_rootScope, chain, optional);
                     }
 
                     _projection = binding;
@@ -950,7 +1077,7 @@ namespace Semiodesk.Trinity.Query.Sparql
             }
 
             bool optional = chain.MemberType.IsValueType && chain.MemberType != typeof(string);
-            MemberBinding binding = BindChain(_rootScope, chain.Chain, optional);
+            MemberBinding binding = BindChain(_rootScope, chain, optional);
 
             if (optional)
             {
@@ -1048,6 +1175,7 @@ namespace Semiodesk.Trinity.Query.Sparql
         {
             _typeConstraints.Clear();
             _subjectPatterns.Patterns.Clear();
+            _subjectPatterns.Filters.Clear();
             _filters.Clear();
             _rootScope.Bindings.Clear();
         }
@@ -1207,34 +1335,25 @@ namespace Semiodesk.Trinity.Query.Sparql
                             "A localized property can only be compared against a string.");
                     }
 
-                    // Compared as lexical form AND tag rather than as one tagged term. The obvious
-                    // spelling -- FILTER(?v = "Hallo"@de) -- is *silently wrong on the in-memory
-                    // engine*: measured against dotNetRDF 3.5.2, a language-tagged literal inside a
-                    // FILTER comparison matches whatever the tag says, so "Hallo"@fr matched a value
-                    // tagged @de. The same literal in a triple pattern matches correctly, and STR() and
-                    // LANG() both evaluate correctly, so the conjunction below is the form that is both
-                    // exact and actually evaluated. It is equivalent to term equality for a langString,
-                    // and it keeps the indexer's exact-match semantics: LANG returns the exact tag, so
-                    // "de" does not match "de-AT".
-                    MemberBinding localized = BindChain(scope, chain.Chain, false);
-
-                    SparqlVariableExpression variable = new SparqlVariableExpression(localized.Variable.Name);
+                    // The tag is applied by BindChain, which gives this language its own variable and
+                    // constrains it there. Only the lexical comparison belongs here.
+                    //
+                    // STR() rather than a tagged term: the obvious spelling -- FILTER(?v = "Hallo"@de)
+                    // -- is *silently wrong on the in-memory engine*. Measured against dotNetRDF 3.5.2,
+                    // a language-tagged literal inside a FILTER comparison matches whatever the tag
+                    // says, so "Hallo"@fr matched a value tagged @de. The same literal in a triple
+                    // pattern matches correctly, and STR() and LANG() both evaluate correctly.
+                    MemberBinding localized = BindChain(scope, chain, false);
 
                     return new SparqlBinaryExpression(
-                        SparqlBinaryOperator.And,
-                        new SparqlBinaryExpression(
-                            MapComparison(op),
-                            new SparqlFunctionExpression("STR", variable),
-                            new SparqlConstantExpression(new LiteralTerm(text))),
-                        new SparqlBinaryExpression(
-                            SparqlBinaryOperator.Equal,
-                            new SparqlFunctionExpression("LANG", variable),
-                            new SparqlConstantExpression(new LiteralTerm(chain.Language.ToLowerInvariant()))));
+                        MapComparison(op),
+                        new SparqlFunctionExpression("STR", new SparqlVariableExpression(localized.Variable.Name)),
+                        new SparqlConstantExpression(new LiteralTerm(text)));
                 }
 
                 case ChainKind.Length:
                 {
-                    MemberBinding binding = BindChain(scope, chain.Chain, false);
+                    MemberBinding binding = BindChain(scope, chain, false);
 
                     return new SparqlBinaryExpression(
                         MapComparison(op),
@@ -1267,7 +1386,8 @@ namespace Semiodesk.Trinity.Query.Sparql
 
                         // `member == null` means the property is absent; the chain pattern lives
                         // inside the (NOT) EXISTS group so it doesn't constrain the main solution.
-                        GroupGraphPattern group = BuildChainExistsGroup(scope, chain.Chain);
+                        GroupGraphPattern group = BuildChainExistsGroup(scope, chain.Chain,
+                            chain.Kind == ChainKind.Localized ? chain.Language?.ToLowerInvariant() : null);
 
                         return new SparqlExistsExpression(group, op == ExpressionType.Equal);
                     }
@@ -1280,7 +1400,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                     if (chain.MemberType == typeof(string))
                     {
                         // Strings have no default-value semantics (parity with the re-linq provider).
-                        MemberBinding text = BindChain(scope, chain.Chain, false);
+                        MemberBinding text = BindChain(scope, chain, false);
 
                         return BindingComparison(op, text, value);
                     }
@@ -1294,7 +1414,7 @@ namespace Semiodesk.Trinity.Query.Sparql
 
                         if (matchesUnbound)
                         {
-                            MemberBinding optional = BindChain(scope, chain.Chain, true);
+                            MemberBinding optional = BindChain(scope, chain, true);
 
                             return new SparqlBinaryExpression(
                                 SparqlBinaryOperator.Or,
@@ -1309,7 +1429,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                     // sequence (`Select(p => p.Age)` already yields 0 for them).
                     bool defaultable = chain.MemberType.IsValueType;
 
-                    MemberBinding binding = BindChain(scope, chain.Chain, defaultable || inDisjunction);
+                    MemberBinding binding = BindChain(scope, chain, defaultable || inDisjunction);
 
                     if (defaultable)
                     {
@@ -1418,7 +1538,7 @@ namespace Semiodesk.Trinity.Query.Sparql
 
                 case ChainKind.Value:
                 case ChainKind.Uri:
-                    return BindChain(scope, chain.Chain, false).Variable;
+                    return BindChain(scope, chain, false).Variable;
 
                 default:
                     throw new NotSupportedException($"Unsupported resource expression: {chain.Kind}.");
@@ -1453,7 +1573,13 @@ namespace Semiodesk.Trinity.Query.Sparql
             return BindingComparison(op, binding, value);
         }
 
-        private GroupGraphPattern BuildChainExistsGroup(QueryScope scope, MemberExpression member)
+        /// <remarks>
+        /// The language constraint applies here too. Without it <c>d.Title == null</c> answers "no" for
+        /// a resource whose only value for that predicate is tagged, while <c>Select(d =&gt; d.Title)</c>
+        /// yields nothing for the same resource — the same LINQ/runtime disagreement the binding
+        /// constraint closes, reached through an existence test instead of a variable (ADR-0048).
+        /// </remarks>
+        private GroupGraphPattern BuildChainExistsGroup(QueryScope scope, MemberExpression member, string language = null)
         {
             SparqlTerm parent;
             Expression inner = Unwrap(member.Expression);
@@ -1470,8 +1596,17 @@ namespace Semiodesk.Trinity.Query.Sparql
                     throw new NotSupportedException($"Unsupported member access root: {inner?.NodeType}.");
             }
 
+            VariableTerm variable = FreshVariable();
+
             var group = new GroupGraphPattern();
-            group.Add(new TriplePattern(parent, new IriTerm(GetPredicate(member)), FreshVariable()));
+            group.Add(new TriplePattern(parent, new IriTerm(GetPredicate(member)), variable));
+
+            string tag = language ?? ImpliedLanguage(GetMemberType(member.Member));
+
+            if (tag != null)
+            {
+                group.AddFilter(LanguageConstraintFor(variable, tag));
+            }
 
             return group;
         }
@@ -1483,6 +1618,8 @@ namespace Semiodesk.Trinity.Query.Sparql
             {
                 throw new NotSupportedException($"Unsupported sub-query source: {call.Arguments[0]}.");
             }
+
+            RefuseContainerCardinality(member, "Any()");
 
             SparqlTerm parent;
             Expression inner = Unwrap(member.Expression);
@@ -1599,12 +1736,49 @@ namespace Semiodesk.Trinity.Query.Sparql
                     matchesUnbound = negated ? !containsDefault : containsDefault;
                 }
 
-                binding = BindChain(scope, chain.Chain, matchesUnbound);
+                binding = BindChain(scope, chain, matchesUnbound);
                 value = new SparqlVariableExpression(binding.Variable.Name);
             }
             else
             {
                 value = TranslateOperand(scope, itemExpression);
+            }
+
+            // A set of language-tagged literals cannot go in an IN list: SPARQL's IN is a chain of
+            // '=' comparisons, and dotNetRDF 3.5.2 evaluates each of those ignoring the tag, so
+            // `IN ("a"@de, "b"@fr)` would match a value tagged anything at all. Expanded into an
+            // explicit disjunction of lexical-and-tag comparisons it stays exact (ADR-0048).
+            if (values.Any(item => item is LangString))
+            {
+                if (binding == null)
+                {
+                    throw new NotSupportedException(
+                        "A collection of language-tagged literals can only be tested against a mapped " +
+                        "property, because each element has to be compared as lexical form and tag " +
+                        "rather than as a single term.");
+                }
+
+                SparqlExpression union = null;
+
+                foreach (object item in values)
+                {
+                    SparqlExpression comparison = item is LangString tagged
+                        ? TaggedComparison(ExpressionType.Equal, binding.Variable, tagged)
+                        : new SparqlBinaryExpression(
+                            SparqlBinaryOperator.Equal,
+                            new SparqlVariableExpression(binding.Variable.Name),
+                            new SparqlConstantExpression(ToTerm(item)));
+
+                    union = union == null
+                        ? comparison
+                        : new SparqlBinaryExpression(SparqlBinaryOperator.Or, union, comparison);
+                }
+
+                SparqlExpression result = negated ? new SparqlUnaryExpression(SparqlUnaryOperator.Not, union) : union;
+
+                return matchesUnbound
+                    ? new SparqlBinaryExpression(SparqlBinaryOperator.Or, result, NotBound(binding))
+                    : result;
             }
 
             var membership = new SparqlInExpression(value, negated);
@@ -1756,13 +1930,13 @@ namespace Semiodesk.Trinity.Query.Sparql
                             return new SparqlVariableExpression(ResolveScope(scope, chain.RootParameter).Subject.Name);
 
                         case ChainKind.Length:
-                            return new SparqlFunctionExpression("STRLEN", new SparqlVariableExpression(BindChain(scope, chain.Chain, false).Variable.Name));
+                            return new SparqlFunctionExpression("STRLEN", new SparqlVariableExpression(BindChain(scope, chain, false).Variable.Name));
 
                         case ChainKind.Count:
                             return new SparqlVariableExpression(BindCount(scope, chain.Chain, chain.ElementType).Variable.Name);
 
                         default:
-                            return new SparqlVariableExpression(BindChain(scope, chain.Chain, false).Variable.Name);
+                            return new SparqlVariableExpression(BindChain(scope, chain, false).Variable.Name);
                     }
                 }
             }
@@ -1789,7 +1963,7 @@ namespace Semiodesk.Trinity.Query.Sparql
             {
                 // Unbound members hold default(T): order by the COALESCEd value so a resource without
                 // the property sorts as default(T) rather than dropping out of the result entirely.
-                MemberBinding binding = BindChain(_rootScope, chain.Chain, true);
+                MemberBinding binding = BindChain(_rootScope, chain, true);
 
                 return Coalesce(binding.Variable, chain.MemberType);
             }
@@ -1880,6 +2054,8 @@ namespace Semiodesk.Trinity.Query.Sparql
 
                 if (counted is MemberExpression source && IsMappedChain(source))
                 {
+                    RefuseContainerCardinality(source, call.Method.Name + "()");
+
                     return new ChainInfo
                     {
                         Kind = ChainKind.Count,
@@ -1950,6 +2126,8 @@ namespace Semiodesk.Trinity.Query.Sparql
                     case "Count":
                         if (inner is MemberExpression collection && IsMappedChain(collection))
                         {
+                            RefuseContainerCardinality(collection, "Count");
+
                             return new ChainInfo { Kind = ChainKind.Count, Chain = collection, MemberType = typeof(int), RootParameter = GetRootParameter(collection) };
                         }
                         return null;
@@ -1973,6 +2151,29 @@ namespace Semiodesk.Trinity.Query.Sparql
         private static bool IsLocalizedContainer(Type type)
         {
             return type != null && typeof(ILocalizedText).IsAssignableFrom(type);
+        }
+
+        /// <summary>
+        /// Refuses a cardinality operator applied to a localized-text container.
+        /// </summary>
+        /// <remarks>
+        /// Refused rather than approximated, in the posture ADR-0041 sets and ADR-0048 already takes
+        /// for <c>Best()</c> and for projecting one language. The two containers do not agree on what
+        /// a count is — <c>LocalizedString.Count</c> is the number of <i>languages</i>, while
+        /// <c>LocalizedStringCollection.Count</c> is the number of <i>values</i> — so no single count
+        /// of matching triples is right for both, and the one that was emitted counted untagged
+        /// literals as well, which neither container holds.
+        /// </remarks>
+        private static void RefuseContainerCardinality(MemberExpression member, string operation)
+        {
+            if (member != null && IsLocalizedContainer(GetMemberType(member.Member)))
+            {
+                throw new NotSupportedException(
+                    $"{operation} is not supported on the localized property '{member.Member.Name}': " +
+                    "a count of matching triples means different things for LocalizedString (one per " +
+                    "language) and LocalizedStringCollection (one per value). Query a single language " +
+                    "with an indexer, or enumerate the property and count in memory.");
+            }
         }
 
         private static bool IsMappedChain(MemberExpression member)
@@ -2134,7 +2335,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                         {
                             bool optional = chain.MemberType.IsValueType && chain.MemberType != typeof(string);
 
-                            binding = _translator.BindChain(_translator._rootScope, chain.Chain, optional);
+                            binding = _translator.BindChain(_translator._rootScope, chain, optional);
                         }
 
                         return Column(binding.Variable, binding.IsOptional, chain.MemberType, node.Type);
@@ -2151,7 +2352,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                         return Column(_translator._rootScope.Subject, false, node.Type, node.Type);
 
                     case ChainKind.Uri:
-                        return Column(_translator.BindChain(_translator._rootScope, chain.Chain, false).Variable, false, node.Type, node.Type);
+                        return Column(_translator.BindChain(_translator._rootScope, chain, false).Variable, false, node.Type, node.Type);
 
                     default:
                         return null;
@@ -2490,6 +2691,15 @@ namespace Semiodesk.Trinity.Query.Sparql
                 selection.Add(pattern);
             }
 
+            // Filters attached directly to the root group -- the language constraints BindChain emits
+            // (ADR-0048) -- as well as the accumulated Where filters. Both lists have to be carried
+            // over: this method re-packs the root group into a fresh one, so anything left behind here
+            // is silently dropped from the query rather than failing.
+            foreach (SparqlExpression filter in _subjectPatterns.Filters)
+            {
+                selection.AddFilter(filter);
+            }
+
             foreach (SparqlExpression filter in _filters)
             {
                 selection.AddFilter(filter);
@@ -2633,10 +2843,17 @@ namespace Semiodesk.Trinity.Query.Sparql
                 case IResource resource:
                     return new IriTerm(resource.Uri);
                 case LangString langString:
-                    // The tag is part of the RDF term, so it has to reach the query or `== "Hallo"@de`
-                    // would match a differently-tagged literal. This is what finally populates
-                    // LiteralTerm.Language, which the writer has always been able to emit (ADR-0048).
-                    return new LiteralTerm(langString.Value, language: langString.Language);
+                    // Deliberately refused rather than emitted as "Hallo"@de. Every caller of ToTerm
+                    // puts the result in a FILTER expression, and dotNetRDF 3.5.2 compares a tagged
+                    // literal there *ignoring the tag* -- measured: "x"@fr matched a value tagged @de.
+                    // A tagged constant must therefore be split into STR()/LANG() against the bound
+                    // variable, which is what BindingComparison and the IN path do. Throwing here
+                    // keeps a future caller from quietly reintroducing the wrong form (ADR-0048).
+                    throw new NotSupportedException(
+                        $"A language-tagged literal ({langString.ToNTriples()}) cannot be used as a bare " +
+                        "term in a filter, because a tagged literal in a SPARQL FILTER comparison is " +
+                        "matched without regard to its tag. Compare the mapped property directly, or " +
+                        "index a localized property with the language you want.");
                 case string text:
                     // A mapped string is an untagged literal, so a plain term is the exact match. This
                     // used to be a workaround for the translator having no way to express a tag; since
@@ -2649,10 +2866,46 @@ namespace Semiodesk.Trinity.Query.Sparql
 
         private static SparqlExpression BindingComparison(ExpressionType op, MemberBinding binding, object value)
         {
+            if (value is LangString langString)
+            {
+                return TaggedComparison(op, binding.Variable, langString);
+            }
+
             return new SparqlBinaryExpression(
                 MapComparison(op),
                 new SparqlVariableExpression(binding.Variable.Name),
                 new SparqlConstantExpression(ToTerm(value)));
+        }
+
+        /// <summary>
+        /// Compares a bound variable against a language-tagged constant as lexical form <b>and</b> tag.
+        /// </summary>
+        /// <remarks>
+        /// The one-term spelling <c>?v = "Hallo"@de</c> reads correctly and is not: in a FILTER,
+        /// dotNetRDF 3.5.2 matches it against a literal with any tag. This is the same conjunction the
+        /// localized indexer produces, reached from the other direction — a <c>LangString</c> constant
+        /// compared against a <c>LangString</c>-typed mapping.
+        /// </remarks>
+        private static SparqlExpression TaggedComparison(ExpressionType op, VariableTerm variable, LangString value)
+        {
+            var reference = new SparqlVariableExpression(variable.Name);
+
+            var lexical = new SparqlBinaryExpression(
+                MapComparison(op),
+                new SparqlFunctionExpression("STR", reference),
+                new SparqlConstantExpression(new LiteralTerm(value.Value)));
+
+            var tag = new SparqlBinaryExpression(
+                op == ExpressionType.NotEqual ? SparqlBinaryOperator.NotEqual : SparqlBinaryOperator.Equal,
+                new SparqlFunctionExpression("LCASE", new SparqlFunctionExpression("LANG", reference)),
+                new SparqlConstantExpression(new LiteralTerm(value.Language)));
+
+            // "different literal" is a disjunction -- a different lexical form OR a different tag --
+            // whereas "the same literal" needs both halves to hold.
+            return new SparqlBinaryExpression(
+                op == ExpressionType.NotEqual ? SparqlBinaryOperator.Or : SparqlBinaryOperator.And,
+                lexical,
+                tag);
         }
 
         private static SparqlExpression NotBound(MemberBinding binding)
