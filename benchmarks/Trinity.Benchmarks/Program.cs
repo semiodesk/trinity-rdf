@@ -77,6 +77,15 @@ namespace Semiodesk.Trinity.Benchmarks
         /// </remarks>
         private static readonly TimeSpan CaseTimeout = TimeSpan.FromHours(2);
 
+        /// <summary>
+        /// The same limit for <c>--smoke</c>, which CI runs.
+        /// </summary>
+        /// <remarks>
+        /// A smoke case is one iteration at the smallest size, and even a container start fits well
+        /// inside this. A hung case should fail the fast CI job in minutes, not hold it for two hours.
+        /// </remarks>
+        private static readonly TimeSpan SmokeCaseTimeout = TimeSpan.FromMinutes(15);
+
         public static int Main(string[] args)
         {
             if (args.Length > 0 && string.Equals(args[0], "profile", StringComparison.OrdinalIgnoreCase))
@@ -132,7 +141,7 @@ namespace Semiodesk.Trinity.Benchmarks
         private static IConfig Config(bool large, bool smoke)
         {
             var job = Job.Default
-                .WithToolchain(new InProcessEmitToolchain(CaseTimeout, logOutput: true))
+                .WithToolchain(new InProcessEmitToolchain(smoke ? SmokeCaseTimeout : CaseTimeout, logOutput: true))
                 .WithStrategy(RunStrategy.Monitoring)
                 .WithWarmupCount(smoke ? 0 : 1)
                 .WithIterationCount(smoke ? 1 : 10)

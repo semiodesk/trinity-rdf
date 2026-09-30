@@ -24,6 +24,7 @@
 //
 // Copyright (c) Semiodesk GmbH 2026
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BenchmarkDotNet.Attributes;
@@ -71,6 +72,12 @@ namespace Semiodesk.Trinity.Benchmarks
 
         public override void GlobalSetup()
         {
+            if (People < Deletes)
+            {
+                throw new ArgumentException(
+                    $"People={People} is below the {Deletes} resources each invocation deletes.");
+            }
+
             base.GlobalSetup();
 
             // Spread through the ring rather than adjacent, so no deleted resource links to another

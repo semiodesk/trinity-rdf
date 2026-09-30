@@ -26,7 +26,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Threading.Tasks;
 using Semiodesk.Trinity.Store.Fuseki;
 using Semiodesk.Trinity.Store.GraphDB;
@@ -47,12 +46,22 @@ namespace Semiodesk.Trinity.Benchmarks
     /// for as long as it did (ADR-0047).
     ///
     /// Containers are started once per process and shared by every benchmark, because starting one
-    /// costs seconds to tens of seconds and that has nothing to do with what is being measured.
+    /// costs seconds to tens of seconds and that has nothing to do with what is being measured. They
+    /// are stopped when the process exits; Testcontainers' reaper is the backstop if it is killed.
+    ///
+    /// A backend that fails to start is not retried. BenchmarkDotNet runs a <c>[GlobalSetup]</c> per
+    /// case, so a retry would start a fresh container -- several GB, for GraphDB -- for each of up to
+    /// 232 cases, every one of them failing the same way. The first failure is kept and rethrown.
     /// </remarks>
     public static class BenchmarkStore
     {
         private static readonly Dictionary<StoreBackend, string> ConnectionStrings =
             new Dictionary<StoreBackend, string>();
+
+        private static readonly Dictionary<StoreBackend, Exception> StartFailures =
+            new Dictionary<StoreBackend, Exception>();
+
+        private static readonly List<Func<Task>> Stops = new List<Func<Task>>();
 
         private static readonly object Gate = new object();
 
@@ -79,6 +88,13 @@ namespace Semiodesk.Trinity.Benchmarks
         /// Registers the mapping and ontology assemblies. Global static state (ADR-0020), so it is
         /// done once per process rather than once per store.
         /// </summary>
+        /// <remarks>
+        /// The test assembly is registered for its <b>ontologies</b> only, which the seeded graphs and
+        /// SPARQL prefixes need. Its <b>mappings</b> are deliberately not registered: its
+        /// <c>Linq.Person</c> also maps <c>foaf:Person</c>, and an untyped read would then build that
+        /// wider test class instead of <see cref="BenchmarkPerson"/> -- so editing a test would move a
+        /// benchmark number, which owning the model exists to prevent (see BenchmarkModel.cs).
+        /// </remarks>
         private static void RegisterDiscoveryOnce()
         {
             lock (Gate)
@@ -89,7 +105,6 @@ namespace Semiodesk.Trinity.Benchmarks
                 }
 
                 OntologyDiscovery.AddAssembly(typeof(TestOntologies).Assembly);
-                MappingDiscovery.RegisterAssembly(typeof(TestOntologies).Assembly);
                 OntologyDiscovery.AddAssembly(typeof(Resource).Assembly);
                 MappingDiscovery.RegisterAssembly(typeof(Resource).Assembly);
 
@@ -100,6 +115,8 @@ namespace Semiodesk.Trinity.Benchmarks
                 StoreFactory.LoadProvider<FusekiStoreProvider>();
                 StoreFactory.LoadProvider<GraphDBStoreProvider>();
                 StoreFactory.LoadProvider<VirtuosoStoreProvider>();
+
+                AppDomain.CurrentDomain.ProcessExit += (sender, args) => StopAll();
 
                 _discoveryRegistered = true;
             }
@@ -114,11 +131,27 @@ namespace Semiodesk.Trinity.Benchmarks
                     return cached;
                 }
 
-                var connectionString = Start(backend);
+                if (StartFailures.TryGetValue(backend, out var failure))
+                {
+                    throw new InvalidOperationException(
+                        $"{backend} failed to start earlier in this run and is not retried; see the inner "
+                        + "exception for the original failure.", failure);
+                }
 
-                ConnectionStrings[backend] = connectionString;
+                try
+                {
+                    var connectionString = Start(backend);
 
-                return connectionString;
+                    ConnectionStrings[backend] = connectionString;
+
+                    return connectionString;
+                }
+                catch (Exception e)
+                {
+                    StartFailures[backend] = e;
+
+                    throw;
+                }
             }
         }
 
@@ -130,20 +163,36 @@ namespace Semiodesk.Trinity.Benchmarks
                     return "provider=dotnetrdf";
 
                 case StoreBackend.Oxigraph:
-                    return StartContainer<Tests.Oxigraph.OxigraphContainer>(
+                {
+                    var fixture = new Tests.Oxigraph.OxigraphContainer();
+
+                    return StartContainer(fixture.StartAsync, fixture.StopAsync,
                         () => Tests.Oxigraph.OxigraphContainer.ConnectionString);
+                }
 
                 case StoreBackend.Fuseki:
-                    return StartContainer<Tests.Fuseki.FusekiContainer>(
+                {
+                    var fixture = new Tests.Fuseki.FusekiContainer();
+
+                    return StartContainer(fixture.StartAsync, fixture.StopAsync,
                         () => Tests.Fuseki.FusekiContainer.ConnectionString);
+                }
 
                 case StoreBackend.GraphDB:
-                    return StartContainer<Tests.GraphDB.GraphDBContainer>(
+                {
+                    var fixture = new Tests.GraphDB.GraphDBContainer();
+
+                    return StartContainer(fixture.StartAsync, fixture.StopAsync,
                         () => Tests.GraphDB.GraphDBContainer.ConnectionString);
+                }
 
                 case StoreBackend.Virtuoso:
-                    return StartContainer<Tests.Virtuoso.VirtuosoContainer>(
+                {
+                    var fixture = new Tests.Virtuoso.VirtuosoContainer();
+
+                    return StartContainer(fixture.StartAsync, fixture.StopAsync,
                         () => Tests.Virtuoso.VirtuosoContainer.ConnectionString);
+                }
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(backend), backend, "Unknown backend.");
@@ -151,37 +200,57 @@ namespace Semiodesk.Trinity.Benchmarks
         }
 
         /// <summary>
-        /// Runs a test-suite container fixture's <c>StartAsync</c> and reads back the connection
-        /// string it publishes.
+        /// Runs a test-suite container fixture and reads back the connection string it publishes.
         /// </summary>
         /// <remarks>
-        /// Invoked by reflection on the method name rather than through an interface, because the
-        /// fixtures are NUnit types that share a shape but no base type. Adding one for the sake of
-        /// this would change four test projects to suit a benchmark.
+        /// Called with the fixture's own methods, typed, so a rename in a test project fails the build
+        /// here rather than at run time. A start that throws partway can leave a container running, so
+        /// the fixture is stopped before the failure propagates; every fixture's <c>StopAsync</c> is
+        /// safe to call on one that never finished starting.
         /// </remarks>
-        private static string StartContainer<T>(Func<string> connectionString) where T : new()
+        private static string StartContainer(Func<Task> start, Func<Task> stop, Func<string> connectionString)
         {
-            var fixture = new T();
-            var start = typeof(T).GetMethod("StartAsync", BindingFlags.Public | BindingFlags.Instance);
-
-            if (start == null)
+            try
             {
-                throw new InvalidOperationException(
-                    $"{typeof(T).Name} has no public StartAsync; the container fixtures are expected to "
-                    + "expose one so the benchmarks can reuse them rather than copy their provisioning.");
+                start().GetAwaiter().GetResult();
+            }
+            catch
+            {
+                try
+                {
+                    stop().GetAwaiter().GetResult();
+                }
+                catch
+                {
+                    // The start failure is the one worth reporting; the reaper removes what is left.
+                }
+
+                throw;
             }
 
-            ((Task)start.Invoke(fixture, null)).GetAwaiter().GetResult();
+            Stops.Add(stop);
 
-            var result = connectionString();
+            return connectionString();
+        }
 
-            if (string.IsNullOrEmpty(result))
+        private static void StopAll()
+        {
+            lock (Gate)
             {
-                throw new InvalidOperationException(
-                    $"{typeof(T).Name}.StartAsync completed but published no connection string.");
-            }
+                foreach (var stop in Stops)
+                {
+                    try
+                    {
+                        stop().GetAwaiter().GetResult();
+                    }
+                    catch
+                    {
+                        // Best effort at exit; Testcontainers' reaper removes anything left behind.
+                    }
+                }
 
-            return result;
+                Stops.Clear();
+            }
         }
     }
 }

@@ -79,6 +79,12 @@ namespace Semiodesk.Trinity.Benchmarks
             {
                 var value = i + 1 < args.Length ? args[i + 1] : null;
 
+                if (value == null || value.StartsWith("--", StringComparison.Ordinal))
+                {
+                    Console.Error.WriteLine($"{args[i]} needs a value.\n{Usage}");
+                    return 2;
+                }
+
                 switch (args[i])
                 {
                     case "--backend":
@@ -87,12 +93,20 @@ namespace Semiodesk.Trinity.Benchmarks
                         break;
 
                     case "--iterations":
-                        iterations = int.Parse(value ?? "", CultureInfo.InvariantCulture);
+                        // Checked here, before any setup: a bad count used to surface only after a
+                        // container had started and the fixture had been seeded.
+                        if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out iterations)
+                            || iterations < 1)
+                        {
+                            Console.Error.WriteLine($"--iterations expects a positive integer, got '{value}'.\n{Usage}");
+                            return 2;
+                        }
+
                         i++;
                         break;
 
                     case "--param":
-                        var pair = (value ?? "").Split(new[] { '=' }, 2);
+                        var pair = value.Split(new[] { '=' }, 2);
 
                         if (pair.Length != 2)
                         {
@@ -129,11 +143,31 @@ namespace Semiodesk.Trinity.Benchmarks
                 return 2;
             }
 
+            // Case-insensitive, like the lookup that applies the values below: --param count=100 used to
+            // be applied as Count and then reported as unknown.
+            var unused = parameters.Keys.Where(k => type.GetProperty(k, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase) == null).ToList();
+
+            if (unused.Count > 0)
+            {
+                Console.Error.WriteLine($"{type.Name} has no parameter {string.Join(", ", unused)}.");
+                return 2;
+            }
+
             var instance = Activator.CreateInstance(type);
 
             foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
-                var value = ParameterValue(instance, property, parameters);
+                object value;
+
+                try
+                {
+                    value = ParameterValue(instance, property, parameters);
+                }
+                catch (Exception e) when (e is FormatException || e is ArgumentException || e is OverflowException)
+                {
+                    Console.Error.WriteLine($"{property.Name}: {e.Message}\n{Usage}");
+                    return 2;
+                }
 
                 if (value != null)
                 {
@@ -142,20 +176,22 @@ namespace Semiodesk.Trinity.Benchmarks
                 }
             }
 
-            var unused = parameters.Keys.Where(k => type.GetProperty(k) == null).ToList();
-
-            if (unused.Count > 0)
-            {
-                Console.Error.WriteLine($"{type.Name} has no parameter {string.Join(", ", unused)}.");
-                return 2;
-            }
-
             var globalSetup = Lifecycle<GlobalSetupAttribute>(type, method.Name);
             var iterationSetup = Lifecycle<IterationSetupAttribute>(type, method.Name);
             var iterationCleanup = Lifecycle<IterationCleanupAttribute>(type, method.Name);
             var globalCleanup = Lifecycle<GlobalCleanupAttribute>(type, method.Name);
 
-            Invoke(globalSetup, instance);
+            try
+            {
+                Invoke(globalSetup, instance);
+            }
+            catch (ArgumentException e)
+            {
+                // A fixture refusing a parameter it cannot build (a layered size that is not a multiple
+                // of 5, say) is a usage error, reported like the others rather than as a crash.
+                Console.Error.WriteLine($"{e.Message}\n{Usage}");
+                return 2;
+            }
 
             var timings = new List<double>(iterations);
 

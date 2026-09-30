@@ -39,18 +39,23 @@ namespace Semiodesk.Trinity.Benchmarks
     /// <see cref="IStore.Read(string, Uri, RdfSerializationFormat, bool)"/> is one request per chunk on
     /// every backend.
     ///
-    /// Chunked because ADR-0042 measured Virtuoso writing <b>zero</b> triples, and reporting success,
-    /// when one write crosses its transaction-log limit: fine at 500,000, nothing at 1,000,000. The
-    /// chunk sits well under that. Callers still verify the count afterwards with
+    /// Chunked because Virtuoso refuses one statement that touches more than 10,000 entries
+    /// ("D1CTX: Hash dictionary is full, exceeded 10000 entries"). Through <c>Read</c> it fails loudly;
+    /// through an update it fails <b>silently</b>, because <c>ExecuteDirectQuery</c> swallows the error
+    /// (#50). So an update past the limit "succeeds" having written nothing. The chunk sits well under
+    /// the limit. Callers still verify the count afterwards with
     /// <see cref="StoreBenchmarkBase.AssertSeeded"/>; the chunking makes the load succeed, the check
     /// proves it did.
     /// </remarks>
     public static class BenchmarkData
     {
         /// <summary>
-        /// Triples per write. Half of the size ADR-0042 measured Virtuoso accepting.
+        /// Triples per write: half of Virtuoso's 10,000-entry statement limit. It used to be 250,000,
+        /// which was half of what ADR-0042 measured Virtuoso accepting in one update. But that update
+        /// was reporting success while writing nothing (#50), and past 10,000 Virtuoso's <c>Read</c>
+        /// fails outright, so no Virtuoso case above the smallest size had ever run.
         /// </summary>
-        public const int ChunkSize = 250_000;
+        public const int ChunkSize = 5_000;
 
         /// <summary>
         /// Appends the triples <paramref name="write"/> produces to <paramref name="graph"/>.
