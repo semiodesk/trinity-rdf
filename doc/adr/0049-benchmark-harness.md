@@ -27,7 +27,14 @@ category and baseline (the config groups by category). `InMemory` is a backend l
 is the floor: no network, no server.
 
 **It reuses the store suites' Testcontainers fixtures** rather than copying their provisioning. A
-second copy of setup logic is how GraphDB lost its TriG case (ADR-0047).
+second copy of setup logic is how GraphDB lost its TriG case (ADR-0047). Each fixture is started
+once per process and stopped at exit. A backend that fails to start is **not retried**: every case
+runs its own `[GlobalSetup]`, so a retry would start a fresh multi-GB container for each of up to 232
+cases. The half-started fixture is stopped, and the first failure is rethrown for the rest.
+
+**The harness registers its own mappings only.** The test assembly is registered for its ontology
+prefixes, not its mappings: its `Linq.Person` also maps `foaf:Person`, and an untyped read would build
+that wider test class instead of `BenchmarkPerson`. Editing a test would then move a benchmark number.
 
 **One in-process job, built in code.** In-process, because the default toolchain spawns a process
 per case and would restart every container for every cell. Monitoring with one invocation and ten
@@ -39,16 +46,33 @@ exceeds it does not fail — it ends the whole run, which a 1M layered case does
 first iteration.
 
 **Every measurement proves it measured something.** A write verifies what landed, outside the timed
-region, and throws if it did not; a read verifies its fixture before it is timed. This is not
-caution: Virtuoso *silently writes zero* above its transaction-log limit (ADR-0042), and a benchmark
-that crossed it would report an excellent time for doing nothing.
+region, and throws if it did not; a read verifies its fixture before it is timed, and checks its own
+answer inside the timed region, which costs one comparison. This is not caution: Virtuoso *silently
+writes zero* when one statement exceeds 10,000 entries (#50, #70), and a benchmark that crossed that
+would report an excellent time for doing nothing. A read that resolves none of its members is faster than one that
+resolves all of them.
+
+The guards check **content, not just counts**, wherever a count can come out right by accident:
+- The layered changeset is deliberately unbalanced, 120 triples added against 100 removed. With a
+  balanced one, a view that ignored its layers entirely had exactly the effective size.
+- The materialized graph is checked for the added names and against the removed ones.
+- Staging must put the replaced value in removals, not only the new one in additions. Otherwise a
+  single-valued property would read two values, the ADR-0042 hazard.
+- A staged delete must cover the victim's object side as well as its subject side. The object side is
+  what ADR-0042's two-bound-patterns fix changed.
+
+Each of these was checked by breaking the path in a throwaway worktree and confirming the guard fails:
+a view delete that skips the object side, staging that never writes removals, a bulk load that
+resolves nothing, and the test mappings registered again.
 
 **Backends are chosen with `TRINITY_BENCH_BACKENDS`**, read by a `ParamsSource`. BenchmarkDotNet has
 no parameter filter (`-p` is its profiler switch), and an unselected backend is then never started.
 
-**Fixtures are bulk-loaded** as N-Triples through `IStore.Read`, in 250k-triple chunks — half of
-what ADR-0042 measured Virtuoso accepting — unless seeding is what the workload measures. Seeding
-through the mapper costs one or two requests per resource and would dominate the run.
+**Fixtures are bulk-loaded** as N-Triples, read as Turtle, through `IStore.Read`, unless seeding is
+what the workload measures. Seeding through the mapper costs one or two requests per resource and
+would dominate the run. The load is chunked at 5,000 triples, half of the 10,000 entries Virtuoso
+accepts in one statement (#70). It was 250,000, half of what ADR-0042 measured Virtuoso accepting, but
+past 10,000 Virtuoso's `Read` fails outright, so no Virtuoso case above the smallest size had run.
 
 **The 1M tier is opt-in.** The `Layered*` classes run at 10k and 100k; a `…Large` subclass in the
 `Large` category runs at 1M and is filtered out unless `--large` is passed. Layered baselines are
@@ -66,7 +90,8 @@ targets are the server backends.
 **CI runs a smoke pass and gates nothing on time.** `--smoke` runs every case once, at the smallest
 value of each numeric parameter, against InMemory. It exists so a workload that throws — including a
 guard that fires — fails the build rather than the next person to run it. Absolute numbers depend on
-the host, disk and Docker runtime; a threshold would be noise.
+the host, disk and Docker runtime; a threshold would be noise. A smoke case may run for 15 minutes,
+not the measuring job's two hours, so a hung case fails the fast job instead of holding it.
 
 **Results are exported, not committed.** The config adds the full JSON exporter, and the README
 documents a before/after comparison on one machine with `dotnet/performance`'s ResultsComparer.
@@ -109,8 +134,9 @@ the clean signal, because the store's own work happens in another process.
   materialized views everywhere. `VALUES` precedes the overlay, as ADR-0041 requires, but the binding has
   to be pushed through `MINUS` and a nested `FILTER NOT EXISTS`, and those engines don't do it.
 - **`Model.GetResource(uri)` and `ModelGroup.GetResource` bind the subject with `FILTER (?s = …)`** (#66),
-  the shape ADR-0042 replaced in the staging paths. On Oxigraph that is 129 ms at 100k (286×), and 47×
-  through a 16-member group. It is flat elsewhere.
+  the shape ADR-0042 replaced in the staging paths. On Oxigraph that is 46.7 ms at 100k (about 130×),
+  and 47× through a 16-member group. It is flat elsewhere. The first figure, 129 ms, was inflated: the
+  untyped read was building the test assembly's `Linq.Person` (see the review below).
 
 **Costs of dotNetRDF's in-memory engine.** They matter for tests and development, not production.
 - **`Accept()` is O(baseline) in memory only:** 2.4 s at 10k and 30 s at 100k for the same ~100 changes,
@@ -133,6 +159,13 @@ the clean signal, because the store's own work happens in another process.
 - **Virtuoso cannot read N-Triples, JSON-LD, TriG or N-Quads from a string** (#55). Its string path has
   its own parser switch with no N-Triples case, and it passes quad-format content to a dotNetRDF overload
   that takes a file name. The harness seeds as Turtle for that reason.
+- **Virtuoso refuses any single statement over 10,000 entries** (#70). `Read` of more than about 10k
+  triples throws. Materializing a view past 10,000 effective triples writes nothing, because the error
+  is swallowed (#50), and `Refresh()`'s own check then throws. So a materialized view cannot be used on
+  Virtuoso past 10k. Found only after the review below unbalanced the layered changeset: the old one
+  produced exactly 10,000 effective triples.
+- **`CreateModelGroup(params IModel[])` returns an empty group** on `SparqlEndpointStore`, and on
+  `dotNetRDFStore` when called through the concrete type rather than `IStore` (#68).
 - **`ModelGroup.GetResources<T>()` throws `NotImplementedException`** (#56). The group workload uses the
   query overload instead.
 - **`GetResources<T>(ISparqlQuery)` does not follow the `;` shorthand.** It needs the preprocessor to see
@@ -145,6 +178,26 @@ in line with ADR-0041. Writes, deletes, literal updates, paging, `Count`, `Conta
 are all within 0.9–1.5× of hand-written SPARQL on the servers. Mapping is not where those spend their
 time.
 
+## The review, and what it changed
+A review of #57 found that several guards could not notice when the work they check didn't happen, so
+a regression would have read as a speedup. All of it was fixed before merge:
+- The layered changeset was balanced, so a view that ignored its layers had the right size. It is now
+  unbalanced, and the guards check content.
+- Staging never checked that the old value reached removals, and a staged delete was checked on its
+  subject side only.
+- Read rows returned counts nobody compared. They now check their answers.
+- The test assembly's mappings were registered, so the untyped read built `Linq.Person`. This skewed
+  #66's first figure.
+- A failed container start was retried for every case, and the half-started container leaked.
+- Bad `--param` and `--iterations` values failed late or with the wrong message.
+- The CI smoke run inherited the two-hour per-case timeout.
+- Duplicate cells: the serialization raw rows, and the baseline and group rows of the layered read,
+  ran once per value of a parameter they don't depend on. Both are now one method per variant.
+
+Each new guard was checked by breaking its path in a throwaway worktree and watching it fail. The
+stronger guards immediately found #70 on Virtuoso. Deferred to #69: routing the raw rows' IRIs through
+`SerializeUri`, and loading the test ontologies once instead of per case.
+
 ## Consequences
 - An optimization starts from a named workload and ends with a before/after pair from one machine,
   rather than from a harness written for the occasion.
@@ -153,9 +206,10 @@ time.
 - The benchmarks cost the fast CI job about two minutes. They are not a correctness suite: a
   guard that fires is a harness failure, and the defect it points at still needs a test in the right
   project.
-- Virtuoso's materialized 1M cells are expected to fail in setup, and its raw 1M copy to fail its
-  verification: ADR-0042's silent-zero finding, which the guards exist to catch. That is a prediction;
-  the 1M tier has not been run on Virtuoso.
+- Virtuoso's materialized cells fail in setup at every size: past 10,000 effective triples, the
+  materializing update is refused, the error is swallowed (#50), and `Refresh()` finds nothing written
+  (#70). The old balanced changeset produced exactly 10,000, right at the limit, which is why those
+  cells used to pass. They are left failing so the defect stays visible.
 - GraphDB's container runs with reasoning on (`rdfsplus-optimized`); its write numbers include
   inference and are not comparable to the other backends' without saying so.
 - The harness holds a mapped model of its own (`BenchmarkPerson`, `BenchmarkWideResource`) rather

@@ -30,7 +30,7 @@ NUnit, so provisioning is not copied here. A backend that is not selected is nev
 |---|---|
 | `TRINITY_BENCH_BACKENDS` | Comma-separated backends: `InMemory`, `Oxigraph`, `Fuseki`, `GraphDB`, `Virtuoso`. Unset means all. An unknown name throws. An environment variable because BenchmarkDotNet has no parameter filter — its `-p` is the **profiler** switch. |
 | `--large` | Include the `Large` category: the 1,000,000-triple layered workloads. Excluded otherwise; expect tens of minutes per backend. In memory, leave out the group rows (`--filter "*LayeredReadLarge*View" "*LayeredReadLarge*Baseline" …`): an in-memory group query costs ~10 s at 1M, so those rows alone run for hours. |
-| `--smoke` | One iteration, no warmup, only the smallest value of each numeric parameter, and `InMemory` unless `TRINITY_BENCH_BACKENDS` says otherwise. Proves the workloads run and their guards hold; the timings mean nothing. Exits non-zero if any case failed. |
+| `--smoke` | One iteration, no warmup, only the smallest value of each numeric parameter, and `InMemory` unless `TRINITY_BENCH_BACKENDS` says otherwise. Proves the workloads run and their guards hold; the timings mean nothing. Exits non-zero if any case failed. A case may take 15 minutes here, not two hours, so a hung one fails fast. |
 | `--artifacts <dir>` | BenchmarkDotNet's own: where the reports go. Use one directory per side of a comparison. |
 | `profile …` | Bypasses BenchmarkDotNet; see [Profiling](#profiling). |
 
@@ -120,7 +120,8 @@ dotnet-trace collect -- dotnet benchmarks/Trinity.Benchmarks/bin/Release/net8.0/
 
 `--backend` defaults to the first selected backend (InMemory when `TRINITY_BENCH_BACKENDS` is unset),
 and a parameter that is not given takes its first declared value. `--param` accepts sizes the table
-does not have. The same command works under `dotnet-counters`, or with the dll as the start target of
+does not have, within what a fixture can build: layered sizes must be a multiple of 5 and at least
+1000, and a size that doesn't fit is refused before anything starts. Names are case-insensitive. The same command works under `dotnet-counters`, or with the dll as the start target of
 a Visual Studio or Rider profiling session. BenchmarkDotNet's own `EventPipeProfiler` does not help
 here: it needs an out-of-process toolchain, and this harness is in-process so the containers survive.
 
@@ -131,19 +132,19 @@ here: it needs an out-of-process toolchain, and this harness is in-process so th
 - **GraphDB's test container runs with reasoning on** (`rdfsplus-optimized`, set in
   `GraphDBContainer.cs`). Its writes do inference work the others do not. Not apples to apples;
   say so beside any GraphDB number.
-- **A write benchmark can measure nothing at all.** ADR-0042 records that Virtuoso *silently writes
-  zero* when an `INSERT … WHERE` exceeds its transaction-log limit — fine at 500k, zero at 1M. A
-  benchmark that crosses that would report an excellent time for doing nothing. Every write
-  benchmark here verifies what landed outside the timed region, and throws if the work did not
-  happen; every read benchmark verifies its fixture before measuring. Keep that in anything new.
-- **Virtuoso's 1M materialized cells fail, by design.** `Refresh()` counts what it wrote and throws
-  rather than serve an empty graph, and the raw copy in `LayeredMaterializeLargeBenchmarks` is
-  verified the same way. A failed cell there is the ADR-0042 finding reproduced, not a harness bug.
-- **Some cells fail because Trinity has a defect there, and are left failing so it stays visible**
-  (ADR-0049 records each one):
-  `WideResourceBenchmarks` on Oxigraph (a mapped `long` above `int.MaxValue` overflows on read), and
-  `SerializationBenchmarks`' N-Triples and JSON-LD reads on Virtuoso (its string read path has no
-  N-Triples parser and treats a quad-format document as a file name). Fix the defect, not the workload.
+- **A write benchmark can measure nothing at all.** Virtuoso refuses any single statement over
+  10,000 entries, and its adapter swallows the error (#50, #70), so an update past the limit reports
+  success having written nothing. A benchmark that crossed it would report an excellent time for doing
+  nothing. Every write benchmark here verifies what landed, outside the timed region and by content
+  where a count could come out right by accident. Every read benchmark verifies its fixture and checks
+  its own answer. Keep that in anything new.
+- **Some cells fail because Trinity has a defect there, and are left failing so it stays visible.**
+  ADR-0049 records each one. Fix the defect, not the workload.
+  - `WideResourceBenchmarks` on Oxigraph: a mapped `long` above `int.MaxValue` overflows on read (#54).
+  - `SerializationBenchmarks`' N-Triples and JSON-LD reads on Virtuoso: its string read path has no
+    N-Triples parser and treats a quad-format document as a file name (#55).
+  - Every materialized layered cell on Virtuoso: a view past 10,000 effective triples cannot be
+    materialized there (#70).
 - **Layered baselines persist between cases.** BenchmarkDotNet runs `[GlobalSetup]` once per case,
   and reseeding a million triples each time would dominate the run, so a layered baseline graph is
   named after its size and reseeded only when its count is wrong. Anything that changes a baseline
@@ -155,8 +156,19 @@ here: it needs an out-of-process toolchain, and this harness is in-process so th
 ## Adding a workload
 
 Derive from `StoreBenchmarkBase` (it supplies the `Backend` parameter, the store, a clean model,
-`PersonUri`, `CountWhere`, `AssertWrote` and `AssertSeeded`). Seed fixtures with `BenchmarkData`
-rather than through the mapper, unless seeding is what you measure. Pair the mapped operation with a
-raw-SPARQL equivalent marked `[Benchmark(Baseline = true)]`, and give each operation its own
-`[BenchmarkCategory]` if the class has several. Verify the work happened outside the timed region.
-Keep `--smoke` cheap: the smallest value of each numeric parameter is what CI runs.
+`PersonUri`, `CountWhere`, `AssertWrote`, `AssertSeeded` and `Expect`). Seed fixtures with
+`BenchmarkData` rather than through the mapper, unless seeding is what you measure. Pair the mapped
+operation with a raw-SPARQL equivalent marked `[Benchmark(Baseline = true)]`, and give each operation
+its own `[BenchmarkCategory]` if the class has several. Then prove the work happened:
+
+- A **write** verifies what landed, outside the timed region, by **content** wherever a count can
+  come out right by accident.
+- A **read** returns its answer through `Expect(actual, expected, …)`, so a read that silently
+  returns less fails instead of reporting a speedup.
+- Before trusting a new guard, break the path it guards once, in a throwaway worktree, and watch it
+  fail.
+
+Don't make a parameter of something the baseline doesn't depend on. BenchmarkDotNet would run the
+baseline once per value and report the same cell several times; use one method per variant instead,
+as `SerializationBenchmarks` and `LayeredReadBenchmarks` do. Keep `--smoke` cheap: the smallest value
+of each numeric parameter is what CI runs.
