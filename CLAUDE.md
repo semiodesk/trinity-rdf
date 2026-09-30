@@ -95,8 +95,9 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   is ever given a CLR-type-fidelity guarantee, they must come back.
 - **CI:** `.github/workflows/ci.yml` (ubuntu, .NET 10) — a fast `build` job (restore → build → test →
   coverage → pack), a `duplication` job, a `stores` matrix job running the four Dockerized store suites (ADR-0044),
-  and a `coverage` job merging both kinds of report.
-  NuGet publishing is **manual** (no publish job).
+  and a `coverage` job merging both kinds of report. It runs on **pull requests** and on pushes to
+  `develop`/`master` only — also triggering on `feature/**` pushes ran everything twice per PR push —
+  and a newer commit on a PR cancels the superseded run. NuGet publishing is **manual** (no publish job).
 - **Coverage** is collected by the collector bundled with `Microsoft.NET.Test.Sdk` (no package or tool
   to add), merged by `.github/scripts/coverage.py`, printed to the job summary as a per-assembly table,
   and **gated at a 78% floor**. Two things about that number are easy to get wrong. The three

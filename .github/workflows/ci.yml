@@ -1,10 +1,21 @@
 name: CI
 
+# Pull requests cover every topic branch -- feature/, fix/, docs/ alike -- so pushes build only the
+# two release branches. Listing feature/** under push as well ran the whole workflow twice for every
+# push to a branch with an open pull request, once per event, the four Docker store legs included.
+# A branch without a pull request yet can still be built by hand (workflow_dispatch).
 on:
   push:
-    branches: [ develop, master, 'feature/**' ]
+    branches: [ develop, master ]
   pull_request:
   workflow_dispatch:
+
+# A newer commit on a pull request supersedes the run for the older one, which is cancelled. Nothing
+# else shares a group: GitHub cancels a *pending* run in a group even without cancel-in-progress, so a
+# shared group on develop would drop builds -- and each commit there produces its own package.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || format('ci-run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Least privilege: this workflow only checks out, builds, tests and packs.
 # Declaring the block sets every unlisted scope to 'none'.
