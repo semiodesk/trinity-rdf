@@ -115,7 +115,8 @@ jobs:
   duplication:
     runs-on: ubuntu-latest
     steps:
-      # Depth 2 for the base parent of a pull request's merge commit, as in the build job.
+      # Depth 2 so a pull request's merge commit has its base parent: `--diff HEAD^1` needs it, here and
+      # in the `coverage` job. The build job checks out at the default depth 1 and runs no --diff.
       - uses: actions/checkout@v7
         with:
           fetch-depth: 2
