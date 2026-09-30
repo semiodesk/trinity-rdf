@@ -61,6 +61,12 @@ case $? in
     *) block "The pre-commit hook could not tell whether this command commits: ${decision:-python3 gave no reason}. It was blocked rather than risk an unchecked commit; run the commit as a plain \`git commit\` command." ;;
 esac
 
+# The check is bounded below the hook's own limit, which needs a GNU timeout. It is the hook's own
+# prerequisite, not the check's, so its absence blocks (rule 2) and says what to install.
+. "$hooks/../../.github/scripts/find_timeout.sh" || block "The pre-commit hook could not load find_timeout.sh."
+timeout_cmd=$(find_timeout) ||
+    block "The pre-commit hook needs GNU timeout to keep the check below its own time limit, and found none (on macOS: brew install coreutils, which installs it as gtimeout). The commit was blocked rather than let through unchecked."
+
 # $decision lists the working trees the command commits in, one per line.
 context=""
 while IFS= read -r tree; do
@@ -78,7 +84,7 @@ while IFS= read -r tree; do
         continue
     fi
 
-    report=$(timeout --kill-after=15 840 bash .github/scripts/check.sh 2>&1)
+    report=$("$timeout_cmd" --kill-after=15 840 bash .github/scripts/check.sh 2>&1)
     status=$?
 
     if [ "$status" -eq 124 ] || [ "$status" -eq 137 ]; then

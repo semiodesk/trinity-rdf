@@ -64,17 +64,11 @@ trap 'for p in ${pids[@]+"${pids[@]}"}; do kill "$p" 2>/dev/null; done; rm -rf "
 trap 'exit 143' TERM
 trap 'exit 130' INT
 
-# Store suites run under a GNU `timeout`. Stock macOS has none; Homebrew's coreutils installs it as
-# `gtimeout`. Without one the store suites are reported as not run for that reason -- it must not
-# masquerade as a missing Docker, which is what `timeout 10 docker info` failing used to report.
-timeout_cmd=""
-for candidate in timeout gtimeout; do
-    path=$(command -v "$candidate" 2> /dev/null) || continue
-    if "$path" --kill-after=1 5 true 2> /dev/null; then
-        timeout_cmd="$path"
-        break
-    fi
-done
+# Store suites run under a GNU `timeout` (see find_timeout.sh). Without one they are reported as not
+# run for that reason -- it must not masquerade as a missing Docker, which is what `timeout 10 docker
+# info` failing used to report.
+. "$scripts/find_timeout.sh"
+timeout_cmd=$(find_timeout) || timeout_cmd=""
 
 suites=(
     Trinity.Tests/Trinity.Tests.csproj
