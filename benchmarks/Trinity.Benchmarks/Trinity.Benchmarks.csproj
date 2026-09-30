@@ -20,7 +20,7 @@
     The store test projects are referenced for their Testcontainers fixtures only. Those classes are
     public and their StartAsync is callable outside NUnit, so the provisioning lives in exactly one
     place. Copying it here instead would be a second copy of the same setup logic, which is the
-    failure mode that produced GraphDB's missing TriG case (ADR-0046).
+    failure mode that produced GraphDB's missing TriG case (ADR-0047).
   -->
   <!--
     The source generator is referenced as an analyzer, exactly as Trinity.Tests does it: it is

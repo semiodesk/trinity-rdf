@@ -24,7 +24,6 @@
 //
 // Copyright (c) Semiodesk GmbH 2026
 
-using System;
 using System.Linq;
 using BenchmarkDotNet.Attributes;
 
@@ -51,24 +50,12 @@ namespace Semiodesk.Trinity.Benchmarks
         {
             base.GlobalSetup();
 
-            for (var i = 0; i < Count; i++)
-            {
-                var person = Model.CreateResource<BenchmarkPerson>(BaseUri.GetUriRef($"person-{i}"));
+            // Bulk-loaded rather than committed one by one: the mapped write path is what
+            // WriteBenchmarks measures, and here it would only be two requests per resource of setup.
+            BenchmarkData.Seed(Store, Model.Uri, Count,
+                (buffer, i) => BenchmarkData.AppendPerson(buffer, PersonUri(i), $"Person {i}"));
 
-                person.FirstName = $"Person {i}";
-                person.Commit();
-            }
-
-            // Proving the fixture landed before measuring reads of it, for the same reason the write
-            // benchmarks verify: a read of an empty model is fast and says nothing.
-            var actual = CountTriples();
-
-            if (actual != Count * 2)
-            {
-                throw new InvalidOperationException(
-                    $"{Backend}: seeding wrote {actual} triples, expected {Count * 2}. Every read "
-                    + "benchmark below would be measuring the wrong amount of data.");
-            }
+            AssertSeeded(Count * 2);
         }
 
         /// <summary>

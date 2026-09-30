@@ -44,7 +44,7 @@ namespace Semiodesk.Trinity.Benchmarks
     /// The containers are the very ones the store test suites use. Their fixture classes are public
     /// and their <c>StartAsync</c> works outside NUnit, so provisioning lives in one place rather
     /// than being copied here -- which is the failure mode that left GraphDB unable to parse TriG
-    /// for as long as it did (ADR-0046).
+    /// for as long as it did (ADR-0047).
     ///
     /// Containers are started once per process and shared by every benchmark, because starting one
     /// costs seconds to tens of seconds and that has nothing to do with what is being measured.

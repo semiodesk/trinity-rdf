@@ -66,14 +66,20 @@ namespace Semiodesk.Trinity.Benchmarks
         }
 
         /// <summary>
-        /// The mapped path: create a resource, set a property, commit.
+        /// The idiomatic mapped path: <c>CreateResource</c>, set a property, commit.
         /// </summary>
-        [Benchmark(Description = "Commit() (mapped)")]
+        /// <remarks>
+        /// Two requests per resource, not one: <c>Model.CreateResource</c> issues an ASK to refuse a
+        /// URI that already exists, then <c>Commit()</c> issues the insert. That check is part of what a
+        /// caller pays for the idiom, so it stays in this row -- but it is a round trip, not mapping,
+        /// and <see cref="CommitMappedNoExistenceCheck"/> is the row that leaves it out.
+        /// </remarks>
+        [Benchmark(Description = "CreateResource + Commit() (mapped)")]
         public void CommitMapped()
         {
             for (var i = 0; i < Count; i++)
             {
-                var person = Model.CreateResource<BenchmarkPerson>(BaseUri.GetUriRef($"person-{i}"));
+                var person = Model.CreateResource<BenchmarkPerson>(PersonUri(i));
 
                 person.FirstName = $"Person {i}";
                 person.Commit();
@@ -81,13 +87,34 @@ namespace Semiodesk.Trinity.Benchmarks
         }
 
         /// <summary>
-        /// The same triples as <c>Count</c> separate hand-written updates: one request per resource,
-        /// exactly as the mapped path issues them.
+        /// The mapped path without the existence check: one request per resource.
         /// </summary>
         /// <remarks>
-        /// This is the row that isolates what Trinity costs. It does the same number of round trips
-        /// as <see cref="CommitMapped"/>, so the difference between the two is mapping, change
-        /// tracking and serialization -- and nothing else. Against the batched baseline below, the
+        /// Builds the resource the way <c>CreateResource</c> does after its ASK -- construct,
+        /// <c>SetModel</c>, <c>IsNew = true</c> -- so <c>Commit()</c> takes the same insert branch. It
+        /// does exactly as many round trips as <see cref="InsertRawPerResource"/>, so the gap between
+        /// those two rows is mapping, change tracking and serialization, and nothing else.
+        /// </remarks>
+        [Benchmark(Description = "new + Commit() (mapped, no existence check)")]
+        public void CommitMappedNoExistenceCheck()
+        {
+            for (var i = 0; i < Count; i++)
+            {
+                var person = new BenchmarkPerson(PersonUri(i));
+
+                person.SetModel(Model);
+                person.IsNew = true;
+                person.FirstName = $"Person {i}";
+                person.Commit();
+            }
+        }
+
+        /// <summary>
+        /// The same triples as <c>Count</c> separate hand-written updates: one request per resource.
+        /// </summary>
+        /// <remarks>
+        /// Pair it with <see cref="CommitMappedNoExistenceCheck"/>, which makes the same number of
+        /// round trips, to read off what Trinity costs. Against the batched baseline below, the
         /// difference is round trips.
         ///
         /// Without this row the table invites a wrong conclusion: the mapped-to-batched ratio looks
@@ -98,7 +125,7 @@ namespace Semiodesk.Trinity.Benchmarks
         {
             for (var i = 0; i < Count; i++)
             {
-                var subject = BaseUri.GetUriRef($"person-{i}");
+                var subject = PersonUri(i);
 
                 Store.ExecuteNonQuery(new SparqlUpdate(
                     $"INSERT DATA {{ GRAPH <{Model.Uri}> {{ <{subject}> a <{Vocabulary.PersonClass}>; "
@@ -123,7 +150,7 @@ namespace Semiodesk.Trinity.Benchmarks
             for (var i = 0; i < Count; i++)
             {
                 triples
-                    .Append('<').Append(BaseUri.GetUriRef($"person-{i}")).Append("> a <")
+                    .Append('<').Append(PersonUri(i)).Append("> a <")
                     .Append(Vocabulary.PersonClass).Append(">; <")
                     .Append(Vocabulary.FirstNameProperty).Append("> \"Person ").Append(i).Append("\" . ");
             }

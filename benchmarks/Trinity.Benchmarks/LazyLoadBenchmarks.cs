@@ -24,7 +24,6 @@
 //
 // Copyright (c) Semiodesk GmbH 2026
 
-using System;
 using System.Linq;
 using BenchmarkDotNet.Attributes;
 
@@ -73,7 +72,10 @@ namespace Semiodesk.Trinity.Benchmarks
 
             for (var i = 0; i < People; i++)
             {
-                people[i] = Model.CreateResource<BenchmarkPerson>(BaseUri.GetUriRef($"person-{i}"));
+                // Not CreateResource: its existence check is a round trip per resource of setup.
+                people[i] = new BenchmarkPerson(PersonUri(i));
+                people[i].SetModel(Model);
+                people[i].IsNew = true;
                 people[i].FirstName = $"Person {i}";
             }
 
@@ -89,15 +91,7 @@ namespace Semiodesk.Trinity.Benchmarks
             // what the benchmarks below measure.
             Store.UpdateResources(people, Model.Uri);
 
-            var expected = People * (2 + Links);
-            var actual = CountTriples();
-
-            if (actual != expected)
-            {
-                throw new InvalidOperationException(
-                    $"{Backend}: seeding wrote {actual} triples, expected {expected}. Every benchmark "
-                    + "below would be traversing the wrong shape.");
-            }
+            AssertSeeded(People * (2 + Links));
         }
 
         /// <summary>

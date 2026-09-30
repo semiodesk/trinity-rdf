@@ -25,37 +25,43 @@
 // Copyright (c) Semiodesk GmbH 2026
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using BenchmarkDotNet.Attributes;
 
 namespace Semiodesk.Trinity.Benchmarks
 {
     /// <summary>
-    /// Shared provisioning for a cross-store benchmark.
+    /// Shared provisioning for a cross-store benchmark: the backend parameter, a store, a clean
+    /// model, and the guards that prove the work happened.
     /// </summary>
     /// <remarks>
-    /// <see cref="RunStrategy.Monitoring"/> with an invocation count of one, rather than
-    /// BenchmarkDotNet's default pilot. These operations are network- and disk-bound and take
-    /// milliseconds to seconds; the default strategy would run a multi-second operation thousands of
-    /// times to find a stable nanosecond figure that does not exist here.
-    ///
-    /// <see cref="MemoryDiagnoserAttribute"/> is on because allocation is the half of the cost that
-    /// is unambiguously ours: the store's work happens in another process, so what is allocated here
-    /// is what Trinity built to ask for it.
+    /// The job every benchmark runs under -- in-process, Monitoring, memory diagnoser -- is built in
+    /// <see cref="Program"/>, not declared here with attributes. Stacking <c>[InProcess]</c> on
+    /// <c>[SimpleJob]</c> does not configure one job, it declares <b>two</b>: an in-process one at
+    /// BenchmarkDotNet's default iteration counts, and a Monitoring one that spawns a process per case
+    /// and so restarts every container. That doubles the matrix and makes most of it meaningless,
+    /// while still printing a plausible table.
     /// </remarks>
-    ///
-    /// The job is built in <see cref="Program"/> rather than declared with attributes here.
-    /// Stacking <c>[InProcess]</c> on <c>[SimpleJob]</c> does not configure one job, it declares
-    /// <b>two</b> -- an in-process one at BenchmarkDotNet's default iteration counts, and a
-    /// Monitoring one that spawns a process per case and so restarts every container. That doubles
-    /// the matrix and makes most of it meaningless, while still printing a plausible table.
     public abstract class StoreBenchmarkBase
     {
         /// <summary>
-        /// The backend under test. Every benchmark runs once per value.
+        /// The backend under test. Every benchmark runs once per selected value.
         /// </summary>
-        [ParamsAllValues]
+        /// <remarks>
+        /// Selected with <c>TRINITY_BENCH_BACKENDS</c> rather than on the command line, because
+        /// BenchmarkDotNet has no parameter filter (<c>-p</c> is its profiler switch). An unselected
+        /// backend is never provisioned: containers start lazily in <see cref="BenchmarkStore"/>.
+        /// </remarks>
+        [ParamsSource(nameof(Backends))]
         public StoreBackend Backend { get; set; }
+
+        /// <summary>
+        /// The values <see cref="Backend"/> takes. Public and instance-level because BenchmarkDotNet
+        /// resolves a <c>ParamsSource</c> by name on the benchmark type, and an inherited static
+        /// member is not found that way.
+        /// </summary>
+        public IEnumerable<StoreBackend> Backends => BenchmarkBackends.Selected;
 
         protected IStore Store;
 
@@ -84,6 +90,15 @@ namespace Semiodesk.Trinity.Benchmarks
         }
 
         /// <summary>
+        /// The URI of the <paramref name="i"/>th person, shared by every workload so seeding and the
+        /// raw baselines agree on the subjects.
+        /// </summary>
+        protected UriRef PersonUri(int i)
+        {
+            return BaseUri.GetUriRef($"person-{i}");
+        }
+
+        /// <summary>
         /// Counts the triples in the benchmark model.
         /// </summary>
         /// <remarks>
@@ -95,10 +110,36 @@ namespace Semiodesk.Trinity.Benchmarks
         /// </remarks>
         protected int CountTriples()
         {
-            var query = new SparqlQuery(
-                $"SELECT ?s ?p ?o FROM <{Model.Uri}> WHERE {{ ?s ?p ?o }}", declarePrefixes: false);
+            return CountTriples(Model.Uri);
+        }
 
-            return Store.ExecuteQuery(query).GetBindings().Count();
+        /// <summary>
+        /// Counts the triples in one graph.
+        /// </summary>
+        /// <remarks>
+        /// An aggregate rather than counting bindings client-side, because the layered workloads verify
+        /// graphs of a million triples, and transferring a million rows to count them would make the
+        /// guard cost more than the benchmark. The value comes back as whatever integer box the store
+        /// chooses (ADR-0040), so it is converted rather than cast.
+        /// </remarks>
+        protected int CountTriples(Uri graph)
+        {
+            return CountWhere(graph, "?s ?p ?o");
+        }
+
+        /// <summary>
+        /// Counts the solutions of <paramref name="pattern"/> in one graph.
+        /// </summary>
+        /// <param name="graph">The graph to count in, as the query's only <c>FROM</c>.</param>
+        /// <param name="pattern">A group graph pattern body, without the braces.</param>
+        protected int CountWhere(Uri graph, string pattern)
+        {
+            var query = new SparqlQuery(
+                $"SELECT (COUNT(*) AS ?count) FROM <{graph}> WHERE {{ {pattern} }}", declarePrefixes: false);
+
+            var binding = Store.ExecuteQuery(query).GetBindings().Single();
+
+            return Convert.ToInt32(binding["count"]);
         }
 
         /// <summary>
@@ -106,15 +147,34 @@ namespace Semiodesk.Trinity.Benchmarks
         /// </summary>
         protected void AssertWrote(int expected)
         {
-            var actual = CountTriples();
+            AssertCount(Model.Uri, expected,
+                "after the benchmark. The measurement is of an operation that did not do the work, so the "
+                + "timing is meaningless -- see ADR-0042 on Virtuoso writing zero above its "
+                + "transaction-log limit.");
+        }
+
+        /// <summary>
+        /// Throws unless <paramref name="graph"/> holds exactly <paramref name="expected"/> triples
+        /// once a fixture is seeded.
+        /// </summary>
+        /// <remarks>
+        /// A read of an empty or half-seeded model is fast and says nothing, so every read workload
+        /// proves its fixture before measuring it.
+        /// </remarks>
+        protected void AssertSeeded(int expected, Uri graph = null)
+        {
+            AssertCount(graph ?? Model.Uri, expected,
+                "after seeding. Every benchmark in this class would be measuring the wrong amount of data.");
+        }
+
+        private void AssertCount(Uri graph, int expected, string consequence)
+        {
+            var actual = CountTriples(graph);
 
             if (actual != expected)
             {
                 throw new InvalidOperationException(
-                    $"{Backend}: expected {expected} triples in <{Model.Uri}> after the benchmark but "
-                    + $"found {actual}. The measurement is of an operation that did not do the work, "
-                    + "so the timing is meaningless -- see ADR-0042 on Virtuoso writing zero above its "
-                    + "transaction-log limit.");
+                    $"{Backend}: expected {expected} triples in <{graph}> but found {actual} {consequence}");
             }
         }
     }

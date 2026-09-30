@@ -37,9 +37,11 @@ namespace Semiodesk.Trinity.Benchmarks
     /// <remarks>
     /// The total written is held constant and only the batch size varies, so a row answers "what
     /// does this batch size cost me for the same work". It is a real axis rather than a synthetic
-    /// one: <c>StoreBase.UpdateResources</c> genuinely batches -- it accumulates every resource into
-    /// at most two SPARQL updates regardless of how many there are -- so the mapped path has a
-    /// batching API, and per-resource <c>Commit()</c> is the pessimal use of it.
+    /// one: <c>StoreBase.UpdateResources</c> genuinely batches -- it writes new resources in one
+    /// request per <c>SparqlSerializer.SubjectBindingBatchSize</c> (1000) subjects, and synchronized
+    /// ones as a single delta -- so the mapped path has a batching API, and per-resource
+    /// <c>Commit()</c> is the pessimal use of it. <see cref="Total"/> is that chunk size, so the
+    /// largest batch here is one request.
     ///
     /// Resources are built directly rather than through <c>Model.CreateResource</c>, which issues an
     /// ASK per resource to refuse a duplicate. That is a round trip per resource in what is only
@@ -74,7 +76,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 // No CreateResource: its existence check is a round trip per resource, and this is
                 // setup. IsNew = true is what routes the write down the wholesale branch, as a
                 // freshly created resource would.
-                var person = new BenchmarkPerson(BaseUri.GetUriRef($"person-{i}"));
+                var person = new BenchmarkPerson(PersonUri(i));
 
                 person.SetModel(Model);
                 person.IsNew = true;
@@ -97,7 +99,8 @@ namespace Semiodesk.Trinity.Benchmarks
         }
 
         /// <summary>
-        /// The mapped batch API: at most two updates per batch, whatever its size.
+        /// The mapped batch API: one request per batch at these sizes, since none exceeds the
+        /// 1000-subject chunk.
         /// </summary>
         [Benchmark(Description = "UpdateResources (mapped batch)")]
         public void UpdateResourcesMapped()
