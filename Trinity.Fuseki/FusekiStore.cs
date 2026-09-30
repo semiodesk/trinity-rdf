@@ -580,26 +580,6 @@ namespace Semiodesk.Trinity.Store.Fuseki
             Connector = null;
         }
 
-        /// <summary>
-        /// Gets a SPARQL query which is used to retrieve all triples about a subject.
-        /// </summary>
-        /// <remarks>
-        /// URI subjects only. The subject is bound through <c>VALUES</c>, which admits an IRI or a
-        /// literal but never a blank node, so a blank-node subject would emit unparseable SPARQL.
-        /// Unreachable in practice: <c>Model.GetResource</c> rejects a blank id before it gets here.
-        /// </remarks>
-        /// <param name="modelUri">The graph to be queried.</param>
-        /// <param name="subjectUri">The subject to be described.</param>
-        /// <returns>An instance of <c>ISparqlQuery</c></returns>
-        public override ISparqlQuery GetDescribeQuery(Uri modelUri, Uri subjectUri)
-        {
-            ISparqlQuery query = new SparqlQuery("DESCRIBE ?s FROM @model WHERE { ?s ?p ?o . VALUES ?s { @subject } }");
-            query.Bind("@model", modelUri);
-            query.Bind("@subject", subjectUri);
-
-            return query;
-        }
-
         #endregion
     }
 }

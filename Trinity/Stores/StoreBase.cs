@@ -801,9 +801,16 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Gets a SPARQL query which is used to retrieve all triples about a subject that is
-        /// either referenced using a URI or blank node.
+        /// Gets a SPARQL query which is used to retrieve all triples about a subject, identified by a URI.
         /// </summary>
+        /// <remarks>
+        /// A blank id never reaches this: <c>Model.GetResource</c> refuses one through <c>QuerySubject.Require</c>.
+        /// The query is a bare <c>DESCRIBE</c> on purpose. Four stores used to override it with
+        /// <c>DESCRIBE ?s ... WHERE { ?s ?p ?o . VALUES ?s { ... } }</c>, copies of a 2021 blank-id workaround
+        /// whose reason is gone. That form has one solution per triple of the subject, and dotNetRDF's
+        /// in-memory engine describes the subject once per solution: 561 MB instead of 4 MB for a resource
+        /// with 2000 values (#63). A store that needs another shape should say why.
+        /// </remarks>
         /// <param name="modelUri">The graph to be queried.</param>
         /// <param name="subjectUri">The subject to be described.</param>
         /// <returns>An instance of <c>ISparqlQuery</c></returns>

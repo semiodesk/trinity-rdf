@@ -287,8 +287,7 @@ namespace Semiodesk.Trinity.Store
         }
 
         /// <summary>
-        /// Gets a SPARQL query which is used to retrieve all triples about a subject that is
-        /// either referenced using a URI or blank node.
+        /// Gets a SPARQL query which is used to retrieve all triples about a subject, identified by a URI.
         /// </summary>
         /// <param name="modelUri">The graph to be queried.</param>
         /// <param name="subjectUri">The subject to be described.</param>

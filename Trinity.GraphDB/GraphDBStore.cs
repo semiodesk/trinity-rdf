@@ -602,22 +602,6 @@ namespace Semiodesk.Trinity.Store.GraphDB
         }
 
         /// <summary>
-        /// Gets a SPARQL query which is used to retrieve all triples about a subject that is
-        /// either referenced using a URI or blank node.
-        /// </summary>
-        /// <param name="modelUri">The graph to be queried.</param>
-        /// <param name="subjectUri">The subject to be described.</param>
-        /// <returns>An instance of <c>ISparqlQuery</c></returns>
-        public override ISparqlQuery GetDescribeQuery(Uri modelUri, Uri subjectUri)
-        {
-            var query = new SparqlQuery("DESCRIBE ?s FROM @model WHERE { ?s ?p ?o . VALUES ?s { @subject } }");
-            query.Bind("@model", modelUri);
-            query.Bind("@subject", subjectUri);
-
-            return query;
-        }
-
-        /// <summary>
         /// Get a handle to the native dotNetRDF triple storage implementation.
         /// </summary>
         /// <returns>The IUpdatableStorage instance used to communicate with the database.</returns>

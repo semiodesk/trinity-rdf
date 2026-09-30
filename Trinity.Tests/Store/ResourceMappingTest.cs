@@ -1014,7 +1014,7 @@ namespace Semiodesk.Trinity.Tests.Store
         /// <remarks>
         /// Every other resource this fixture reads is small, and reading one was quadratic in its own size
         /// (#63): 26.5 s on GraphDB at 2000 links. The answer was right, only slow, so this asserts the answer
-        /// at a size where the old cost shows.
+        /// at a size where the old cost shows; <c>DotNetRDFResourceMappingTest</c> bounds the cost itself.
         /// </remarks>
         [Test]
         public virtual void ReadsAResourceWithThousandsOfValues()
@@ -1030,6 +1030,29 @@ namespace Semiodesk.Trinity.Tests.Store
             CollectionAssert.AreEquivalent(
                 Enumerable.Range(0, ValuesPerKind).Select(i => BaseUri.GetUriRef("member" + i).OriginalString),
                 actual.resourceTest.Select(r => r.Uri.OriginalString));
+        }
+
+        /// <summary>
+        /// Every store reads a resource with a bare <c>DESCRIBE</c>, the one form <c>StoreBase</c> builds.
+        /// </summary>
+        /// <remarks>
+        /// Four stores used to override it with a <c>VALUES</c>-bound pattern: a 2021 blank-id workaround,
+        /// copied from store to store long after its reason was gone. That form has one solution per triple,
+        /// and the in-memory engine describes the subject once per solution (#63). Only the query is built, so
+        /// this costs no round trip.
+        /// </remarks>
+        [Test]
+        public virtual void DescribesTheSubjectWithoutAPattern()
+        {
+            string sparql = Store.GetDescribeQuery(Model1.Uri, _r1).ToString();
+
+            StringAssert.Contains("DESCRIBE", sparql);
+            StringAssert.Contains(SparqlSerializer.SerializeUri(_r1), sparql);
+
+            Assert.IsFalse(sparql.Contains("WHERE", StringComparison.OrdinalIgnoreCase),
+                "a pattern makes one solution per triple, each described again:\n" + sparql);
+            Assert.IsFalse(sparql.Contains("VALUES", StringComparison.OrdinalIgnoreCase),
+                "the subject is named directly, not bound:\n" + sparql);
         }
 
         [Test]
