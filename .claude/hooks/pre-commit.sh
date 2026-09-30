@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude Code PreToolUse hook, wired in .claude/settings.json for `git commit`: runs the local gates
+# Claude Code PreToolUse hook, wired in .claude/settings.json: runs the local gates
 # (.github/scripts/check.sh) before Claude commits, and puts the result in front of Claude either way.
 #
 # - A failing gate blocks the commit. Exit 2 is Claude Code's "deny", and what is written to stderr
@@ -8,11 +8,17 @@
 #   uncovered line, an edit that reached one copy of duplicated code -- never fail a gate, and they
 #   are the part most worth acting on before the commit is made.
 #
-# The `if` filter in settings.json is only a cheap first cut, not the decision. Claude Code documents
-# it as best-effort: a command using a shell variable it cannot resolve runs the hook regardless. It
-# was seen firing on a compound command with no `git commit` in it -- and since a failing gate blocks
-# the tool call, it would have refused an unrelated command. So the command is checked here as well,
-# and anything that does not invoke `git ... commit` passes straight through.
+# Whether a command commits is decided in one place, .github/scripts/commit_command.py, from the
+# command's tokens: its exit status is 0 (commits), 1 (does not) or anything else (could not tell).
+# Three rules follow, and every exit below is one of them:
+#
+# 1. A command that does not commit is never blocked.
+# 2. A commit is never let through silently. When the check cannot run -- the hook's own
+#    prerequisites are missing, the command cannot be understood -- the commit is blocked with a
+#    message naming what is missing: a blocked command can be rephrased or retried, an unchecked
+#    commit cannot be taken back.
+# 3. A missing *optional* tool of the check itself (Docker, npx) is check.sh's business: it reports
+#    "not run: <reason>" and carries on, and CI still enforces those gates.
 #
 # The check runs under its own time limit, below the 900 s in settings.json, because a hook that
 # outlives its timeout is killed and the tool call proceeds -- silently, with no report. A hang would
@@ -21,15 +27,33 @@
 #
 # A change that touches only Markdown skips the run: nothing it could affect is measured.
 
-python3 -c '
-import json, re, sys
-command = json.load(sys.stdin).get("tool_input", {}).get("command", "")
-# git, then any global options (-C <dir>, -c <k=v>, --no-pager, ...), then the commit subcommand.
-invocation = r"(?:^|[\s;&|(`])git(?:\s+(?:-[Cc]\s+\S+|--?[\w-]+(?:=\S+)?))*\s+commit(?![\w-])"
-sys.exit(0 if re.search(invocation, command) else 1)
-' || exit 0
+input=$(cat)
 
-cd "${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}" || exit 0
+block() {
+    printf '%s\n' "$1" >&2
+    exit 2
+}
+
+# A cheap first cut, before starting python: a command that mentions neither `commit` nor
+# `--continue` cannot be one this hook checks, and most commands end here.
+case "$input" in
+    *commit* | *--continue*) ;;
+    *) exit 0 ;;
+esac
+
+command -v python3 > /dev/null 2>&1 ||
+    block "The pre-commit hook needs python3 to tell whether this command commits, and python3 was not found. The command was blocked rather than let a commit through unchecked. Install python3, or disable the hook via /hooks."
+
+hooks=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) || block "The pre-commit hook could not locate itself."
+decision=$(printf '%s' "$input" | python3 "$hooks/../../.github/scripts/commit_command.py")
+case $? in
+    0) ;;
+    1) exit 0 ;;
+    *) block "The pre-commit hook could not tell whether this command commits: ${decision:-python3 gave no reason}. It was blocked rather than risk an unchecked commit; run the commit as a plain \`git commit\` command." ;;
+esac
+
+cd "${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}" ||
+    block "The pre-commit hook could not enter the project directory, so the commit was blocked unchecked."
 
 changed=$( { git diff --name-only HEAD; git ls-files --others --exclude-standard; } 2>/dev/null | grep -v '\.md$')
 [ -z "$changed" ] && exit 0
