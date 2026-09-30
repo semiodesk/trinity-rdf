@@ -73,17 +73,35 @@ def hunks(revision):
     diff = git("diff", "--unified=0", "--no-color", "--no-ext-diff",
                "--src-prefix=a/", "--dst-prefix=b/", revision, text=True)
 
+    # A hunk's content is exactly old_count + new_count lines, and those are consumed as content:
+    # a removed line reading `-- x` is `--- x` in the diff, and taken for a file header it renamed the
+    # file mid-diff, so every later hunk in it was matched against the wrong base file. Headers are
+    # recognised only between a `diff --git` line and the first hunk.
+    in_header = False
+    content = 0
     for line in diff.splitlines():
-        if line.startswith("--- "):
+        if content:
+            if line.startswith("\\"):  # "\ No newline at end of file" is not counted
+                continue
+            content -= 1
+            continue
+
+        if line.startswith("diff --git "):
+            in_header = True
+            old_path = new_path = None
+        elif in_header and line.startswith("--- "):
             old_path = _path(line)
-        elif line.startswith("+++ "):
+        elif in_header and line.startswith("+++ "):
             new_path = _path(line)
         else:
             match = _HUNK.match(line)
             if match:
+                in_header = False
                 count = lambda g: int(g) if g is not None else 1
-                yield Hunk(old_path, int(match.group(1)), count(match.group(2)),
-                           new_path, int(match.group(3)), count(match.group(4)))
+                hunk = Hunk(old_path, int(match.group(1)), count(match.group(2)),
+                            new_path, int(match.group(3)), count(match.group(4)))
+                content = hunk.old_count + hunk.new_count
+                yield hunk
 
     root = repo_root()
     for path in git("ls-files", "--others", "--exclude-standard", "-z", text=True).split("\0"):
