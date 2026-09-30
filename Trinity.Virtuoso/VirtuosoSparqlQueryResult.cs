@@ -102,7 +102,16 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             }
             else if (cellValue is SqlRdfBox box)
             {
-                if (box.StrType != null)
+                // The language is checked before the datatype, matching the core read path: under RDF 1.1
+                // a language-tagged literal also carries rdf:langString, so a datatype-first test can
+                // misread one as a plain typed literal. Virtuoso happens to leave StrType null for tagged
+                // literals, which is why the old datatype-first order worked - but it was the inverse of
+                // the documented rule and would break the moment that changed (ADR-0048).
+                if (!string.IsNullOrEmpty(box.StrLang))
+                {
+                    return new LangString(box.Value.ToString(), box.StrLang);
+                }
+                else if (box.StrType != null)
                 {
                     try
                     {
@@ -114,10 +123,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                         // The given data type is not known by the XsdTypeMapper.
                         return box.Value.ToString();
                     }
-                }
-                else if ( box.StrLang != null)
-                {
-                    return new Tuple<string, string>(box.Value.ToString(), box.StrLang);
                 }
                 else if(box.Value != null)
                 {

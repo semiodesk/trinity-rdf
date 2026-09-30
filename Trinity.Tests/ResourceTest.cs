@@ -467,11 +467,13 @@ namespace Semiodesk.Trinity.Tests
             var ci = "en";
             r.AddProperty(myProperty, val, ci);
             object res = r.ListValues(myProperty).First();
-            Assert.AreEqual(typeof(Tuple<string, string>), res.GetType());
-            Tuple<string, string> v = res as Tuple<string, string>;
-            Assert.AreEqual(val, v.Item1);
-            Assert.AreEqual(ci.ToLower(), v.Item2.ToLower());
+            Assert.AreEqual(typeof(LangString), res.GetType());
+            LangString v = res as LangString;
+            Assert.AreEqual(val, v.Value);
+            Assert.AreEqual(ci, v.Language);
             r.RemoveProperty(myProperty, val, ci);
+
+            Assert.IsEmpty(r.ListValues(myProperty), "Remove must find the value it added.");
            
         }
 
@@ -556,8 +558,8 @@ namespace Semiodesk.Trinity.Tests
             target.AddProperty(property, v4);
             list.Add(v4);
 
-            Tuple<string, string> v5 = new Tuple<string, string>("Hallo Welt!", "de");
-            target.AddProperty(property, v5.Item1, v5.Item2);
+            LangString v5 = new LangString("Hallo Welt!", "de");
+            target.AddProperty(property, v5.Value, v5.Language);
             list.Add(v5);
 
             IResource v6 = new Resource(new Uri(baseUri, "#mySecondResource"));
@@ -581,14 +583,10 @@ namespace Semiodesk.Trinity.Tests
             IEnumerable<object> actual = target.ListValues(property);
             foreach (object obj in actual)
             {
-                if (obj.GetType() == typeof(string[]))
                 {
-                    Tuple<string, string> tmp = (Tuple<string, string>)obj;
-                    Assert.AreEqual(v5, tmp);
-
-                }
-                else
-                {
+                    // The tagged literal needs no special case any more. It used to have one guarded by
+                    // `obj is string[]`, a shape this path never produced, so the branch was dead and the
+                    // value fell through to Contains anyway (ADR-0048).
                     Assert.AreEqual(true, expected.Contains(obj), string.Format("Object {0} not in expected list.", obj));
                 }
             }
@@ -815,12 +813,12 @@ namespace Semiodesk.Trinity.Tests
             target.AddProperty(property, value, language);
 
             Assert.IsTrue(target.HasProperty(property));
-            Assert.AreEqual(typeof(Tuple<string, string>), target.ListValues(property).First().GetType());
-            Tuple<string, string> res = (Tuple<string, string>)target.ListValues(property).First();
-            Assert.AreEqual(value, res.Item1);
-            Assert.AreEqual(language.Name.ToLower(), res.Item2.ToLower());
-            Assert.AreEqual(value.GetType(), res.Item1.GetType());
-            Assert.AreEqual(typeof(string), res.Item2.GetType());
+            Assert.AreEqual(typeof(LangString), target.ListValues(property).First().GetType());
+            LangString res = (LangString)target.ListValues(property).First();
+            Assert.AreEqual(value, res.Value);
+
+            // "DE" in, "de" out: normalized once, at construction.
+            Assert.AreEqual("de", res.Language);
         }
 
         /// <summary>

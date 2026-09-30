@@ -42,23 +42,51 @@ namespace Semiodesk.Trinity
         public readonly UriRef MappedUri;
 
         /// <summary>
-        /// Flag determining if property is language invariant. Only valid for string or string collections.
+        /// No longer has any effect. The property's declared type decides how language tags are handled.
         /// </summary>
+        [Obsolete(LanguageInvariantMessage)]
         public bool LanguageInvariant;
+
+        internal const string LanguageInvariantMessage =
+            "languageInvariant no longer has any effect. A string property is language-invariant by " +
+            "construction; declare LocalizedString or LocalizedStringCollection for language-tagged " +
+            "values, or LangString for the raw tagged literal. This parameter is removed in 2.1.";
 
         #endregion
 
         #region Constructors
 
         /// <summary>
-        /// Constructor
+        /// Maps a property to an RDF predicate.
         /// </summary>
         /// <param name="uriString">There uri of the rdf property for this mapping.</param>
-        /// <param name="languageInvariant">The mapping ignores the language setting and is always non-localized. Only valid if type or generic type is string or string collection.</param>
-        public RdfPropertyAttribute(string uriString, bool languageInvariant = false)
+        public RdfPropertyAttribute(string uriString)
         {
             MappedUri = new UriRef(uriString);
-            LanguageInvariant = languageInvariant;
+        }
+
+        /// <summary>
+        /// Maps a property to an RDF predicate, with the obsolete language-invariance flag.
+        /// </summary>
+        /// <remarks>
+        /// Kept for one release so that 1.x call sites get an explanation rather than CS1501. The flag
+        /// is redundant now: a <c>string</c> property is language-invariant by construction, and a
+        /// language-tagged one declares a container that carries its own tags (ADR-0048).
+        /// <para>
+        /// For most code the migration is simply to delete the argument. In 1.x a <c>string</c>
+        /// property showed tagged values only while <c>Resource.Language</c> was set, so a model that
+        /// never set it was already reading untagged literals and behaves identically as a plain
+        /// <c>string</c>. Only code that did set <c>Resource.Language</c> has language-tagged values to
+        /// move to <see cref="LocalizedString"/> — changing the type everywhere would break every
+        /// assignment site and relocate existing values into <c>Invariant</c> for nothing.
+        /// </para>
+        /// </remarks>
+        /// <param name="uriString">There uri of the rdf property for this mapping.</param>
+        /// <param name="languageInvariant">Ignored.</param>
+        [Obsolete(LanguageInvariantMessage)]
+        public RdfPropertyAttribute(string uriString, bool languageInvariant)
+        {
+            MappedUri = new UriRef(uriString);
         }
 
 

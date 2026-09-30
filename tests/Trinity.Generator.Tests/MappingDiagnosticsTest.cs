@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -286,6 +286,251 @@ namespace Semiodesk.Trinity.Generator.Tests
 
             Assert.AreEqual("TRIN007", SingleId(diagnostics));
             Assert.That(Message(diagnostics), Does.Contain("SeeAlso").And.Contain("UriRef"));
+        }
+
+        /// <summary>
+        /// The generated half declares exactly the accessors the declaring half did.
+        /// </summary>
+        /// <remarks>
+        /// Emitting get+set unconditionally made a get-only mapped property impossible to declare -
+        /// CS9253, "does not implement any accessor declared on the definition part" - which is the
+        /// shape a localized container wants, since it is mutated in place rather than assigned.
+        /// </remarks>
+        [Test]
+        public void EmitsOnlyTheAccessorsTheDeclarationDeclares()
+        {
+            var generated = Generated(@"
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/label"")]
+                    public partial LocalizedString Label { get; }
+                }");
+
+            StringAssert.Contains("get { return GetValue(LabelPropertyMapping); }", generated);
+            StringAssert.DoesNotContain("set { SetValue(LabelPropertyMapping", generated);
+        }
+
+        /// <summary>
+        /// An accessor's own modifiers round-trip too, or a mapped property could not have a
+        /// narrower setter than its getter.
+        /// </summary>
+        [Test]
+        public void EmitsAccessorModifiersVerbatim()
+        {
+            var generated = Generated(@"
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/name"")]
+                    public partial string Name { get; private set; }
+                }");
+
+            StringAssert.Contains("private set { SetValue(NamePropertyMapping, value); }", generated);
+        }
+
+        /// <summary>
+        /// A container declared with a setter is reported: it is a mutable view owned by the mapping,
+        /// and assigning one either nulls it or aliases another resource's instance.
+        /// </summary>
+        [Test]
+        public void ReportsALocalizedContainerWithASetter()
+        {
+            var diagnostics = Run(@"
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/label"")]
+                    public partial LocalizedString Label { get; set; }
+                }");
+
+            Assert.AreEqual("TRIN009", SingleId(diagnostics));
+            Assert.That(Message(diagnostics), Does.Contain("Label").And.Contain("get-only"));
+        }
+
+        /// <summary>
+        /// A container type the mapping engine cannot use is reported at build time.
+        /// </summary>
+        /// <remarks>
+        /// <c>ILocalizedText</c> is the containers' shared surface, not an extension point, and the
+        /// runtime refuses anything else at registration. The interface itself was the one shape no
+        /// diagnostic saw, because the check asked <c>AllInterfaces</c> — which lists what a type
+        /// implements and so never includes the type itself — and it is also the shape that fails
+        /// worst: <c>Activator</c> cannot instantiate an interface, so construction died with a
+        /// <c>MissingMethodException</c> naming neither the property nor the cause.
+        /// </remarks>
+        [TestCase("ILocalizedText", TestName = "ReportsAnUnsupportedLocalizedContainer(the interface itself)")]
+        [TestCase("MyContainer", TestName = "ReportsAnUnsupportedLocalizedContainer(a third implementation)")]
+        public void ReportsAnUnsupportedLocalizedContainer(string type)
+        {
+            var diagnostics = Run(@"
+                using System.Collections;
+                using System.Collections.Generic;
+                using Semiodesk.Trinity;
+
+                public class MyContainer : ILocalizedText
+                {
+                    public IReadOnlyCollection<string> Languages => null;
+                    public int Count => 0;
+                    public bool IsEmpty => true;
+                    public bool Contains(string language) => false;
+                    public bool Remove(string language) => false;
+                    public void Clear() { }
+                    public string Best() => null;
+                    public string Best(params string[] languageRanges) => null;
+                    public bool TryGetBest(string languageRange, out LangString match) { match = null; return false; }
+                    public IEnumerator<LangString> GetEnumerator() => null;
+                    IEnumerator IEnumerable.GetEnumerator() => null;
+                }
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/label"")]
+                    public partial " + type + @" Label { get; }
+                }");
+
+            Assert.AreEqual("TRIN010", SingleId(diagnostics));
+            Assert.That(Message(diagnostics), Does.Contain("Label").And.Contain("LocalizedString"));
+        }
+
+        /// <summary>
+        /// The two supported containers raise no such warning.
+        /// </summary>
+        [TestCase("LocalizedString")]
+        [TestCase("LocalizedStringCollection")]
+        public void DoesNotReportASupportedLocalizedContainer(string type)
+        {
+            var diagnostics = Run(@"
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/label"")]
+                    public partial " + type + @" Label { get; }
+                }");
+
+            CollectionAssert.IsEmpty(diagnostics);
+        }
+
+        /// <summary>
+        /// TRIN009 is about containers, not about get-only. An ordinary mapped property keeps its
+        /// setter without complaint.
+        /// </summary>
+        [Test]
+        public void DoesNotReportAnOrdinaryPropertyWithASetter()
+        {
+            var diagnostics = Run(@"
+                using System.Collections.Generic;
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/name"")]
+                    public partial string Name { get; set; }
+
+                    [RdfProperty(""http://example.org/tags"")]
+                    public partial List<string> Tags { get; set; }
+
+                    [RdfProperty(""http://example.org/alias"")]
+                    public partial LocalizedStringCollection Aliases { get; }
+                }");
+
+            CollectionAssert.IsEmpty(diagnostics.Select(d => d.Id));
+        }
+
+        /// <summary>
+        /// The obsolete languageInvariant flag is reported rather than silently ignored.
+        /// </summary>
+        /// <remarks>
+        /// A flag that no longer does anything is indistinguishable, at the call site, from one that
+        /// works — and this one used to decide whether a property saw tagged literals, so silence would
+        /// leave the author believing a guarantee they no longer have (ADR-0048).
+        /// </remarks>
+        [Test]
+        public void ReportsTheObsoleteLanguageInvariantFlag()
+        {
+            var diagnostics = Run(@"
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/name"", true)]
+                    public partial string Name { get; set; }
+                }");
+
+            Assert.AreEqual("TRIN008", SingleId(diagnostics));
+            Assert.That(Message(diagnostics), Does.Contain("Name").And.Contain("languageInvariant"));
+        }
+
+        /// <summary>
+        /// Passing <c>false</c> is just as stale as passing <c>true</c>: both name a parameter that no
+        /// longer exists in the supported constructor, so both need the author's attention.
+        /// </summary>
+        [Test]
+        public void ReportsTheObsoleteFlagEvenWhenItIsFalse()
+        {
+            var diagnostics = Run(@"
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/name"", false)]
+                    public partial string Name { get; set; }
+                }");
+
+            Assert.AreEqual("TRIN008", SingleId(diagnostics));
+        }
+
+        /// <summary>
+        /// The ordinary declaration must stay silent, or the diagnostic would fire on every mapped
+        /// property in the repository.
+        /// </summary>
+        [Test]
+        public void DoesNotReportAPropertyWithoutTheFlag()
+        {
+            var diagnostics = Run(@"
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/name"")]
+                    public partial string Name { get; set; }
+
+                    [RdfProperty(""http://example.org/label"")]
+                    public partial LocalizedString Label { get; }
+                }");
+
+            CollectionAssert.IsEmpty(diagnostics.Select(d => d.Id));
         }
 
         /// <summary>

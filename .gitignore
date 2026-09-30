@@ -12,6 +12,7 @@ Documentation/log.txt
 artifacts/**
 # Test run output (dotnet test --logger trx)
 TestResults/
+coverage/
 *.trx
 # BenchmarkDotNet writes its reports here; they are run output, not source.
 BenchmarkDotNet.Artifacts/

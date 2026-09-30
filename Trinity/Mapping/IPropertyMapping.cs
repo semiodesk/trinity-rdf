@@ -62,16 +62,6 @@ namespace Semiodesk.Trinity
         bool IsUnsetValue { get; }
 
         /// <summary>
-        /// Language of the value
-        /// </summary>
-        string Language { get; set; }
-
-        /// <summary>
-        /// The mapping ignores the language setting and is always non-localized. Only valid if type or generic type is string or string collection.
-        /// </summary>
-        bool LanguageInvariant { get; }
-
-        /// <summary>
         /// Method to test if a type is compatible. In case of collection, the containing type is tested for compatibility.
         /// </summary>
         /// <param name="type">The type to test.</param>
@@ -96,6 +86,20 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <returns></returns>
         object GetValueObject();
+
+        /// <summary>
+        /// Enumerates every RDF value this mapping holds: one for a scalar, and any number for a
+        /// collection or a localized-text container.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="IsList"/> has always doubled as "holds more than one value", which a localized
+        /// container contradicts: it is multi-valued without being an <see cref="System.Collections.IList"/>.
+        /// Claiming otherwise would send the constructor into <c>GetGenericArguments()[0]</c> on a
+        /// non-generic type. So the question is asked directly instead, and the three places that
+        /// enumerate a mapping's values go through here rather than each re-deriving the shape.
+        /// </remarks>
+        /// <returns>The values, or an empty sequence when the mapping is unset.</returns>
+        System.Collections.Generic.IEnumerable<object> EnumerateValues();
 
         /// <summary>
         /// This method is meant to be called from the non-mapped interface. It replaces the current value if 

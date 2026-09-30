@@ -1,4 +1,4 @@
-// LICENSE:
+﻿// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -88,6 +88,21 @@ namespace Semiodesk.Trinity.Generator
                 if (result.Diagnostic is not null)
                 {
                     context.ReportDiagnostic(result.Diagnostic.ToDiagnostic());
+                }
+
+                if (result.LanguageInvariantIsObsolete is not null)
+                {
+                    context.ReportDiagnostic(result.LanguageInvariantIsObsolete.ToDiagnostic());
+                }
+
+                if (result.UnsupportedLocalizedContainer is not null)
+                {
+                    context.ReportDiagnostic(result.UnsupportedLocalizedContainer.ToDiagnostic());
+                }
+
+                if (result.ContainerMustBeGetOnly is not null)
+                {
+                    context.ReportDiagnostic(result.ContainerMustBeGetOnly.ToDiagnostic());
                 }
 
                 if (result.MappedTypeIsRawUri is not null)
@@ -190,18 +205,24 @@ namespace Semiodesk.Trinity.Generator
                     source.Append(", new ").Append(p.CollectionConcreteType).Append("()");
                 }
 
-                if (p.LanguageInvariant)
-                {
-                    source.Append(", true");
-                }
-
                 source.AppendLine(");");
 
                 source.Append("        ").Append(p.Modifiers).Append(' ').Append(p.PropertyType)
                     .Append(' ').AppendLine(p.PropertyName);
                 source.AppendLine("        {");
-                source.Append("            get { return GetValue(").Append(field).AppendLine("); }");
-                source.Append("            set { SetValue(").Append(field).AppendLine(", value); }");
+
+                if (p.GetAccessor is not null)
+                {
+                    source.Append("            ").Append(p.GetAccessor)
+                        .Append(" { return GetValue(").Append(field).AppendLine("); }");
+                }
+
+                if (p.SetAccessor is not null)
+                {
+                    source.Append("            ").Append(p.SetAccessor)
+                        .Append(" { SetValue(").Append(field).AppendLine(", value); }");
+                }
+
                 source.AppendLine("        }");
             }
 
@@ -267,6 +288,34 @@ namespace Semiodesk.Trinity.Generator
                 default:
                     return null;
             }
+        }
+
+        /// <summary>
+        /// True when the mapped type is a localized-text container.
+        /// </summary>
+        /// <remarks>
+        /// Asked of the interface rather than the two concrete names, so that TRIN009 and TRIN010 both
+        /// see every shape that will be treated as a container at runtime. <c>AllInterfaces</c> alone
+        /// was not enough: it lists the interfaces a type <i>implements</i> and so does not include the
+        /// type itself, which meant a property declared as <c>ILocalizedText</c> — the one shape that
+        /// cannot work at all, because <c>Activator</c> cannot instantiate an interface — was the one
+        /// shape no diagnostic recognised.
+        /// </remarks>
+        private static bool IsLocalizedContainer(ITypeSymbol type)
+        {
+            return type.ToDisplayString() == "Semiodesk.Trinity.ILocalizedText"
+                || type.AllInterfaces.Any(i => i.ToDisplayString() == "Semiodesk.Trinity.ILocalizedText");
+        }
+
+        /// <summary>
+        /// True when the mapped type is one of the two containers the mapping engine actually supports.
+        /// </summary>
+        private static bool IsSupportedLocalizedContainer(ITypeSymbol type)
+        {
+            string name = type.ToDisplayString();
+
+            return name == "Semiodesk.Trinity.LocalizedString"
+                || name == "Semiodesk.Trinity.LocalizedStringCollection";
         }
 
         /// <summary>
@@ -356,9 +405,16 @@ namespace Semiodesk.Trinity.Generator
         /// cache key, so the pieces are carried in an equatable record and the diagnostic is built only
         /// when it is reported.
         /// </summary>
-        private sealed record DiagnosticInfo(DiagnosticDescriptor Descriptor, Location Location, string Name)
+        /// <remarks>
+        /// <paramref name="Detail"/> is a second message argument for the descriptors that name
+        /// something besides the property, such as an unsupported type. It stays optional so the
+        /// single-argument descriptors read as before.
+        /// </remarks>
+        private sealed record DiagnosticInfo(DiagnosticDescriptor Descriptor, Location Location, string Name, string? Detail = null)
         {
-            public Diagnostic ToDiagnostic() => Diagnostic.Create(Descriptor, Location, Name);
+            public Diagnostic ToDiagnostic() => Detail is null
+                ? Diagnostic.Create(Descriptor, Location, Name)
+                : Diagnostic.Create(Descriptor, Location, Name, Detail);
         }
 
         /// <summary>The outcome of inspecting one <c>[RdfProperty]</c> declaration.</summary>
@@ -377,7 +433,10 @@ namespace Semiodesk.Trinity.Generator
             PropertyInfo? Info,
             DiagnosticInfo? Diagnostic,
             DiagnosticInfo? ContainingClassNotPartial,
-            DiagnosticInfo? MappedTypeIsRawUri = null);
+            DiagnosticInfo? MappedTypeIsRawUri = null,
+            DiagnosticInfo? LanguageInvariantIsObsolete = null,
+            DiagnosticInfo? ContainerMustBeGetOnly = null,
+            DiagnosticInfo? UnsupportedLocalizedContainer = null);
 
         /// <summary>The outcome of inspecting one <c>[RdfClass]</c> declaration.</summary>
         /// <remarks>
@@ -472,9 +531,10 @@ namespace Semiodesk.Trinity.Generator
             string PropertyName,
             string PropertyType,
             string Uri,
-            bool LanguageInvariant,
             string? CollectionConcreteType,
-            string Modifiers)
+            string Modifiers,
+            string? GetAccessor,
+            string? SetAccessor)
         {
             public static PropertyResult From(GeneratorAttributeSyntaxContext ctx)
             {
@@ -491,6 +551,41 @@ namespace Semiodesk.Trinity.Generator
                 string modifiers = ctx.TargetNode is PropertyDeclarationSyntax declaration
                     ? string.Join(" ", declaration.Modifiers.Select(m => m.Text))
                     : "public partial";
+
+                // Captured the same way and for the same reason as the modifiers: the generated half has
+                // to declare exactly the accessors the declaring half did, or it is CS9253 ("does not
+                // implement any accessor declared on the definition part"). Emitting get+set
+                // unconditionally made a get-only mapped property impossible to declare - which is the
+                // shape a localized container wants, since it is mutated in place rather than assigned.
+                // Each accessor keeps its own modifiers too, so `private set` and `init` round-trip.
+                string? getAccessor = null;
+                string? setAccessor = null;
+
+                if (ctx.TargetNode is PropertyDeclarationSyntax accessorSource &&
+                    accessorSource.AccessorList is not null)
+                {
+                    foreach (AccessorDeclarationSyntax accessor in accessorSource.AccessorList.Accessors)
+                    {
+                        string text = string.Join(
+                            " ",
+                            accessor.Modifiers.Select(m => m.Text).Concat(new[] { accessor.Keyword.Text }));
+
+                        if (accessor.IsKind(SyntaxKind.GetAccessorDeclaration))
+                        {
+                            getAccessor = text;
+                        }
+                        else if (accessor.IsKind(SyntaxKind.SetAccessorDeclaration) ||
+                                 accessor.IsKind(SyntaxKind.InitAccessorDeclaration))
+                        {
+                            setAccessor = text;
+                        }
+                    }
+                }
+                else
+                {
+                    getAccessor = "get";
+                    setAccessor = "set";
+                }
 
                 // Reported even when the class carries no [RdfClass] of its own, so a class with only
                 // mapped properties is still told it must be partial. Deduplicated in Emit against the
@@ -530,22 +625,30 @@ namespace Semiodesk.Trinity.Generator
                     return new PropertyResult(null, null, containingClassNotPartial);
                 }
 
-                bool languageInvariant =
-                    attribute.ConstructorArguments.Length > 1 &&
-                    attribute.ConstructorArguments[1].Value is bool b && b;
+                // Reported, not obeyed. The flag no longer changes what is emitted, and a flag that
+                // silently does nothing is indistinguishable from one that works (ADR-0048). Detected
+                // whether it was passed positionally or by name, and at either value: passing
+                // languageInvariant:false is just as stale as passing true.
+                bool languageInvariantSpecified =
+                    attribute.ConstructorArguments.Length > 1 ||
+                    attribute.NamedArguments.Any(a => a.Key == "LanguageInvariant");
 
-                foreach (var named in attribute.NamedArguments)
-                {
-                    if (named.Key == "LanguageInvariant" && named.Value.Value is bool nb)
-                    {
-                        languageInvariant = nb;
-                    }
-                }
+                DiagnosticInfo? languageInvariantIsObsolete = languageInvariantSpecified
+                    ? new DiagnosticInfo(MappingDiagnostics.LanguageInvariantIsObsolete, location, prop.Name)
+                    : null;
 
                 INamedTypeSymbol type = prop.ContainingType;
 
                 DiagnosticInfo? mappedTypeIsRawUri = IsRawUri(prop.Type)
                     ? new DiagnosticInfo(MappingDiagnostics.MappedTypeMustNotBeRawUri, location, prop.Name)
+                    : null;
+
+                DiagnosticInfo? containerMustBeGetOnly = IsLocalizedContainer(prop.Type) && setAccessor is not null
+                    ? new DiagnosticInfo(MappingDiagnostics.ContainerMustBeGetOnly, location, prop.Name)
+                    : null;
+
+                DiagnosticInfo? unsupportedContainer = IsLocalizedContainer(prop.Type) && !IsSupportedLocalizedContainer(prop.Type)
+                    ? new DiagnosticInfo(MappingDiagnostics.UnsupportedLocalizedContainer, location, prop.Name, prop.Type.ToDisplayString(TypeFormat))
                     : null;
 
                 return new PropertyResult(new PropertyInfo(
@@ -555,9 +658,11 @@ namespace Semiodesk.Trinity.Generator
                     prop.Name,
                     prop.Type.ToDisplayString(TypeFormat),
                     uri,
-                    languageInvariant,
                     GetCollectionConcreteType(prop.Type),
-                    modifiers), null, containingClassNotPartial, mappedTypeIsRawUri);
+                    modifiers,
+                    getAccessor,
+                    setAccessor), null, containingClassNotPartial, mappedTypeIsRawUri,
+                    languageInvariantIsObsolete, containerMustBeGetOnly, unsupportedContainer);
             }
         }
 
