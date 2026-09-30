@@ -115,12 +115,15 @@ def load_stores(directory, root, files):
         store = entry[len(STORE_PREFIX):] if entry.startswith(STORE_PREFIX) else entry
 
         hits, count = load(path, root, files)
+        # Only an explicit "success" is success. An empty or missing marker -- a renamed step id makes
+        # `${{ steps.test.outcome }}` expand to nothing -- says nothing about whether the report is
+        # complete, and a partial one makes covered code look uncovered.
         marker = os.path.join(path, "outcome")
         if os.path.isfile(marker):
             with open(marker, encoding="utf-8") as handle:
-                outcome = handle.read().strip() or "success"
+                outcome = handle.read().strip() or "unknown"
         else:
-            outcome = "success" if count else "not run"
+            outcome = "unknown" if count else "not run"
 
         # Another adapter's lines in this report were loaded, not exercised; its own suite measures it.
         hits = {k: v for k, v in hits.items() if adapter_of(k[1]) in (None, store)}
@@ -130,8 +133,8 @@ def load_stores(directory, root, files):
 
 def failed(outcome):
     """A phrase for a suite outcome that is neither success nor "not run": CI's step outcome says
-    `failure`, check.sh may say `timed out after 300 s`."""
-    return "failed" if outcome == "failure" else outcome
+    `failure`, check.sh may say `timed out after 300 s`, and a missing marker is `unknown`."""
+    return {"failure": "failed", "unknown": "recorded no outcome"}.get(outcome, outcome)
 
 
 def per_assembly(hits):
