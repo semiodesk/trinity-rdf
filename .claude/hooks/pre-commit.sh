@@ -25,6 +25,11 @@
 # otherwise turn into a commit nothing checked. Exceeding this limit blocks instead. `timeout`
 # signals its whole process group, so the dotnet processes underneath stop too.
 #
+# The tree checked is the one the command commits in -- the hook input's cwd, moved by `cd` and
+# git's -C/--work-tree -- not $CLAUDE_PROJECT_DIR. Judging the main checkout let a broken commit in
+# another worktree through whenever the main one was clean, and blocked a clean one when it was not.
+# Each tree is checked by its own check.sh, i.e. by the gates as they are in that tree.
+#
 # A change that touches only Markdown skips the run: nothing it could affect is measured.
 
 input=$(cat)
@@ -52,31 +57,40 @@ case $? in
     *) block "The pre-commit hook could not tell whether this command commits: ${decision:-python3 gave no reason}. It was blocked rather than risk an unchecked commit; run the commit as a plain \`git commit\` command." ;;
 esac
 
-cd "${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}" ||
-    block "The pre-commit hook could not enter the project directory, so the commit was blocked unchecked."
+# $decision lists the working trees the command commits in, one per line.
+context=""
+while IFS= read -r tree; do
+    [ -n "$tree" ] || continue
+    if [ ! -f "$tree/.github/scripts/check.sh" ]; then
+        # Another repository altogether: this project's gates do not apply there. Said, not silent.
+        context+="Not checked: $tree has no .github/scripts/check.sh, so it is not a working tree of this project."$'\n'
+        continue
+    fi
+    cd "$tree" || block "The pre-commit hook could not enter $tree, so the commit was blocked unchecked."
 
-changed=$( { git diff --name-only HEAD; git ls-files --others --exclude-standard; } 2>/dev/null | grep -v '\.md$')
-[ -z "$changed" ] && exit 0
+    changed=$( { git diff --name-only HEAD; git ls-files --others --exclude-standard; } 2>/dev/null | grep -v '\.md$')
+    if [ -z "$changed" ]; then
+        context+="Pre-commit checks skipped in $tree: no change outside Markdown, and Markdown is not measured."$'\n'
+        continue
+    fi
 
-report=$(timeout --kill-after=15 840 .github/scripts/check.sh 2>&1)
-status=$?
+    report=$(timeout --kill-after=15 840 bash .github/scripts/check.sh 2>&1)
+    status=$?
 
-if [ "$status" -eq 124 ] || [ "$status" -eq 137 ]; then
-    printf 'Pre-commit checks did not finish within 840 s, so the commit was blocked rather than let through unchecked. Output so far:\n\n%s\n' \
-        "$report" >&2
-    exit 2
-fi
+    if [ "$status" -eq 124 ] || [ "$status" -eq 137 ]; then
+        printf 'Pre-commit checks in %s did not finish within 840 s, so the commit was blocked rather than let through unchecked. Output so far:\n\n%s\n' \
+            "$tree" "$report" >&2
+        exit 2
+    fi
+    if [ "$status" -ne 0 ]; then
+        printf 'Pre-commit checks in %s failed, so the commit was blocked. Fix what is reported below and commit again.\n\n%s\n' \
+            "$tree" "$report" >&2
+        exit 2
+    fi
+    context+="Pre-commit checks passed in $tree. Review the changed-line findings before relying on this commit:"$'\n\n'"$report"$'\n'
+done <<< "$decision"
 
-if [ "$status" -ne 0 ]; then
-    printf 'Pre-commit checks failed, so the commit was blocked. Fix what is reported below and commit again.\n\n%s\n' \
-        "$report" >&2
-    exit 2
-fi
-
-printf '%s' "$report" | python3 -c '
+[ -z "$context" ] && exit 0
+printf '%s' "$context" | python3 -c '
 import json, sys
-report = sys.stdin.read()
-print(json.dumps({"hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "additionalContext": "Pre-commit checks passed. Review the changed-line findings before relying on this commit:\n\n" + report,
-}}))'
+print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": sys.stdin.read()}}))'
