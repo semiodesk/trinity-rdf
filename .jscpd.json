@@ -1,0 +1,17 @@
+{
+  "format": ["csharp"],
+  "mode": "weak",
+  "minTokens": 50,
+  "gitignore": true,
+  "ignore": [
+    "**/bin/**",
+    "**/obj/**",
+    "**/*.g.cs",
+    "Trinity.Tests/**",
+    "tests/**",
+    "Documentation/**"
+  ],
+  "reporters": ["json"],
+  "output": "./duplication",
+  "absolute": false
+}

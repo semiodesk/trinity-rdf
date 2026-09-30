@@ -98,6 +98,36 @@ jobs:
           name: nupkg
           path: ./artifacts/*.nupkg
 
+  # Copy/paste detection over the product code. Its own job because it needs no build: it reads
+  # source only, so it reports in seconds and a failure here never hides a test result or vice versa.
+  #
+  # jscpd runs on the Node the runner image ships (as coverage.py runs on its Python). The version is
+  # pinned exactly: a newer tokenizer moves the number, and a gate should only move when the code does.
+  # What is scanned lives in .jscpd.json, so a local `npx jscpd@4.3.0 .` sees the same files.
+  duplication:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Detect clones
+        run: npx --yes jscpd@4.3.0 --silent .
+
+      # Writes a per-project table and the clone pairs to the job summary, and fails above the ceiling.
+      #
+      # The measure counts both sides of every clone -- 9.6% at the time of writing -- because each
+      # duplicated line has a twin a fix must also reach. The ceiling sits a little above the current
+      # figure, not at it, for the reason the coverage floor sits below: deleting unduplicated code
+      # raises the share without adding a single clone.
+      - name: Duplication
+        run: python3 .github/scripts/duplication.py ./duplication/jscpd-report.json 10.5
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: duplication
+          path: ./duplication/jscpd-report.json
+          if-no-files-found: error
+
   # Store-integration suites (ADR-0036). These self-provision Virtuoso, GraphDB and Fuseki in Docker
   # via Testcontainers, so they need a Docker daemon -- which ubuntu-latest has preinstalled.
   #

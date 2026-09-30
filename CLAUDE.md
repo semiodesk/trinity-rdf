@@ -94,7 +94,7 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   type so Trinity converts into it (ADR-0040), whereas the unmapped bag declares nothing. If `ListValues`
   is ever given a CLR-type-fidelity guarantee, they must come back.
 - **CI:** `.github/workflows/ci.yml` (ubuntu, .NET 10) — a fast `build` job (restore → build → test →
-  coverage → pack) plus a `stores` matrix job running the four Dockerized store suites (ADR-0044).
+  coverage → pack), a `duplication` job, plus a `stores` matrix job running the four Dockerized store suites (ADR-0044).
   NuGet publishing is **manual** (no publish job).
 - **Coverage** is collected by the collector bundled with `Microsoft.NET.Test.Sdk` (no package or tool
   to add), merged by `.github/scripts/coverage.py`, printed to the job summary as a per-assembly table,
@@ -107,6 +107,15 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   well-covered code red.
   Run it locally with `dotnet test … --collect "Code Coverage;Format=Cobertura" --results-directory ./coverage`
   then `python3 .github/scripts/coverage.py ./coverage 78`.
+- **Duplication** is measured by jscpd (pinned `4.3.0`, run via `npx` — no install) over **product code
+  only**, comments ignored; scope lives in `.jscpd.json`. `.github/scripts/duplication.py` counts the
+  lines in a clone on **either side** — 9.6% when added, where jscpd's own headline says 5.4% because it
+  counts roughly one side — and **gates at a 10.5% ceiling**, above the current figure for the coverage
+  floor's reason inverted (deleting unduplicated code raises the share). Both sides count because that is
+  this codebase's recurring defect: a fix landing in one copy. The store adapters are the bulk of it —
+  Fuseki is 67% cloned, mostly with Oxigraph, and the `AbsoluteUri` quarantine is exactly a fix present
+  in Oxigraph's copy only. Run it locally with `npx --yes jscpd@4.3.0 .` then
+  `python3 .github/scripts/duplication.py ./duplication/jscpd-report.json 10.5`.
 - Central Package Management: versions live in `Directory.Packages.props`; shared metadata +
   the single `Version` (2.0.0) in `Directory.Build.props`. Projects use versionless `PackageReference`.
 
