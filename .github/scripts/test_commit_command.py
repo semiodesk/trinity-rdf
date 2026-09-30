@@ -62,6 +62,10 @@ class DecidesFromTokens(unittest.TestCase):
             "env -S 'git commit -m x'",
             "flock /tmp/l git commit",
             "flock -w 5 /tmp/l -c 'git commit -m x'",
+            # An unquoted heredoc delimiter: bash substitutes in the body, quotes and all.
+            "cat <<EOF\n$(git commit -m x)\nEOF",
+            "cat <<EOF > notes.md\nsee '`git commit`'\nEOF",
+            "cat <<-EOF\n\t$(git commit)\n\tEOF",
         ]
         for command in cases:
             with self.subTest(command=command):
@@ -85,6 +89,10 @@ class DecidesFromTokens(unittest.TestCase):
             "timeout 60 git status",
             "sudo git log commit",
             "xargs -I {} echo git commit {}",
+            "cat <<'EOF'\n$(git commit -m x)\nEOF",
+            'cat <<"EOF"\n$(git commit -m x)\nEOF',
+            "cat <<\\EOF\n$(git commit -m x)\nEOF",
+            "cat <<EOF\n\\$(git commit -m x) is escaped\nEOF",
         ]
         for command in cases:
             with self.subTest(command=command):

@@ -81,7 +81,7 @@ GIT_OPTIONS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace",
                           "--config-env", "--attr-source"}
 
 _ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
-_HEREDOC = re.compile(r"(?<!<)<<(-?)[ \t]*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\2")
+_HEREDOC = re.compile(r"(?<!<)<<(-?)[ \t]*(?:(['\"])([A-Za-z_][A-Za-z0-9_]*)\2|(\\?)([A-Za-z_][A-Za-z0-9_]*))")
 
 
 class Undecidable(Exception):
@@ -89,30 +89,41 @@ class Undecidable(Exception):
 
 
 def strip_heredocs(command):
-    """The command without heredoc bodies: they are input to a command, not commands."""
-    out, pending = [], []
+    """The command without heredoc bodies, and the text of the bodies bash expands.
+
+    A body is input to a command, not commands. But with an unquoted delimiter (`<<EOF`) bash still
+    performs `$(...)` and backtick substitution in it, so those bodies are returned for the
+    substitution scan; `<<'EOF'`, `<<"EOF"` and `<<\\EOF` bodies are left as the text they are.
+    """
+    out, pending, expanded = [], [], []
     for line in command.split("\n"):
         if pending:
-            strip_tabs, delimiter = pending[0]
+            strip_tabs, delimiter, quoted = pending[0]
             if (line.lstrip("\t") if strip_tabs else line) == delimiter:
                 pending.pop(0)
+            elif not quoted:
+                expanded.append(line)
             continue
         out.append(line)
-        pending += [(dash == "-", word) for dash, _, word in _HEREDOC.findall(line)]
-    return "\n".join(out)
+        pending += [(dash == "-", word or bare, bool(quote or backslash))
+                    for dash, quote, word, backslash, bare in _HEREDOC.findall(line)]
+    return "\n".join(out), "\n".join(expanded)
 
 
-def substitutions(text):
+def substitutions(text, quotes=True):
     r"""Commands inside `$(...)` and backticks, outermost first.
 
     Scanned in the raw text, not in shlex's words: shlex removes the quotes, and the quotes decide.
     Bash runs a substitution outside quotes and inside double quotes, never inside single quotes --
     `--body "... \`git commit\`"` really does commit, `--body '... \`git commit\`'` does not.
+    In an expanded heredoc body quotes are literal, so `quotes=False` ignores them there.
     """
     found, i, quote = [], 0, None
     while i < len(text):
         c = text[i]
-        if quote == "'":
+        if not quotes and c in "'\"":
+            i += 1
+        elif quote == "'":
             quote = None if c == "'" else quote
             i += 1
         elif c == "\\":
@@ -174,14 +185,14 @@ def commits(command, cwd, depth=0):
     """The directories in which `command` would create a commit (unresolved, possibly several)."""
     if depth > 5:
         raise Undecidable("the command nests shells or substitutions too deeply to follow")
-    text = strip_heredocs(command)
+    text, expanded = strip_heredocs(command)
     try:
         words = tokens(text)
     except ValueError as error:
         raise Undecidable(f"it could not be parsed ({error})")
 
     found, here = [], cwd
-    for inner in substitutions(text):
+    for inner in substitutions(text) + substitutions(expanded, quotes=False):
         found += commits(inner, here, depth + 1)
 
     for argv in simple_commands(words):
