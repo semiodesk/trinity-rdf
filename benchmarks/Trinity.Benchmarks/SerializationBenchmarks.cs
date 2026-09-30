@@ -53,17 +53,17 @@ namespace Semiodesk.Trinity.Benchmarks
         [Params(1000, 10_000)]
         public int People { get; set; }
 
-        /// <summary>
-        /// The formats a document is read in.
-        /// </summary>
-        [Params(RdfSerializationFormat.Turtle, RdfSerializationFormat.NTriples, RdfSerializationFormat.JsonLd)]
-        public RdfSerializationFormat Format { get; set; }
+        private string _ntriples;
 
-        private string _document;
+        private string _jsonLd;
 
         private string _insert;
 
         private IModel _exportModel;
+
+        // One method per format rather than a Format parameter. As a parameter, the raw baselines --
+        // which do not depend on the format -- ran once per format value and reported the same cell
+        // three times. As methods, each category has one baseline and a row per format against it.
 
         public override void GlobalSetup()
         {
@@ -76,21 +76,32 @@ namespace Semiodesk.Trinity.Benchmarks
                 BenchmarkData.AppendPerson(ntriples, PersonUri(i), $"Person {i}");
             }
 
-            _insert = $"INSERT DATA {{ GRAPH <{Model.Uri}> {{ {ntriples} }} }}";
+            // N-Triples is valid Turtle, so one document serves both; the parser each row selects is
+            // what differs.
+            _ntriples = ntriples.ToString();
+            _insert = $"INSERT DATA {{ GRAPH <{Model.Uri}> {{ {_ntriples} }} }}";
 
             _exportModel = Store.GetModel(BaseUri.GetUriRef("export"));
             _exportModel.Clear();
 
             // As Turtle, like BenchmarkData: this is fixture setup, and Virtuoso cannot read N-Triples
-            // from a string. The timed ReadDocument row does use Format, so that cell fails there.
-            Store.Read(ntriples.ToString(), _exportModel.Uri, RdfSerializationFormat.Turtle, update: true);
+            // from a string (#55). The timed ReadNTriples row does, so that cell fails there.
+            Store.Read(_ntriples, _exportModel.Uri, RdfSerializationFormat.Turtle, update: true);
 
             AssertSeeded(People * 2, _exportModel.Uri);
+        }
 
-            // N-Triples is valid Turtle, so one document serves both; the parser Format selects is what
-            // differs. JSON-LD is not a superset of anything, so its document is this store's own export
-            // of the same graph -- which also proves the export is readable back, before anything is timed.
-            _document = Format == RdfSerializationFormat.JsonLd ? Export(RdfSerializationFormat.JsonLd) : ntriples.ToString();
+        /// <summary>
+        /// The JSON-LD row's setup. JSON-LD is not a superset of anything, so its document is this
+        /// store's own export of the same graph -- built only for that row, so an export that fails on
+        /// some store fails one cell rather than every case in the class.
+        /// </summary>
+        [GlobalSetup(Target = nameof(ReadJsonLd))]
+        public void GlobalSetupJsonLd()
+        {
+            GlobalSetup();
+
+            _jsonLd = Export(RdfSerializationFormat.JsonLd);
         }
 
         public override void GlobalCleanup()
@@ -100,23 +111,37 @@ namespace Semiodesk.Trinity.Benchmarks
             base.GlobalCleanup();
         }
 
-        [IterationSetup(Targets = new[] { nameof(ReadDocument), nameof(ReadRaw) })]
+        [IterationSetup(Targets = new[] { nameof(ReadTurtle), nameof(ReadNTriples), nameof(ReadJsonLd), nameof(ReadRaw) })]
         public void IterationSetup()
         {
             Model.Clear();
         }
 
-        [IterationCleanup(Targets = new[] { nameof(ReadDocument), nameof(ReadRaw) })]
+        [IterationCleanup(Targets = new[] { nameof(ReadTurtle), nameof(ReadNTriples), nameof(ReadJsonLd), nameof(ReadRaw) })]
         public void IterationCleanup()
         {
             AssertWrote(People * 2);
         }
 
-        [Benchmark(Description = "IStore.Read (parse + load)")]
+        [Benchmark(Description = "IStore.Read Turtle (parse + load)")]
         [BenchmarkCategory("Read")]
-        public void ReadDocument()
+        public void ReadTurtle()
         {
-            Store.Read(_document, Model.Uri, Format, update: true);
+            Store.Read(_ntriples, Model.Uri, RdfSerializationFormat.Turtle, update: true);
+        }
+
+        [Benchmark(Description = "IStore.Read N-Triples (parse + load)")]
+        [BenchmarkCategory("Read")]
+        public void ReadNTriples()
+        {
+            Store.Read(_ntriples, Model.Uri, RdfSerializationFormat.NTriples, update: true);
+        }
+
+        [Benchmark(Description = "IStore.Read JSON-LD (parse + load)")]
+        [BenchmarkCategory("Read")]
+        public void ReadJsonLd()
+        {
+            Store.Read(_jsonLd, Model.Uri, RdfSerializationFormat.JsonLd, update: true);
         }
 
         [Benchmark(Description = "INSERT DATA the same triples (raw)", Baseline = true)]
@@ -126,11 +151,40 @@ namespace Semiodesk.Trinity.Benchmarks
             Store.ExecuteNonQuery(new SparqlUpdate(_insert));
         }
 
-        [Benchmark(Description = "IStore.Write (fetch + serialize)")]
+        [Benchmark(Description = "IStore.Write Turtle (fetch + serialize)")]
         [BenchmarkCategory("Write")]
-        public int WriteDocument()
+        public int WriteTurtle() => Exported(RdfSerializationFormat.Turtle);
+
+        [Benchmark(Description = "IStore.Write N-Triples (fetch + serialize)")]
+        [BenchmarkCategory("Write")]
+        public int WriteNTriples() => Exported(RdfSerializationFormat.NTriples);
+
+        [Benchmark(Description = "IStore.Write JSON-LD (fetch + serialize)")]
+        [BenchmarkCategory("Write")]
+        public int WriteJsonLd() => Exported(RdfSerializationFormat.JsonLd);
+
+        [Benchmark(Description = "SELECT ?s ?p ?o (raw fetch)", Baseline = true)]
+        [BenchmarkCategory("Write")]
+        public int WriteRaw()
         {
-            return Export(Format).Length;
+            var query = new SparqlQuery($"SELECT ?s ?p ?o FROM <{_exportModel.Uri}> WHERE {{ ?s ?p ?o }}",
+                declarePrefixes: false);
+
+            return Expect(Store.ExecuteQuery(query).GetBindings().Count(), People * 2, "SELECT ?s ?p ?o");
+        }
+
+        /// <summary>
+        /// Exports the graph and checks the document names every resource, so an export that dropped
+        /// the graph's content is not timed as a fast one.
+        /// </summary>
+        private int Exported(RdfSerializationFormat format)
+        {
+            var document = Export(format);
+
+            // The last resource written is the one a truncated export would lose first.
+            Expect(document.Contains($"person-{People - 1}"), true, $"{format} export naming every resource");
+
+            return document.Length;
         }
 
         private string Export(RdfSerializationFormat format)
@@ -141,16 +195,6 @@ namespace Semiodesk.Trinity.Benchmarks
 
                 return Encoding.UTF8.GetString(stream.ToArray());
             }
-        }
-
-        [Benchmark(Description = "SELECT ?s ?p ?o (raw fetch)", Baseline = true)]
-        [BenchmarkCategory("Write")]
-        public int WriteRaw()
-        {
-            var query = new SparqlQuery($"SELECT ?s ?p ?o FROM <{_exportModel.Uri}> WHERE {{ ?s ?p ?o }}",
-                declarePrefixes: false);
-
-            return Store.ExecuteQuery(query).GetBindings().Count();
         }
     }
 }
