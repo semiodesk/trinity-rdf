@@ -6,7 +6,7 @@
 #
 # Fails when a gate CI enforces would fail: duplication ceiling, build, vocabulary check, a test --
 # in-memory or store -- or the coverage floor. The changed-line findings are reported, never gated.
-# It mirrors the `build` and `duplication` jobs in .github/workflows/ci.yml -- the suite list below
+# It mirrors the `build`, `duplication` and `scripts` jobs in .github/workflows/ci.yml -- the suite list below
 # must stay in step with the Test step there -- and runs the `stores` job's suites that the change
 # affects (.github/scripts/stores.py decides which: any change to core or the shared fixtures affects
 # all four).
@@ -87,6 +87,15 @@ failures() {
 # First, because it needs no build: its findings arrive even when the build is what fails.
 echo "## Duplication"
 python3 "$scripts/duplication.py" --diff "$revision" || status=1
+
+echo
+echo "## Script tests"
+if python3 -m unittest discover -s "$scripts" > "$logs/scripts.txt" 2>&1; then
+    tail -1 "$logs/scripts.txt"
+else
+    grep -E '^(FAIL|ERROR):|Error:|^Ran ' "$logs/scripts.txt" | head -20
+    status=1
+fi
 
 echo
 echo "## Build"

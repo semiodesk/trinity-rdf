@@ -138,6 +138,17 @@ jobs:
           path: ./duplication/jscpd-report.json
           if-no-files-found: error
 
+  # The quality scripts' own unit tests: commit detection, diff parsing. Seconds, and no build. The
+  # hook and the reports depend on these scripts, and a mistake in them fails open or closed quietly.
+  scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Script tests
+        run: python3 -m unittest discover -s .github/scripts -v
+
   # Store-integration suites (ADR-0036). These self-provision Virtuoso, GraphDB and Fuseki in Docker
   # via Testcontainers, so they need a Docker daemon -- which ubuntu-latest has preinstalled.
   #
