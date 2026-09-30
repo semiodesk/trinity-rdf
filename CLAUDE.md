@@ -94,7 +94,8 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   type so Trinity converts into it (ADR-0040), whereas the unmapped bag declares nothing. If `ListValues`
   is ever given a CLR-type-fidelity guarantee, they must come back.
 - **CI:** `.github/workflows/ci.yml` (ubuntu, .NET 10) — a fast `build` job (restore → build → test →
-  coverage → pack), a `duplication` job, plus a `stores` matrix job running the four Dockerized store suites (ADR-0044).
+  coverage → pack), a `duplication` job, a `stores` matrix job running the four Dockerized store suites (ADR-0044),
+  and a `coverage` job merging both kinds of report.
   NuGet publishing is **manual** (no publish job).
 - **Coverage** is collected by the collector bundled with `Microsoft.NET.Test.Sdk` (no package or tool
   to add), merged by `.github/scripts/coverage.py`, printed to the job summary as a per-assembly table,
@@ -106,6 +107,16 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   figure rather than at it — a ratchet pinned to the exact value turns any honest refactor that deletes
   well-covered code red. The floor lives in the script (as the ceiling and the jscpd pin live in
   `duplication.py`), so CI and the local check below cannot disagree about it.
+  Only **product source files of this repo** count, decided by path, not assembly: the store suites
+  also instrument **Testcontainers** (its package ships symbols — 2930 lines, a merged 69.8%), and
+  rewriting its `/_/src/…` build paths to repo-relative makes them *look* like product files, so a
+  file must also be one git knows (tracked or untracked-not-ignored).
+  The **store suites' coverage** (`--stores`; merged in CI by the `coverage` job) is **reported, not
+  gated**, one row per adapter and no merged grand total — adapters entering the denominator would pull
+  it below the gated figure for no reason. A floor there now would mostly measure
+  `Trinity.Virtuoso/VirtuosoManager.cs`, a vendored connector whose unused API is ~400 of Virtuoso's
+  ~550 uncovered lines; trim it before adding one. An adapter counts only from **its own** suite, and a
+  **failed** suite's report is dropped — partial data makes covered code look uncovered.
 - **Duplication** is measured by jscpd (pinned `4.3.0`, run via `npx` — no install) over **product code
   only**, comments ignored; scope lives in `.jscpd.json`. `.github/scripts/duplication.py` counts the
   lines in a clone on **either side** — 9.6% when added, where jscpd's own headline says 5.4% because it
@@ -120,14 +131,25 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   load-bearing. One-sided edits are judged against clones **scanned at the base revision**: editing one
   copy is exactly what stops the copies matching, so a scan of the result no longer contains the clone —
   the first version scanned the result and missed every real edit, finding only comment-only ones. And
-  the store adapters are **not measured** for coverage (no in-memory suite loads them, and the Docker
-  suites collect none), which the report says rather than counting them uncovered or dropping them.
+  a changed file nothing measured is listed **with the reason** (its store suite did not run, failed,
+  or nothing loads the file) rather than counted uncovered or dropped. On PRs the `coverage` job makes
+  this report, so annotations wait for the slowest store leg; it runs even when a leg failed.
 - **Local check:** `.github/scripts/check.sh [<rev>]` (default `HEAD`, i.e. everything uncommitted,
   untracked files included) runs the `build` and `duplication` jobs' gates plus both changed-line
-  reports in ~45 s — not the `stores` job. Its suite list must stay in step with CI's Test step.
+  reports, and the **store suites the change affects** (`.github/scripts/stores.py`, the one store
+  list): an adapter or its test project runs that suite; core, the generator, `Trinity.Tests/` (the
+  shared fixtures) or a root build file runs **all four** — about 82% of commits. They start in the
+  background after the build, 300 s limit each. Without Docker or a pinned image a suite is reported
+  *not run*, never failed; once it runs, its failures fail the check. Its in-memory suite list must stay
+  in step with CI's Test step.
   **Claude Code runs it before every `git commit`** (`.claude/settings.json` →
   `.claude/hooks/pre-commit.sh`): a failing gate blocks the commit and hands Claude the report; a
-  passing one hands it the report as context. Markdown-only changes skip it. To bypass it deliberately,
+  passing one hands it the report as context. Markdown-only changes skip it. The hook's `if:
+  "Bash(git commit *)"` is only a pre-filter — documented best-effort, it runs the hook for any command
+  with a variable it cannot resolve, where a failing gate would *block an unrelated command* — so the
+  script re-checks the command itself. And a hook that outlives its timeout is **killed and the command
+  proceeds, silently**, so the script bounds the check at 840 s (under the 900 s hook limit) and blocks
+  when that is exceeded. To bypass it deliberately,
   disable the hook via `/hooks` — there is intentionally no in-command escape hatch Claude could use.
 - Central Package Management: versions live in `Directory.Packages.props`; shared metadata +
   the single `Version` (2.0.0) in `Directory.Build.props`. Projects use versionless `PackageReference`.

@@ -13,6 +13,7 @@ artifacts/**
 # Test run output (dotnet test --logger trx)
 TestResults/
 coverage/
+coverage-stores/
 duplication/
 __pycache__/
 *.trx

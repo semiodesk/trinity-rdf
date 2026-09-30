@@ -15,11 +15,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Depth 2 so a pull request's merge commit has its base parent, which the changed-line
-      # report in the Coverage step diffs against.
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 2
 
       - uses: actions/setup-dotnet@v6
         with:
@@ -73,12 +69,10 @@ jobs:
 
       # Merges the reports, writes a per-assembly table to the job summary, and fails below the floor.
       # The floor, and why it sits where it does, live in the script: .github/scripts/check.sh runs
-      # the same gate locally, and two copies of a number drift.
-      #
-      # On a pull request it also lists the changed lines no in-memory test covers, and annotates
-      # them on the diff. HEAD is the merge commit there, so HEAD^1 is the base branch.
+      # the same gate locally, and two copies of a number drift. The changed-line report is not made
+      # here but in the `coverage` job below, which also has the store suites' reports.
       - name: Coverage
-        run: python3 .github/scripts/coverage.py ./coverage ${{ github.event_name == 'pull_request' && '--diff HEAD^1' || '' }}
+        run: python3 .github/scripts/coverage.py ./coverage
 
       - uses: actions/upload-artifact@v7
         if: always()
@@ -141,14 +135,20 @@ jobs:
   #
   # A matrix rather than one job, so each backend pulls only its own image, they run in parallel, and
   # a failure names the store in the check title rather than hiding in a combined log.
+  #
+  # Each leg also collects coverage of its adapter, which only these suites can exercise, for the
+  # `coverage` job to merge. A leg that times out holds that job too, hence the limit: without one a
+  # container that never becomes ready waits out GitHub's six-hour default.
   stores:
     name: stores (${{ matrix.store }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       # One store failing should not cancel the others -- the interesting question is usually
       # "which backends does this break?", not "does anything break?".
       fail-fast: false
       matrix:
+        # The same four as STORES in .github/scripts/stores.py, which the local check reads.
         store: [ Fuseki, GraphDB, Oxigraph, Virtuoso ]
     steps:
       - uses: actions/checkout@v7
@@ -167,12 +167,64 @@ jobs:
 
       # Testcontainers pulls the pinned image (all four are pinned to a version tag) and binds the
       # service port to a random free host port, so nothing here depends on the runner's ports.
+      #
+      # --results-directory moves the TRX file as well as the coverage report, so the TRX upload below
+      # reads it from ./coverage; the old TestResults path would match nothing, and silently.
       - name: Test
-        run: dotnet test tests/Trinity.Tests.${{ matrix.store }}/Trinity.Tests.${{ matrix.store }}.csproj -c Release --no-build --logger "trx;LogFileName=${{ matrix.store }}.trx"
+        id: test
+        run: dotnet test tests/Trinity.Tests.${{ matrix.store }}/Trinity.Tests.${{ matrix.store }}.csproj -c Release --no-build --logger "trx;LogFileName=${{ matrix.store }}.trx" --collect "Code Coverage;Format=Cobertura" --results-directory ./coverage
+
+      # The coverage job sees only the matrix's aggregate result, so each leg records its own. A failed
+      # leg's partial report must be left out -- it would make covered adapter code look uncovered.
+      - name: Record outcome
+        if: ${{ !cancelled() && steps.test.outcome != 'skipped' }}
+        run: mkdir -p ./coverage && echo "${{ steps.test.outcome }}" > ./coverage/outcome
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() && steps.test.outcome != 'skipped' }}
+        with:
+          name: coverage-store-${{ matrix.store }}
+          path: |
+            ./coverage/**/*.cobertura.xml
+            ./coverage/outcome
+          if-no-files-found: error
+          overwrite: true
 
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results-${{ matrix.store }}
-          path: tests/Trinity.Tests.${{ matrix.store }}/TestResults/*.trx
+          path: ./coverage/${{ matrix.store }}.trx
           if-no-files-found: warn
+          overwrite: true
+
+  # Coverage including the store suites, and the changed-line report for pull requests. Reported,
+  # never gated: the build job holds the floor, over the in-memory suites only (see coverage.py).
+  #
+  # It runs when a store leg failed too -- which backends a change breaks is exactly when the report
+  # matters -- but not without the build job's in-memory reports, which are its baseline.
+  coverage:
+    name: coverage (with store suites)
+    needs: [ build, stores ]
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Depth 2 so a pull request's merge commit has its base parent: HEAD^1 is the base branch.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: coverage
+          path: ./coverage
+
+      # No merge-multiple: each store keeps its own directory, which coverage.py reads per suite.
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-store-*
+          path: ./coverage-stores
+
+      - name: Coverage
+        run: python3 .github/scripts/coverage.py ./coverage --stores ./coverage-stores --no-gate ${{ github.event_name == 'pull_request' && '--diff HEAD^1' || '' }}
