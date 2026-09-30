@@ -90,7 +90,7 @@ namespace Semiodesk.Trinity.Benchmarks
             var hub = Model.GetResource<BenchmarkPerson>(_hub);
 
             // FirstName, not just Count: a member that came back unresolved would still be counted.
-            return hub.Knows.Count(p => p.FirstName != null);
+            return Expect(hub.Knows.Count(p => p.FirstName != null), Links, "resolved members");
         }
 
         [Benchmark(Description = "hub SELECT + VALUES SELECT (raw, same shape)", Baseline = true)]
@@ -122,17 +122,17 @@ namespace Semiodesk.Trinity.Benchmarks
                     .Count();
             }
 
-            return total;
+            return Expect(total, Links * 2, "member triples");
         }
 
         [Benchmark(Description = "one join SELECT (raw)")]
         public int TraverseJoin()
         {
-            return Store.ExecuteQuery(new SparqlQuery(
+            return Expect(Store.ExecuteQuery(new SparqlQuery(
                     $"SELECT ?o ?p ?v FROM <{Model.Uri}> WHERE {{ <{_hub}> <{Vocabulary.KnowsProperty}> ?o . ?o ?p ?v }}",
                     declarePrefixes: false))
                 .GetBindings()
-                .Count();
+                .Count(), Links * 2, "join SELECT");
         }
     }
 }

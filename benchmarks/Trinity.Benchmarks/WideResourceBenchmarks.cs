@@ -140,7 +140,7 @@ namespace Semiodesk.Trinity.Benchmarks
         [BenchmarkCategory("Read")]
         public int ReadMapped()
         {
-            return _readModel.GetResources<BenchmarkWideResource>().Count();
+            return Expect(_readModel.GetResources<BenchmarkWideResource>().Count(), Count, "GetResources<T>()");
         }
 
         [Benchmark(Description = "SELECT ?s ?p ?o (raw)", Baseline = true)]
@@ -151,7 +151,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 $"SELECT ?s ?p ?o FROM <{_readModel.Uri}> WHERE {{ ?s ?p ?o . ?s a <{Vocabulary.WideClass}> . }}",
                 declarePrefixes: false);
 
-            return Store.ExecuteQuery(query).GetBindings().Count();
+            return Expect(Store.ExecuteQuery(query).GetBindings().Count(), ExpectedTriples, "SELECT ?s ?p ?o");
         }
 
         private List<BenchmarkWideResource> Build()

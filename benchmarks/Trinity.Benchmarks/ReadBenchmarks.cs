@@ -64,7 +64,7 @@ namespace Semiodesk.Trinity.Benchmarks
         [Benchmark(Description = "GetResources<T>() (mapped)")]
         public int GetResourcesMapped()
         {
-            return Model.GetResources<BenchmarkPerson>().Count();
+            return Expect(Model.GetResources<BenchmarkPerson>().Count(), Count, "GetResources<T>()");
         }
 
         /// <summary>
@@ -73,10 +73,10 @@ namespace Semiodesk.Trinity.Benchmarks
         [Benchmark(Description = "AsQueryable<T>().Where() (LINQ)")]
         public int LinqWhere()
         {
-            return Model.AsQueryable<BenchmarkPerson>()
+            return Expect(Model.AsQueryable<BenchmarkPerson>()
                 .Where(p => p.FirstName != null)
                 .ToList()
-                .Count;
+                .Count, Count, "LINQ Where");
         }
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 $"SELECT ?s ?n FROM <{Model.Uri}> WHERE {{ ?s <{Vocabulary.FirstNameProperty}> ?n }}",
                 declarePrefixes: false);
 
-            return Store.ExecuteQuery(query).GetBindings().Count();
+            return Expect(Store.ExecuteQuery(query).GetBindings().Count(), Count, "SELECT bindings");
         }
     }
 }

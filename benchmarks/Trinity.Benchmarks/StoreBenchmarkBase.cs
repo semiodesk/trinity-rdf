@@ -103,8 +103,8 @@ namespace Semiodesk.Trinity.Benchmarks
         /// </summary>
         /// <remarks>
         /// Used to prove a write benchmark did the work, outside the timed region. This is not
-        /// belt-and-braces: ADR-0042 records that Virtuoso <b>silently writes zero</b> when an
-        /// <c>INSERT ... WHERE</c> exceeds its transaction-log limit. A scaling benchmark that
+        /// belt-and-braces: Virtuoso <b>silently writes zero</b> when one statement exceeds 10,000
+        /// entries, because the error it raises is swallowed (#50, #70). A scaling benchmark that
         /// crosses that limit would report an excellent time for having done nothing, and the number
         /// would look like a result rather than a failure.
         /// </remarks>
@@ -149,8 +149,8 @@ namespace Semiodesk.Trinity.Benchmarks
         {
             AssertCount(Model.Uri, expected,
                 "after the benchmark. The measurement is of an operation that did not do the work, so the "
-                + "timing is meaningless -- see ADR-0042 on Virtuoso writing zero above its "
-                + "transaction-log limit.");
+                + "timing is meaningless -- see #50 and #70 on Virtuoso reporting success for a write "
+                + "it refused.");
         }
 
         /// <summary>
@@ -165,6 +165,37 @@ namespace Semiodesk.Trinity.Benchmarks
         {
             AssertCount(graph ?? Model.Uri, expected,
                 "after seeding. Every benchmark in this class would be measuring the wrong amount of data.");
+        }
+
+        /// <summary>
+        /// Throws unless a read benchmark's answer is the one its fixture implies, and returns it.
+        /// </summary>
+        /// <remarks>
+        /// A read that returns less than it should is faster than one that returns everything: a bulk
+        /// load that resolved none of its members would be recorded as a large improvement. Checking
+        /// the count costs one comparison, so it stays inside the timed region, where the answer is.
+        /// </remarks>
+        protected int Expect(int actual, int expected, string what)
+        {
+            if (actual != expected)
+            {
+                throw new InvalidOperationException(
+                    $"{Backend}: {what} returned {actual}, expected {expected}. A read that returns the "
+                    + "wrong answer is timed as a different, usually faster, operation.");
+            }
+
+            return actual;
+        }
+
+        /// <inheritdoc cref="Expect(int, int, string)"/>
+        protected bool Expect(bool actual, bool expected, string what)
+        {
+            if (actual != expected)
+            {
+                throw new InvalidOperationException($"{Backend}: {what} returned {actual}, expected {expected}.");
+            }
+
+            return actual;
         }
 
         private void AssertCount(Uri graph, int expected, string consequence)

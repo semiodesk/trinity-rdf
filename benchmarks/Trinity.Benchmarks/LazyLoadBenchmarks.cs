@@ -100,7 +100,7 @@ namespace Semiodesk.Trinity.Benchmarks
         [Benchmark(Description = "GetResources, links untouched")]
         public int MaterializeOnly()
         {
-            return Model.GetResources<BenchmarkPerson>().Count();
+            return Expect(Model.GetResources<BenchmarkPerson>().Count(), People, "GetResources<T>()");
         }
 
         /// <summary>
@@ -113,10 +113,11 @@ namespace Semiodesk.Trinity.Benchmarks
 
             foreach (var person in Model.GetResources<BenchmarkPerson>())
             {
-                links += person.Knows.Count;
+                links += person.Knows.Count(p => p.FirstName != null);
             }
 
-            return links;
+            // FirstName, not just Count: a member the lazy load failed to resolve is still counted by Count.
+            return Expect(links, People * Links, "resolved links");
         }
 
         /// <summary>
@@ -129,7 +130,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 $"SELECT ?s ?o FROM <{Model.Uri}> WHERE {{ ?s <{Vocabulary.KnowsProperty}> ?o }}",
                 declarePrefixes: false);
 
-            return Store.ExecuteQuery(query).GetBindings().Count();
+            return Expect(Store.ExecuteQuery(query).GetBindings().Count(), People * Links, "links SELECT");
         }
     }
 }

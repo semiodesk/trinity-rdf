@@ -155,10 +155,28 @@ namespace Semiodesk.Trinity.Benchmarks
 
             RequireCount(Additions.Uri, pattern, Batch, "additions");
 
+            // The old value has to reach the removals graph too. If it did not, the view would read both
+            // names for a single-valued property -- the ADR-0042 hazard a mapped read then hides by
+            // picking one -- and a count of the additions alone would still pass.
+            var replaced = ReplacedNamesPattern();
+
+            RequireCount(Removals.Uri, replaced, Batch, "removals (the replaced names)");
+
             if (Materialized)
             {
                 RequireCount(MaterializedGraph.Uri, pattern, Batch, "materialized graph");
+                RequireCount(MaterializedGraph.Uri, replaced, 0, "materialized graph (the replaced names)");
             }
+        }
+
+        /// <summary>
+        /// The original name triples of the resources in the current batch.
+        /// </summary>
+        private string ReplacedNamesPattern()
+        {
+            var rows = string.Join(" ", _batch.Select(i => $"(<{PersonUri(i).OriginalString}> \"Person {i}\")"));
+
+            return $"VALUES (?s ?n) {{ {rows} }} ?s <{Vocabulary.FirstNameProperty}> ?n";
         }
 
         /// <summary>
@@ -216,6 +234,23 @@ namespace Semiodesk.Trinity.Benchmarks
                     throw new InvalidOperationException(
                         $"{Backend}: <{PersonUri(i)}> is still readable through the view after its delete was "
                         + "staged. A delete that did nothing is timed as a fast one.");
+                }
+
+                // Both sides (ADR-0030). ContainsResource only asks about the victim as a subject, and the
+                // object side -- links pointing at it -- is exactly what ADR-0042's two-bound-patterns
+                // fix changed. Every baseline triple mentioning the victim must be staged for removal,
+                // and, for a materialized view, gone from the fourth graph.
+                var victim = $"<{PersonUri(i).OriginalString}>";
+
+                RequireCount(Removals.Uri, $"{victim} ?p ?o", CountWhere(Baseline.Uri, $"{victim} ?p ?o"),
+                    "removals (subject side of a deleted resource)");
+                RequireCount(Removals.Uri, $"?s ?p {victim}", CountWhere(Baseline.Uri, $"?s ?p {victim}"),
+                    "removals (object side of a deleted resource)");
+
+                if (Materialized)
+                {
+                    RequireCount(MaterializedGraph.Uri, $"{victim} ?p ?o", 0, "materialized graph (subject side)");
+                    RequireCount(MaterializedGraph.Uri, $"?s ?p {victim}", 0, "materialized graph (object side)");
                 }
             }
         }
@@ -323,7 +358,9 @@ namespace Semiodesk.Trinity.Benchmarks
 
             if (Materialized)
             {
-                RequireCount(MaterializedGraph.Uri, "?s ?p ?o", BaselineTriples, "materialized graph after Discard");
+                // By content: a rebuild that skipped the removals would have the baseline's names and
+                // the wrong count, one that skipped the additions the right count only by accident.
+                AssertBaselineOnly(MaterializedGraph.Uri, "the materialized graph after Discard");
             }
         }
 
@@ -372,7 +409,7 @@ namespace Semiodesk.Trinity.Benchmarks
     /// Opt-in with <c>--large</c>.
     /// </summary>
     /// <remarks>
-    /// Virtuoso's materialized cells fail in setup, as in <see cref="LayeredReadLargeBenchmarks"/>.
+    /// Virtuoso's materialized cells fail in setup, as at 10k and 100k (#70).
     /// A materialized <c>Discard()</c> rebuilds the whole graph per iteration here, so expect minutes.
     /// </remarks>
     [BenchmarkCategory(Program.LargeCategory)]
@@ -391,8 +428,10 @@ namespace Semiodesk.Trinity.Benchmarks
     /// so the Ratio is what the overlay and the verification cost over a plain copy. ADR-0041 measured
     /// that copy on the server stores at 3.9-6.0 s for 1M.
     ///
-    /// The raw copy is verified too, and on Virtuoso at 1M it fails: one <c>INSERT ... WHERE</c> of a
-    /// million rows writes nothing and reports success. That is the ADR-0042 finding, reproduced.
+    /// The raw copy is verified too. On Virtuoso every case in this class fails in setup: past 10,000
+    /// effective triples, Virtuoso refuses the materializing <c>INSERT … WHERE</c>, the error is
+    /// swallowed (#50), and <c>Refresh()</c> finds nothing written (#70). The cells are left failing
+    /// so the defect stays visible.
     /// </remarks>
     public class LayeredMaterializeBenchmarks : LayeredBenchmarkBase
     {
@@ -405,13 +444,13 @@ namespace Semiodesk.Trinity.Benchmarks
         [IterationCleanup(Target = nameof(Refresh))]
         public void VerifyRefresh()
         {
-            AssertSeeded(EffectiveTriples, MaterializedGraph.Uri);
+            AssertEffective(MaterializedGraph.Uri, "the materialized graph after Refresh()");
         }
 
         [IterationCleanup(Target = nameof(CopyRaw))]
         public void VerifyCopy()
         {
-            AssertSeeded(BaselineTriples, MaterializedGraph.Uri);
+            AssertBaselineOnly(MaterializedGraph.Uri, "the copied graph");
         }
 
         /// <summary>
@@ -434,7 +473,7 @@ namespace Semiodesk.Trinity.Benchmarks
 
     /// <summary>
     /// <see cref="LayeredMaterializeBenchmarks"/> at 1,000,000 triples: ADR-0042's 31.5 s. Opt-in with
-    /// <c>--large</c>. Virtuoso fails in setup, as its view cannot be materialized at this size.
+    /// <c>--large</c>. Virtuoso fails in setup, as at every size here (#70).
     /// </summary>
     [BenchmarkCategory(Program.LargeCategory)]
     public class LayeredMaterializeLargeBenchmarks : LayeredMaterializeBenchmarks

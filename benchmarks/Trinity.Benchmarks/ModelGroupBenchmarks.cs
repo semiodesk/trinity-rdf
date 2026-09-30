@@ -60,9 +60,11 @@ namespace Semiodesk.Trinity.Benchmarks
     /// <see cref="NotImplementedException"/> on a group, so the materialization category goes through
     /// the query overload instead.
     ///
-    /// The group is created from graph URIs. <c>CreateModelGroup(params IModel[])</c> on the in-memory
-    /// store builds the list and then discards it, returning an empty group (ADR-0041 notes the bug);
-    /// an empty group reads nothing, fast. The seeding guard counts through the group for that reason.
+    /// The group is created from graph URIs through <see cref="IStore"/>. The <c>IModel[]</c> overload
+    /// returns an empty group on <c>SparqlEndpointStore</c>, and on <c>dotNetRDFStore</c> when called
+    /// through the concrete type rather than the interface (#68). The harness always goes through
+    /// <see cref="IStore"/>, so it does not hit that, but an empty group reads nothing, fast, whatever
+    /// the cause. So the seeding guard counts through the group.
     /// </remarks>
     public class ModelGroupBenchmarks : StoreBenchmarkBase
     {
@@ -139,8 +141,7 @@ namespace Semiodesk.Trinity.Benchmarks
             {
                 throw new InvalidOperationException(
                     $"{Backend}: the group over {Graphs} member(s) reads {throughGroup} triples, expected {total}. "
-                    + "An empty or partial group reads fast and says nothing -- see the CreateModelGroup(IModel[]) "
-                    + "bug in the class remarks.");
+                    + "An empty or partial group reads fast and says nothing (see #68 for one way to get one).");
             }
         }
 
@@ -171,21 +172,21 @@ namespace Semiodesk.Trinity.Benchmarks
         [BenchmarkCategory("GetResources")]
         public int GetResourcesGroup()
         {
-            return _group.GetResources<BenchmarkPerson>(TypedQuery()).Count();
+            return Expect(_group.GetResources<BenchmarkPerson>(TypedQuery()).Count(), People, "GetResources<T>(query) through the group");
         }
 
         [Benchmark(Description = "GetResources<T>(query) (union model)", Baseline = true)]
         [BenchmarkCategory("GetResources")]
         public int GetResourcesUnion()
         {
-            return Model.GetResources<BenchmarkPerson>(TypedQuery()).Count();
+            return Expect(Model.GetResources<BenchmarkPerson>(TypedQuery()).Count(), People, "GetResources<T>(query)");
         }
 
         [Benchmark(Description = "SELECT typed ?s ?p ?o, FROM per member (raw)")]
         [BenchmarkCategory("GetResources")]
         public int GetResourcesRaw()
         {
-            return Raw($"SELECT ?s ?p ?o {_from} WHERE {{ ?s ?p ?o . ?s a <{Vocabulary.PersonClass}> . }}");
+            return Expect(Raw($"SELECT ?s ?p ?o {_from} WHERE {{ ?s ?p ?o . ?s a <{Vocabulary.PersonClass}> . }}"), People * (2 + Links), "typed SELECT");
         }
 
         private static SparqlQuery TypedQuery()
@@ -209,7 +210,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 found += _group.GetResource<BenchmarkPerson>(PersonUri(NextIndex())) != null ? 1 : 0;
             }
 
-            return found;
+            return Expect(found, Lookups, "GetResource<T> through the group");
         }
 
         [Benchmark(Description = "GetResource<T>(uri) (union model)", Baseline = true, OperationsPerInvoke = Lookups)]
@@ -223,7 +224,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 found += Model.GetResource<BenchmarkPerson>(PersonUri(NextIndex())) != null ? 1 : 0;
             }
 
-            return found;
+            return Expect(found, Lookups, "GetResource<T>");
         }
 
         [Benchmark(Description = "SELECT bound subject, FROM per member (raw)", OperationsPerInvoke = Lookups)]
@@ -237,7 +238,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 found += Raw($"SELECT ?p ?o {_from} WHERE {{ <{PersonUri(NextIndex())}> ?p ?o }}");
             }
 
-            return found;
+            return Expect(found, Lookups * (2 + Links), "subject-bound SELECT");
         }
 
         // --- ContainsResource -------------------------------------------------------------------
@@ -253,7 +254,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 found += _group.ContainsResource(PersonUri(NextIndex())) ? 1 : 0;
             }
 
-            return found;
+            return Expect(found, Lookups, "ContainsResource through the group");
         }
 
         [Benchmark(Description = "ContainsResource(uri) (union model)", Baseline = true, OperationsPerInvoke = Lookups)]
@@ -267,7 +268,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 found += Model.ContainsResource(PersonUri(NextIndex())) ? 1 : 0;
             }
 
-            return found;
+            return Expect(found, Lookups, "ContainsResource");
         }
 
         [Benchmark(Description = "ASK bound subject, FROM per member (raw)", OperationsPerInvoke = Lookups)]
@@ -284,7 +285,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 found += Store.ExecuteQuery(query).GetAnwser() ? 1 : 0;
             }
 
-            return found;
+            return Expect(found, Lookups, "ASK");
         }
 
         // --- LINQ ---------------------------------------------------------------------------------
@@ -293,21 +294,21 @@ namespace Semiodesk.Trinity.Benchmarks
         [BenchmarkCategory("Linq")]
         public int LinqGroup()
         {
-            return _group.AsQueryable<BenchmarkPerson>().Where(p => p.FirstName != null).ToList().Count;
+            return Expect(_group.AsQueryable<BenchmarkPerson>().Where(p => p.FirstName != null).ToList().Count, People, "LINQ through the group");
         }
 
         [Benchmark(Description = "AsQueryable<T>().Where() (union model)", Baseline = true)]
         [BenchmarkCategory("Linq")]
         public int LinqUnion()
         {
-            return Model.AsQueryable<BenchmarkPerson>().Where(p => p.FirstName != null).ToList().Count;
+            return Expect(Model.AsQueryable<BenchmarkPerson>().Where(p => p.FirstName != null).ToList().Count, People, "LINQ");
         }
 
         [Benchmark(Description = "SELECT ?s ?n, FROM per member (raw)")]
         [BenchmarkCategory("Linq")]
         public int LinqRaw()
         {
-            return Raw($"SELECT ?s ?n {_from} WHERE {{ ?s <{Vocabulary.FirstNameProperty}> ?n }}");
+            return Expect(Raw($"SELECT ?s ?n {_from} WHERE {{ ?s <{Vocabulary.FirstNameProperty}> ?n }}"), People, "name SELECT");
         }
 
         // --- A caller's own SPARQL, scoped by the group -------------------------------------------
@@ -320,21 +321,21 @@ namespace Semiodesk.Trinity.Benchmarks
         [BenchmarkCategory("CallerQuery")]
         public int CallerQueryGroup()
         {
-            return _group.ExecuteQuery(CallerQuery()).GetBindings().Count();
+            return Expect(_group.ExecuteQuery(CallerQuery()).GetBindings().Count(), People, "caller query through the group");
         }
 
         [Benchmark(Description = "ExecuteQuery, FROM injected (union model)", Baseline = true)]
         [BenchmarkCategory("CallerQuery")]
         public int CallerQueryUnion()
         {
-            return Model.ExecuteQuery(CallerQuery()).GetBindings().Count();
+            return Expect(Model.ExecuteQuery(CallerQuery()).GetBindings().Count(), People, "caller query");
         }
 
         [Benchmark(Description = "ExecuteQuery, FROM per member written in (raw)")]
         [BenchmarkCategory("CallerQuery")]
         public int CallerQueryRaw()
         {
-            return Raw($"SELECT ?s ?n {_from} WHERE {{ ?s <{Vocabulary.FirstNameProperty}> ?n }}");
+            return Expect(Raw($"SELECT ?s ?n {_from} WHERE {{ ?s <{Vocabulary.FirstNameProperty}> ?n }}"), People, "name SELECT");
         }
 
         private static SparqlQuery CallerQuery()
@@ -403,7 +404,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 total += Raw($"SELECT ?s ?p ?o {_from} WHERE {{ VALUES ?s {{ {values}}} ?s ?p ?o }}");
             }
 
-            return total;
+            return Expect(total, Lookups * Links * (2 + Links), "member triples");
         }
 
         private int Traverse()

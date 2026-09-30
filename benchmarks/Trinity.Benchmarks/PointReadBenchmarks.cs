@@ -102,7 +102,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 found += Model.GetResource<BenchmarkPerson>(PersonUri(NextIndex())).FirstName != null ? 1 : 0;
             }
 
-            return found;
+            return Expect(found, Lookups, "GetResource<T>");
         }
 
         [Benchmark(Description = "GetResource(uri) (untyped, FILTER)", OperationsPerInvoke = Lookups)]
@@ -113,10 +113,10 @@ namespace Semiodesk.Trinity.Benchmarks
 
             for (var i = 0; i < Lookups; i++)
             {
-                found += Model.GetResource(PersonUri(NextIndex())) != null ? 1 : 0;
+                found += Model.GetResource(PersonUri(NextIndex())) is BenchmarkPerson ? 1 : 0;
             }
 
-            return found;
+            return Expect(found, Lookups, "GetResource(uri) as BenchmarkPerson");
         }
 
         [Benchmark(Description = "SELECT bound subject (raw)", Baseline = true, OperationsPerInvoke = Lookups)]
@@ -134,7 +134,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 found += Store.ExecuteQuery(query).GetBindings().Count();
             }
 
-            return found;
+            return Expect(found, Lookups * 2, "subject-bound SELECT");
         }
 
         [Benchmark(Description = "ContainsResource(uri) (mapped)", OperationsPerInvoke = Lookups)]
@@ -148,7 +148,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 found += Model.ContainsResource(PersonUri(NextIndex())) ? 1 : 0;
             }
 
-            return found;
+            return Expect(found, Lookups, "ContainsResource");
         }
 
         [Benchmark(Description = "ASK bound subject (raw)", Baseline = true, OperationsPerInvoke = Lookups)]
@@ -165,7 +165,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 found += Store.ExecuteQuery(query).GetAnwser() ? 1 : 0;
             }
 
-            return found;
+            return Expect(found, Lookups, "ASK");
         }
 
         /// <summary>
@@ -184,7 +184,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 found += Model.AsQueryable<BenchmarkPerson>().Where(p => p.FirstName == name).ToList().Count;
             }
 
-            return found;
+            return Expect(found, Lookups, "LINQ equality lookup");
         }
 
         /// <summary>
@@ -206,7 +206,7 @@ namespace Semiodesk.Trinity.Benchmarks
                 found += Store.ExecuteQuery(query).GetBindings().Count();
             }
 
-            return found;
+            return Expect(found, Lookups * 2, "SELECT by value");
         }
     }
 }

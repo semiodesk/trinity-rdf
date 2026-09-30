@@ -45,6 +45,11 @@ namespace Semiodesk.Trinity.Benchmarks
     {
         private const int People = 1000;
 
+        /// <summary>
+        /// Names in the fixture containing "99", which the substring rows must find.
+        /// </summary>
+        private static readonly int Contains99 = Enumerable.Range(0, People).Count(i => i.ToString().Contains("99"));
+
         public override void GlobalSetup()
         {
             base.GlobalSetup();
@@ -61,15 +66,15 @@ namespace Semiodesk.Trinity.Benchmarks
         [BenchmarkCategory("Paging")]
         public int PagingLinq()
         {
-            return Model.AsQueryable<BenchmarkPerson>().OrderBy(p => p.FirstName).Skip(100).Take(50).ToList().Count;
+            return Expect(Model.AsQueryable<BenchmarkPerson>().OrderBy(p => p.FirstName).Skip(100).Take(50).ToList().Count, 50, "paged LINQ");
         }
 
         [Benchmark(Description = "ORDER BY OFFSET LIMIT subquery (raw)", Baseline = true)]
         [BenchmarkCategory("Paging")]
         public int PagingRaw()
         {
-            return Raw($"SELECT ?s ?p ?o FROM <{Model.Uri}> WHERE {{ {{ SELECT ?s WHERE {{ ?s a <{Vocabulary.PersonClass}> ; "
-                + $"<{Vocabulary.FirstNameProperty}> ?n }} ORDER BY ?n OFFSET 100 LIMIT 50 }} ?s ?p ?o }}");
+            return Expect(Raw($"SELECT ?s ?p ?o FROM <{Model.Uri}> WHERE {{ {{ SELECT ?s WHERE {{ ?s a <{Vocabulary.PersonClass}> ; "
+                + $"<{Vocabulary.FirstNameProperty}> ?n }} ORDER BY ?n OFFSET 100 LIMIT 50 }} ?s ?p ?o }}"), 50 * 2, "ORDER BY OFFSET LIMIT");
         }
 
         // --- Count ------------------------------------------------------------------------------
@@ -78,14 +83,14 @@ namespace Semiodesk.Trinity.Benchmarks
         [BenchmarkCategory("Count")]
         public int CountLinq()
         {
-            return Model.AsQueryable<BenchmarkPerson>().Count();
+            return Expect(Model.AsQueryable<BenchmarkPerson>().Count(), People, "LINQ Count()");
         }
 
         [Benchmark(Description = "SELECT COUNT (raw)", Baseline = true)]
         [BenchmarkCategory("Count")]
         public int CountRaw()
         {
-            return CountWhere(Model.Uri, $"?s a <{Vocabulary.PersonClass}>");
+            return Expect(CountWhere(Model.Uri, $"?s a <{Vocabulary.PersonClass}>"), People, "SELECT COUNT");
         }
 
         // --- Any --------------------------------------------------------------------------------
@@ -94,17 +99,17 @@ namespace Semiodesk.Trinity.Benchmarks
         [BenchmarkCategory("Any")]
         public bool AnyLinq()
         {
-            return Model.AsQueryable<BenchmarkPerson>().Any(p => p.FirstName == "Person 500");
+            return Expect(Model.AsQueryable<BenchmarkPerson>().Any(p => p.FirstName == "Person 500"), true, "LINQ Any()");
         }
 
         [Benchmark(Description = "ASK (raw)", Baseline = true)]
         [BenchmarkCategory("Any")]
         public bool AnyRaw()
         {
-            return Store.ExecuteQuery(new SparqlQuery(
+            return Expect(Store.ExecuteQuery(new SparqlQuery(
                     $"ASK FROM <{Model.Uri}> {{ ?s a <{Vocabulary.PersonClass}> ; <{Vocabulary.FirstNameProperty}> \"Person 500\" }}",
                     declarePrefixes: false))
-                .GetAnwser();
+                .GetAnwser(), true, "ASK");
         }
 
         // --- Substring filter -------------------------------------------------------------------
@@ -113,15 +118,15 @@ namespace Semiodesk.Trinity.Benchmarks
         [BenchmarkCategory("Contains")]
         public int ContainsLinq()
         {
-            return Model.AsQueryable<BenchmarkPerson>().Where(p => p.FirstName.Contains("99")).ToList().Count;
+            return Expect(Model.AsQueryable<BenchmarkPerson>().Where(p => p.FirstName.Contains("99")).ToList().Count, Contains99, "LINQ Contains");
         }
 
         [Benchmark(Description = "FILTER CONTAINS (raw)", Baseline = true)]
         [BenchmarkCategory("Contains")]
         public int ContainsRaw()
         {
-            return Raw($"SELECT ?s ?p ?o FROM <{Model.Uri}> WHERE {{ ?s a <{Vocabulary.PersonClass}> ; "
-                + $"<{Vocabulary.FirstNameProperty}> ?n . FILTER (CONTAINS(?n, \"99\")) ?s ?p ?o }}");
+            return Expect(Raw($"SELECT ?s ?p ?o FROM <{Model.Uri}> WHERE {{ ?s a <{Vocabulary.PersonClass}> ; "
+                + $"<{Vocabulary.FirstNameProperty}> ?n . FILTER (CONTAINS(?n, \"99\")) ?s ?p ?o }}"), Contains99 * 2, "FILTER CONTAINS");
         }
 
         private int Raw(string sparql)

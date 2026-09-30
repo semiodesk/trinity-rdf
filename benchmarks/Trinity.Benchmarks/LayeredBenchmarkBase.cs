@@ -24,7 +24,9 @@
 //
 // Copyright (c) Semiodesk GmbH 2026
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using BenchmarkDotNet.Attributes;
 
 namespace Semiodesk.Trinity.Benchmarks
@@ -38,6 +40,11 @@ namespace Semiodesk.Trinity.Benchmarks
     /// additions and ~100 staged removals". Here that is <see cref="AddedPeople"/> new resources (two
     /// triples each) in the additions graph, and the <c>foaf:firstName</c> of
     /// <see cref="RemovedNames"/> baseline resources in the removals graph.
+    ///
+    /// The two are deliberately <b>unbalanced</b> (120 triples added, 100 removed). With equal counts
+    /// the effective graph has exactly the baseline's size, and a view that ignored its layers entirely
+    /// would pass any check that counts triples. The guards here go further and check content -- the
+    /// added names present, the removed names absent -- so a view that applied only one layer fails too.
     ///
     /// The baseline is a ring (<see cref="BenchmarkData.SeedRing"/>), five triples per resource.
     ///
@@ -60,7 +67,7 @@ namespace Semiodesk.Trinity.Benchmarks
         /// <summary>
         /// Resources staged as additions, two triples each.
         /// </summary>
-        protected const int AddedPeople = 50;
+        protected const int AddedPeople = 60;
 
         /// <summary>
         /// Baseline <c>foaf:firstName</c> triples staged for removal.
@@ -121,6 +128,16 @@ namespace Semiodesk.Trinity.Benchmarks
 
         public override void GlobalSetup()
         {
+            // Before the store is created, so a bad --param fails in a second rather than after a
+            // container start.
+            if (BaselineTriples % (2 + Links) != 0 || People < 2 * RemovedNames)
+            {
+                throw new ArgumentException(
+                    $"BaselineTriples={BaselineTriples} does not fit the layered fixture: it must be a multiple of "
+                    + $"{2 + Links} (triples per resource) and at least {2 * RemovedNames * (2 + Links)}, so that "
+                    + "the removed names and the resources the staging rows change are distinct.");
+            }
+
             base.GlobalSetup();
 
             Baseline = Store.GetModel(BaseUri.GetUriRef($"{GraphPrefix}-baseline-{BaselineTriples}"));
@@ -137,13 +154,13 @@ namespace Semiodesk.Trinity.Benchmarks
             StageChangeset();
 
             // Materialization builds the fourth graph here, before the first iteration, so no read row
-            // pays for it. Virtuoso at 1M throws from this call, by design: see ADR-0042 and the README.
+            // pays for it. Virtuoso throws from this call past 10,000 effective triples (#70).
             View = Store.CreateLayeredModel(Baseline.Uri, Additions.Uri, Removals.Uri,
                 UseMaterialized ? MaterializedGraph.Uri : null);
 
             if (UseMaterialized)
             {
-                AssertSeeded(EffectiveTriples, MaterializedGraph.Uri);
+                AssertEffective(MaterializedGraph.Uri, "the materialized graph after creating the view");
             }
         }
 
@@ -174,9 +191,63 @@ namespace Semiodesk.Trinity.Benchmarks
             return BaseUri.GetUriRef($"added-{j}");
         }
 
+        /// <summary>
+        /// Throws unless <paramref name="graph"/> holds exactly what the view should read: the baseline,
+        /// less the removed names, plus the added resources.
+        /// </summary>
+        protected void AssertEffective(Uri graph, string what)
+        {
+            RequireLayerContent(graph, EffectiveTriples, AddedPeople, 0, what);
+        }
+
+        /// <summary>
+        /// Throws unless <paramref name="graph"/> holds exactly the baseline, with none of the changeset.
+        /// </summary>
+        protected void AssertBaselineOnly(Uri graph, string what)
+        {
+            RequireLayerContent(graph, BaselineTriples, 0, RemovedNames, what);
+        }
+
+        /// <summary>
+        /// A <c>VALUES</c> block listing the baseline name triples staged for removal, for counting how
+        /// many of them a graph still holds.
+        /// </summary>
+        protected string RemovedNamesPattern()
+        {
+            var rows = string.Join(" ", Enumerable.Range(0, RemovedNames)
+                .Select(j => $"(<{PersonUri(RemovedIndex(j)).OriginalString}> \"Person {RemovedIndex(j)}\")"));
+
+            return $"VALUES (?s ?n) {{ {rows} }} ?s <{Vocabulary.FirstNameProperty}> ?n";
+        }
+
+        private void RequireLayerContent(Uri graph, int triples, int added, int removedNamesPresent, string what)
+        {
+            var actualTriples = CountTriples(graph);
+            var actualAdded = CountWhere(graph,
+                $"?s <{Vocabulary.FirstNameProperty}> ?n . FILTER (STRSTARTS(STR(?n), \"Added \"))");
+            var actualRemoved = CountWhere(graph, RemovedNamesPattern());
+
+            if (actualTriples != triples || actualAdded != added || actualRemoved != removedNamesPresent)
+            {
+                throw new InvalidOperationException(
+                    $"{Backend}: {what} <{graph}> holds {actualTriples} triples, {actualAdded} added names and "
+                    + $"{actualRemoved} of the names staged for removal; expected {triples}, {added} and "
+                    + $"{removedNamesPresent}. The layers were not applied as the overlay defines them.");
+            }
+        }
+
+        /// <summary>
+        /// Reseeds the baseline unless it is exactly the pristine one.
+        /// </summary>
+        /// <remarks>
+        /// By content, not only by count: <c>Accept()</c> changes the baseline, and a changed baseline
+        /// can have the right number of triples. Every original name must still be there.
+        /// </remarks>
         private void EnsureBaseline()
         {
-            if (CountTriples(Baseline.Uri) == BaselineTriples)
+            if (CountTriples(Baseline.Uri) == BaselineTriples
+                && CountWhere(Baseline.Uri, $"?s <{Vocabulary.FirstNameProperty}> ?n . FILTER (STRSTARTS(STR(?n), \"Person \"))") == People
+                && CountWhere(Baseline.Uri, RemovedNamesPattern()) == RemovedNames)
             {
                 return;
             }
