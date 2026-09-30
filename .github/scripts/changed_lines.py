@@ -28,7 +28,17 @@ Hunk = namedtuple("Hunk", "old_path old_start old_count new_path new_start new_c
 _HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
 
 
-def git(*args, **kwargs):
+def git(*args, text=False, **kwargs):
+    """Run git and return its output; bytes, or with text=True a string.
+
+    Text is decoded as UTF-8 with replacement, never in the locale's encoding and never strictly: a
+    diff carries file *content*, and one changed line in a non-UTF-8 file (Documentation/api/index.md
+    has a cp1252 en-dash) otherwise raised UnicodeDecodeError -- crashing a report that is meant never
+    to gate, and failing the ceiling check that runs in the same script. Only paths and line numbers
+    are read from the output, so a replaced character costs nothing.
+    """
+    if text:
+        kwargs.update(encoding="utf-8", errors="replace")
     return subprocess.run(["git", "-c", "core.quotePath=false", *args],
                           capture_output=True, check=True, **kwargs).stdout
 
