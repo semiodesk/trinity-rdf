@@ -104,9 +104,8 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   repeatedly. And **test assemblies are excluded**: they are ~96% covered by construction, and counting
   them reported 88.9% where the product was at 80.9%. The floor sits deliberately *below* the current
   figure rather than at it — a ratchet pinned to the exact value turns any honest refactor that deletes
-  well-covered code red.
-  Run it locally with `dotnet test … --collect "Code Coverage;Format=Cobertura" --results-directory ./coverage`
-  then `python3 .github/scripts/coverage.py ./coverage 78`.
+  well-covered code red. The floor lives in the script (as the ceiling and the jscpd pin live in
+  `duplication.py`), so CI and the local check below cannot disagree about it.
 - **Duplication** is measured by jscpd (pinned `4.3.0`, run via `npx` — no install) over **product code
   only**, comments ignored; scope lives in `.jscpd.json`. `.github/scripts/duplication.py` counts the
   lines in a clone on **either side** — 9.6% when added, where jscpd's own headline says 5.4% because it
@@ -114,8 +113,22 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   floor's reason inverted (deleting unduplicated code raises the share). Both sides count because that is
   this codebase's recurring defect: a fix landing in one copy. The store adapters are the bulk of it —
   Fuseki is 67% cloned, mostly with Oxigraph, and the `AbsoluteUri` quarantine is exactly a fix present
-  in Oxigraph's copy only. Run it locally with `npx --yes jscpd@4.3.0 .` then
-  `python3 .github/scripts/duplication.py ./duplication/jscpd-report.json 10.5`.
+  in Oxigraph's copy only.
+- **Changed-line reports** (`--diff <rev>` on both scripts; CI passes `HEAD^1` on pull requests and
+  annotates the diff): which changed product lines no test covers, which edits landed on **one side of
+  a clone only**, and which new code repeats existing code. Reported, **never gated**. Two things are
+  load-bearing. One-sided edits are judged against clones **scanned at the base revision**: editing one
+  copy is exactly what stops the copies matching, so a scan of the result no longer contains the clone —
+  the first version scanned the result and missed every real edit, finding only comment-only ones. And
+  the store adapters are **not measured** for coverage (no in-memory suite loads them, and the Docker
+  suites collect none), which the report says rather than counting them uncovered or dropping them.
+- **Local check:** `.github/scripts/check.sh [<rev>]` (default `HEAD`, i.e. everything uncommitted,
+  untracked files included) runs the `build` and `duplication` jobs' gates plus both changed-line
+  reports in ~45 s — not the `stores` job. Its suite list must stay in step with CI's Test step.
+  **Claude Code runs it before every `git commit`** (`.claude/settings.json` →
+  `.claude/hooks/pre-commit.sh`): a failing gate blocks the commit and hands Claude the report; a
+  passing one hands it the report as context. Markdown-only changes skip it. To bypass it deliberately,
+  disable the hook via `/hooks` — there is intentionally no in-command escape hatch Claude could use.
 - Central Package Management: versions live in `Directory.Packages.props`; shared metadata +
   the single `Version` (2.0.0) in `Directory.Build.props`. Projects use versionless `PackageReference`.
 
