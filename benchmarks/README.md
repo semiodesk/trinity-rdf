@@ -61,6 +61,11 @@ category with its own baseline, so every `Ratio` is against the right thing.
 | `SerializationBenchmarks` | `IStore.Read`/`Write` in Turtle, N-Triples, JSON-LD | `INSERT DATA` / a bindings fetch | ADR-0034 |
 
 The `Layered*` classes each have a `…LargeBenchmarks` subclass in the `Large` category at 1M.
+That is 1M **triples** (200,000 resources), and the baseline is never turned into objects. Every timed
+operation touches a few resources, or runs inside the store. The tier asks whether a small change costs
+more because the data under it is large. It is not a "load everything" test. Its realistic targets are
+the server backends: the in-memory store holds all 1M triples in the process (6.8 GB observed), so an
+in-memory 1M cell stress-tests dotNetRDF rather than modelling real use.
 
 ## How to read the tables
 

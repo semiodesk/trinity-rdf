@@ -54,6 +54,15 @@ through the mapper costs one or two requests per resource and would dominate the
 `Large` category runs at 1M and is filtered out unless `--large` is passed. Layered baselines are
 named after their size and kept between cases, since `[GlobalSetup]` runs once per case.
 
+The tier is 1M **triples** (200,000 resources), and Trinity never turns that baseline into objects.
+Each timed operation touches a handful of resources — a point read, ten staged changes, an `Accept()`
+of a hundred — or is a store-side `INSERT … WHERE`. The question it answers is whether a small change
+costs more because the data under it is large, which is what ADR-0042's O(changes) design claims. It
+is not a "load everything" test. On the in-memory backend, though, the *store* holds those triples in
+the process (6.8 GB observed), and nobody should run a dataset that size on dotNetRDF's in-memory
+store. So an in-memory 1M cell stress-tests dotNetRDF, not a usage pattern. The tier's realistic
+targets are the server backends.
+
 **CI runs a smoke pass and gates nothing on time.** `--smoke` runs every case once, at the smallest
 value of each numeric parameter, against InMemory. It exists so a workload that throws — including a
 guard that fires — fails the build rather than the next person to run it. Absolute numbers depend on
@@ -87,7 +96,8 @@ figures are single-iteration smoke numbers, which is enough for the orders of ma
 - **An in-memory `ModelGroup` is O(data) per query.** Any query with more than one `FROM` costs about
   1 s at 100,000 triples, raw or mapped alike, because dotNetRDF rebuilds the merged default graph
   each time. The group adds little of its own; the engine is the cost. A layered view, which scopes
-  with `GRAPH` rather than merging, does not pay it.
+  with `GRAPH` rather than merging, does not pay it. This is a property of dotNetRDF's in-memory
+  engine, not evidence about groups on a server backend.
 - **A mapped `long` above `int.MaxValue` cannot be read back from Oxigraph** (#54; any out-of-range `xsd:integer` throws, on every store) — found by
   `WideResourceBenchmarks`, whose setup fails there with an `OverflowException`. Oxigraph canonicalizes
   every integer-derived datatype to `xsd:integer`, in all four result formats (verified against the
@@ -117,6 +127,8 @@ figures are single-iteration smoke numbers, which is enough for the orders of ma
   more expensive after ADR-0042 was measured — ADR-0041 records the set-semantics fix adding a nested
   `NOT EXISTS` to the additions branch — or the figure was taken on a different path. It is the first
   lead to profile (`profile LayeredMaterializeBenchmarks.Refresh --param BaselineTriples=100000`).
+  This is an in-memory figure, which is the right comparison with ADR-0042 (measured in memory too) but
+  says little about production cost; a server backend's number is the one that matters there.
 - **A clean `Accept()` of ~100 changes takes ~4.6 s on a 10k in-memory baseline**, where staging the
   same changes takes well under a millisecond each.
 - **Mapping is 15–25x the raw query for a full `GetResources<T>()`** in memory, and allocates 14–17x
