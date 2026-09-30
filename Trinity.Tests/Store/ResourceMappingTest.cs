@@ -1311,6 +1311,72 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         /// <summary>
+        /// A tag that no Trinity caller could write must still be readable when it is already there.
+        /// </summary>
+        /// <remarks>
+        /// Every literal read from a store is constructed as a <c>LangString</c>, so tag validation sits
+        /// directly on the read path. Capping subtags at eight characters (RFC 5646 well-formedness)
+        /// therefore did not reject a bad write — it made <b>every</b> read of a resource carrying such
+        /// a tag throw, the untyped <c>GetResource</c> included, for data that Turtle, SPARQL and every
+        /// backend accept. One triple written by another tool took the whole resource out.
+        /// </remarks>
+        [Test]
+        public virtual void ReadsALanguageTagLongerThanBcp47Allows()
+        {
+            const string tag = "en-abcdefghij";
+
+            try
+            {
+                Model1.ExecuteUpdate(new SparqlUpdate(
+                    $"INSERT DATA {{ GRAPH <{Model1.Uri.OriginalString}> {{ " +
+                    $"<{_r1.OriginalString}> a <semio:test:LocalizedDocument> ; " +
+                    $"<semio:test:documentTitle> \"lang\"@{tag} }}}}"));
+            }
+            catch (Exception e)
+            {
+                // Oxigraph enforces BCP-47 in its parser and rejects the tag outright.
+                Assert.Inconclusive(
+                    $"This store refuses to store '@{tag}' at all: {e.GetType().Name}. " +
+                    "The read path cannot be exercised where the data cannot be written.");
+            }
+
+            // Backends disagree about whether such a literal can exist at all: Virtuoso, Jena and
+            // RDF4J store and return it, Oxigraph rejects it in its parser. That disagreement is
+            // itself the argument for the fix -- three of the four will hand Trinity a tag its own
+            // constructor used to refuse -- and the reason the precondition is asked rather than
+            // assumed. It is asked as a raw triple count because a mapped read is what is under test
+            // and so cannot also be the precondition.
+            int stored = Model1.ExecuteQuery(new SparqlQuery(
+                    $"SELECT ?o WHERE {{ <{_r1.OriginalString}> <semio:test:documentTitle> ?o }}"))
+                .GetBindings().Count();
+
+            if (stored == 0)
+            {
+                Assert.Inconclusive(
+                    $"This store accepted the update for '@{tag}' but stored nothing. " +
+                    "The read path cannot be exercised where the data cannot be written.");
+            }
+
+            var typed = Model1.GetResource<LocalizedDocument>(_r1);
+
+            // Reading must not throw, whatever the store did with the tag. That is the regression:
+            // a BCP-47 length check on the read path made every read of this resource fail, the
+            // untyped one included, which takes down anything touching the graph.
+            Assert.DoesNotThrow(() => Model1.GetResource(_r1).ListValues().ToList());
+            Assert.DoesNotThrow(() => Model1.AsSparqlQueryable<LocalizedDocument>().ToList());
+
+            if (!typed.Title.Languages.Contains(tag))
+            {
+                Assert.Inconclusive(
+                    $"This store accepted '@{tag}' but did not return it: got " +
+                    $"[{string.Join(", ", typed.Title.Languages)}]. Reading still succeeds, which is " +
+                    "what this test guards; the tag itself is the store's business.");
+            }
+
+            Assert.AreEqual("lang", typed.Title[tag]);
+        }
+
+        /// <summary>
         /// A LINQ query over a localized property honours the tag on a real store, region subtag and
         /// all, whatever case the store hands the tag back in.
         /// </summary>

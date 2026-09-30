@@ -24,7 +24,9 @@
 //
 // Copyright (c) Semiodesk GmbH 2026
 
+using Newtonsoft.Json;
 using NUnit.Framework;
+using Semiodesk.Trinity.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -673,6 +675,82 @@ namespace Semiodesk.Trinity.Tests
 
             Assert.AreEqual(2, StoredValues(model, uri, p).Count,
                 "The dropped value is orphaned - invisible through the property, still in the store.");
+        }
+
+        /// <summary>
+        /// Asking whether a resource has a value under an impossible tag is answered, not thrown at.
+        /// </summary>
+        /// <remarks>
+        /// A query answers; it does not object. No value can carry a malformed tag, so the answer is
+        /// plainly <c>false</c> — whereas throwing turns a lookup over user-supplied input into a crash
+        /// that every call site has to guard. Removal reads the same way: what cannot exist cannot be
+        /// removed, so it is a no-op. <c>AddProperty</c> keeps throwing, because naming a tag to write
+        /// is an intention and an unwritable one is a mistake.
+        /// </remarks>
+        [Test]
+        public void AskingAboutAnImpossibleTagAnswersRatherThanThrows()
+        {
+            var store = StoreFactory.CreateStore("provider=dotnetrdf");
+            var model = store.CreateModel(new Uri("http://example.org/ask"));
+            model.Clear();
+
+            var r = model.CreateResource(new Uri("semio:test:ask"));
+            var p = to.localizedStringTest;
+
+            r.AddProperty(p, "Hallo", "de");
+            r.Commit();
+
+            foreach (string tag in new[] { "", "   ", "de DE", "de-DE_phonebook", null })
+            {
+                Assert.DoesNotThrow(() => r.HasProperty(p, "Hallo", tag), $"HasProperty with tag '{tag}'");
+                Assert.IsFalse(r.HasProperty(p, "Hallo", tag), $"No value can carry the tag '{tag}'.");
+
+                Assert.DoesNotThrow(() => r.RemoveProperty(p, "Hallo", tag), $"RemoveProperty with tag '{tag}'");
+            }
+
+            Assert.IsTrue(r.HasProperty(p, "Hallo", "de"), "The real value is untouched by any of that.");
+
+            // Writing states an intention, so an unwritable tag is still an error.
+            Assert.Throws<ArgumentException>(() => r.AddProperty(p, "x", "de DE"));
+        }
+
+        /// <summary>
+        /// Serializing a container keeps its untagged value.
+        /// </summary>
+        /// <remarks>
+        /// Both containers are <c>IEnumerable&lt;LangString&gt;</c>, so the default handling wrote a
+        /// bare array of tagged values and dropped <c>Invariant</c> — a value the container holds and
+        /// whose absence no reader of the JSON could detect. Reading one back is refused explicitly
+        /// rather than failing as an opaque Newtonsoft constructor error; the redesign is issue #51.
+        /// </remarks>
+        [Test]
+        public void SerializingAContainerKeepsTheUntaggedValue()
+        {
+            var store = StoreFactory.CreateStore("provider=dotnetrdf");
+            var model = store.CreateModel(new Uri("http://example.org/json"));
+            model.Clear();
+
+            var d = model.CreateResource<LocalizedDocument>(new Uri("semio:test:json"));
+            d.Title["de"] = "Hallo";
+            d.Title.Invariant = "plain";
+            d.Commit();
+
+            string json = JsonConvert.SerializeObject(d, new JsonResourceSerializerSettings(store));
+
+            StringAssert.Contains("Hallo", json);
+            StringAssert.Contains("plain", json, "The untagged value is part of the container.");
+
+            // Reading one back is a known limitation, recorded here so it is a stated fact rather
+            // than a surprise: a container is get-only, so Newtonsoft skips the property outright and
+            // the converter is never consulted. What it must NOT do is merge the JSON into whatever
+            // the instance already holds, which is why ClearListPropertyMappings now covers containers
+            // as well as lists. The redesign is issue #51.
+            var back = JsonConvert.DeserializeObject<LocalizedDocument>(json, new JsonResourceSerializerSettings(store));
+
+            Assert.IsNotNull(back.Title, "The mapping still owns a container.");
+            Assert.IsTrue(back.Title.IsEmpty,
+                "Containers do not round-trip: deserialization leaves the property empty rather than " +
+                "merging the JSON with stale values.");
         }
 
         private static List<string> StoredValues(IModel model, Uri subject, Property property)

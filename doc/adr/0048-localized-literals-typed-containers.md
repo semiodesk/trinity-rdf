@@ -253,7 +253,34 @@ Under this design `string` genuinely means untagged, so the translator's existin
 *"Stored as a plain literal; emit plain so term equality matches"* — becomes **true** rather than a
 workaround. The default `==` path does not change. What is added:
 
-- **The tag is attached where the variable is bound, and it is part of the binding's cache key.**
+- **Tag validation is the SPARQL `LANGTAG` grammar, not BCP-47 well-formedness.** A first pass also
+  capped each subtag at eight characters per RFC 5646. Because every literal read from a store is
+  constructed as a `LangString`, that check sat on the *read* path: a single triple another writer
+  tagged `@en-abcdefghij` — legal in Turtle, SPARQL and every backend — made **every** read of that
+  resource throw, including the untyped `GetResource`, so one foreign tag took a whole graph out of
+  service. The grammar (`[a-zA-Z]+('-'[a-zA-Z0-9]+)*`) is the real boundary: it is exactly the set of
+  tags that can be written back verbatim, so it carries the whole injection argument, and length
+  carries none of it. The typo cases that motivated validation — `de DE`, `de-DE_phonebook` — are
+  outside the grammar and still refused.
+
+  Measured across the backends, which do not agree: **Virtuoso, Jena and RDF4J store `@en-abcdefghij`
+  and hand it back**, while **Oxigraph rejects it in its parser**. Three of four will therefore give
+  Trinity a tag its own constructor used to refuse, which is the argument for the change; the fourth
+  is why `ReadsALanguageTagLongerThanBcp47Allows` asks whether the literal could be stored rather than
+  assuming it.
+
+  A related claim was checked and **did not hold**: that lower-casing tags would make `Commit()` fail
+  to delete a triple another writer stored as `"x"@de-DE`, because the delete would name `@de-de`.
+  Both GraphDB and Virtuoso delete it — language tags compare case-insensitively, as RDF 1.1
+  requires — so there is nothing to fix and the normalization is safe.
+
+- **`HasProperty`/`RemoveProperty` answer rather than throw.** A query answers; it does not object. No
+  value can carry a malformed tag, so `HasProperty` is plainly `false` and removing what cannot exist
+  is a no-op — whereas throwing turns a lookup over user-supplied input into a crash every call site
+  must guard. `AddProperty` still throws: naming a tag to write is an intention, and an unwritable one
+  is a mistake worth reporting.
+
+- **The tag is attached where a pattern is emitted, and it is part of the binding's cache key.**
   This ADR first specified the constraint at *comparison* time, with the binding keyed by predicate
   path alone. Both halves of that were wrong, and neither failed loudly:
 
@@ -269,6 +296,37 @@ workaround. The default `==` path does not change. What is added:
   overload, so dropping the tag on the way is not expressible rather than merely discouraged. The
   constraint moves into the `OPTIONAL` group when a binding is upgraded, or it would discard the rows
   the `OPTIONAL` exists to keep.
+
+  **That was still one level too low, and a second review round found the rest.** Routing every
+  *variable binding* through `BindChain` says nothing about the sites that emit a pattern without
+  binding one: `.Count`'s correlated sub-select, `.Any()`'s `EXISTS` group and `SelectMany`'s element
+  each wrote their own triple, so a mapped `List<string>` whose only value was tagged read as empty and
+  answered `Count > 0` in a query. Likewise `STR()` had been applied at three comparison sites rather
+  than where an operand is produced, so a member compared against another member still used the raw
+  variable and matched nothing. Four functions now own this and nothing else may re-derive it:
+  `MemberLanguageConstraint` (whether and to what), `AddMemberPattern` (emit a member's triple with
+  it), `BindingKey` (the cache key — the projection paths computed the pre-tag key by hand, so their
+  reuse branch never ran) and `MemberOperand` (a constrained binding as a filter operand).
+
+- **`ChainKind.Localized` has no case of its own in the comparison translator, deliberately.** It had
+  one, placed ahead of `default`, and the position was the defect: `default` is where a null
+  comparison becomes a `(NOT) EXISTS` and where `inDisjunction` decides whether the member binds
+  optionally. A case in front of it skipped both, so `Title["de"] == null` threw — for the most
+  natural question there is about a localized property, and one the runtime indexer answers by
+  returning null — and `Title["de"] == x || Title["en"] == y` required *both* languages, quietly
+  meaning "and". Plain strings shared the second half, since their branch passed `false` rather than
+  `inDisjunction`.
+
+- **Indexing a `LocalizedStringCollection` inside a query is refused.** Its indexer returns every
+  value carrying the tag, and recording that as a scalar `string` let the translator answer a
+  different question silently — `OrderBy` dropped documents — where the same expression over a string
+  would not compile in LINQ-to-objects.
+
+- **A language tag in a query is normalized by `LangString.NormalizeLanguage`**, the same call the
+  containers use, not by a local `ToLowerInvariant`. The two disagreed: the runtime also trims and
+  validates, so `Title["de "]` read a value in memory and matched nothing in a query, while
+  `Title[""]` threw in memory and quietly matched the *untagged* values in a query — an empty tag
+  being how the translator spells "no language".
 
 - The comparison itself is `STR(?v) = "Hallo"`, **not** `FILTER (?v = "Hallo"@de)`: measured on
   dotNetRDF 3.5.2, a language-tagged literal inside a `FILTER` comparison matches *regardless of its

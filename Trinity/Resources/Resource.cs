@@ -366,11 +366,19 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Clears every multi-valued mapping before deserialization refills it.
+        /// </summary>
+        /// <remarks>
+        /// Containers are cleared alongside lists. They are multi-valued without being an
+        /// <see cref="System.Collections.IList"/>, so testing <c>IsList</c> alone left their contents
+        /// in place and whatever arrived was merged with them rather than replacing them (ADR-0048).
+        /// </remarks>
         internal void ClearListPropertyMappings()
         {
             foreach (var mapping in _mappings)
             {
-                if(mapping.Value.IsList)
+                if (mapping.Value.IsList || mapping.Value.GetValueObject() is ILocalizedText)
                 {
                     mapping.Value.Clear();
                 }
@@ -705,9 +713,18 @@ namespace Semiodesk.Trinity
         /// Removes a property with a string value associated with the given language.
         /// If this property is mapped with a compatible type, the given value will be removed.
         /// </summary>
+        /// <remarks>
+        /// A literal that cannot be constructed cannot be present either, so removing it is a no-op
+        /// rather than an error — the same reading <c>HasProperty</c> takes, and the one
+        /// <c>Remove</c> has everywhere else in .NET. <c>AddProperty</c> still throws: naming a tag
+        /// to write is an intention, and an unwritable one is a mistake worth reporting.
+        /// </remarks>
         public void RemoveProperty(Property property, string value, CultureInfo language)
         {
-            RemovePropertyFromMapping(property, new LangString(value, language));
+            if (TryMakeLangString(value, language?.Name, out var literal))
+            {
+                RemovePropertyFromMapping(property, literal);
+            }
         }
 
         /// <summary>
@@ -716,7 +733,10 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, string value, string language)
         {
-            RemovePropertyFromMapping(property, new LangString(value, language));
+            if (TryMakeLangString(value, language, out var literal))
+            {
+                RemovePropertyFromMapping(property, literal);
+            }
         }
 
         /// <summary>
@@ -935,7 +955,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public virtual bool HasProperty(Property property, string value, CultureInfo language)
         {
-            return HasProperty(property, new LangString(value, language));
+            return TryMakeLangString(value, language?.Name, out var literal) && HasProperty(property, literal);
         }
 
         /// <summary>
@@ -947,7 +967,39 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public virtual bool HasProperty(Property property, string value, string language)
         {
-            return HasProperty(property, new LangString(value, language));
+            return TryMakeLangString(value, language, out var literal) && HasProperty(property, literal);
+        }
+
+        /// <summary>
+        /// Builds a language-tagged literal for a <i>question</i>, returning <c>false</c> rather than
+        /// throwing when the arguments could not name one.
+        /// </summary>
+        /// <remarks>
+        /// A query answers; it does not object. No value carries a null lexical form or a tag that is
+        /// not a tag, so the answer to "do you have this?" is plainly <c>false</c> — whereas throwing
+        /// turns a lookup over user-supplied input into a crash the caller has to guard every call
+        /// with. Writing is the opposite: <c>AddProperty</c> and <c>RemoveProperty</c> state an
+        /// intention about a specific literal, so a tag that cannot be written is an error there.
+        /// </remarks>
+        private static bool TryMakeLangString(string value, string language, out LangString literal)
+        {
+            literal = null;
+
+            if (value == null || string.IsNullOrWhiteSpace(language))
+            {
+                return false;
+            }
+
+            try
+            {
+                literal = new LangString(value, language);
+            }
+            catch (ArgumentException)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>

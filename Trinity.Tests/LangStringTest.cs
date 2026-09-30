@@ -132,7 +132,6 @@ namespace Semiodesk.Trinity.Tests
         [TestCase("de--DE", TestName = "RefusesAMalformedTag(empty subtag)")]
         [TestCase("-de", TestName = "RefusesAMalformedTag(leading separator)")]
         [TestCase("de-", TestName = "RefusesAMalformedTag(trailing separator)")]
-        [TestCase("abcdefghi", TestName = "RefusesAMalformedTag(subtag over eight characters)")]
         [TestCase("1de", TestName = "RefusesAMalformedTag(primary subtag starting with a digit)")]
         [TestCase("de'@x", TestName = "RefusesAMalformedTag(quote)")]
         [TestCase("de . ?s ?p ?o } ; DROP", TestName = "RefusesAMalformedTag(injected update)")]
@@ -140,7 +139,26 @@ namespace Semiodesk.Trinity.Tests
         {
             var thrown = Assert.Throws<ArgumentException>(() => new LangString("x", tag));
 
-            StringAssert.Contains("BCP-47", thrown.Message);
+            StringAssert.Contains("language tag", thrown.Message);
+        }
+
+        /// <summary>
+        /// A tag that is longer than BCP-47 allows is still <b>read</b>, because stores hold such tags.
+        /// </summary>
+        /// <remarks>
+        /// Validation earlier capped each subtag at eight characters, per RFC 5646 well-formedness. That
+        /// was a genuine defect rather than a harmless strictness: every literal read from a store is
+        /// constructed here, so a single triple another writer tagged <c>@en-abcdefghij</c> — legal in
+        /// Turtle, SPARQL and Virtuoso — made every read of that resource throw, the untyped
+        /// <c>GetResource</c> included. The grammar is the serialization boundary, and length is no part
+        /// of it.
+        /// </remarks>
+        [TestCase("en-abcdefghij")]
+        [TestCase("abcdefghijkl")]
+        [TestCase("en-US-x-verylongprivateuse")]
+        public void AcceptsATagLongerThanBcp47Allows(string tag)
+        {
+            Assert.AreEqual(tag.ToLowerInvariant(), new LangString("x", tag).Language);
         }
 
         /// <summary>

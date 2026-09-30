@@ -26,6 +26,7 @@
 // Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
+using System.Collections.Generic;
 
 namespace Semiodesk.Trinity.Tests.Linq
 {
@@ -50,6 +51,17 @@ namespace Semiodesk.Trinity.Tests.Linq
         /// </summary>
         [RdfProperty("http://purl.org/dc/terms/alternative")]
         public partial LangString Alternative { get; set; }
+
+        /// <summary>
+        /// A plain collection of untagged strings, so the cardinality paths (.Count, .Any()) can be
+        /// queried against a predicate that also carries tagged values.
+        /// </summary>
+        [RdfProperty("http://purl.org/dc/terms/subject")]
+        public partial List<string> Subjects { get; set; }
+
+        /// <summary>Several values per language, for the collection-indexer refusal.</summary>
+        [RdfProperty("http://purl.org/dc/terms/description")]
+        public partial LocalizedStringCollection Descriptions { get; }
 
         #endregion
 

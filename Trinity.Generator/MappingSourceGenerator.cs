@@ -95,6 +95,11 @@ namespace Semiodesk.Trinity.Generator
                     context.ReportDiagnostic(result.LanguageInvariantIsObsolete.ToDiagnostic());
                 }
 
+                if (result.UnsupportedLocalizedContainer is not null)
+                {
+                    context.ReportDiagnostic(result.UnsupportedLocalizedContainer.ToDiagnostic());
+                }
+
                 if (result.ContainerMustBeGetOnly is not null)
                 {
                     context.ReportDiagnostic(result.ContainerMustBeGetOnly.ToDiagnostic());
@@ -289,15 +294,28 @@ namespace Semiodesk.Trinity.Generator
         /// True when the mapped type is a localized-text container.
         /// </summary>
         /// <remarks>
-        /// Asked of the interface rather than the two concrete names. The generator's job here is to
-        /// recognise the <i>shape</i> so TRIN009 can warn about a setter; which containers actually
-        /// work is the runtime's decision, and <c>PropertyMapping</c> refuses anything that is not one
-        /// of the two built-in ones (ADR-0048).
+        /// Asked of the interface rather than the two concrete names, so that TRIN009 and TRIN010 both
+        /// see every shape that will be treated as a container at runtime. <c>AllInterfaces</c> alone
+        /// was not enough: it lists the interfaces a type <i>implements</i> and so does not include the
+        /// type itself, which meant a property declared as <c>ILocalizedText</c> — the one shape that
+        /// cannot work at all, because <c>Activator</c> cannot instantiate an interface — was the one
+        /// shape no diagnostic recognised.
         /// </remarks>
         private static bool IsLocalizedContainer(ITypeSymbol type)
         {
-            return type.AllInterfaces.Any(i =>
-                i.ToDisplayString() == "Semiodesk.Trinity.ILocalizedText");
+            return type.ToDisplayString() == "Semiodesk.Trinity.ILocalizedText"
+                || type.AllInterfaces.Any(i => i.ToDisplayString() == "Semiodesk.Trinity.ILocalizedText");
+        }
+
+        /// <summary>
+        /// True when the mapped type is one of the two containers the mapping engine actually supports.
+        /// </summary>
+        private static bool IsSupportedLocalizedContainer(ITypeSymbol type)
+        {
+            string name = type.ToDisplayString();
+
+            return name == "Semiodesk.Trinity.LocalizedString"
+                || name == "Semiodesk.Trinity.LocalizedStringCollection";
         }
 
         /// <summary>
@@ -387,9 +405,16 @@ namespace Semiodesk.Trinity.Generator
         /// cache key, so the pieces are carried in an equatable record and the diagnostic is built only
         /// when it is reported.
         /// </summary>
-        private sealed record DiagnosticInfo(DiagnosticDescriptor Descriptor, Location Location, string Name)
+        /// <remarks>
+        /// <paramref name="Detail"/> is a second message argument for the descriptors that name
+        /// something besides the property, such as an unsupported type. It stays optional so the
+        /// single-argument descriptors read as before.
+        /// </remarks>
+        private sealed record DiagnosticInfo(DiagnosticDescriptor Descriptor, Location Location, string Name, string? Detail = null)
         {
-            public Diagnostic ToDiagnostic() => Diagnostic.Create(Descriptor, Location, Name);
+            public Diagnostic ToDiagnostic() => Detail is null
+                ? Diagnostic.Create(Descriptor, Location, Name)
+                : Diagnostic.Create(Descriptor, Location, Name, Detail);
         }
 
         /// <summary>The outcome of inspecting one <c>[RdfProperty]</c> declaration.</summary>
@@ -410,7 +435,8 @@ namespace Semiodesk.Trinity.Generator
             DiagnosticInfo? ContainingClassNotPartial,
             DiagnosticInfo? MappedTypeIsRawUri = null,
             DiagnosticInfo? LanguageInvariantIsObsolete = null,
-            DiagnosticInfo? ContainerMustBeGetOnly = null);
+            DiagnosticInfo? ContainerMustBeGetOnly = null,
+            DiagnosticInfo? UnsupportedLocalizedContainer = null);
 
         /// <summary>The outcome of inspecting one <c>[RdfClass]</c> declaration.</summary>
         /// <remarks>
@@ -621,6 +647,10 @@ namespace Semiodesk.Trinity.Generator
                     ? new DiagnosticInfo(MappingDiagnostics.ContainerMustBeGetOnly, location, prop.Name)
                     : null;
 
+                DiagnosticInfo? unsupportedContainer = IsLocalizedContainer(prop.Type) && !IsSupportedLocalizedContainer(prop.Type)
+                    ? new DiagnosticInfo(MappingDiagnostics.UnsupportedLocalizedContainer, location, prop.Name, prop.Type.ToDisplayString(TypeFormat))
+                    : null;
+
                 return new PropertyResult(new PropertyInfo(
                     type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                     GetNamespace(type),
@@ -632,7 +662,7 @@ namespace Semiodesk.Trinity.Generator
                     modifiers,
                     getAccessor,
                     setAccessor), null, containingClassNotPartial, mappedTypeIsRawUri,
-                    languageInvariantIsObsolete, containerMustBeGetOnly);
+                    languageInvariantIsObsolete, containerMustBeGetOnly, unsupportedContainer);
             }
         }
 

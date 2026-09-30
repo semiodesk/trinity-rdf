@@ -45,8 +45,11 @@ namespace Semiodesk.Trinity.Serialization
             // Allow to use the private parameterless constructor of the Resource class.
             ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor;
 
-            // A custom conveter for loading the URI and setting the model.
-            Converters = new JsonConverter[] { new JsonResourceConverter(store) };
+            // A custom conveter for loading the URI and setting the model, plus one that keeps a
+            // localized-text container's untagged value from being dropped -- both containers are
+            // IEnumerable<LangString>, so the default handling wrote a bare array of tagged values
+            // and silently lost Invariant (ADR-0048).
+            Converters = new JsonConverter[] { new JsonResourceConverter(store), new JsonLocalizedTextConverter() };
         }
 
         #endregion

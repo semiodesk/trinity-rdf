@@ -71,9 +71,15 @@ namespace Semiodesk.Trinity
         /// <remarks>
         /// Kept for one release so that 1.x call sites get an explanation rather than CS1501. The flag
         /// is redundant now: a <c>string</c> property is language-invariant by construction, and a
-        /// language-tagged one declares a container that carries its own tags (ADR-0048). The old flag
-        /// turns out to be an exact partition of the migration - <c>true</c> stays <c>string</c>,
-        /// everything else string-typed becomes <c>LocalizedString</c>.
+        /// language-tagged one declares a container that carries its own tags (ADR-0048).
+        /// <para>
+        /// For most code the migration is simply to delete the argument. In 1.x a <c>string</c>
+        /// property showed tagged values only while <c>Resource.Language</c> was set, so a model that
+        /// never set it was already reading untagged literals and behaves identically as a plain
+        /// <c>string</c>. Only code that did set <c>Resource.Language</c> has language-tagged values to
+        /// move to <see cref="LocalizedString"/> — changing the type everywhere would break every
+        /// assignment site and relocate existing values into <c>Invariant</c> for nothing.
+        /// </para>
         /// </remarks>
         /// <param name="uriString">There uri of the rdf property for this mapping.</param>
         /// <param name="languageInvariant">Ignored.</param>

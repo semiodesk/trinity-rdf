@@ -104,6 +104,17 @@ namespace Semiodesk.Trinity.Tests.Query.Sparql
             austrian.LocalizedTitle["de-AT"] = "Jahresbericht";
             austrian.Commit();
 
+            // A collection predicate whose only value is tagged. The mapped List<string> is untagged
+            // by declaration, so it reads as empty -- and every cardinality path has to agree.
+            Document collections = _model.CreateResource<Document>(new Uri("http://example.org/doc/coll"));
+            collections.Descriptions.Add("de", "Erste");
+            collections.Descriptions.Add("de", "Zweite");
+            collections.Commit();
+
+            collections.AddProperty(
+                new Property(new Uri("http://purl.org/dc/terms/subject")), "nur getaggt", "de");
+            collections.Commit();
+
             // A tagged literal on the same predicate a mapped string maps. Projecting that string used
             // to throw InvalidCastException for every row because one resource carried a tag
             // (ADR-0048 defect 3).
@@ -387,6 +398,162 @@ namespace Semiodesk.Trinity.Tests.Query.Sparql
                 Assert.AreEqual(1, austrian.Count, $"Tag '{tag}' should match the @de-AT title.");
                 Assert.AreEqual(new Uri("http://example.org/doc/at"), austrian[0].Uri);
             }
+        }
+
+        /// <summary>
+        /// Comparing a localized property against null asks whether that language is absent.
+        /// </summary>
+        /// <remarks>
+        /// The localized case used to sit in its own branch <i>ahead</i> of the one that turns a null
+        /// comparison into a (NOT) EXISTS, so it threw "can only be compared against a string" for the
+        /// most natural question you can ask of a localized property. The runtime indexer returns null
+        /// for a missing tag, so a query had to be able to say the same thing.
+        /// </remarks>
+        [Test]
+        public void ComparesALocalizedPropertyAgainstNull()
+        {
+            var withoutGerman = _model.AsSparqlQueryable<Document>()
+                .Where(d => d.LocalizedTitle["de"] == null)
+                .Select(d => d.Uri)
+                .ToList();
+
+            // doc/at carries @de-AT, which is a different tag; doc/tagged and doc/coll have no
+            // dcterms:title at all. doc/de and doc/en both carry a @de title.
+            CollectionAssert.AreEquivalent(
+                new[]
+                {
+                    new Uri("http://example.org/doc/at"),
+                    new Uri("http://example.org/doc/tagged"),
+                    new Uri("http://example.org/doc/coll")
+                },
+                withoutGerman);
+        }
+
+        /// <summary>
+        /// A disjunction over two languages matches either, not both.
+        /// </summary>
+        /// <remarks>
+        /// A localized comparison always bound its variable as mandatory, ignoring the flag that says
+        /// the comparison sits inside an <c>||</c>. Both triple patterns were therefore required, so
+        /// the query silently meant "and". Plain strings had the same gap for the same reason.
+        /// </remarks>
+        [Test]
+        public void MatchesEitherLanguageInADisjunction()
+        {
+            var either = _model.AsSparqlQueryable<Document>()
+                .Where(d => d.LocalizedTitle["de"] == "Bericht" || d.LocalizedTitle["en"] == "Bericht")
+                .Select(d => d.Uri)
+                .ToList();
+
+            CollectionAssert.AreEquivalent(
+                new[] { new Uri("http://example.org/doc/de"), new Uri("http://example.org/doc/en") },
+                either,
+                "doc/de matches on @de only and doc/en on @en only; requiring both would return neither.");
+        }
+
+        /// <summary>
+        /// A localized property compares against another mapped member, tag and all.
+        /// </summary>
+        /// <remarks>
+        /// Member-to-member comparison reads the bound variable through the operand path, which did not
+        /// know about the language constraint and handed back the raw variable -- so the comparison was
+        /// between <c>"Bericht"@de</c> and <c>"Bericht"</c>, which are different RDF terms, and matched
+        /// nothing at all.
+        /// </remarks>
+        [Test]
+        public void ComparesALocalizedPropertyAgainstAnotherMember()
+        {
+            var same = _model.AsSparqlQueryable<Document>()
+                .Where(d => d.LocalizedTitle["de"] == d.Title)
+                .Select(d => d.Uri)
+                .ToList();
+
+            CollectionAssert.AreEqual(new[] { new Uri("http://example.org/doc/de") }, same,
+                "doc/de is titled 'Bericht' both plainly and in German.");
+        }
+
+        /// <summary>
+        /// A set membership test over a localized property honours the tag.
+        /// </summary>
+        [Test]
+        public void MatchesASetAgainstALocalizedProperty()
+        {
+            var inSet = _model.AsSparqlQueryable<Document>()
+                .Where(d => new[] { "Bericht", "Rapport" }.Contains(d.LocalizedTitle["de"]))
+                .Select(d => d.Uri)
+                .ToList();
+
+            CollectionAssert.AreEqual(new[] { new Uri("http://example.org/doc/de") }, inSet);
+        }
+
+        /// <summary>
+        /// A language tag is normalized in a query exactly as the runtime containers normalize it.
+        /// </summary>
+        /// <remarks>
+        /// The translator lower-cased the tag itself while the containers went through
+        /// <c>LangString.NormalizeLanguage</c>, which also trims and validates. So <c>Title["de "]</c>
+        /// read a value in memory and matched nothing in a query, and <c>Title[""]</c> threw in memory
+        /// but quietly matched the <i>untagged</i> values in a query -- an empty tag being how the
+        /// translator spells "no language".
+        /// </remarks>
+        [Test]
+        public void NormalizesALanguageTagAsTheRuntimeDoes()
+        {
+            var padded = _model.AsSparqlQueryable<Document>()
+                .Where(d => d.LocalizedTitle[" DE "] == "Bericht")
+                .ToList();
+
+            Assert.AreEqual(1, padded.Count, "A tag is trimmed and lower-cased, as it is in memory.");
+
+            Assert.Throws<ArgumentException>(
+                () => _model.AsSparqlQueryable<Document>().Where(d => d.LocalizedTitle[""] == "x").ToList(),
+                "An empty tag must not silently become 'the untagged values'.");
+        }
+
+        /// <summary>
+        /// The cardinality paths see untagged values only, like the mapped collection itself.
+        /// </summary>
+        /// <remarks>
+        /// <c>.Count</c> builds a correlated sub-select and <c>.Any()</c> an EXISTS group; each emits
+        /// its own triple pattern rather than going through the binding path, so each went on counting
+        /// tagged literals after the ordinary path stopped. A resource whose only value is tagged reads
+        /// as an empty collection and has to answer the same way in a query.
+        /// </remarks>
+        [Test]
+        public void CardinalityOverAMappedCollectionIgnoresTaggedValues()
+        {
+            var uri = new Uri("http://example.org/doc/coll");
+
+            Assert.IsEmpty(_model.GetResource<Document>(uri).Subjects,
+                "precondition: the mapped collection reads as empty, because its only value is tagged.");
+
+            CollectionAssert.DoesNotContain(
+                _model.AsSparqlQueryable<Document>().Where(d => d.Subjects.Count > 0).Select(d => d.Uri).ToList(),
+                uri);
+
+            CollectionAssert.DoesNotContain(
+                _model.AsSparqlQueryable<Document>().Where(d => d.Subjects.Any()).Select(d => d.Uri).ToList(),
+                uri);
+        }
+
+        /// <summary>
+        /// Indexing a multi-valued container yields many values, so it is refused as a query value.
+        /// </summary>
+        /// <remarks>
+        /// <c>LocalizedStringCollection</c>'s indexer returns every value carrying the tag. Recording it
+        /// as a scalar string made the translator answer a different question quietly -- ordering by it
+        /// dropped documents -- where the same expression against a string would not compile in
+        /// LINQ-to-objects.
+        /// </remarks>
+        [Test]
+        public void RefusesIndexingAMultiValuedContainerInAQuery()
+        {
+            var thrown = Assert.Throws<NotSupportedException>(() =>
+                _model.AsSparqlQueryable<Document>()
+                    .OrderBy(d => d.Descriptions["de"])
+                    .ToList());
+
+            StringAssert.Contains("Descriptions", thrown.Message);
         }
 
         /// <summary>

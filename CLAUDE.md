@@ -56,8 +56,8 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 927 passed, 3 skipped (quarantined), 0 failed
-dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 38 passed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 939 passed, 3 skipped (quarantined), 0 failed
+dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 42 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
@@ -73,8 +73,8 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all four green** — Oxigraph 357/358, Fuseki 355/356,
-  GraphDB 354/355, Virtuoso 339/340 (0 failed each; the 1 skipped is the shared blank-node-removal
+  hiccup cannot redden it. Current: **all four green** — Oxigraph 357/358, Fuseki 356/357,
+  GraphDB 355/356, Virtuoso 339/340 (0 failed each; the 1 skipped is the shared blank-node-removal
   quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
@@ -143,6 +143,7 @@ someone migrating a large model wants the whole list from one build:
 | `TRIN005` | a mapped class has no accessible `(Uri)` constructor, so `Activator.CreateInstance(type, uri)` cannot materialize it when reading |
 | `TRIN006` | a URI belongs to a **generated** vocabulary but is not one of its terms — a typo. Only vocabularies marked `[GeneratedCode("trinity-vocab", …)]` are trusted, since only those list every term; an unknown namespace is never reported |
 | `TRIN009` | a localized-text container property declares a setter. The container is a mutable view owned by the mapping; assigning one either nulls it or aliases another resource's instance |
+| `TRIN010` | a mapped property is typed with an `ILocalizedText` that is not `LocalizedString` or `LocalizedStringCollection`. The interface is their shared surface, **not an extension point** — the engine dispatches on the two concrete types — so anything else is refused at registration. The check asks the type *and* its interfaces, because `AllInterfaces` alone never includes the type itself, which made `ILocalizedText` (the one shape that cannot work at all, since `Activator` cannot instantiate an interface) the one shape no diagnostic saw |
 | `TRIN008` | `[RdfProperty]` passes the obsolete `languageInvariant` flag. It no longer has any effect — the declared type decides (ADR-0048) — and a flag that silently does nothing is indistinguishable from one that works, so it is reported rather than ignored |
 | `TRIN007` | a mapped property is typed `System.Uri` (or is a collection of them) instead of `UriRef` — `Uri` equality ignores the fragment. **The one diagnostic that does not mean "nothing was generated"**: the mapping is emitted, the declared type is wrong. Matched on exact type identity, so `UriRef` — which derives from `Uri` — is not flagged. `PropertyMapping<T>` **throws** for `System.Uri` at runtime (Release too), which is what catches hand-written mappings the generator never sees |
 
@@ -344,9 +345,15 @@ Invariants that surprise newcomers:
   pick the accessor matching the query form (with offset/limit paging).
 - **Datatype & i18n mapping** (0026/0027/0048): `XsdTypeMapper` (culture-invariant via `XmlConvert`).
   A language-tagged literal is a **`LangString`** — one type, replacing the four shapes 0027 lived with.
-  It **validates** the tag against BCP-47's `[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*` and normalizes it with
-  `ToLowerInvariant` at construction — one implementation, which `LocalizedValueStore.Normalize` calls
-  rather than repeating, so a validated constructor cannot end up beside an unvalidated indexer. This is
+  It **validates** the tag against the SPARQL/Turtle `LANGTAG` grammar `[a-zA-Z]+('-'[a-zA-Z0-9]+)*`
+  and normalizes it with `ToLowerInvariant` at construction — one implementation, which
+  `LocalizedValueStore.Normalize` and the LINQ translator both call rather than repeating, so a
+  validated constructor cannot end up beside an unvalidated indexer, and a query cannot disagree with
+  a read about which tag was asked for. **Not BCP-47 well-formedness**: an earlier version also capped
+  subtags at eight characters, and because every literal read from a store is constructed here, one
+  triple another writer tagged `@en-abcdefghij` — legal everywhere — made *every* read of that
+  resource throw, untyped `GetResource` included. The grammar is the serialization boundary; length is
+  no part of it, and policing a tag registry is not this type's job. This is
   why `AddProperty`/`HasProperty` cannot disagree about casing and why the 0039 delta is stable across a
   read/commit cycle. Validation is **load-bearing, not cosmetic**: a tag reaches the store as *syntax*
   (`'x'@de` has no place for a quoted tag), so `SparqlSerializer` escapes the value and interpolates the
@@ -367,6 +374,9 @@ Invariants that surprise newcomers:
   | `LocalizedStringCollection` | every language, several values each |
   | `LangString`, `List<LangString>` | tagged literals, raw triple view |
 
+  `HasProperty`/`RemoveProperty` with a tag **answer rather than throw** — a value cannot carry a
+  malformed tag, so the answer is `false` and the removal a no-op; `AddProperty` still throws, because
+  naming a tag to write is an intention.
   Containers hold **all** languages at once, so `Languages`/`ListLanguages()` can answer which exist and
   editing one never disturbs another. `Best()` is RFC 4647 **Lookup**, which truncates the *request* —
   `de-DE` finds a `de` value, `de` does not find `de-DE`. Indexers are exact-match on get *and* set, so
@@ -395,13 +405,24 @@ Invariants that surprise newcomers:
   **LINQ** queries one language at a time: `Where(d => d.Label["de"] == "Hallo")`. The tag must be a
   constant, because it becomes part of the query text — a closure is folded to one by the partial
   evaluator, a per-row value is refused.
-  **The tag is attached where the variable is bound, and it is part of the binding's cache key.** Both
+  **The tag is attached where a pattern is emitted, and it is part of the binding's cache key.** Both
   halves are load-bearing and neither fails loudly. Keying by predicate path alone gave `Label["de"]`
   and `Label["en"]` in one query *the same* variable, so the constraints met as
   `LANG(?v)="de" && LANG(?v)="en"` — unsatisfiable. Constraining at comparison time instead left every
-  other consumer of that variable — `StartsWith`, `Contains`, `IN`, `ORDER BY`, a comparison against
-  another member — reading it bound to all languages. Consumers therefore pass the whole `ChainInfo`
-  to `BindChain`, so dropping the tag is not expressible. `BindCount` already keyed this way.
+  other consumer of that variable reading it bound to all languages.
+  **Four functions own this and nothing else may re-derive it:** `MemberLanguageConstraint` decides
+  *whether and to what*; `AddMemberPattern` emits a member's triple with it; `BindingKey` computes the
+  cache key; `MemberOperand` turns a constrained binding into a filter operand (`STR(?v)`). Fixing
+  this per call site is how it keeps regressing — first the tag was applied only on `== constant`,
+  then only on paths going through `BindChain`, leaving `.Count`'s sub-select, `.Any()`'s EXISTS group
+  and `SelectMany`'s element each emitting an unconstrained pattern of their own, and the projection
+  paths computing the pre-tag key by hand so their reuse branch never ran.
+  **`ChainKind.Localized` deliberately has no case in `TranslateChainComparison`.** It had one, ahead
+  of `default`, and that position *was* the bug: `default` is where `== null` becomes a (NOT) EXISTS
+  and where `inDisjunction` decides optional binding, so a case in front of it silently skipped both —
+  `Title["de"] == null` threw, and `Title["de"] == x || Title["en"] == y` quietly meant *and*.
+  Indexing a `LocalizedStringCollection` in a query is **refused**: its indexer yields every value for
+  the tag, and recording that as a scalar made ordering drop rows.
   The emitted form is `LCASE(LANG(?v)) = "de"` plus `STR(?v) = "…"`, **not** `?v = "…"@de`: measured on
   dotNetRDF 3.5.2, a language-tagged literal inside a `FILTER` comparison matches regardless of its tag
   (`"x"@fr` matched a `@de` value), while the same literal in a *triple pattern* matches correctly and

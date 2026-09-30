@@ -142,10 +142,21 @@ namespace Semiodesk.Trinity
         /// <c>Commit()</c>, naming neither the property nor the tag.
         /// </para>
         /// <para>
-        /// The grammar enforced is BCP-47's <c>[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*</c>: a well-formedness
-        /// check, not a registry lookup, so <c>de-XX</c> passes while <c>de--DE</c> and a nine-character
-        /// subtag do not. It is hand-rolled rather than a <see cref="System.Text.RegularExpressions.Regex"/>
-        /// because every language-tagged literal read from a store passes through here.
+        /// The grammar enforced is SPARQL's and Turtle's <c>LANGTAG</c>:
+        /// <c>[a-zA-Z]+('-'[a-zA-Z0-9]+)*</c> — letters, digits and hyphens, with no empty subtag. That
+        /// is exactly the set of tags that can be written back verbatim, which is what makes it the
+        /// right boundary: a tag outside it cannot be serialized at all, and everything inside it is
+        /// inert as query text.
+        /// </para>
+        /// <para>
+        /// It deliberately does <b>not</b> enforce BCP-47 <i>well-formedness</i>. An earlier version
+        /// also capped each subtag at eight characters, per RFC 5646, and that was a real bug rather
+        /// than a strict-but-harmless check: every literal read from a store passes through here, so a
+        /// single triple that some other writer tagged <c>@en-abcdefghij</c> — legal in Turtle, SPARQL
+        /// and Virtuoso — made <b>every</b> read of that resource throw, including the untyped
+        /// <c>GetResource</c>. Length adds nothing to the safety argument above, and policing a tag
+        /// registry is not this type's job. The typo cases that motivated validation are still caught,
+        /// because <c>de DE</c> and <c>de-DE_phonebook</c> are outside the grammar.
         /// </para>
         /// </remarks>
         internal static string NormalizeLanguage(string language, string parameterName)
@@ -166,14 +177,14 @@ namespace Semiodesk.Trinity
                     parameterName);
             }
 
-            if (!IsWellFormedLanguageTag(tag))
+            if (!IsLanguageTagShaped(tag))
             {
                 throw new ArgumentException(
-                    $"'{language}' is not a well-formed BCP-47 language tag. A tag is a language subtag " +
-                    "of one to eight letters, optionally followed by '-'-separated subtags of one to " +
-                    "eight letters or digits, such as 'de', 'en-GB' or 'zh-Hans-CN'. Tags are written " +
-                    "into SPARQL as syntax rather than as escapable text, so one that is not well " +
-                    "formed is refused here rather than passed on.",
+                    $"'{language}' is not a language tag. A tag is one or more letters, optionally " +
+                    "followed by '-'-separated subtags of letters or digits, such as 'de', 'en-GB' or " +
+                    "'zh-Hans-CN'. Tags are written into SPARQL as syntax rather than as escapable " +
+                    "text, so one that cannot be written verbatim is refused here rather than passed " +
+                    "on.",
                     parameterName);
             }
 
@@ -181,9 +192,10 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Indicates whether a tag matches BCP-47's <c>[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*</c>.
+        /// Indicates whether a tag matches the SPARQL/Turtle <c>LANGTAG</c> grammar
+        /// <c>[a-zA-Z]+('-'[a-zA-Z0-9]+)*</c>.
         /// </summary>
-        private static bool IsWellFormedLanguageTag(string tag)
+        private static bool IsLanguageTagShaped(string tag)
         {
             int length = 0;
             bool primary = true;
@@ -215,10 +227,7 @@ namespace Semiodesk.Trinity
                     return false;
                 }
 
-                if (++length > 8)
-                {
-                    return false;
-                }
+                length++;
             }
 
             return length > 0;

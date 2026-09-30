@@ -41,7 +41,9 @@ namespace Semiodesk.Trinity
     /// <c>List&lt;string&gt;</c> is to a predicate, and <see cref="LocalizedString"/> is what
     /// <c>string</c> is (ADR-0048). Declare it for predicates that are genuinely multi-valued per
     /// language — <c>skos:altLabel</c> is the obvious one — where <see cref="LocalizedString"/> would
-    /// keep the last value and let a later <c>Commit()</c> delete the rest.
+    /// show only the last value and leave the rest <b>orphaned</b>: still in the store, invisible
+    /// through the property, and never removed by any commit, because the commit snapshot is taken
+    /// after the container has already dropped them.
     /// </para>
     /// <para>
     /// The indexer returns <b>every</b> value carrying a tag, and is exact match. Fallback lives in
@@ -139,7 +141,7 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Replaces every value for a language with a single one.
+        /// Replaces every value for a language with the given ones.
         /// </summary>
         /// <param name="language">A language tag.</param>
         /// <param name="values">The values to set. Passing none removes the language.</param>

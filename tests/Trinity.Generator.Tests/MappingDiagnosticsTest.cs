@@ -361,6 +361,76 @@ namespace Semiodesk.Trinity.Generator.Tests
         }
 
         /// <summary>
+        /// A container type the mapping engine cannot use is reported at build time.
+        /// </summary>
+        /// <remarks>
+        /// <c>ILocalizedText</c> is the containers' shared surface, not an extension point, and the
+        /// runtime refuses anything else at registration. The interface itself was the one shape no
+        /// diagnostic saw, because the check asked <c>AllInterfaces</c> — which lists what a type
+        /// implements and so never includes the type itself — and it is also the shape that fails
+        /// worst: <c>Activator</c> cannot instantiate an interface, so construction died with a
+        /// <c>MissingMethodException</c> naming neither the property nor the cause.
+        /// </remarks>
+        [TestCase("ILocalizedText", TestName = "ReportsAnUnsupportedLocalizedContainer(the interface itself)")]
+        [TestCase("MyContainer", TestName = "ReportsAnUnsupportedLocalizedContainer(a third implementation)")]
+        public void ReportsAnUnsupportedLocalizedContainer(string type)
+        {
+            var diagnostics = Run(@"
+                using System.Collections;
+                using System.Collections.Generic;
+                using Semiodesk.Trinity;
+
+                public class MyContainer : ILocalizedText
+                {
+                    public IReadOnlyCollection<string> Languages => null;
+                    public int Count => 0;
+                    public bool IsEmpty => true;
+                    public bool Contains(string language) => false;
+                    public bool Remove(string language) => false;
+                    public void Clear() { }
+                    public string Best() => null;
+                    public string Best(params string[] languageRanges) => null;
+                    public bool TryGetBest(string languageRange, out LangString match) { match = null; return false; }
+                    public IEnumerator<LangString> GetEnumerator() => null;
+                    IEnumerator IEnumerable.GetEnumerator() => null;
+                }
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/label"")]
+                    public partial " + type + @" Label { get; }
+                }");
+
+            Assert.AreEqual("TRIN010", SingleId(diagnostics));
+            Assert.That(Message(diagnostics), Does.Contain("Label").And.Contain("LocalizedString"));
+        }
+
+        /// <summary>
+        /// The two supported containers raise no such warning.
+        /// </summary>
+        [TestCase("LocalizedString")]
+        [TestCase("LocalizedStringCollection")]
+        public void DoesNotReportASupportedLocalizedContainer(string type)
+        {
+            var diagnostics = Run(@"
+                using Semiodesk.Trinity;
+
+                [RdfClass(""http://example.org/Thing"")]
+                public partial class Thing : Resource
+                {
+                    public Thing(System.Uri uri) : base(uri) { }
+
+                    [RdfProperty(""http://example.org/label"")]
+                    public partial " + type + @" Label { get; }
+                }");
+
+            CollectionAssert.IsEmpty(diagnostics);
+        }
+
+        /// <summary>
         /// TRIN009 is about containers, not about get-only. An ordinary mapped property keeps its
         /// setter without complaint.
         /// </summary>

@@ -132,6 +132,16 @@ namespace Semiodesk.Trinity.Generator
             isEnabledByDefault: true,
             description: "A LocalizedString or LocalizedStringCollection is a mutable view owned by the mapping, not a value to assign. A setter admits two hazards the get-only form removes at compile time: assigning null, after which every use is a NullReferenceException, and assigning another resource's container, which aliases one instance across both so a write through either is visible through the other. Write label[\"de\"] = \"Hallo\" instead of label = something (ADR-0048).");
 
+        /// <summary>TRIN010: a localized-text container type the mapping engine cannot use.</summary>
+        public static readonly DiagnosticDescriptor UnsupportedLocalizedContainer = new DiagnosticDescriptor(
+            id: "TRIN010",
+            title: "Localized container type is not supported",
+            messageFormat: "Property '{0}' is typed '{1}'; only LocalizedString and LocalizedStringCollection can be mapped",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            description: "ILocalizedText is the shared surface of the two containers, not an extension point: the mapping engine dispatches on their concrete types to add a value and to copy one container into another. PropertyMapping refuses anything else at registration, so without this the failure arrives at runtime, from a field initializer, on the first construction of the class - and for a property declared as the interface itself it is a MissingMethodException from Activator, which names neither the property nor the cause (ADR-0048).");
+
         /// <summary>TRIN008: <c>[RdfProperty(uri, languageInvariant)]</c>, which no longer does anything.</summary>
         public static readonly DiagnosticDescriptor LanguageInvariantIsObsolete = new DiagnosticDescriptor(
             id: "TRIN008",
@@ -140,6 +150,6 @@ namespace Semiodesk.Trinity.Generator
             category: Category,
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true,
-            description: "A string property is language-invariant by construction: it sees untagged literals only. Declare LocalizedString (one value per language) or LocalizedStringCollection (several) for language-tagged values, or LangString for the raw tagged literal. The old flag is an exact partition of the migration - languageInvariant:true stays string, every other string-typed mapped property becomes LocalizedString. Reported rather than silently ignored because a flag that no longer does anything is otherwise indistinguishable from one that does (ADR-0048).");
+            description: "A string property is language-invariant by construction: it sees untagged literals only. Declare LocalizedString (one value per language) or LocalizedStringCollection (several) for language-tagged values, or LangString for the raw tagged literal. Removing the flag is usually the whole migration: in 1.x a string property only ever showed tagged values while Resource.Language was set, so code that never set it was already reading untagged literals and keeps behaving identically as a plain string. Change the declared type only where the old code did set Resource.Language, since that is the only case whose values were language-tagged. Reported rather than silently ignored because a flag that no longer does anything is otherwise indistinguishable from one that does (ADR-0048).");
     }
 }
