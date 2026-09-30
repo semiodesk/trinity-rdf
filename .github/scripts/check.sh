@@ -23,14 +23,43 @@ cd "$(git rev-parse --show-toplevel)" || exit 1
 
 revision="${1:-HEAD}"
 scripts=.github/scripts
-logs=$(mktemp -d)
 status=0
+
+# One check per checkout at a time: two would share coverage/, coverage-stores/ and duplication/.
+# The lock records this script's PID and, below, each store suite's. A run killed outright (the
+# hook's time limit escalating to KILL) never reaches its EXIT trap, and its store suites -- each in
+# its own `timeout` process group -- keep writing into coverage-stores/ for minutes; the next run,
+# which starts by clearing that directory, would race them. So a stale lock is not just removed: its
+# suites are stopped first. A recorded PID is only acted on while its command line is still ours,
+# since PIDs are reused.
+lock=.check-lock
+ours() {
+    # ps is absent or different on some platforms (Git Bash); fall back to "alive" there.
+    local args
+    args=$(ps -o args= -p "$1" 2> /dev/null) || { kill -0 "$1" 2> /dev/null; return; }
+    case "$args" in *"$2"*) return 0 ;; *) return 1 ;; esac
+}
+if ! mkdir "$lock" 2> /dev/null; then
+    owner=$(cat "$lock/pid" 2> /dev/null)
+    if [ -n "$owner" ] && ours "$owner" check.sh; then
+        echo "Another check is already running in this checkout (pid $owner); it shares this run's"
+        echo "output directories, so this one did not start. Wait for it, or stop it, and run again."
+        exit 1
+    fi
+    for p in $(cat "$lock/stores" 2> /dev/null); do
+        ours "$p" "dotnet test" && kill "$p" 2> /dev/null && echo "Stopped store suite $p, left running by an earlier check."
+    done
+    rm -rf "$lock"
+    mkdir "$lock" || { echo "Could not take the check lock at $lock."; exit 1; }
+fi
+echo $$ > "$lock/pid"
+logs=$(mktemp -d)
 
 # Store suites run in the background; parallel arrays rather than an associative one, so this runs on
 # the bash 3 macOS ships as well.
 started=()
 pids=()
-trap 'for p in ${pids[@]+"${pids[@]}"}; do kill "$p" 2>/dev/null; done; rm -rf "$logs"' EXIT
+trap 'for p in ${pids[@]+"${pids[@]}"}; do kill "$p" 2>/dev/null; done; rm -rf "$logs" "$lock"' EXIT
 # Without these, a signal (the hook's time limit, ^C) would end the script without the cleanup above.
 trap 'exit 143' TERM
 trap 'exit 130' INT
@@ -119,11 +148,13 @@ if [ ${#affected[@]} -gt 0 ]; then
             continue
         fi
 
-        "$timeout_cmd" 300 dotnet test "tests/Trinity.Tests.$store/Trinity.Tests.$store.csproj" -c Release --no-build \
-            --nologo --collect "Code Coverage;Format=Cobertura" --results-directory "coverage-stores/$store" \
-            > "$logs/store-$store.txt" 2>&1 &
+        # --kill-after: a suite that ignores TERM would otherwise outlive its 300 s indefinitely.
+        "$timeout_cmd" --kill-after=15 300 dotnet test "tests/Trinity.Tests.$store/Trinity.Tests.$store.csproj" \
+            -c Release --no-build --nologo --collect "Code Coverage;Format=Cobertura" \
+            --results-directory "coverage-stores/$store" > "$logs/store-$store.txt" 2>&1 &
         started+=("$store")
         pids+=("$!")
+        echo "$!" >> "$lock/stores"
     done
 fi
 
