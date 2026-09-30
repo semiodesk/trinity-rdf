@@ -1,46 +1,123 @@
 # Benchmarks
 
 Cross-store performance measurement for Trinity, **through the lens of the library** — not a
-SPARQL-engine shootout.
+SPARQL-engine shootout. The decisions behind the harness are in
+[ADR-0049](../doc/adr/0049-benchmark-harness.md).
 
 ```bash
+# everything, every backend (needs Docker; pulls four images)
 dotnet run -c Release --project benchmarks/Trinity.Benchmarks -- --filter "*"
-dotnet run -c Release --project benchmarks/Trinity.Benchmarks -- --filter "*WriteBenchmarks*"
+
+# one workload, two backends
+TRINITY_BENCH_BACKENDS=InMemory,Oxigraph dotnet run -c Release --project benchmarks/Trinity.Benchmarks -- --filter "*PointRead*"
+
+# the million-triple tier that reproduces ADR-0041/0042
+TRINITY_BENCH_BACKENDS=InMemory dotnet run -c Release --project benchmarks/Trinity.Benchmarks -- --filter "*Layered*" --large
+
+# what CI runs: every case once, smallest sizes, in memory
+dotnet run -c Release --project benchmarks/Trinity.Benchmarks -- --filter "*" --smoke
+
 dotnet run -c Release --project benchmarks/Trinity.Benchmarks -- --list flat
 ```
 
 Every backend except the in-memory one is provisioned in Docker by the **same Testcontainers
 fixtures the store test suites use** — their classes are public and their `StartAsync` works outside
-NUnit, so provisioning is not copied here. A full run therefore needs a Docker daemon and pulls four
-images.
+NUnit, so provisioning is not copied here. A backend that is not selected is never started.
 
-## Why it exists
+## Options
 
-ADR-0042 was written from throwaway measurement harnesses, and says so:
+| | |
+|---|---|
+| `TRINITY_BENCH_BACKENDS` | Comma-separated backends: `InMemory`, `Oxigraph`, `Fuseki`, `GraphDB`, `Virtuoso`. Unset means all. An unknown name throws. An environment variable because BenchmarkDotNet has no parameter filter — its `-p` is the **profiler** switch. |
+| `--large` | Include the `Large` category: the 1,000,000-triple layered workloads. Excluded otherwise; expect tens of minutes per backend. In memory, leave out the group rows (`--filter "*LayeredReadLarge*View" "*LayeredReadLarge*Baseline" …`): an in-memory group query costs ~10 s at 1M, so those rows alone run for hours. |
+| `--smoke` | One iteration, no warmup, only the smallest value of each numeric parameter, and `InMemory` unless `TRINITY_BENCH_BACKENDS` says otherwise. Proves the workloads run and their guards hold; the timings mean nothing. Exits non-zero if any case failed. |
+| `--artifacts <dir>` | BenchmarkDotNet's own: where the reports go. Use one directory per side of a comparison. |
+| `profile …` | Bypasses BenchmarkDotNet; see [Profiling](#profiling). |
 
-> a claim that is only measured can rot silently
+Everything else is passed to BenchmarkDotNet unchanged.
 
-and, listing what is measured but not tested:
+## Workloads
 
-> **The performance figures** (31.5 s rebuild, 0.7 ms stage, 12.5 s → 3 ms on the delete path).
-> Timings do not belong in a correctness suite.
+Each workload pairs the mapped path with **the hand-written SPARQL it stands in for**, and one of the
+rows is BenchmarkDotNet's `Baseline`. Classes that measure several operations put each in its own
+category with its own baseline, so every `Ratio` is against the right thing.
 
-Both halves of that hold. Timings stay out of the test suites — this is a separate project, outside
-`tests/`, not run by CI — but the figures an ADR rests on should be reproducible on demand rather
-than lost with the harness that produced them.
+| Class | Measures | Baseline | Reproduces |
+|---|---|---|---|
+| `WriteBenchmarks` | creating resources one `Commit()` at a time, with and without `CreateResource`'s existence check | one batched `INSERT DATA` | |
+| `BatchWriteBenchmarks` | `UpdateResources` at batch sizes 1–1000 | the same batches by hand | |
+| `ReadBenchmarks` | `GetResources<T>()` and a LINQ filter over the whole model | `SELECT` bindings | |
+| `PointReadBenchmarks` | `GetResource` (typed and untyped), `ContainsResource`, a LINQ equality lookup, at 1k and 100k resources | subject- or value-bound `SELECT`/`ASK` | a flat row is an index, a growing one is a scan (ADR-0042) |
+| `UpdateBenchmarks` | the per-value delta commit: one literal, one added link | `DELETE DATA` + `INSERT DATA` | ADR-0039 |
+| `DeleteBenchmarks` | `DeleteResource`, subject and object side, at 1k and 10k | two bound `DELETE WHERE`s | ADR-0030, ADR-0042's two-bound-patterns rule |
+| `LazyLoadBenchmarks` | the N+1 cost of always-on lazy loading | one `SELECT` for the whole shape | ADR-0023 |
+| `FanOutBenchmarks` | one resource with 10/158/1000/2000 links | the same VALUES queries by hand | ADR-0046's table (13 → 170 ms on Virtuoso) |
+| `ModelGroupBenchmarks` | reads through a group of 1/4/16 member graphs | the same read on one model holding the union | ADR-0019 |
+| `LayeredReadBenchmarks` | reads through a layered view, rewriting and materialized | the same read on the plain baseline | ADR-0041's read table (1.31x / 3.45x / 2.24x / 4.23x) |
+| `LayeredStagingBenchmarks` | staging a change, a delete, `Accept()`, `Discard()` | the minimal writes into the layers | ADR-0042: 0.7 ms stage, 3 ms delete |
+| `LayeredMaterializeBenchmarks` | a full `Refresh()` | copying the baseline graph | ADR-0042: 31.5 s at 1M — **does not reproduce** (5.1 min in memory; see ADR-0049) |
+| `WideResourceBenchmarks` | twenty mapped values per resource, both directions | typed literals by hand | ADR-0040 |
+| `LinqShapeBenchmarks` | paging, `Count()`, `Any()`, `Contains` | the SPARQL each should become | ADR-0037 |
+| `SerializationBenchmarks` | `IStore.Read`/`Write` in Turtle, N-Triples, JSON-LD | `INSERT DATA` / a bindings fetch | ADR-0034 |
+
+The `Layered*` classes each have a `…LargeBenchmarks` subclass in the `Large` category at 1M.
 
 ## How to read the tables
 
-Each workload pairs the mapped path against **the hand-written SPARQL it stands in for**, and the
-raw one is BenchmarkDotNet's `Baseline`. So the `Ratio` column is the cost of the mapping, not of
-the store. Comparing backends down a column is the obvious use; comparing the two rows *within* one
-backend is the more useful one.
+The `Ratio` column is the cost of the mapping, not of the store. Comparing backends down a column is
+the obvious use; comparing the rows *within* one backend is the more useful one.
 
 `InMemory` is not a peer of the others and is included on purpose: no network, no server, so its row
-is the floor. What it costs is Trinity.
+is the floor. What it costs is Trinity plus dotNetRDF's in-memory engine — and that engine has costs
+of its own worth knowing about: a query naming more than one `FROM` rebuilds the merged default graph
+every time, so an in-memory `ModelGroup` is O(data) per query.
 
 `MemoryDiagnoser` is on because allocation is the half of the cost that is unambiguously ours — the
 store's work happens in another process.
+
+`OperationsPerInvoke` rows (the point reads, updates, deletes, staging) report time **per operation**;
+each invocation does a batch of them over distinct subjects, since one sub-millisecond call is below
+what the Monitoring strategy resolves.
+
+## Comparing before and after a change
+
+Absolute numbers do not travel, so a comparison is two runs on the same machine, back to back:
+
+```bash
+git switch develop
+TRINITY_BENCH_BACKENDS=InMemory,Oxigraph dotnet run -c Release --project benchmarks/Trinity.Benchmarks -- --filter "*PointRead*" --artifacts ../bench/before
+git switch my-optimization
+TRINITY_BENCH_BACKENDS=InMemory,Oxigraph dotnet run -c Release --project benchmarks/Trinity.Benchmarks -- --filter "*PointRead*" --artifacts ../bench/after
+```
+
+Each run writes `results/*-report-full.json` (and GitHub Markdown beside it). The
+[ResultsComparer](https://github.com/dotnet/performance/tree/main/src/tools/ResultsComparer) from
+`dotnet/performance` reads the full JSON and applies a statistical test:
+
+```bash
+dotnet run -c Release --project <dotnet/performance>/src/tools/ResultsComparer -- \
+  --base ../bench/before/results --diff ../bench/after/results --threshold 5%
+```
+
+Results are not committed: they belong to the machine that produced them.
+
+## Profiling
+
+`profile` runs one benchmark method in a plain loop — its own `[GlobalSetup]`, `[IterationSetup]`,
+`[IterationCleanup]` and guards, but no BenchmarkDotNet — so a profiler sees the workload rather than
+the harness:
+
+```bash
+dotnet build -c Release benchmarks/Trinity.Benchmarks
+dotnet-trace collect -- dotnet benchmarks/Trinity.Benchmarks/bin/Release/net8.0/Semiodesk.Trinity.Benchmarks.dll \
+  profile PointReadBenchmarks.GetResourceTyped --backend InMemory --iterations 200 --param Size=100000
+```
+
+`--backend` defaults to the first selected backend (InMemory when `TRINITY_BENCH_BACKENDS` is unset),
+and a parameter that is not given takes its first declared value. `--param` accepts sizes the table
+does not have. The same command works under `dotnet-counters`, or with the dll as the start target of
+a Visual Studio or Rider profiling session. BenchmarkDotNet's own `EventPipeProfiler` does not help
+here: it needs an out-of-process toolchain, and this harness is in-process so the containers survive.
 
 ## Things that will mislead you if you forget them
 
@@ -52,14 +129,29 @@ store's work happens in another process.
 - **A write benchmark can measure nothing at all.** ADR-0042 records that Virtuoso *silently writes
   zero* when an `INSERT … WHERE` exceeds its transaction-log limit — fine at 500k, zero at 1M. A
   benchmark that crosses that would report an excellent time for doing nothing. Every write
-  benchmark here verifies the triple count after the timed region, and throws if the work did not
-  land. Keep that in anything new.
+  benchmark here verifies what landed outside the timed region, and throws if the work did not
+  happen; every read benchmark verifies its fixture before measuring. Keep that in anything new.
+- **Virtuoso's 1M materialized cells fail, by design.** `Refresh()` counts what it wrote and throws
+  rather than serve an empty graph, and the raw copy in `LayeredMaterializeLargeBenchmarks` is
+  verified the same way. A failed cell there is the ADR-0042 finding reproduced, not a harness bug.
+- **Some cells fail because Trinity has a defect there, and are left failing so it stays visible**
+  (ADR-0049 records each one):
+  `WideResourceBenchmarks` on Oxigraph (a mapped `long` above `int.MaxValue` overflows on read), and
+  `SerializationBenchmarks`' N-Triples and JSON-LD reads on Virtuoso (its string read path has no
+  N-Triples parser and treats a quad-format document as a file name). Fix the defect, not the workload.
+- **Layered baselines persist between cases.** BenchmarkDotNet runs `[GlobalSetup]` once per case,
+  and reseeding a million triples each time would dominate the run, so a layered baseline graph is
+  named after its size and reseeded only when its count is wrong. Anything that changes a baseline
+  (`Accept`) clears it afterwards.
 - **In-process by necessity.** BenchmarkDotNet's default toolchain runs a separate process per
-  benchmark case, which would restart every container for every cell of the table. `[InProcess]`
-  keeps one set of servers for the run.
+  benchmark case, which would restart every container for every cell of the table. The job in
+  `Program.Config()` keeps one set of servers for the run.
 
 ## Adding a workload
 
-Derive from `StoreBenchmarkBase` (it supplies the `Backend` parameter, the store, a clean model, and
-`AssertWrote`). Pair the mapped operation with a raw-SPARQL equivalent marked
-`[Benchmark(Baseline = true)]`. Verify the work happened outside the timed region.
+Derive from `StoreBenchmarkBase` (it supplies the `Backend` parameter, the store, a clean model,
+`PersonUri`, `CountWhere`, `AssertWrote` and `AssertSeeded`). Seed fixtures with `BenchmarkData`
+rather than through the mapper, unless seeding is what you measure. Pair the mapped operation with a
+raw-SPARQL equivalent marked `[Benchmark(Baseline = true)]`, and give each operation its own
+`[BenchmarkCategory]` if the class has several. Verify the work happened outside the timed region.
+Keep `--smoke` cheap: the smallest value of each numeric parameter is what CI runs.

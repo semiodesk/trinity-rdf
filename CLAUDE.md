@@ -42,6 +42,7 @@ post-build tooling. Read `doc/adr/README.md` for the decisions and history.
 | `tests/Trinity.Generator.Tests` | net8.0 | Source-generator validation, incl. the TRIN diagnostics |
 | `tests/Trinity.Vocabulary.Tests` | net8.0 | Vocabulary generator + `trinity-vocab`: term classification, all four RDF formats, determinism, sanitization/collisions, manifest reading, the check-mode exit codes, a member-compatibility check against the committed vocabularies, and a round-trip that compiles generated source and asserts `OntologyDiscovery` finds it |
 | `tests/Trinity.Tests.{Virtuoso,Fuseki,GraphDB,Oxigraph}` | net8.0 | Store integration tests — self-provision the server via Testcontainers/Docker (ADR-0036); run in the `stores` CI matrix job, not the fast `build` job |
+| `benchmarks/Trinity.Benchmarks` | net8.0 | BenchmarkDotNet cross-store harness (ADR-0049) — reuses the store suites' container fixtures; each workload pairs the mapped path with its raw-SPARQL baseline and verifies the work landed. Not a test suite; only a smoke run is in CI |
 | `doc/adr/` | — | Architecture Decision Records |
 
 Retired in 2.0: `Trinity.CilGenerator` (the cilg weaver, ADR-0013), `Trinity.OntologyGenerator`
@@ -60,6 +61,7 @@ dotnet test Trinity.Tests/Trinity.Tests.csproj         # 793 passed, 3 skipped (
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 26 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
+TRINITY_BENCH_BACKENDS=InMemory dotnet run -c Release --project benchmarks/Trinity.Benchmarks -- --filter "*"   # see benchmarks/README.md
 ```
 
 - The 3 skipped tests are `[Ignore]`d and tracked in `doc/known-test-failures.md`: one open semantics
@@ -94,7 +96,9 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   type so Trinity converts into it (ADR-0040), whereas the unmapped bag declares nothing. If `ListValues`
   is ever given a CLR-type-fidelity guarantee, they must come back.
 - **CI:** `.github/workflows/ci.yml` (ubuntu, .NET 10) — a fast `build` job (restore → build → test →
-  pack) plus a `stores` matrix job running the four Dockerized store suites (ADR-0044). NuGet
+  pack) plus a `stores` matrix job running the four Dockerized store suites (ADR-0044). The `build`
+  job also runs the benchmarks with `--smoke` (every case once, smallest sizes, in memory) so a
+  workload that throws cannot rot unnoticed; no timing gates anything (ADR-0049). NuGet
   publishing is **manual** (no publish job).
 - Central Package Management: versions live in `Directory.Packages.props`; shared metadata +
   the single `Version` (2.0.0) in `Directory.Build.props`. Projects use versionless `PackageReference`.

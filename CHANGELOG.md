@@ -18,6 +18,12 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
   dotNetRDF output defects the other stores tolerate (invalid RDF/XML entity declarations, Turtle with
   a byte-order mark, a catch-all `Accept` header that lets an `ASK` come back as plain text); the
   adapter works around all three. ([ADR-0047](doc/adr/0047-oxigraph-store.md))
+- **A cross-store benchmark harness** (`benchmarks/Trinity.Benchmarks`, not shipped). Fifteen
+  BenchmarkDotNet workloads each pair the mapped path with the hand-written SPARQL it stands in for,
+  across all five backends, and reproduce the performance figures ADR-0041, 0042 and 0046 were
+  written from. Every measurement verifies that the work landed before its time counts. CI runs a
+  one-iteration in-memory smoke pass; no timing gates anything. It includes a `profile` mode for
+  `dotnet-trace`. ([ADR-0049](doc/adr/0049-benchmark-harness.md))
 
 ### Fixed
 
