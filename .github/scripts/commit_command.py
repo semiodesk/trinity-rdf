@@ -181,7 +181,28 @@ def simple_commands(words):
         yield command
 
 
-def commits(command, cwd, depth=0):
+_VARIABLE = re.compile(r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))")
+
+
+def expand(text, variables, pwd):
+    """`$NAME` and `${NAME}` in `text`, from `variables` or the environment; `$PWD` is `pwd`, the
+    directory tracked so far rather than the hook's. A variable found in neither is left as written:
+    a path containing it does not resolve, and the command is blocked with a message naming it,
+    rather than guessed."""
+    def value(match):
+        name = match.group(1) or match.group(2)
+        if name == "PWD":
+            return pwd
+        return variables.get(name, os.environ.get(name, match.group(0)))
+    return _VARIABLE.sub(value, text)
+
+
+def resolve(base, path, variables):
+    """`path`, expanded, joined onto `base`."""
+    return os.path.normpath(os.path.join(base, os.path.expanduser(expand(path, variables, base))))
+
+
+def commits(command, cwd, depth=0, variables=None):
     """The directories in which `command` would create a commit (unresolved, possibly several)."""
     if depth > 5:
         raise Undecidable("the command nests shells or substitutions too deeply to follow")
@@ -192,31 +213,41 @@ def commits(command, cwd, depth=0):
         raise Undecidable(f"it could not be parsed ({error})")
 
     found, here = [], cwd
+    # Assignments made earlier in this command, which bash expands in later ones: `DIR=/x; cd $DIR`.
+    # A prefix assignment (`DIR=/x git -C $DIR commit`) is not one of them -- bash expands $DIR
+    # before that assignment takes effect -- and unwrap() drops those without recording them.
+    variables = dict(variables or {})
     for inner in substitutions(text) + substitutions(expanded, quotes=False):
-        found += commits(inner, here, depth + 1)
+        found += commits(inner, here, depth + 1, variables)
 
     for argv in simple_commands(words):
-        argv, there, inner = unwrap(argv, here)
+        standalone = argv[1:] if argv[:1] == ["export"] else argv
+        if standalone and all(_ASSIGNMENT.match(word) for word in standalone):
+            for word in standalone:
+                name, _, raw = word.partition("=")
+                variables[name] = expand(raw, variables, here)
+            continue
+        argv, there, inner = unwrap(argv, here, variables)
         for line in inner:
-            found += commits(line, there, depth + 1)
+            found += commits(line, there, depth + 1, variables)
         if not argv:
             continue
         name = os.path.basename(argv[0])
 
         if name in ("cd", "pushd"):
             target = next((a for a in argv[1:] if not a.startswith("-")), os.path.expanduser("~"))
-            here = os.path.normpath(os.path.join(there, os.path.expanduser(target)))
+            here = resolve(there, target, variables)
         elif name in SHELLS and "-c" in argv[1:-1]:
-            found += commits(argv[argv.index("-c") + 1], there, depth + 1)
+            found += commits(argv[argv.index("-c") + 1], there, depth + 1, variables)
         elif name in ("git", "git.exe"):
-            where = git_commit_tree(argv[1:], there)
+            where = git_commit_tree(argv[1:], there, variables)
             if where:
                 found.append(where)
     # An unquoted $(...) is seen twice -- by the substitution scan and as parenthesised words.
     return list(dict.fromkeys(found))
 
 
-def unwrap(argv, here):
+def unwrap(argv, here, variables):
     """Strip leading assignments and wrappers from one simple command.
 
     Returns the wrapped command's argv, the directory it runs in (`env -C`, `sudo -D`), and any
@@ -242,7 +273,7 @@ def unwrap(argv, here):
             else:
                 argv = argv[1:]
             if (name, key) in CHDIR_OPTIONS:
-                here = os.path.normpath(os.path.join(here, os.path.expanduser(value)))
+                here = resolve(here, value, variables)
             elif (name, key) in COMMAND_OPTIONS:
                 inner.append(value)
         argv = argv[positional:]
@@ -252,7 +283,7 @@ def unwrap(argv, here):
     return argv, here, inner
 
 
-def git_commit_tree(args, here):
+def git_commit_tree(args, here, variables):
     """If `git <args>` commits, the directory it commits in; otherwise None."""
     work_tree = None
     i = 0
@@ -263,12 +294,12 @@ def git_commit_tree(args, here):
                 return None
             value = args[i + 1]
             if arg == "-C":
-                here = os.path.normpath(os.path.join(here, os.path.expanduser(value)))
+                here = resolve(here, value, variables)
             elif arg == "--work-tree":
-                work_tree = os.path.normpath(os.path.join(here, os.path.expanduser(value)))
+                work_tree = resolve(here, value, variables)
             i += 2
         elif arg.startswith("--work-tree="):
-            work_tree = os.path.normpath(os.path.join(here, os.path.expanduser(arg.split("=", 1)[1])))
+            work_tree = resolve(here, arg.split("=", 1)[1], variables)
             i += 1
         elif arg.startswith("-"):
             i += 1  # a flag, or --option=value
@@ -287,6 +318,11 @@ def top_level(directory):
     result = subprocess.run(["git", "-C", directory, "rev-parse", "--show-toplevel"],
                             capture_output=True, encoding="utf-8", errors="replace")
     if result.returncode != 0:
+        unresolved = _VARIABLE.findall(directory)
+        if unresolved:
+            names = ", ".join("$" + (a or b) for a, b in unresolved)
+            raise Undecidable(f"the directory it commits in depends on {names}, which the hook could not "
+                              "resolve; use a literal path, or assign the variable earlier in the same command")
         raise Undecidable(f"{directory} is not inside a git working tree")
     return result.stdout.strip()
 

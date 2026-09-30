@@ -110,6 +110,16 @@ class DecidesFromTokens(unittest.TestCase):
         self.assertEqual(committed_in("sudo -D /other git commit"), ["/other"])
         self.assertEqual(committed_in("sudo -C 3 git commit"), [HERE])  # -C is --close-from for sudo
 
+    def test_variables_assigned_earlier_in_the_command(self):
+        self.assertEqual(committed_in("DIR=/other; cd $DIR && git commit"), ["/other"])
+        self.assertEqual(committed_in('DIR=/other && git -C "$DIR" commit'), ["/other"])
+        self.assertEqual(committed_in("export WT=/wt; git --work-tree=${WT} commit"), ["/wt"])
+        self.assertEqual(committed_in("SP=/s && ROOT=$SP/clone && cd $ROOT && git commit"), ["/s/clone"])
+        self.assertEqual(committed_in("cd sub && git -C $PWD/.. commit"), [HERE])
+        self.assertEqual(committed_in("cd $HOME && git commit"), [os.environ["HOME"]])
+        # A prefix assignment does not affect expansion in its own command, in bash or here.
+        self.assertEqual(committed_in("DIR=/other git -C $DIR commit"), ["/work/repo/$DIR"])
+
     def test_unbalanced_quotes_cannot_be_parsed(self):
         from commit_command import Undecidable
         with self.assertRaises(Undecidable):
@@ -143,6 +153,12 @@ class HookInterface(unittest.TestCase):
             self.assertEqual(self.run_main("not json").returncode, 2)
             outside = self.run_main({"cwd": "/", "tool_input": {"command": "git -C /nonexistent commit"}})
             self.assertEqual(outside.returncode, 2)
+
+            unknown = self.run_main({"cwd": repo, "tool_input": {"command": "cd $NO_SUCH_DIR_X && git commit"}})
+            self.assertEqual(unknown.returncode, 2)
+            self.assertIn("$NO_SUCH_DIR_X", unknown.stdout)
+            known = self.run_main({"cwd": "/", "tool_input": {"command": f"R={repo}; git -C $R commit"}})
+            self.assertEqual((known.returncode, known.stdout.strip()), (0, top))
 
 
 if __name__ == "__main__":
