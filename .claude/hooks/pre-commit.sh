@@ -10,6 +10,10 @@
 #
 # Whether a command commits is decided in one place, .github/scripts/commit_command.py, from the
 # command's tokens: its exit status is 0 (commits), 1 (does not) or anything else (could not tell).
+# So settings.json runs this hook for every Bash command, with no `if` filter: that filter's
+# permission-rule prefix matching never matched `git -C <dir> commit`, which therefore bypassed the
+# hook entirely, and a second matcher that disagrees with the first is how that happened. A
+# command that is not a commit costs one `case` statement below.
 # Three rules follow, and every exit below is one of them:
 #
 # 1. A command that does not commit is never blocked.
