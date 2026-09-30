@@ -1741,7 +1741,10 @@ namespace Semiodesk.Trinity.Query.Sparql
                 // STR() for the same reason as in BindingComparison: SPARQL's IN is a chain of term
                 // equalities, which Virtuoso mis-evaluates against a variable carrying a LANG()
                 // constraint.
-                value = binding.LanguageConstraint != null && chain.MemberType == typeof(string)
+                // The constraint exists only for string and List<string> mappings, and in both the
+                // bound variable is a string literal, so the presence of the constraint is the whole
+                // condition -- narrowing it to typeof(string) would miss the collection case.
+                value = binding.LanguageConstraint != null
                     ? (SparqlExpression)new SparqlFunctionExpression("STR", new SparqlVariableExpression(binding.Variable.Name))
                     : new SparqlVariableExpression(binding.Variable.Name);
             }
