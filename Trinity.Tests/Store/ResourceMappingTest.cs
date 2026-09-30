@@ -28,6 +28,7 @@
 using NUnit.Framework;
 using Newtonsoft.Json;
 using Semiodesk.Trinity.Ontologies;
+using Semiodesk.Trinity.Query.Sparql;
 using Semiodesk.Trinity.Serialization;
 using System.Collections.Generic;
 using System.Linq;
@@ -1185,123 +1186,361 @@ namespace Semiodesk.Trinity.Tests.Store
             Assert.AreEqual(r1.RandomProperty, v);
         }
 
+        /// <summary>
+        /// A mapped container holds every language at once and survives a store round trip.
+        /// </summary>
+        /// <remarks>
+        /// This is what the ambient Resource.Language could not do: every assertion here about a
+        /// language other than the "current" one was previously unanswerable from the mapped surface.
+        /// </remarks>
         [Test]
-        public virtual void TestLocalizedStringPropertyMapping()
+        public virtual void LocalizedContainersRoundTripEveryLanguage()
         {
-            var germanValue = "Hallo Welt";
-            var englishValue = "Hello World";
-            
-            var r1 = Model1.CreateResource<StringMappingTestClass>(_r1);
-            r1.AddProperty(to.uniqueStringTest, germanValue, "de");
-            r1.AddProperty(to.uniqueStringTest, englishValue, "en");
-            
-            Assert.AreEqual(null, r1.uniqueStringTest);
-            
-            r1.Language = "de";
-            
-            Assert.AreEqual(germanValue, r1.uniqueStringTest);
-            
-            r1.Language = "en";
-            
-            Assert.AreEqual(englishValue, r1.uniqueStringTest);
+            var r1 = Model1.CreateResource<LocalizedMappingTestClass>(_r1);
 
-            r1.Language = null;
-            
-            Assert.AreEqual(null, r1.uniqueStringTest);
+            r1.Label["de"] = "Hallo Welt";
+            r1.Label["en"] = "Hello World";
+            r1.Label.Invariant = "plain";
+
+            r1.Aliases.Add("de", "Erdapfel");
+            r1.Aliases.Add("de", "Kartoffel");
+            r1.Aliases.Add("en", "Potato");
+
+            r1.Commit();
+
+            var actual = Model1.GetResource<LocalizedMappingTestClass>(_r1);
+
+            // Both languages are readable, at once, without switching anything.
+            Assert.AreEqual("Hallo Welt", actual.Label["de"]);
+            Assert.AreEqual("Hello World", actual.Label["en"]);
+            CollectionAssert.AreEqual(new[] { "de", "en" }, actual.Label.Languages);
+
+            // The untagged literal on the same predicate is kept apart from the languages.
+            Assert.AreEqual("plain", actual.Label.Invariant);
+
+            // The collection keeps both German values; the scalar container would have kept one.
+            CollectionAssert.AreEquivalent(new[] { "Erdapfel", "Kartoffel" }, actual.Aliases["de"]);
+            CollectionAssert.AreEqual(new[] { "Potato" }, actual.Aliases["en"]);
+
+            // Lookup works against what came back from the store, not only against what was written.
+            Assert.AreEqual("Hallo Welt", actual.Label.Best("de-AT", "en"));
+
+            // And the untyped surface reports the same tags.
+            CollectionAssert.AreEqual(new[] { "de", "en" }, actual.ListLanguages(to.uniqueLocalizedStringCultureTest));
         }
 
+        /// <summary>
+        /// Writing one language must not disturb another. Under the previous design this held only
+        /// because every other language sat in the untyped bag while one was mapped - an invariant
+        /// nothing stated or tested.
+        /// </summary>
         [Test]
-        public virtual void TestLocalizedStringInvariancy()
+        public virtual void EditingOneLanguageLeavesTheOthersAlone()
+        {
+            var r1 = Model1.CreateResource<LocalizedMappingTestClass>(_r1);
+
+            r1.Label["de"] = "Hallo Welt";
+            r1.Label["en"] = "Hello World";
+            r1.Commit();
+
+            var edited = Model1.GetResource<LocalizedMappingTestClass>(_r1);
+            edited.Label["de"] = "Servus";
+            edited.Commit();
+
+            var actual = Model1.GetResource<LocalizedMappingTestClass>(_r1);
+
+            Assert.AreEqual("Servus", actual.Label["de"]);
+            Assert.AreEqual("Hello World", actual.Label["en"], "Committing German must not delete English.");
+            Assert.AreEqual(2, actual.Label.Count);
+        }
+
+        /// <summary>
+        /// Removing a language removes only that language's triples.
+        /// </summary>
+        [Test]
+        public virtual void RemovingALanguageLeavesTheOthersAlone()
+        {
+            var r1 = Model1.CreateResource<LocalizedMappingTestClass>(_r1);
+
+            r1.Label["de"] = "Hallo Welt";
+            r1.Label["en"] = "Hello World";
+            r1.Commit();
+
+            var edited = Model1.GetResource<LocalizedMappingTestClass>(_r1);
+            Assert.IsTrue(edited.Label.Remove("de"));
+            edited.Commit();
+
+            var actual = Model1.GetResource<LocalizedMappingTestClass>(_r1);
+
+            Assert.IsNull(actual.Label["de"]);
+            Assert.AreEqual("Hello World", actual.Label["en"]);
+            CollectionAssert.AreEqual(new[] { "en" }, actual.Label.Languages);
+        }
+
+        /// <summary>
+        /// The same contract through the generator instead of a hand-written mapping, declared get-only
+        /// as ADR-0048 recommends.
+        /// </summary>
+        /// <remarks>
+        /// Both authoring routes have to stay first-class (ADR-0018), and this is the one that was
+        /// briefly impossible: emitting get+set unconditionally made a get-only mapped property CS9253.
+        /// </remarks>
+        [Test]
+        public virtual void GeneratedContainersRoundTripEveryLanguage()
+        {
+            var r1 = Model1.CreateResource<LocalizedDocument>(_r1);
+
+            r1.Title["de"] = "Bericht";
+            r1.Title["en"] = "Report";
+            r1.Keywords.Add("de", "Jahresbericht");
+            r1.Keywords.Add("de", "Geschäftsbericht");
+            r1.Code = "DOC-1";
+            r1.Commit();
+
+            var actual = Model1.GetResource<LocalizedDocument>(_r1);
+
+            Assert.AreEqual("Bericht", actual.Title["de"]);
+            Assert.AreEqual("Report", actual.Title["en"]);
+            CollectionAssert.AreEqual(new[] { "de", "en" }, actual.Title.Languages);
+            CollectionAssert.AreEquivalent(
+                new[] { "Jahresbericht", "Geschäftsbericht" }, actual.Keywords["de"]);
+
+            // A string property beside the containers still sees untagged literals only.
+            Assert.AreEqual("DOC-1", actual.Code);
+            CollectionAssert.IsEmpty(actual.ListLanguages(new Property(new Uri("semio:test:documentCode"))));
+        }
+
+        /// <summary>
+        /// A tag that no Trinity caller could write must still be readable when it is already there.
+        /// </summary>
+        /// <remarks>
+        /// Every literal read from a store is constructed as a <c>LangString</c>, so tag validation sits
+        /// directly on the read path. Capping subtags at eight characters (RFC 5646 well-formedness)
+        /// therefore did not reject a bad write — it made <b>every</b> read of a resource carrying such
+        /// a tag throw, the untyped <c>GetResource</c> included, for data that Turtle, SPARQL and every
+        /// backend accept. One triple written by another tool took the whole resource out.
+        /// </remarks>
+        [Test]
+        public virtual void ReadsALanguageTagLongerThanBcp47Allows()
+        {
+            const string tag = "en-abcdefghij";
+
+            try
+            {
+                Model1.ExecuteUpdate(new SparqlUpdate(
+                    $"INSERT DATA {{ GRAPH <{Model1.Uri.OriginalString}> {{ " +
+                    $"<{_r1.OriginalString}> a <semio:test:LocalizedDocument> ; " +
+                    $"<semio:test:documentTitle> \"lang\"@{tag} }}}}"));
+            }
+            catch (Exception e)
+            {
+                // Oxigraph enforces BCP-47 in its parser and rejects the tag outright.
+                Assert.Inconclusive(
+                    $"This store refuses to store '@{tag}' at all: {e.GetType().Name}. " +
+                    "The read path cannot be exercised where the data cannot be written.");
+            }
+
+            // Backends disagree about whether such a literal can exist at all: Virtuoso, Jena and
+            // RDF4J store and return it, Oxigraph rejects it in its parser. That disagreement is
+            // itself the argument for the fix -- three of the four will hand Trinity a tag its own
+            // constructor used to refuse -- and the reason the precondition is asked rather than
+            // assumed. It is asked as a raw triple count because a mapped read is what is under test
+            // and so cannot also be the precondition.
+            int stored = Model1.ExecuteQuery(new SparqlQuery(
+                    $"SELECT ?o WHERE {{ <{_r1.OriginalString}> <semio:test:documentTitle> ?o }}"))
+                .GetBindings().Count();
+
+            if (stored == 0)
+            {
+                Assert.Inconclusive(
+                    $"This store accepted the update for '@{tag}' but stored nothing. " +
+                    "The read path cannot be exercised where the data cannot be written.");
+            }
+
+            var typed = Model1.GetResource<LocalizedDocument>(_r1);
+
+            // Reading must not throw, whatever the store did with the tag. That is the regression:
+            // a BCP-47 length check on the read path made every read of this resource fail, the
+            // untyped one included, which takes down anything touching the graph.
+            Assert.DoesNotThrow(() => Model1.GetResource(_r1).ListValues().ToList());
+            Assert.DoesNotThrow(() => Model1.AsSparqlQueryable<LocalizedDocument>().ToList());
+
+            if (!typed.Title.Languages.Contains(tag))
+            {
+                Assert.Inconclusive(
+                    $"This store accepted '@{tag}' but did not return it: got " +
+                    $"[{string.Join(", ", typed.Title.Languages)}]. Reading still succeeds, which is " +
+                    "what this test guards; the tag itself is the store's business.");
+            }
+
+            Assert.AreEqual("lang", typed.Title[tag]);
+        }
+
+        /// <summary>
+        /// A LINQ query over a localized property honours the tag on a real store, region subtag and
+        /// all, whatever case the store hands the tag back in.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This is the case the in-memory suite cannot see. Stores disagree about canonicalizing a
+        /// language tag: Jena returns <c>de-DE</c> for one written as <c>de-de</c>, RDF4J returns it as
+        /// written. A <c>LANG(?v) = "de-de"</c> comparison against a lower-cased constant therefore
+        /// matches on some backends and not others, and every other localized test in this repository
+        /// uses bare <c>de</c>/<c>en</c> tags, which have no case to disagree about. Both sides are
+        /// lower-cased, and this runs on all four backends to prove it.
+        /// </para>
+        /// <para>
+        /// The two-language conjunction is here for a different reason: it is the case that returned
+        /// zero rows when both indexers shared one variable, and it costs nothing to check that the
+        /// stores agree with the in-memory engine about it.
+        /// </para>
+        /// </remarks>
+        [Test]
+        public virtual void QueriesALocalizedPropertyByTagAcrossStores()
+        {
+            var r1 = Model1.CreateResource<LocalizedDocument>(_r1);
+            r1.Title["de-AT"] = "Jahresbericht";
+            r1.Title["de"] = "Bericht";
+            r1.Title["en"] = "Report";
+            r1.Commit();
+
+            var other = Model1.CreateResource<LocalizedDocument>(_r2);
+            other.Title["de"] = "Jahresbericht";
+            other.Commit();
+
+            // The region subtag matches however the caller cased it and however the store returns it.
+            foreach (string tag in new[] { "de-AT", "de-at", "DE-AT" })
+            {
+                var austrian = Model1.AsSparqlQueryable<LocalizedDocument>()
+                    .Where(d => d.Title[tag] == "Jahresbericht")
+                    .ToList();
+
+                Assert.AreEqual(1, austrian.Count, $"Tag '{tag}' should match the @de-AT title.");
+                Assert.AreEqual(_r1, austrian[0].Uri);
+            }
+
+            // Exact match, not lookup: @de-AT is not reachable by asking for @de.
+            var german = Model1.AsSparqlQueryable<LocalizedDocument>()
+                .Where(d => d.Title["de"] == "Jahresbericht")
+                .ToList();
+
+            Assert.AreEqual(1, german.Count);
+            Assert.AreEqual(_r2, german[0].Uri);
+
+            // Two languages of one property in one predicate: each gets its own variable.
+            var both = Model1.AsSparqlQueryable<LocalizedDocument>()
+                .Where(d => d.Title["de"] == "Bericht" && d.Title["en"] == "Report")
+                .ToList();
+
+            Assert.AreEqual(1, both.Count);
+            Assert.AreEqual(_r1, both[0].Uri);
+        }
+
+        /// <summary>
+        /// A mapped <c>string</c> sees untagged literals only.
+        /// </summary>
+        /// <remarks>
+        /// The successor to TestLocalizedStringPropertyMapping, which asserted that one property showed
+        /// German, then English, then nothing, as Resource.Language was switched. That property is gone:
+        /// a string is untagged by construction, and language-tagged values are read through a container
+        /// (LocalizedContainersRoundTripEveryLanguage). Nothing is lost by the narrower mapped view --
+        /// the tagged values are still on the resource and still visible untyped, which is what the
+        /// second half asserts.
+        /// </remarks>
+        [Test]
+        public virtual void MappedStringSeesUntaggedLiteralsOnly()
+        {
+            var r1 = Model1.CreateResource<StringMappingTestClass>(_r1);
+
+            r1.AddProperty(to.uniqueStringTest, "Hallo Welt", "de");
+            r1.AddProperty(to.uniqueStringTest, "Hello World", "en");
+
+            Assert.IsNull(r1.uniqueStringTest, "Tagged values are not what a string property maps.");
+
+            r1.AddProperty(to.uniqueStringTest, "plain");
+
+            Assert.AreEqual("plain", r1.uniqueStringTest);
+
+            // Open resources (ADR-0017): the mapped window narrowed, the data did not.
+            var values = r1.ListValues(to.uniqueStringTest).ToList();
+
+            Assert.AreEqual(3, values.Count);
+            CollectionAssert.AreEquivalent(
+                new[] { new LangString("Hallo Welt", "de"), new LangString("Hello World", "en") },
+                values.OfType<LangString>().ToList());
+            CollectionAssert.AreEqual(new[] { "de", "en" }, r1.ListLanguages(to.uniqueStringTest));
+        }
+
+        /// <summary>
+        /// The successor to TestLocalizedStringInvariancy. There is no flag to set and no ambient
+        /// language to opt out of: the declared type carries the guarantee.
+        /// </summary>
+        [Test]
+        public virtual void MappedStringIsLanguageInvariantByConstruction()
         {
             var contact = Model1.CreateResource<PersonContact>(_r1);
             contact.NameGiven = "Peter";
-            contact.Language = "de";
-            
-            Assert.AreEqual("Peter", contact.NameGiven);
-        }
-        
-        [Test]
-        public virtual void TestLocalizedStringListPropertyMapping()
-        {
-            var germanValue = "Hallo Welt";
-            var englishValue = "Hello World";
-            
-            var r1 = Model1.CreateResource<StringMappingTestClass>(_r1);
-            r1.AddProperty(to.stringTest, germanValue+1, "de");
-            r1.AddProperty(to.stringTest, germanValue+2, "de");
-            r1.AddProperty(to.stringTest, germanValue+3, "de");
-            r1.AddProperty(to.stringTest, englishValue+1, "en");
-            r1.AddProperty(to.stringTest, englishValue+2, "en");
-            r1.AddProperty(to.stringTest, englishValue+3, "en");
-            r1.AddProperty(to.stringTest, englishValue+4, "en");
-            
-            Assert.AreEqual(0, r1.stringListTest.Count);
-            
-            var values = r1.ListValues(to.stringTest);
-            
-            Assert.AreEqual(7, values.Count());
-            
-            r1.AddProperty(to.stringTest, "Hello international World"+1);
-            r1.AddProperty(to.stringTest, "Hello international World"+2);
-            
-            Assert.AreEqual(2, r1.stringListTest.Count);
-            Assert.AreEqual(9, r1.ListValues(to.stringTest).Count());
-            
-            r1.RemoveProperty(to.stringTest, "Hello international World"+1);
-            
-            Assert.AreEqual(1, r1.stringListTest.Count);
-            Assert.AreEqual(8, r1.ListValues(to.stringTest).Count());
-            
-            r1.Language = "de";
-            
-            Assert.AreEqual(3, r1.stringListTest.Count);
-            Assert.AreEqual(8, r1.ListValues(to.stringTest).Count());
-            
-            r1.Language = "en";
-            
-            Assert.AreEqual(4, r1.stringListTest.Count);
-            Assert.AreEqual(8, r1.ListValues(to.stringTest).Count());
-            
-            r1.RemoveProperty(to.stringTest, germanValue + 1, "de");
-            
-            Assert.AreEqual(7, r1.ListValues(to.stringTest).Count());
+            contact.Commit();
 
-            r1.RemoveProperty(to.stringTest, englishValue + 1, "en");
-            
-            Assert.AreEqual(7, r1.ListValues(to.stringTest).Count());
+            var actual = Model1.GetResource<PersonContact>(_r1);
+
+            Assert.AreEqual("Peter", actual.NameGiven);
+            CollectionAssert.IsEmpty(actual.ListLanguages(), "A string property writes no language tag.");
         }
 
+        /// <summary>
+        /// A mapped <c>List&lt;string&gt;</c> sees untagged literals only -- the collection counterpart
+        /// of the scalar case. Successor to the two TestLocalizedStringListPropertyMapping tests, which
+        /// asserted counts as Resource.Language was switched between de, en and null.
+        /// </summary>
         [Test]
-        public virtual void TestLocalizedStringListPropertyMapping2()
+        public virtual void MappedStringCollectionSeesUntaggedLiteralsOnly()
         {
-            var germanValue = "Hallo Welt";
-            var englishValue = "Hello World";
-            
             var r1 = Model1.CreateResource<StringMappingTestClass>(_r1);
-            r1.stringListTest.Add("Hello interanational World" + 1);
-            r1.stringListTest.Add("Hello interanational World" + 2);
-            
-            r1.Language = "de";
-            r1.stringListTest.Add(germanValue + 1);
-            r1.stringListTest.Add(germanValue + 2);
-            r1.stringListTest.Add(germanValue + 3);
-            
-            Assert.AreEqual(3, r1.stringListTest.Count);
+
+            r1.AddProperty(to.stringTest, "Hallo Welt1", "de");
+            r1.AddProperty(to.stringTest, "Hallo Welt2", "de");
+            r1.AddProperty(to.stringTest, "Hello World1", "en");
+
+            CollectionAssert.IsEmpty(r1.stringListTest);
+
+            r1.AddProperty(to.stringTest, "plain1");
+            r1.AddProperty(to.stringTest, "plain2");
+
+            CollectionAssert.AreEquivalent(new[] { "plain1", "plain2" }, r1.stringListTest);
             Assert.AreEqual(5, r1.ListValues(to.stringTest).Count());
+            CollectionAssert.AreEqual(new[] { "de", "en" }, r1.ListLanguages(to.stringTest));
+        }
 
-            r1.Language = "en";
-            r1.stringListTest.Add(englishValue + 1);
-            r1.stringListTest.Add(englishValue + 2);
-            r1.stringListTest.Add(englishValue + 3);
-            r1.stringListTest.Add(englishValue + 4);
-            
-            Assert.AreEqual(4, r1.stringListTest.Count);
-            Assert.AreEqual(9, r1.ListValues(to.stringTest).Count());
+        /// <summary>
+        /// The untyped read surface reports values, not tagged nulls.
+        /// </summary>
+        /// <remarks>
+        /// Successor to the characterization test from step 2, which reproduced ADR-0048 defect 1 by
+        /// asking this of a mapped property while a language was active. There is no active language
+        /// now, so the same question is put to a container -- whose GetValueObject() is the container
+        /// itself, and which would therefore report one unusable value if EnumerateValues were ever
+        /// bypassed again.
+        /// </remarks>
+        [Test]
+        public virtual void ListValuesReportsTheValuesOfAContainer()
+        {
+            var r1 = Model1.CreateResource<LocalizedMappingTestClass>(_r1);
 
-            r1.Language = null;
-            
-            Assert.AreEqual(2, r1.stringListTest.Count);
-            Assert.AreEqual(9, r1.ListValues(to.stringTest).Count());
+            r1.Label["de"] = "Hallo Welt";
+            r1.Label["en"] = "Hello World";
+            r1.Label.Invariant = "plain";
+
+            var values = r1.ListValues(to.uniqueLocalizedStringCultureTest).ToList();
+
+            Assert.AreEqual(3, values.Count, "Two tagged literals and the untagged one, flattened.");
+            CollectionAssert.AreEquivalent(
+                new[] { new LangString("Hallo Welt", "de"), new LangString("Hello World", "en") },
+                values.OfType<LangString>().ToList());
+            CollectionAssert.AreEqual(new[] { "plain" }, values.OfType<string>().ToList());
+
+            Assert.AreEqual(3, r1.ListValues().Count(x => Equals(x.Item1, to.uniqueLocalizedStringCultureTest)),
+                "The serialization path flattens the container the same way.");
         }
 
         [Test]

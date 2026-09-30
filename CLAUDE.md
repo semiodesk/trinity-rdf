@@ -56,8 +56,8 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 793 passed, 3 skipped (quarantined), 0 failed
-dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 26 passed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 940 passed, 3 skipped (quarantined), 0 failed
+dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 42 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
 ```
@@ -73,8 +73,8 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all four green** — Fuseki 350/351, Oxigraph 352/353,
-  GraphDB 349/350, Virtuoso 334/335 (0 failed each; the 1 skipped is the shared blank-node-removal
+  hiccup cannot redden it. Current: **all four green** — Oxigraph 357/358, Fuseki 356/357,
+  GraphDB 355/356, Virtuoso 339/340 (0 failed each; the 1 skipped is the shared blank-node-removal
   quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
@@ -94,8 +94,19 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   type so Trinity converts into it (ADR-0040), whereas the unmapped bag declares nothing. If `ListValues`
   is ever given a CLR-type-fidelity guarantee, they must come back.
 - **CI:** `.github/workflows/ci.yml` (ubuntu, .NET 10) — a fast `build` job (restore → build → test →
-  pack) plus a `stores` matrix job running the four Dockerized store suites (ADR-0044). NuGet
-  publishing is **manual** (no publish job).
+  coverage → pack) plus a `stores` matrix job running the four Dockerized store suites (ADR-0044).
+  NuGet publishing is **manual** (no publish job).
+- **Coverage** is collected by the collector bundled with `Microsoft.NET.Test.Sdk` (no package or tool
+  to add), merged by `.github/scripts/coverage.py`, printed to the job summary as a per-assembly table,
+  and **gated at a 78% floor**. Two things about that number are easy to get wrong. The three
+  **in-memory** suites the `build` job runs overlap — core is exercised by all of them — so reports are
+  merged by taking the highest hit count per `(file, line)`; summing totals would count shared lines
+  repeatedly. And **test assemblies are excluded**: they are ~96% covered by construction, and counting
+  them reported 88.9% where the product was at 80.9%. The floor sits deliberately *below* the current
+  figure rather than at it — a ratchet pinned to the exact value turns any honest refactor that deletes
+  well-covered code red.
+  Run it locally with `dotnet test … --collect "Code Coverage;Format=Cobertura" --results-directory ./coverage`
+  then `python3 .github/scripts/coverage.py ./coverage 78`.
 - Central Package Management: versions live in `Directory.Packages.props`; shared metadata +
   the single `Version` (2.0.0) in `Directory.Build.props`. Projects use versionless `PackageReference`.
 
@@ -131,13 +142,17 @@ someone migrating a large model wants the whole list from one build:
 | `TRIN004` | a mapped class does not derive from `Resource` |
 | `TRIN005` | a mapped class has no accessible `(Uri)` constructor, so `Activator.CreateInstance(type, uri)` cannot materialize it when reading |
 | `TRIN006` | a URI belongs to a **generated** vocabulary but is not one of its terms — a typo. Only vocabularies marked `[GeneratedCode("trinity-vocab", …)]` are trusted, since only those list every term; an unknown namespace is never reported |
+| `TRIN009` | a localized-text container property declares a setter. The container is a mutable view owned by the mapping; assigning one either nulls it or aliases another resource's instance |
+| `TRIN010` | a mapped property is typed with an `ILocalizedText` that is not `LocalizedString` or `LocalizedStringCollection`. The interface is their shared surface, **not an extension point** — the engine dispatches on the two concrete types — so anything else is refused at registration. The check asks the type *and* its interfaces, because `AllInterfaces` alone never includes the type itself, which made `ILocalizedText` (the one shape that cannot work at all, since `Activator` cannot instantiate an interface) the one shape no diagnostic saw |
+| `TRIN008` | `[RdfProperty]` passes the obsolete `languageInvariant` flag. It no longer has any effect — the declared type decides (ADR-0048) — and a flag that silently does nothing is indistinguishable from one that works, so it is reported rather than ignored |
 | `TRIN007` | a mapped property is typed `System.Uri` (or is a collection of them) instead of `UriRef` — `Uri` equality ignores the fragment. **The one diagnostic that does not mean "nothing was generated"**: the mapping is emitted, the declared type is wrong. Matched on exact type identity, so `UriRef` — which derives from `Uri` — is not flagged. `PropertyMapping<T>` **throws** for `System.Uri` at runtime (Release too), which is what catches hand-written mappings the generator never sees |
 
-The generator handles scalars, collections (seeded with a default instance), language-invariant
-strings, resource references, multiple `[RdfClass]`, and inheritance (including `GetTypes`-only
-subclasses). The implementing half copies the declaring declaration's **modifiers verbatim**, so
+The generator handles scalars, collections (seeded with a default instance), localized-text
+containers (seeded likewise, by `PropertyMapping<T>`), resource references, multiple `[RdfClass]`, and inheritance (including `GetTypes`-only
+subclasses). The implementing half copies the declaring declaration's **modifiers and accessors verbatim** — it
+declares exactly the accessors the declaration did, each with its own modifiers, or it is CS9253 — so
 accessibility and `new`/`virtual`/`override`/`sealed` match — C# requires both halves to agree, and
-hiding a `Resource` member (`Language`, say) needs `new` on both or it is an unfixable CS8800. Only `partial` members are processed. The runtime engine (`Resource`,
+hiding a `Resource` member (`Model`, say — a car has one) needs `new` on both or it is an unfixable CS8800. Only `partial` members are processed. The runtime engine (`Resource`,
 `PropertyMapping<T>`, reflective `InitializePropertyMappings`) is unchanged from 1.x.
 
 ## Vocabularies (ADR-0014)
@@ -328,8 +343,113 @@ Invariants that surprise newcomers:
   `NoOpTransaction` rather than `null` (0039) — never null, but never isolating either.
 - **Query results are multi-modal** (0031): `GetResources`/`GetBindings`/`GetAnwser`(sic)/`Count` —
   pick the accessor matching the query form (with offset/limit paging).
-- **Datatype & i18n mapping** (0026/0027): `XsdTypeMapper` (culture-invariant via `XmlConvert`);
-  localized strings are rudimentary and represented inconsistently.
+- **Datatype & i18n mapping** (0026/0027/0048): `XsdTypeMapper` (culture-invariant via `XmlConvert`).
+  A language-tagged literal is a **`LangString`** — one type, replacing the four shapes 0027 lived with.
+  It **validates** the tag against the SPARQL/Turtle `LANGTAG` grammar `[a-zA-Z]+('-'[a-zA-Z0-9]+)*`
+  and normalizes it with `ToLowerInvariant` at construction — one implementation, which
+  `LocalizedValueStore.Normalize` and the LINQ translator both call rather than repeating, so a
+  validated constructor cannot end up beside an unvalidated indexer, and a query cannot disagree with
+  a read about which tag was asked for. **Not BCP-47 well-formedness**: an earlier version also capped
+  subtags at eight characters, and because every literal read from a store is constructed here, one
+  triple another writer tagged `@en-abcdefghij` — legal everywhere — made *every* read of that
+  resource throw, untyped `GetResource` included. The grammar is the serialization boundary; length is
+  no part of it, and policing a tag registry is not this type's job. This is
+  why `AddProperty`/`HasProperty` cannot disagree about casing and why the 0039 delta is stable across a
+  read/commit cycle. Validation is **load-bearing, not cosmetic**: a tag reaches the store as *syntax*
+  (`'x'@de` has no place for a quoted tag), so `SparqlSerializer` escapes the value and interpolates the
+  tag raw — an unvalidated tag from request data would carry query text into an update on `Commit()`. An
+  **untagged literal is a plain `string`**: `LangString.Language` is never null, so there is no second
+  way to spell "no tag", and `"Hallo"` can never equal `new LangString("Hallo","de")`. There is
+  deliberately **no conversion to or from `string`** (ADR-0025 applied, not repeated — `label ==
+  "Hallo"` must not compile), but `==`/`!=` between two `LangString`s are declared, or a class compares
+  by reference.
+- **The property's declared type decides how tags are handled** (0048). `Resource.Language` and the
+  `languageInvariant` flag are **gone** — there is no ambient state, so a resource is safe to read in
+  two locales at once:
+
+  | Declared type | Sees |
+  |---|---|
+  | `string`, `List<string>` | untagged literals only (what `languageInvariant: true` used to mean) |
+  | `LocalizedString` | every language, one value each |
+  | `LocalizedStringCollection` | every language, several values each |
+  | `LangString`, `List<LangString>` | tagged literals, raw triple view |
+
+  `HasProperty`/`RemoveProperty` with a tag **answer rather than throw** — a value cannot carry a
+  malformed tag, so the answer is `false` and the removal a no-op; `AddProperty` still throws, because
+  naming a tag to write is an intention.
+  Containers hold **all** languages at once, so `Languages`/`ListLanguages()` can answer which exist and
+  editing one never disturbs another. `Best()` is RFC 4647 **Lookup**, which truncates the *request* —
+  `de-DE` finds a `de` value, `de` does not find `de-DE`. Indexers are exact-match on get *and* set, so
+  `t[k] = t[k]` cannot move a value between languages. Declaring `LocalizedString` against genuinely
+  multi-valued data is **lossy** — it keeps the last value — exactly as a mapped `string` already does
+  to a multi-valued predicate; `LocalizedStringCollection` is the escape hatch. The dropped value is
+  **orphaned, not deleted**, and this file previously claimed the opposite. The commit snapshot comes
+  from `ListValues()`, i.e. the resource *after* the container dropped the duplicate, so it sits in
+  neither side of the 0039 delta: `HasUnsavedChanges()` is `false` and `Commit()` emits nothing. The
+  value stays in the store, permanently invisible through that property, and nothing will ever remove
+  it. Same for a mapped `string` over a multi-valued predicate — both measured, and pinned by
+  `AValueDroppedByASingleValuedContainerSurvivesInTheStore`.
+  `[RdfProperty(uri, languageInvariant)]` still compiles for one release and raises
+  **TRIN008**; `RdfPropertyAttribute`'s two-argument constructor is `[Obsolete]` and goes in 2.1.
+  Containers are declared **get-only** — they are mutated in place, not assigned, and a setter both
+  admits `null` and aliases one container across two resources, so **TRIN009** warns. The diagnostic is
+  not the guarantee, though: a hand-written mapping never reaches the generator, so `SetValue` **copies
+  into** the container the mapping owns rather than assigning the reference. Assigning `null` empties it
+  (it used to leave the mapping holding none, so the next `ListValues()` threw and took `Commit()`,
+  `HasUnsavedChanges()` and the snapshot with it) and `a.Title = b.Title` copies rather than aliases.
+  Only `LocalizedString` and `LocalizedStringCollection` can be mapped — `ILocalizedText` is their
+  shared surface, **not an extension point**, and anything else is refused at registration rather than
+  accepted and silently dropped. The generator emits
+  exactly the accessors the declaring half declares (each with its own modifiers, so `private set` and
+  `init` round-trip); emitting `get`+`set` unconditionally used to make the get-only form CS9253.
+  **LINQ** queries one language at a time: `Where(d => d.Label["de"] == "Hallo")`. The tag must be a
+  constant, because it becomes part of the query text — a closure is folded to one by the partial
+  evaluator, a per-row value is refused.
+  **The tag is attached where a pattern is emitted, and it is part of the binding's cache key.** Both
+  halves are load-bearing and neither fails loudly. Keying by predicate path alone gave `Label["de"]`
+  and `Label["en"]` in one query *the same* variable, so the constraints met as
+  `LANG(?v)="de" && LANG(?v)="en"` — unsatisfiable. Constraining at comparison time instead left every
+  other consumer of that variable reading it bound to all languages.
+  **Four functions own this and nothing else may re-derive it:** `MemberLanguageConstraint` decides
+  *whether and to what*; `AddMemberPattern` emits a member's triple with it; `BindingKey` computes the
+  cache key; `MemberOperand` turns a constrained binding into a filter operand (`STR(?v)`). Fixing
+  this per call site is how it keeps regressing — first the tag was applied only on `== constant`,
+  then only on paths going through `BindChain`, leaving `.Count`'s sub-select, `.Any()`'s EXISTS group
+  and `SelectMany`'s element each emitting an unconstrained pattern of their own, and the projection
+  paths computing the pre-tag key by hand so their reuse branch never ran.
+  **`ChainKind.Localized` deliberately has no case in `TranslateChainComparison`.** It had one, ahead
+  of `default`, and that position *was* the bug: `default` is where `== null` becomes a (NOT) EXISTS
+  and where `inDisjunction` decides optional binding, so a case in front of it silently skipped both —
+  `Title["de"] == null` threw, and `Title["de"] == x || Title["en"] == y` quietly meant *and*.
+  Indexing a `LocalizedStringCollection` in a query is **refused**: its indexer yields every value for
+  the tag, and recording that as a scalar made ordering drop rows.
+  The emitted form is `LCASE(LANG(?v)) = "de"` plus `STR(?v) = "…"`, **not** `?v = "…"@de`: measured on
+  dotNetRDF 3.5.2, a language-tagged literal inside a `FILTER` comparison matches regardless of its tag
+  (`"x"@fr` matched a `@de` value), while the same literal in a *triple pattern* matches correctly and
+  `STR`/`LANG` evaluate correctly. `LCASE` wraps `LANG` because stores disagree about the case they hand a
+  tag back in. Measured by removing it: **Fuseki and GraphDB fail, Oxigraph and the in-memory engine
+  pass** — so the defect is real on half the backends and invisible to the fast suite, and it needs a
+  **region subtag** to show at all, since a bare `de` has no case to disagree about. Every localized
+  test written before it used bare tags, which is why four green suites said nothing about it;
+  `QueriesALocalizedPropertyByTagAcrossStores` is the guard and lives in the shared store fixture.
+  Three things are **refused rather than approximated** (the ADR-0041 posture):
+  `Best()`/`TryGetBest()`, because RFC 4647 lookup is a client-side fallback walk that `langMatches`
+  would answer differently; projecting a single language (`Select(d => d.Label["de"])`), because the
+  bound variable carries every language; and `.Count`/`.Any()` on a container, because
+  `LocalizedString` counts *languages* while `LocalizedStringCollection` counts *values*, so no single
+  triple count is right for both. Filter on the language in `Where` and project the resource instead.
+  A mapped `string` binds with `LANG(?v) = ""`, so it never matches a tagged literal — previously true
+  only for `==`, since a plain literal term matches only a plain literal, but *not* for `StartsWith`
+  (SPARQL argument compatibility makes `STRSTARTS("x"@de, "x")` true) nor for `Select`, which returned
+  tagged values unwrapped. Measured before keeping: over 20k documents the added filter is below the
+  run-to-run noise floor.
+  Such a constrained variable is then compared by **`STR(?v)`, never term equality** — on **Virtuoso
+  7.2**, `?v = "x"` is false whenever a `LANG()` constraint on the same variable is in the query, even
+  though `?v = "x"` alone and `LANG(?v) = ""` alone each return the rows. Every spelling of the
+  language test fails that way and every one passes with `STR()`. It converges on the same comparison
+  form the localized path uses for the opposite reason (a tagged term in a `FILTER` is matched
+  tag-blind). It stayed invisible because Virtuoso's **only** LINQ coverage was two layered-model
+  tests — a mapped-string `Where` was never queried against it directly.
 
 ## Other architecture notes
 

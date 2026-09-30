@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -28,21 +28,28 @@ namespace Semiodesk.Trinity.Generator.Tests
     }
 
     /// <summary>
-    /// A mapped property that hides a member of <c>Resource</c>. <c>Resource.Language</c> is Trinity's
-    /// literal language tag; a domain model may legitimately mean something else by the name, and C# says
-    /// to write <c>new</c>. That has to survive into the generated half or the build fails with CS8800,
-    /// with no in-language escape: keeping <c>new</c> is an error, dropping it is a CS0108 warning whose
-    /// advice is the thing that just failed.
+    /// A mapped property that hides a member of <c>Resource</c>. <c>Resource.Model</c> is the graph the
+    /// resource was read from; a domain model may legitimately mean something else by the name — a car
+    /// has a model — and C# says to write <c>new</c>. That has to survive into the generated half or the
+    /// build fails with CS8800, with no in-language escape: keeping <c>new</c> is an error, dropping it
+    /// is a CS0108 warning whose advice is the thing that just failed.
     ///
     /// This class compiling at all is the regression test.
     /// </summary>
+    /// <remarks>
+    /// This used to hide <c>Resource.Language</c>, which was the sharper example while that member
+    /// existed: hiding the name made the ambient language switch harder to reach without making it
+    /// inactive. ADR-0048 removed the member, so the collision it guarded is gone — but the modifier
+    /// round-trip it also guards is not, and <c>Model</c> is the same hazard under a name that still
+    /// exists.
+    /// </remarks>
     [RdfClass("http://example.org/test/Document")]
     public partial class HidingDocument : Resource
     {
         public HidingDocument(Uri uri) : base(uri) { }
 
-        [RdfProperty("http://example.org/test/language")]
-        public new partial string Language { get; set; }
+        [RdfProperty("http://example.org/test/model")]
+        public new partial string Model { get; set; }
 
         /// <summary>Non-public accessibility has to round-trip too, or it is CS8799.</summary>
         [RdfProperty("http://example.org/test/internalNote")]
@@ -65,25 +72,15 @@ namespace Semiodesk.Trinity.Generator.Tests
         /// <summary>
         /// The hiding property has its own storage, distinct from the member it hides.
         /// </summary>
-        /// <remarks>
-        /// Note what hiding does <b>not</b> do: <c>Resource.Language</c> stays load-bearing. Setting it
-        /// switches every mapped string property to a language-tagged view, so reading the mapped property
-        /// afterwards resolves against that language and finds nothing. Hiding the name makes the mechanism
-        /// harder to reach, not inactive — hence the ordering here.
-        /// </remarks>
         [Test]
         public void HidingPropertyHasItsOwnStorage()
         {
             var document = new HidingDocument(new Uri("http://example.org/test/doc"));
 
-            document.Language = "de-DE";
+            document.Model = "Type 2";
 
-            Assert.AreEqual("de-DE", document.Language, "The mapped property holds its own value.");
-            Assert.IsNull(((Resource)document).Language, "Writing the mapped property must not set Resource.Language.");
-
-            ((Resource)document).Language = "en";
-
-            Assert.AreEqual("en", ((Resource)document).Language, "Resource.Language remains reachable via a cast.");
+            Assert.AreEqual("Type 2", document.Model, "The mapped property holds its own value.");
+            Assert.IsNull(((Resource)document).Model, "Writing the mapped property must not set Resource.Model.");
         }
 
         /// <summary>

@@ -100,23 +100,12 @@ namespace Semiodesk.Trinity
                 {
                     return SerializeString(obj as string);
                 }
-                else if (obj is string[])
+                else if (obj is LangString langString)
                 {
-                    // string + language
-                    string[] array = obj as string[];
-                    return SerializeTranslatedString(array[0], array[1]);
-                }
-                else if (obj is Tuple<string, CultureInfo>)
-                {
-                    // string + language
-                    Tuple<string, CultureInfo> array = obj as Tuple<string, CultureInfo>;
-                    return SerializeTranslatedString(array.Item1, array.Item2.Name);
-                }
-                else if (obj is Tuple<string, string>)
-                {
-                    // string + language
-                    Tuple<string, string> array = obj as Tuple<string, string>;
-                    return SerializeTranslatedString(array.Item1, array.Item2);
+                    // One branch, because there is now one representation of a tagged literal (ADR-0048).
+                    // This replaced three - string[], Tuple<string,CultureInfo> and Tuple<string,string> -
+                    // which carried the identical comment and did not agree on the type.
+                    return SerializeTranslatedString(langString.Value, langString.Language);
                 }
                 else if (obj is Uri || typeof(Uri).IsSubclassOf(obj.GetType()))
                 {

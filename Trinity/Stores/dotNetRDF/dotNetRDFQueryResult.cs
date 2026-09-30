@@ -369,7 +369,7 @@ namespace Semiodesk.Trinity.Store
                 // datatype-first test would misread it as a plain string.
                 if (!string.IsNullOrEmpty(literalNode.Language))
                 {
-                    return new Tuple<string, string>(literalNode.Value, literalNode.Language);
+                    return new LangString(literalNode.Value, literalNode.Language);
                 }
 
                 if (literalNode.DataType == null)

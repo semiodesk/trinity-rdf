@@ -239,33 +239,6 @@ namespace Semiodesk.Trinity
         /// <param name="value"></param>
         protected virtual void SetIsReadOnly(bool value) { IsReadOnly = value; }
 
-        private string _language;
-
-        /// <summary>
-        /// Set the language of this resource. This will change te mapped strings to this language.
-        /// </summary>
-        [JsonIgnore]
-        public string Language
-        {
-            get
-            {
-                return _language;
-            }
-            set
-            {
-                if (value != null)
-                {
-                    _language = value.ToLower();
-                }
-                else
-                {
-                    _language = null;
-                }
-
-                ReloadLocalizedMappings();
-            }
-        }
-
         #endregion
 
         #region Constructors
@@ -393,6 +366,26 @@ namespace Semiodesk.Trinity
             }
         }
 
+        /// <summary>
+        /// Clears every list mapping before deserialization refills it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Localized-text containers are deliberately <b>not</b> cleared here, although they are
+        /// multi-valued too. Clearing them was tried and is destructive: the JSON converter loads the
+        /// resource from its model first — which takes the commit snapshot — and Newtonsoft then skips
+        /// a get-only container entirely, so nothing refills it. An <i>unedited</i> round trip
+        /// followed by <c>Commit()</c> therefore deleted every stored value of that property, because
+        /// the ADR-0039 delta saw the snapshot on one side and an empty container on the other. The
+        /// converter sets <c>Model</c> precisely so the result can be committed, so that is the
+        /// intended use, not an exotic one.
+        /// </para>
+        /// <para>
+        /// Leaving them alone means JSON edits to a container are ignored rather than applied — the
+        /// pre-existing limitation, and the lesser one, since it loses an edit rather than the data.
+        /// Issue #51 covers making containers round-trip properly.
+        /// </para>
+        /// </remarks>
         internal void ClearListPropertyMappings()
         {
             foreach (var mapping in _mappings)
@@ -548,12 +541,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void AddProperty(Property property, string value, CultureInfo language)
         {
-            // TODO: 
-            // Write a custom string class with an associated language.
-            // Internally the language and string are stored as Tuple containing the string and culture info
-            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.Name.ToLower());
-
-            AddPropertyToMapping(property, aggregation, false);
+            AddPropertyToMapping(property, new LangString(value, language), false);
         }
 
         /// <summary>
@@ -562,12 +550,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void AddProperty(Property property, string value, string language)
         {
-            // TODO: 
-            // Write a custom string class with an associated language.
-            // Internally the language and string are stored as Tuple containing the string and culture info
-            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.ToLower());
-
-            AddPropertyToMapping(property, aggregation, false);
+            AddPropertyToMapping(property, new LangString(value, language), false);
         }
 
         /// <summary>
@@ -742,11 +725,18 @@ namespace Semiodesk.Trinity
         /// Removes a property with a string value associated with the given language.
         /// If this property is mapped with a compatible type, the given value will be removed.
         /// </summary>
+        /// <remarks>
+        /// A literal that cannot be constructed cannot be present either, so removing it is a no-op
+        /// rather than an error — the same reading <c>HasProperty</c> takes, and the one
+        /// <c>Remove</c> has everywhere else in .NET. <c>AddProperty</c> still throws: naming a tag
+        /// to write is an intention, and an unwritable one is a mistake worth reporting.
+        /// </remarks>
         public void RemoveProperty(Property property, string value, CultureInfo language)
         {
-            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.Name.ToLower());
-
-            RemovePropertyFromMapping(property, aggregation);
+            if (TryMakeLangString(value, language?.Name, out var literal))
+            {
+                RemovePropertyFromMapping(property, literal);
+            }
         }
 
         /// <summary>
@@ -755,9 +745,10 @@ namespace Semiodesk.Trinity
         /// </summary>
         public void RemoveProperty(Property property, string value, string language)
         {
-            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.ToLower());
-
-            RemovePropertyFromMapping(property, aggregation);
+            if (TryMakeLangString(value, language, out var literal))
+            {
+                RemovePropertyFromMapping(property, literal);
+            }
         }
 
         /// <summary>
@@ -946,7 +937,10 @@ namespace Semiodesk.Trinity
                 {
                     if (propertyMapping.Property.Uri.Equals(property.Uri) && !propertyMapping.IsUnsetValue)
                     {
-                        if (propertyMapping.GetValueObject().Equals(value) || (propertyMapping.IsList && (propertyMapping.GetValueObject() as IList).Contains(value)))
+                        // Enumerating subsumes the scalar and list cases this used to spell out, and
+                        // covers the container, whose GetValueObject() is the container itself and so
+                        // never equals a single value.
+                        if (propertyMapping.EnumerateValues().Contains(value))
                         {
                             result = true;
                         }
@@ -973,9 +967,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public virtual bool HasProperty(Property property, string value, CultureInfo language)
         {
-            Tuple<string, string> aggregation = new Tuple<string, string>(value, language.Name.ToLower());
-
-            return HasProperty(property, aggregation);
+            return TryMakeLangString(value, language?.Name, out var literal) && HasProperty(property, literal);
         }
 
         /// <summary>
@@ -987,9 +979,72 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public virtual bool HasProperty(Property property, string value, string language)
         {
-            Tuple<string, string> aggregation = new Tuple<string, string>(value, language);
+            return TryMakeLangString(value, language, out var literal) && HasProperty(property, literal);
+        }
 
-            return HasProperty(property, aggregation);
+        /// <summary>
+        /// Builds a language-tagged literal for a <i>question</i>, returning <c>false</c> rather than
+        /// throwing when the arguments could not name one.
+        /// </summary>
+        /// <remarks>
+        /// A query answers; it does not object. No value carries a null lexical form or a tag that is
+        /// not a tag, so the answer to "do you have this?" is plainly <c>false</c> — whereas throwing
+        /// turns a lookup over user-supplied input into a crash the caller has to guard every call
+        /// with. Writing is the opposite: <c>AddProperty</c> and <c>RemoveProperty</c> state an
+        /// intention about a specific literal, so a tag that cannot be written is an error there.
+        /// </remarks>
+        private static bool TryMakeLangString(string value, string language, out LangString literal)
+        {
+            literal = null;
+
+            if (value == null || string.IsNullOrWhiteSpace(language))
+            {
+                return false;
+            }
+
+            try
+            {
+                literal = new LangString(value, language);
+            }
+            catch (ArgumentException)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Lists the distinct language tags carried by any value of the given property.
+        /// </summary>
+        /// <remarks>
+        /// The direct answer to "which languages does this resource have?" — a question the previous
+        /// design could not answer from the mapped surface at all, because a mapped property held one
+        /// language at a time and the rest sat in the untyped bag (ADR-0048).
+        /// </remarks>
+        /// <param name="property">A RDF property.</param>
+        /// <returns>The language tags, ordered. Empty when no value carries one.</returns>
+        public virtual IEnumerable<string> ListLanguages(Property property)
+        {
+            return ListValues(property)
+                .OfType<LangString>()
+                .Select(x => x.Language)
+                .Distinct()
+                .OrderBy(x => x, StringComparer.Ordinal);
+        }
+
+        /// <summary>
+        /// Lists the distinct language tags carried by any value of this resource.
+        /// </summary>
+        /// <returns>The language tags, ordered. Empty when no value carries one.</returns>
+        public virtual IEnumerable<string> ListLanguages()
+        {
+            return ListValues()
+                .Select(x => x.Item2)
+                .OfType<LangString>()
+                .Select(x => x.Language)
+                .Distinct()
+                .OrderBy(x => x, StringComparer.Ordinal);
         }
 
         /// <summary>
@@ -1024,18 +1079,9 @@ namespace Semiodesk.Trinity
             {
                 if (!propertyMapping.IsUnsetValue)
                 {
-                    if (propertyMapping.IsList)
+                    foreach (object value in propertyMapping.EnumerateValues())
                     {
-                        IList values = (IList)propertyMapping.GetValueObject();
-
-                        foreach (object value in values)
-                        {
-                            yield return new Tuple<Property, object>(propertyMapping.Property, value);
-                        }
-                    }
-                    else
-                    {
-                        yield return new Tuple<Property, object>(propertyMapping.Property, propertyMapping.GetValueObject());
+                        yield return new Tuple<Property, object>(propertyMapping.Property, value);
                     }
                 }
                 else if (ResourceCache.HasCachedValues(propertyMapping))
@@ -1102,35 +1148,13 @@ namespace Semiodesk.Trinity
             {
                 if (!propertyMapping.IsUnsetValue)
                 {
-                    if (propertyMapping.IsList)
+                    // One enumeration for all three shapes. This used to re-tag an already-tagged value
+                    // with `x as string`, which is null on a tagged value, so the untyped read surface
+                    // reported a tagged null while the mapped getter beside it reported the right string
+                    // (ADR-0048 defect 1).
+                    foreach (object value in propertyMapping.EnumerateValues())
                     {
-                        IList value = (IList)propertyMapping.GetValueObject();
-
-                        if (!string.IsNullOrEmpty(Language) && !propertyMapping.LanguageInvariant && propertyMapping.GenericType == typeof(string))
-                        {
-                            foreach (var x in value)
-                            {
-                                yield return new Tuple<string, string>(x as string, Language);
-                            }
-                        }
-                        else
-                        {
-                            foreach (object v in value.Cast<object>())
-                            {
-                                yield return v;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (!string.IsNullOrEmpty(Language) && !propertyMapping.LanguageInvariant && propertyMapping.DataType == typeof(string))
-                        {
-                            yield return new Tuple<string, string>(propertyMapping.GetValueObject() as string, Language);
-                        }
-                        else
-                        {
-                            yield return propertyMapping.GetValueObject();
-                        }
+                        yield return value;
                     }
                 }
                 else if (ResourceCache.HasCachedValues(propertyMapping))
@@ -1372,66 +1396,6 @@ namespace Semiodesk.Trinity
             if (ResourceCache.HasCachedValues(propertyMapping))
             {
                 ResourceCache.LoadCachedValues(propertyMapping);
-            }
-        }
-
-        /// <summary>
-        /// Update the property mappings with the values in the selected language.
-        /// </summary>
-        protected void ReloadLocalizedMappings()
-        {
-            foreach (var mapping in _mappings.Where(x => (x.Value.DataType == typeof(string) || x.Value.GenericType == typeof(string)) && !x.Value.LanguageInvariant))
-            {
-                if (!mapping.Value.IsUnsetValue)
-                {
-                    TransferMappingToProperties(mapping.Value);
-
-                    mapping.Value.Clear();
-                }
-
-                mapping.Value.Language = Language;
-
-                foreach (var value in ListValues(mapping.Value.Property).ToList())
-                {
-                    if (string.IsNullOrEmpty(Language))
-                    {
-                        if (value is string)
-                        {
-                            mapping.Value.SetOrAddMappedValue(value);
-
-                            _properties[mapping.Value.Property].Remove(value);
-                        }
-                    }
-                    else if (value is Tuple<string, string>)
-                    {
-                        var localizedString = value as Tuple<string, string>;
-
-                        if (string.Compare(localizedString.Item2, Language, true) == 0)
-                        {
-                            mapping.Value.SetOrAddMappedValue(localizedString.Item1);
-
-                            _properties[mapping.Value.Property].Remove(localizedString);
-                        }
-                    }
-                }
-            }
-        }
-
-        private void TransferMappingToProperties(IPropertyMapping mapping)
-        {
-            if (!_properties.ContainsKey(mapping.Property))
-            {
-                _properties.Add(mapping.Property, new HashSet<object>());
-            }
-
-            if (mapping.IsList)
-            {
-                foreach (var x in mapping.GetValueObject() as IList)
-                    _properties[mapping.Property].Add(x);
-            }
-            else
-            {
-                _properties[mapping.Property].Add(mapping.GetValueObject());
             }
         }
 

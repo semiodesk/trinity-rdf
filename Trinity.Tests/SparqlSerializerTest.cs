@@ -30,11 +30,36 @@ namespace Semiodesk.Trinity.Tests
             var expected = "<http://example.com/ex> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#nameGiven> 'Peter'; <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact>. ";
             
             Assert.AreEqual(expected, res);
+        }
 
-            contact.Language = "DE";
-            res = SparqlSerializer.SerializeResource(contact);
+        /// <summary>
+        /// A mapped <c>string</c> serializes as a plain literal, with no <c>@lang</c>, because a string
+        /// property is untagged by construction (ADR-0048).
+        /// </summary>
+        /// <remarks>
+        /// This used to assert the same thing by setting <c>contact.Language = "DE"</c> and requiring the
+        /// serialization not to change, which only held because the property was declared
+        /// <c>languageInvariant: true</c>. There is no ambient language to set any more, and nothing to
+        /// opt out of - so the property carries the guarantee instead of a flag.
+        /// </remarks>
+        [TestCase]
+        public void TestStringSerializesWithoutALanguageTag()
+        {
+            PersonContact contact = new PersonContact(new Uri("http://example.com/ex"));
+            contact.NameGiven = "Peter";
 
-            Assert.AreEqual(expected, res);
+            StringAssert.Contains("'Peter';", SparqlSerializer.SerializeResource(contact));
+            StringAssert.DoesNotContain("@", SparqlSerializer.SerializeResource(contact));
+        }
+
+        /// <summary>
+        /// A <see cref="LangString"/> serializes with its tag, from the single branch that now handles
+        /// every language-tagged literal.
+        /// </summary>
+        [TestCase]
+        public void TestLangStringSerializesWithItsTag()
+        {
+            Assert.AreEqual("'Hallo Welt'@de", SparqlSerializer.SerializeValue(new LangString("Hallo Welt", "DE")));
         }
 
         [TestCase]

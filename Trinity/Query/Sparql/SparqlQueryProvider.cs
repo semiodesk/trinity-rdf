@@ -1,4 +1,4 @@
-// LICENSE:
+﻿// LICENSE:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -175,12 +175,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                     continue;
                 }
 
-                if (!elementType.IsInstanceOfType(value))
-                {
-                    value = Convert.ChangeType(value, elementType, CultureInfo.InvariantCulture);
-                }
-
-                list.Add(value);
+                list.Add(CoerceValue(value, elementType));
             }
 
             return list;
@@ -296,6 +291,22 @@ namespace Semiodesk.Trinity.Query.Sparql
             if (type == typeof(UriRef) && value is Uri uri)
             {
                 return uri.ToUriRef();
+            }
+
+            // A LangString reaching a string column means the query did not constrain the language,
+            // and silently unwrapping it to its lexical form is what made `Select(d => d.Name)` return
+            // tagged values -- the very leak that projecting a single language is refused for.
+            //
+            // Since ADR-0048 a mapped string binds with LANG(?v) = "", so this is unreachable; it is
+            // kept as a diagnostic rather than deleted, because the failure it guards is a wrong
+            // answer rather than an error, and Convert.ChangeType below would report it only as an
+            // opaque InvalidCastException.
+            if (type == typeof(string) && value is LangString langString)
+            {
+                throw new InvalidOperationException(
+                    $"A language-tagged literal ({langString.ToNTriples()}) was bound to a column " +
+                    "declared as an untagged string. This means the query did not constrain the " +
+                    "language of that property; returning the lexical form here would hide the tag.");
             }
 
             return Convert.ChangeType(value, type, CultureInfo.InvariantCulture);

@@ -26,6 +26,7 @@
 // Copyright (c) Semiodesk GmbH 2015-2019
 
 using System;
+using System.Collections.Generic;
 
 namespace Semiodesk.Trinity.Tests.Linq
 {
@@ -39,6 +40,28 @@ namespace Semiodesk.Trinity.Tests.Linq
 
         [RdfProperty("http://www.w3.org/2000/01/rdf-schema#label")]
         public partial string Title { get; set; }
+
+        /// <summary>Localized, so the translator's language handling can be queried (ADR-0048).</summary>
+        [RdfProperty("http://purl.org/dc/terms/title")]
+        public partial LocalizedString LocalizedTitle { get; }
+
+        /// <summary>
+        /// The raw tagged view over a predicate: a LangString mapping keeps the tag rather than
+        /// selecting one language, which is the other side of the translator's language handling.
+        /// </summary>
+        [RdfProperty("http://purl.org/dc/terms/alternative")]
+        public partial LangString Alternative { get; set; }
+
+        /// <summary>
+        /// A plain collection of untagged strings, so the cardinality paths (.Count, .Any()) can be
+        /// queried against a predicate that also carries tagged values.
+        /// </summary>
+        [RdfProperty("http://purl.org/dc/terms/subject")]
+        public partial List<string> Subjects { get; set; }
+
+        /// <summary>Several values per language, for the collection-indexer refusal.</summary>
+        [RdfProperty("http://purl.org/dc/terms/description")]
+        public partial LocalizedStringCollection Descriptions { get; }
 
         #endregion
 

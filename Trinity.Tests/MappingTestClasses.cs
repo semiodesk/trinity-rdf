@@ -410,6 +410,64 @@ namespace Semiodesk.Trinity.Tests
         #endregion
     }
 
+    /// <summary>
+    /// Exercises the localized-text containers, which hold every language at once rather than showing
+    /// one at a time (ADR-0048).
+    /// </summary>
+    public class LocalizedMappingTestClass : Resource
+    {
+        #region Constructors
+
+        public LocalizedMappingTestClass(Uri uri) : base(uri) { }
+
+        #endregion
+
+        #region Mapping
+
+        public override IEnumerable<Class> GetTypes()
+        {
+            return new List<Class> { to.LocalizedMappingTestClass };
+        }
+
+        /// <summary>One value per language - the scalar of the pair.</summary>
+        public PropertyMapping<LocalizedString> labelPropertyMapping =
+            new PropertyMapping<LocalizedString>("Label", to.uniqueLocalizedStringCultureTestString);
+
+        public LocalizedString Label
+        {
+            get { return GetValue(labelPropertyMapping); }
+        }
+
+        /// <summary>Any number of values per language - the collection of the pair.</summary>
+        public PropertyMapping<LocalizedStringCollection> aliasesPropertyMapping =
+            new PropertyMapping<LocalizedStringCollection>("Aliases", to.localizedStringCultureTestString);
+
+        public LocalizedStringCollection Aliases
+        {
+            get { return GetValue(aliasesPropertyMapping); }
+        }
+
+        /// <summary>
+        /// A container property that <b>does</b> expose a setter, which a mapped class should not do.
+        /// </summary>
+        /// <remarks>
+        /// TRIN009 warns about this shape, but a hand-written mapping never passes through the
+        /// generator, so the diagnostic cannot reach it and the runtime has to hold the invariant on
+        /// its own. This exists so the assign-null and assign-another-resource's-container cases are
+        /// actually exercised (ADR-0048).
+        /// </remarks>
+        public PropertyMapping<LocalizedString> titlePropertyMapping =
+            new PropertyMapping<LocalizedString>("Title", to.localizedStringTestString);
+
+        public LocalizedString Title
+        {
+            get { return GetValue(titlePropertyMapping); }
+            set { SetValue(titlePropertyMapping, value); }
+        }
+
+        #endregion
+    }
+
     public class StringMappingTestClass : Resource
     {
         #region Constructors
@@ -461,19 +519,19 @@ namespace Semiodesk.Trinity.Tests
             set { SetValue(intTestMapping, value); }
         }
 
-        public PropertyMapping<Tuple<string, string>> uniqueLocalizedStringPropertyTestMapping =
-new PropertyMapping<Tuple<string, string>>("uniqueLocalizedStringTest", to.uniqueLocalizedStringTestString);
+        public PropertyMapping<LangString> uniqueLocalizedStringPropertyTestMapping =
+new PropertyMapping<LangString>("uniqueLocalizedStringTest", to.uniqueLocalizedStringTestString);
 
-        public Tuple<string, string> uniqueLocalizedStringTest
+        public LangString uniqueLocalizedStringTest
         {
             get { return GetValue(uniqueLocalizedStringPropertyTestMapping); }
             set { SetValue(uniqueLocalizedStringPropertyTestMapping, value); }
         }
 
-        public PropertyMapping<List<Tuple<string, string>>> localizedStringPropertyTestMapping =
-    new PropertyMapping<List<Tuple<string, string>>>("localizedStringTest", to.localizedStringTestString);
+        public PropertyMapping<List<LangString>> localizedStringPropertyTestMapping =
+    new PropertyMapping<List<LangString>>("localizedStringTest", to.localizedStringTestString);
 
-        public List<Tuple<string, string>> localizedStringTest
+        public List<LangString> localizedStringTest
         {
             get { return GetValue(localizedStringPropertyTestMapping); }
             set { SetValue(localizedStringPropertyTestMapping, value); }
