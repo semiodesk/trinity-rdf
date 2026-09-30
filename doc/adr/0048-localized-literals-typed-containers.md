@@ -279,10 +279,22 @@ workaround. The default `==` path does not change. What is added:
   of the query text — so a closure is folded to one by the partial evaluator and a per-row value is
   refused.
 
-- The tag test is `LCASE(LANG(?v)) = "de"`, lower-cased on **both** sides. Stores do not agree on how
-  they hand a tag back: Jena canonicalizes `de-de` to `de-DE`, RDF4J returns it as written. Comparing
-  a lower-cased constant against a raw `LANG()` therefore matches on some backends and not others —
-  and bare `de`/`en` test tags, which is what the first round of tests used, never show it.
+- The tag test is `LCASE(LANG(?v)) = "de"`, lower-cased on **both** sides, because stores do not agree
+  on the case they hand a tag back in. **Measured by removing the `LCASE` and running all four
+  backends** against a `@de-AT` tag:
+
+  | Backend | Without `LCASE` |
+  |---|---|
+  | Fuseki (Jena 5) | **fails** |
+  | GraphDB (RDF4J) | **fails** |
+  | Oxigraph | passes |
+  | in-memory (dotNetRDF 3.5.2) | passes |
+
+  So the defect is real on half the supported backends and structurally invisible to the in-memory
+  suite — and it needs a **region subtag** to show at all, since a bare `de` or `en` has no case to
+  disagree about. Every localized test written before this one used bare tags, which is why four green
+  suites said nothing about it. `QueriesALocalizedPropertyByTagAcrossStores` is the guard, and it lives
+  in the shared store fixture rather than the in-memory one for exactly this reason.
 
 - `ToTerm` **refuses** a `LangString` rather than emitting `"Hallo"@de`. Every one of its callers puts
   the result in a filter expression, where that form is the tag-blind one measured above; this ADR
@@ -291,8 +303,25 @@ workaround. The default `==` path does not change. What is added:
   `IN` list of tagged literals expands into a disjunction of those comparisons for the same reason —
   SPARQL's `IN` is a chain of `=`.
 
-- A mapped `string` binds with `LANG(?v) = ""`, which is what finally makes *"a mapped `string` means
-  untagged"* true in LINQ rather than only when materializing. Without it the claim held for `==`
+- **A mapped `string` compared against a constant is compared by `STR(?v)`, not by term equality.**
+  Found by the store suites and not by reasoning: on **Virtuoso 7.2**, `?v = "x"` evaluates to false
+  whenever a `LANG()` constraint on the same variable is also present in the query, although each half
+  is correct on its own — `?v = "x"` returns the rows, `LANG(?v) = ""` returns the rows, and the
+  conjunction returns none. Measured across every spelling of the language test (`LANG(?v) = ""`,
+  `!langMatches(LANG(?v), "*")`, `STRLEN(LANG(?v)) = 0`, a separate `FILTER` clause); all of them fail
+  with term equality and all of them pass with `STR()` on the left. `DATATYPE(?v) = xsd:string` also
+  passes, but it is a narrower claim than "untagged" and would exclude a legitimately typed literal.
+
+  This also makes the two language paths agree: the localized indexer already compares by `STR`, for
+  the unrelated reason that a tagged term inside a `FILTER` is matched tag-blind. Two backend defects,
+  opposite in kind, converging on one comparison form.
+
+  Only Virtuoso exhibits it, and it was invisible until this change because the **only** LINQ tests
+  running against Virtuoso were two layered-model ones — a mapped-string `Where` had no direct
+  coverage on that backend at all.
+
+- The constraint is what finally makes *"a mapped `string` means untagged"* true in LINQ rather than
+  only when materializing. Without it the claim held for `==`
   alone — a plain literal term matches only a plain literal — and failed for string functions, where
   SPARQL argument compatibility makes `STRSTARTS("Markiert"@de, "Mark")` true, and for `Select`, which
   returned tagged values unwrapped into strings. Measured before keeping, since it lands on every

@@ -56,7 +56,7 @@ is netstandard2.0 / net8.0 and builds cross-platform.
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 896 passed, 3 skipped (quarantined), 0 failed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 927 passed, 3 skipped (quarantined), 0 failed
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 38 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -73,8 +73,8 @@ dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all four green** — Oxigraph 356/357, Fuseki 354/355,
-  GraphDB 353/354, Virtuoso 338/339 (0 failed each; the 1 skipped is the shared blank-node-removal
+  hiccup cannot redden it. Current: **all four green** — Oxigraph 357/358, Fuseki 355/356,
+  GraphDB 354/355, Virtuoso 339/340 (0 failed each; the 1 skipped is the shared blank-node-removal
   quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
@@ -405,9 +405,13 @@ Invariants that surprise newcomers:
   The emitted form is `LCASE(LANG(?v)) = "de"` plus `STR(?v) = "…"`, **not** `?v = "…"@de`: measured on
   dotNetRDF 3.5.2, a language-tagged literal inside a `FILTER` comparison matches regardless of its tag
   (`"x"@fr` matched a `@de` value), while the same literal in a *triple pattern* matches correctly and
-  `STR`/`LANG` evaluate correctly. `LCASE` wraps `LANG` because stores disagree about casing a tag back
-  — Jena canonicalizes `de-de` to `de-DE`, RDF4J returns it as written — which bare `de`/`en` test tags
-  never reveal. Three things are **refused rather than approximated** (the ADR-0041 posture):
+  `STR`/`LANG` evaluate correctly. `LCASE` wraps `LANG` because stores disagree about the case they hand a
+  tag back in. Measured by removing it: **Fuseki and GraphDB fail, Oxigraph and the in-memory engine
+  pass** — so the defect is real on half the backends and invisible to the fast suite, and it needs a
+  **region subtag** to show at all, since a bare `de` has no case to disagree about. Every localized
+  test written before it used bare tags, which is why four green suites said nothing about it;
+  `QueriesALocalizedPropertyByTagAcrossStores` is the guard and lives in the shared store fixture.
+  Three things are **refused rather than approximated** (the ADR-0041 posture):
   `Best()`/`TryGetBest()`, because RFC 4647 lookup is a client-side fallback walk that `langMatches`
   would answer differently; projecting a single language (`Select(d => d.Label["de"])`), because the
   bound variable carries every language; and `.Count`/`.Any()` on a container, because
@@ -418,6 +422,13 @@ Invariants that surprise newcomers:
   (SPARQL argument compatibility makes `STRSTARTS("x"@de, "x")` true) nor for `Select`, which returned
   tagged values unwrapped. Measured before keeping: over 20k documents the added filter is below the
   run-to-run noise floor.
+  Such a constrained variable is then compared by **`STR(?v)`, never term equality** — on **Virtuoso
+  7.2**, `?v = "x"` is false whenever a `LANG()` constraint on the same variable is in the query, even
+  though `?v = "x"` alone and `LANG(?v) = ""` alone each return the rows. Every spelling of the
+  language test fails that way and every one passes with `STR()`. It converges on the same comparison
+  form the localized path uses for the opposite reason (a tagged term in a `FILTER` is matched
+  tag-blind). It stayed invisible because Virtuoso's **only** LINQ coverage was two layered-model
+  tests — a mapped-string `Where` was never queried against it directly.
 
 ## Other architecture notes
 

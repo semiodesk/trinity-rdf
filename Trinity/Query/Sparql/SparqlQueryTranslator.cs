@@ -1737,7 +1737,13 @@ namespace Semiodesk.Trinity.Query.Sparql
                 }
 
                 binding = BindChain(scope, chain, matchesUnbound);
-                value = new SparqlVariableExpression(binding.Variable.Name);
+
+                // STR() for the same reason as in BindingComparison: SPARQL's IN is a chain of term
+                // equalities, which Virtuoso mis-evaluates against a variable carrying a LANG()
+                // constraint.
+                value = binding.LanguageConstraint != null && chain.MemberType == typeof(string)
+                    ? (SparqlExpression)new SparqlFunctionExpression("STR", new SparqlVariableExpression(binding.Variable.Name))
+                    : new SparqlVariableExpression(binding.Variable.Name);
             }
             else
             {
@@ -2873,6 +2879,25 @@ namespace Semiodesk.Trinity.Query.Sparql
             if (value is LangString langString)
             {
                 return TaggedComparison(op, binding.Variable, langString);
+            }
+
+            if (binding.LanguageConstraint != null && value is string text)
+            {
+                // Compared as lexical form, because the variable carries a language constraint.
+                //
+                // Not a stylistic choice: on Virtuoso 7.2, term equality against a plain literal
+                // evaluates to false whenever a LANG() constraint on the same variable is also in the
+                // query -- measured, and each half is correct on its own. `?v = "x"` returns the rows,
+                // `LANG(?v) = ""` returns the rows, and `?v = "x" && LANG(?v) = ""` returns none. The
+                // same held for every LANG spelling tried (!langMatches, STRLEN, a separate FILTER),
+                // and STR() on the left was the one thing that fixed all of them.
+                //
+                // It also makes both language paths agree: the localized indexer already compares this
+                // way, for the unrelated reason that a tagged term in a FILTER is matched tag-blind.
+                return new SparqlBinaryExpression(
+                    MapComparison(op),
+                    new SparqlFunctionExpression("STR", new SparqlVariableExpression(binding.Variable.Name)),
+                    new SparqlConstantExpression(new LiteralTerm(text)));
             }
 
             return new SparqlBinaryExpression(

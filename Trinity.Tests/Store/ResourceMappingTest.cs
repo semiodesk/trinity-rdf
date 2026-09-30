@@ -28,6 +28,7 @@
 using NUnit.Framework;
 using Newtonsoft.Json;
 using Semiodesk.Trinity.Ontologies;
+using Semiodesk.Trinity.Query.Sparql;
 using Semiodesk.Trinity.Serialization;
 using System.Collections.Generic;
 using System.Linq;
@@ -1307,6 +1308,66 @@ namespace Semiodesk.Trinity.Tests.Store
             // A string property beside the containers still sees untagged literals only.
             Assert.AreEqual("DOC-1", actual.Code);
             CollectionAssert.IsEmpty(actual.ListLanguages(new Property(new Uri("semio:test:documentCode"))));
+        }
+
+        /// <summary>
+        /// A LINQ query over a localized property honours the tag on a real store, region subtag and
+        /// all, whatever case the store hands the tag back in.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This is the case the in-memory suite cannot see. Stores disagree about canonicalizing a
+        /// language tag: Jena returns <c>de-DE</c> for one written as <c>de-de</c>, RDF4J returns it as
+        /// written. A <c>LANG(?v) = "de-de"</c> comparison against a lower-cased constant therefore
+        /// matches on some backends and not others, and every other localized test in this repository
+        /// uses bare <c>de</c>/<c>en</c> tags, which have no case to disagree about. Both sides are
+        /// lower-cased, and this runs on all four backends to prove it.
+        /// </para>
+        /// <para>
+        /// The two-language conjunction is here for a different reason: it is the case that returned
+        /// zero rows when both indexers shared one variable, and it costs nothing to check that the
+        /// stores agree with the in-memory engine about it.
+        /// </para>
+        /// </remarks>
+        [Test]
+        public virtual void QueriesALocalizedPropertyByTagAcrossStores()
+        {
+            var r1 = Model1.CreateResource<LocalizedDocument>(_r1);
+            r1.Title["de-AT"] = "Jahresbericht";
+            r1.Title["de"] = "Bericht";
+            r1.Title["en"] = "Report";
+            r1.Commit();
+
+            var other = Model1.CreateResource<LocalizedDocument>(_r2);
+            other.Title["de"] = "Jahresbericht";
+            other.Commit();
+
+            // The region subtag matches however the caller cased it and however the store returns it.
+            foreach (string tag in new[] { "de-AT", "de-at", "DE-AT" })
+            {
+                var austrian = Model1.AsSparqlQueryable<LocalizedDocument>()
+                    .Where(d => d.Title[tag] == "Jahresbericht")
+                    .ToList();
+
+                Assert.AreEqual(1, austrian.Count, $"Tag '{tag}' should match the @de-AT title.");
+                Assert.AreEqual(_r1, austrian[0].Uri);
+            }
+
+            // Exact match, not lookup: @de-AT is not reachable by asking for @de.
+            var german = Model1.AsSparqlQueryable<LocalizedDocument>()
+                .Where(d => d.Title["de"] == "Jahresbericht")
+                .ToList();
+
+            Assert.AreEqual(1, german.Count);
+            Assert.AreEqual(_r2, german[0].Uri);
+
+            // Two languages of one property in one predicate: each gets its own variable.
+            var both = Model1.AsSparqlQueryable<LocalizedDocument>()
+                .Where(d => d.Title["de"] == "Bericht" && d.Title["en"] == "Report")
+                .ToList();
+
+            Assert.AreEqual(1, both.Count);
+            Assert.AreEqual(_r1, both[0].Uri);
         }
 
         /// <summary>
