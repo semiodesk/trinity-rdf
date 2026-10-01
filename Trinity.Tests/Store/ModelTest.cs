@@ -225,6 +225,50 @@ namespace Semiodesk.Trinity.Tests.Store
             Assert.IsFalse(Model1.ContainsResource(R2));
         }
 
+        /// <summary>
+        /// Deleting many resources at once removes every one of them, and every link to them.
+        /// </summary>
+        /// <remarks>
+        /// Virtuoso deleted a batch with one statement whose <c>FILTER</c> named each resource twice. Somewhere
+        /// between 950 and 999 resources that statement grew past what the server compiles, and the adapter
+        /// swallows the error (#50), so the call returned normally having deleted nothing. The two tests above
+        /// delete two resources, far below that.
+        /// </remarks>
+        [Test]
+        public virtual void DeleteResourcesRemovesALargeBatch()
+        {
+            const int count = 1500;
+
+            var survivor = BaseUri.GetUriRef("survivor");
+            var deleted = Enumerable.Range(0, count).Select(i => BaseUri.GetUriRef("deleted" + i)).ToList();
+
+            string p1 = SparqlSerializer.SerializeUri(P1.Uri);
+            string p2 = SparqlSerializer.SerializeUri(P2.Uri);
+
+            var turtle = new StringBuilder();
+
+            turtle.Append(SparqlSerializer.SerializeUri(survivor)).Append(' ').Append(p1).Append(" \"kept\" .\n");
+
+            foreach (var uri in deleted)
+            {
+                string resource = SparqlSerializer.SerializeUri(uri);
+
+                turtle.Append(resource).Append(' ').Append(p1).Append(" \"deleted\" .\n");
+                turtle.Append(SparqlSerializer.SerializeUri(survivor)).Append(' ').Append(p2).Append(' ').Append(resource).Append(" .\n");
+            }
+
+            Assert.IsTrue(Model1.Read(turtle.ToString(), RdfSerializationFormat.Turtle, true));
+
+            Model1.DeleteResources(deleted);
+
+            var remaining = Model1.ExecuteQuery(new SparqlQuery("SELECT ?s ?p ?o WHERE { ?s ?p ?o . }"))
+                .GetBindings()
+                .Select(b => b["s"] + " " + b["p"] + " " + b["o"])
+                .ToList();
+
+            CollectionAssert.AreEquivalent(new[] { survivor + " " + P1.Uri + " kept" }, remaining);
+        }
+
         [Test]
         public virtual void GetResourceWithBlankIdTest()
         {
