@@ -1145,8 +1145,9 @@ namespace Semiodesk.Trinity.Tests.Store
         /// decides whether this read works. Measured: the in-memory store and Fuseki hand the subject back
         /// with its host lower-cased (GraphDB, Oxigraph and Virtuoso keep it), the same loss
         /// <c>doc/known-test-failures.md</c> records for result sets. An ordinal match on
-        /// <c>OriginalString</c> would turn this read into a not-found on those two stores, so the match is
-        /// by <see cref="UriRef"/> identity, and this test fails if it ever becomes ordinal. It asserts that
+        /// <c>OriginalString</c> would turn this read into a not-found on those two stores, so when no subject
+        /// matches exactly the match falls back to <see cref="UriRef"/> identity, and this test fails if that
+        /// fallback goes (<c>DescribeAnswerMatchTest</c> pins that the exact match wins). It asserts that
         /// identity rather than the spelling, because restoring the spelling is the quarantined defect's fix,
         /// not this one's. Seeded through <c>Commit()</c>: a Turtle <c>Read</c> lower-cases the host before
         /// writing, which would test the write instead.

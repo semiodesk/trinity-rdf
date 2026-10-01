@@ -54,7 +54,14 @@ manager. `AbsoluteUri` lower-cases the host and re-escapes the path, while the S
 another, and a `Read` into it seems to vanish. Oxigraph passes because `OxigraphConnector` addresses graphs
 itself. Two related findings: dotNetRDF's SPARQL results parsers (JSON and XML) lower-case the host of
 every IRI they return, so `OxigraphConnector.ListGraphNames` reads names through `STR(?g)`; and any IRI
-coming back in a result set has lost its case on the backends that parse results with dotNetRDF (all but Virtuoso). The fix for the three stores is
+coming back in a result set has lost its case on the backends that parse results with dotNetRDF (all but Virtuoso).
+**Graph results (`DESCRIBE`, `CONSTRUCT`) differ by store, not by parser**: measured on a subject written
+through `Commit()`, the in-memory store and Fuseki hand it back with its host lower-cased, while GraphDB,
+Oxigraph and Virtuoso keep it — though GraphDB and Oxigraph parse with dotNetRDF and the in-memory store
+parses nothing. `ResourceMappingTest.GetResourceOfAMixedCaseHostSubjectReadsItself` is the guard, and it is
+why `Model.GetResource<T>` falls back to `UriRef` equality when no subject matches exactly. Below that,
+dotNetRDF compares graph nodes by `Uri` equality, so IRIs differing only by host case, default port,
+dot-segments or percent-encoding are one node in a graph result (`DescribeAnswerMatchTest`). The fix for the three stores is
 the same connector override Oxigraph has; it was left out of the Oxigraph PR to keep that PR reviewable.
 
 **No store suite has a failing test.** Virtuoso and GraphDB each carried four *failing* inferencing
