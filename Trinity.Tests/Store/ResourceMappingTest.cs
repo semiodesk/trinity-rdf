@@ -1036,10 +1036,14 @@ namespace Semiodesk.Trinity.Tests.Store
         /// Every store reads a resource with a bare <c>DESCRIBE</c>, the one form <c>StoreBase</c> builds.
         /// </summary>
         /// <remarks>
-        /// Four stores used to override it with a <c>VALUES</c>-bound pattern: a 2021 blank-id workaround,
-        /// copied from store to store long after its reason was gone. That form has one solution per triple,
-        /// and the in-memory engine describes the subject once per solution (#63). Only the query is built, so
-        /// this costs no round trip.
+        /// This enforces a policy: one describe query, in <c>StoreBase</c>, and no store override. Four stores
+        /// used to override it with a <c>VALUES</c>-bound pattern, a 2021 blank-id workaround copied from store
+        /// to store. That form has one solution per triple, and the in-memory engine describes the subject once
+        /// per solution (#63). On GraphDB it also happened to hide that store's incoming triples, a job
+        /// <c>Model.GetResource&lt;T&gt;</c> now does for every store by checking the URI (see
+        /// <see cref="GetResourceOfAnIriThatIsOnlyAnObjectThrows"/>). So no store needs a pattern for
+        /// correctness, and a store that wants one anyway has to change this test and say why. Only the
+        /// query is built, so this costs no round trip.
         /// </remarks>
         [Test]
         public virtual void DescribesTheSubjectWithoutAPattern()
@@ -1053,6 +1057,117 @@ namespace Semiodesk.Trinity.Tests.Store
                 "a pattern makes one solution per triple, each described again:\n" + sparql);
             Assert.IsFalse(sparql.Contains("VALUES", StringComparison.OrdinalIgnoreCase),
                 "the subject is named directly, not bound:\n" + sparql);
+        }
+
+        /// <summary>
+        /// Writes <paramref name="triples"/> into <c>Model1</c> as Turtle, each a subject, a predicate and an
+        /// already serialized object.
+        /// </summary>
+        private void Seed(params (Uri Subject, Property Predicate, string Object)[] triples)
+        {
+            var turtle = new StringBuilder();
+
+            foreach (var t in triples)
+            {
+                turtle.Append(SparqlSerializer.SerializeUri(t.Subject)).Append(' ')
+                    .Append(SparqlSerializer.SerializeUri(t.Predicate.Uri)).Append(' ')
+                    .Append(t.Object).Append(" .\n");
+            }
+
+            Assert.IsTrue(Model1.Read(turtle.ToString(), RdfSerializationFormat.Turtle, true));
+        }
+
+        /// <summary>
+        /// Reading an IRI that occurs only as an object finds no resource, rather than the resource that
+        /// refers to it.
+        /// </summary>
+        /// <remarks>
+        /// A <c>DESCRIBE</c> is the store's choice of triples, and GraphDB's includes the incoming ones: for
+        /// <c>&lt;c&gt; p &lt;d&gt;</c>, <c>DESCRIBE &lt;d&gt;</c> answers that triple. <c>GetResource&lt;T&gt;</c>
+        /// used to return the first resource in the answer, so on GraphDB it returned <c>&lt;c&gt;</c> for
+        /// <c>&lt;d&gt;</c>. The <c>VALUES</c>-bound pattern GraphDB's override used (#63) hid this by accident,
+        /// because a subject without outgoing triples gave it no solution to describe; the URI check in
+        /// <c>Model.GetResource&lt;T&gt;</c> now does that job on every store.
+        /// </remarks>
+        [Test]
+        public virtual void GetResourceOfAnIriThatIsOnlyAnObjectThrows()
+        {
+            var target = BaseUri.GetUriRef("only-an-object");
+
+            Seed(
+                (_r2, rdf.type, SparqlSerializer.SerializeUri(to.TestClass.Uri)),
+                (_r2, to.resourceTest, SparqlSerializer.SerializeUri(target)));
+
+            Assert.Throws<ArgumentException>(() => Model1.GetResource<MappingTestClass>(target));
+        }
+
+        /// <summary>
+        /// A subject that other resources refer to reads back as itself, whatever order the store puts the
+        /// incoming triples in.
+        /// </summary>
+        /// <remarks>
+        /// On GraphDB the answer to <c>DESCRIBE</c> holds the referrers too (see
+        /// <see cref="GetResourceOfAnIriThatIsOnlyAnObjectThrows"/>). Returning the first resource was right
+        /// there only because the subject happened to come first, which nothing guarantees. Several referrers
+        /// give the order more chances to differ.
+        /// </remarks>
+        [Test]
+        public virtual void GetResourceOfASubjectWithReferrersReadsItself()
+        {
+            var triples = new List<(Uri, Property, string)>
+            {
+                (_r1, rdf.type, SparqlSerializer.SerializeUri(to.TestClass.Uri)),
+                (_r1, to.uniqueStringTest, "\"target\""),
+            };
+
+            for (int i = 0; i < 20; i++)
+            {
+                var referrer = BaseUri.GetUriRef("referrer" + i);
+
+                triples.Add((referrer, rdf.type, SparqlSerializer.SerializeUri(to.TestClass.Uri)));
+                triples.Add((referrer, to.uniqueStringTest, "\"referrer\""));
+                triples.Add((referrer, to.resourceTest, SparqlSerializer.SerializeUri(_r1)));
+            }
+
+            Seed(triples.ToArray());
+
+            var actual = Model1.GetResource<MappingTestClass>(_r1);
+
+            Assert.AreEqual(_r1.OriginalString, actual.Uri.OriginalString);
+            Assert.AreEqual("target", actual.uniqueStringTest);
+        }
+
+        /// <summary>
+        /// A subject whose host is not lower case reads back as itself, with a referrer in the answer.
+        /// </summary>
+        /// <remarks>
+        /// <c>GetResource&lt;T&gt;</c> picks the subject out of the store's answer, so how it compares IRIs
+        /// decides whether this read works. Measured: the in-memory store and Fuseki hand the subject back
+        /// with its host lower-cased (GraphDB, Oxigraph and Virtuoso keep it), the same loss
+        /// <c>doc/known-test-failures.md</c> records for result sets. An ordinal match on
+        /// <c>OriginalString</c> would turn this read into a not-found on those two stores, so the match is
+        /// by <see cref="UriRef"/> identity, and this test fails if it ever becomes ordinal. It asserts that
+        /// identity rather than the spelling, because restoring the spelling is the quarantined defect's fix,
+        /// not this one's. Seeded through <c>Commit()</c>: a Turtle <c>Read</c> lower-cases the host before
+        /// writing, which would test the write instead.
+        /// </remarks>
+        [Test]
+        public virtual void GetResourceOfAMixedCaseHostSubjectReadsItself()
+        {
+            var subject = new UriRef("http://Mixed.Example.org/trinity/subject");
+
+            var resource = Model1.CreateResource<MappingTestClass>(subject);
+            resource.uniqueStringTest = "mixed";
+            resource.Commit();
+
+            var referrer = Model1.CreateResource<MappingTestClass>(_r2);
+            referrer.resourceTest.Add(new MappingTestClass2(subject));
+            referrer.Commit();
+
+            var actual = Model1.GetResource<MappingTestClass>(subject);
+
+            Assert.IsTrue(subject.Equals(actual.Uri), $"read <{actual.Uri.OriginalString}> for <{subject.OriginalString}>");
+            Assert.AreEqual("mixed", actual.uniqueStringTest);
         }
 
         [Test]
