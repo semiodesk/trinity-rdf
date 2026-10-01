@@ -65,7 +65,7 @@ The **quality gates** and the pre-commit hook need more (ADR-0049):
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 945 passed, 3 skipped (quarantined), 0 failed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 948 passed, 3 skipped (quarantined), 0 failed
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 42 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -83,8 +83,8 @@ TRINITY_BENCH_BACKENDS=InMemory dotnet run -c Release --project benchmarks/Trini
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all four green** — Oxigraph 359/360, Fuseki 358/359,
-  GraphDB 357/358, Virtuoso 341/342 (0 failed each; the 1 skipped is the shared blank-node-removal
+  hiccup cannot redden it. Current: **all four green** — Oxigraph 362/363, Fuseki 361/362,
+  GraphDB 360/361, Virtuoso 344/345 (0 failed each; the 1 skipped is the shared blank-node-removal
   quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
