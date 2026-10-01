@@ -1281,10 +1281,12 @@ namespace Semiodesk.Trinity.Query.Sparql
         /// <remarks>
         /// <para>
         /// The comparison itself stays a filter, <c>LANG(?v) = ""</c> and <c>STR(?v) = "…"</c> (ADR-0048,
-        /// #52), and a filter is something not every engine answers from an index: at 100k resources a
-        /// lookup took 28 ms on Virtuoso, 746 ms in memory, 94 ms on Fuseki and 130 ms on GraphDB. The
-        /// lookup (<see cref="LookupPattern"/>) is added in front of the selection and the binding and
-        /// its filters are left as they are, so it can only narrow the answer, never widen it.
+        /// #52), and a filter is something not every engine answers from an index, so the lookup grew
+        /// with the model. The lookup (<see cref="LookupPattern"/>) is added in front of the selection and
+        /// the binding and its filters are left as they are, so it can only narrow the answer, never widen
+        /// it. It trades a cost that grows with the model for one that grows with the number of matches,
+        /// which makes <c>Any</c> or <c>First</c> over a common value slower; ADR-0051 has the figures
+        /// for both sides and why it applies to every predicate anyway.
         /// </para>
         /// <para>
         /// It narrows one thing. The filter alone also matched a literal of any other datatype with the
@@ -2931,12 +2933,12 @@ namespace Semiodesk.Trinity.Query.Sparql
         /// of every row, so one of these triples is too.
         /// </para>
         /// <para>
-        /// Measured at 100k resources against the filter alone: Virtuoso 28.5 → 1.6 ms, in memory
-        /// 746 → 0.7 ms, Fuseki 94 → 7 ms, GraphDB 130 → 5 ms, Oxigraph 214 → 153 ms. Oxigraph pushes a
-        /// binding into neither a sub-select nor a <c>UNION</c>, and the shapes it does answer from an
-        /// index were each wrong or slow elsewhere: a single constant missed half of Virtuoso's spellings,
-        /// a <c>VALUES</c> naming both returned duplicates on the RDF 1.1 stores, and every way of guarding
-        /// that against duplicates cost Virtuoso 65–148 ms.
+        /// Of the shapes ADR-0051 measured on all five backends, this is the only one that was right on
+        /// every backend and fast on all but Oxigraph, which pushes a binding into neither a sub-select
+        /// nor a <c>UNION</c>. The shapes Oxigraph does answer from an index were each wrong or slow
+        /// elsewhere: a single constant missed half of Virtuoso's spellings, a <c>VALUES</c> naming both
+        /// returned duplicates on the RDF 1.1 stores, and guarding that against duplicates made Virtuoso
+        /// slower than the filter alone.
         /// </para>
         /// </remarks>
         private GraphPattern LookupPattern(TriplePattern lookup)

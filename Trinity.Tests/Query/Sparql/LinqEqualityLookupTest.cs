@@ -39,9 +39,8 @@ namespace Semiodesk.Trinity.Tests.Query.Sparql
     /// </summary>
     /// <remarks>
     /// The answers are the same with and without the lookup, so no result-based test can tell them apart;
-    /// what differs is whether an engine can answer it from an index. At 100k resources the filter alone took
-    /// 28.5 ms on Virtuoso and 746 ms in memory, the lookup 1.6 ms and 0.7 ms. The answers it must keep, on
-    /// every store and for every spelling Virtuoso stores, are pinned by
+    /// what differs is whether an engine can answer it from an index (ADR-0051 has the figures). The
+    /// answers it must keep, on every store and for every spelling Virtuoso stores, are pinned by
     /// <c>ResourceMappingTest.QueriesAMappedStringByValueAcrossStores</c>.
     /// </remarks>
     [TestFixture]
