@@ -566,4 +566,48 @@ new PropertyMapping<LangString>("uniqueLocalizedStringTest", to.uniqueLocalizedS
 
         #endregion
     }
+
+    /// <summary>
+    /// Counts the calls to <see cref="Equals(object)"/>, so a test can bound how often reading compares
+    /// resources: a linear scan per resource shows as a count that grows with the square of the result.
+    /// </summary>
+    public class EqualityCountingTestClass : Resource
+    {
+        #region Members
+
+        public static int EqualsCalls;
+
+        #endregion
+
+        #region Mapping
+
+        public override IEnumerable<Class> GetTypes()
+        {
+            yield return to.EqualityCountingTestClass;
+        }
+
+        #endregion
+
+        #region Constructors
+
+        public EqualityCountingTestClass(Uri uri) : base(uri) { }
+
+        #endregion
+
+        #region Methods
+
+        public override bool Equals(object other)
+        {
+            EqualsCalls++;
+
+            return base.Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+
+        #endregion
+    }
 }

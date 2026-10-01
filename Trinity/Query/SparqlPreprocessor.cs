@@ -376,13 +376,15 @@ namespace Semiodesk.Trinity
 
             declared.Add(u);
 
-            // Try to append the dataset clause before the outermost WHERE.
-            int i = Tokens.FindIndex(t => t.TokenType == Token.WHERE);
+            // Try to append the dataset clause before the outermost WHERE. Outermost, not first: in
+            // ASK { { SELECT ... WHERE { ... } } } the first WHERE is a sub-select's, where a dataset clause
+            // is illegal, and the outer form has none of its own.
+            int i = OutermostIndex(Token.WHERE);
 
             if (i == -1)
             {
-                // If there is none, try to put it before the first left curly bracket.
-                i = Tokens.FindIndex(t => t.TokenType == Token.LEFTCURLYBRACKET);
+                // If there is none, try to put it before the outermost left curly bracket.
+                i = OutermostIndex(Token.LEFTCURLYBRACKET);
 
                 if (i == -1)
                 {
@@ -393,6 +395,33 @@ namespace Semiodesk.Trinity
 
             Tokens.Insert(i, new UriToken(string.Format("<{0}>", uri.OriginalString), -1, -1, -1));
             Tokens.Insert(i, token);
+        }
+
+        /// <summary>
+        /// The index of the first token of the given type outside every brace, or -1.
+        /// </summary>
+        private int OutermostIndex(int tokenType)
+        {
+            int depth = 0;
+
+            for (int i = 0; i < Tokens.Count; i++)
+            {
+                if (Tokens[i].TokenType == tokenType && depth == 0)
+                {
+                    return i;
+                }
+
+                if (Tokens[i].TokenType == Token.LEFTCURLYBRACKET)
+                {
+                    depth++;
+                }
+                else if (Tokens[i].TokenType == Token.RIGHTCURLYBRACKET)
+                {
+                    depth--;
+                }
+            }
+
+            return -1;
         }
 
         /// <summary>

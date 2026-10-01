@@ -1033,6 +1033,44 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         /// <summary>
+        /// Reading many resources compares each against the others a bounded number of times, not once per
+        /// resource already read.
+        /// </summary>
+        /// <remarks>
+        /// Both result readers kept the resources they had emitted in a list and asked
+        /// <c>result.Contains</c> before adding one, which is a linear scan per resource. A typed resource is
+        /// always in the reader's cache before its first triple, so every typed read took that branch: about
+        /// n²/2 comparisons, 74 s for 64,000 resources on Virtuoso against 0.46 s for the raw query. Counting
+        /// <see cref="object.Equals(object)"/> rather than timing makes the bound deterministic; before the
+        /// fix this read made about two million calls.
+        /// </remarks>
+        [Test]
+        public virtual void ReadingManyResourcesComparesEachABoundedNumberOfTimes()
+        {
+            const int count = 2000;
+
+            var turtle = new StringBuilder();
+
+            for (int i = 0; i < count; i++)
+            {
+                turtle.Append(SparqlSerializer.SerializeUri(BaseUri.GetUriRef("counted" + i)))
+                    .Append(" a ").Append(SparqlSerializer.SerializeUri(to.EqualityCountingTestClass.Uri))
+                    .Append(" .\n");
+            }
+
+            Assert.IsTrue(Model1.Read(turtle.ToString(), RdfSerializationFormat.Turtle, true));
+
+            EqualityCountingTestClass.EqualsCalls = 0;
+
+            var actual = Model1.GetResources<EqualityCountingTestClass>().ToList();
+
+            int calls = EqualityCountingTestClass.EqualsCalls;
+
+            Assert.AreEqual(count, actual.Count);
+            Assert.Less(calls, count, $"reading {count} resources made {calls} Equals calls");
+        }
+
+        /// <summary>
         /// Every store reads a resource with a bare <c>DESCRIBE</c>, the one form <c>StoreBase</c> builds.
         /// </summary>
         /// <remarks>
@@ -1641,6 +1679,66 @@ namespace Semiodesk.Trinity.Tests.Store
 
             Assert.AreEqual(1, both.Count);
             Assert.AreEqual(_r1, both[0].Uri);
+        }
+
+        /// <summary>
+        /// A LINQ equality on a mapped string returns the same resources on every store, once each, now that
+        /// it looks the resources up by the constant as well as filtering it (#64).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The lookup names the constant in both spellings, plain and <c>xsd:string</c>, because Virtuoso
+        /// stores an untagged string either way depending on how it was written: <c>Commit()</c> stores a
+        /// term only the plain constant matches, the replacing <c>Read</c> below one only the typed constant
+        /// matches. Seeding only through Turtle hid that from the first version of this lookup, which is why
+        /// one resource here is committed. The four RDF 1.1 stores treat the two spellings as one term, and
+        /// a lookup that let both match returned every resource twice there; a duplicated row is a doubled
+        /// value in a mapped collection, hence the <c>NameAdditional</c> count.
+        /// </para>
+        /// <para>
+        /// In the last query the disjunct makes the member's binding optional. The lookup does not touch
+        /// that variable, and the conjunct is still required, so the answer must not change.
+        /// </para>
+        /// </remarks>
+        [Test]
+        public virtual void QueriesAMappedStringByValueAcrossStores()
+        {
+            var plain = BaseUri.GetUriRef("plain");
+            var typed = BaseUri.GetUriRef("typed");
+            var tagged = BaseUri.GetUriRef("tagged");
+            var other = BaseUri.GetUriRef("other");
+            var committed = BaseUri.GetUriRef("committed");
+
+            string Subject(UriRef uri) => SparqlSerializer.SerializeUri(uri) + $" a <{NCO.PersonContact}> ; <{NCO.nameGiven}> ";
+
+            string turtle = string.Join("\n",
+                Subject(plain) + $"\"x\" ; <{NCO.nameAdditional}> \"a\", \"b\" .",
+                Subject(typed) + "\"x\"^^<http://www.w3.org/2001/XMLSchema#string> .",
+                Subject(tagged) + "\"x\"@en .",
+                Subject(other) + "\"y\" .");
+
+            Assert.IsTrue(Model1.Read(turtle, RdfSerializationFormat.Turtle, false));
+
+            var contact = Model1.CreateResource<PersonContact>(committed);
+            contact.NameGiven = "x";
+            contact.Commit();
+
+            var x = Model1.AsSparqlQueryable<PersonContact>().Where(c => c.NameGiven == "x").ToList();
+
+            CollectionAssert.AreEquivalent(new[] { plain, typed, committed }, x.Select(c => c.Uri));
+            CollectionAssert.AreEquivalent(new[] { "a", "b" }, x.Single(c => c.Uri == plain).NameAdditional);
+
+            var either = Model1.AsSparqlQueryable<PersonContact>()
+                .Where(c => c.NameGiven == "x" || c.NameGiven == "y")
+                .ToList();
+
+            CollectionAssert.AreEquivalent(new[] { plain, typed, committed, other }, either.Select(c => c.Uri));
+
+            var optional = Model1.AsSparqlQueryable<PersonContact>()
+                .Where(c => c.NameGiven == "x" && (c.NameGiven == "x" || c.NameGiven == "z"))
+                .ToList();
+
+            CollectionAssert.AreEquivalent(new[] { plain, typed, committed }, optional.Select(c => c.Uri));
         }
 
         /// <summary>

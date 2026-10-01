@@ -223,6 +223,10 @@ namespace Semiodesk.Trinity.Store
         {
             List<Resource> result = new List<Resource>();
 
+            // What result holds, for the membership test. Asking the list scanned it once per resource,
+            // which made reading n resources O(n²).
+            HashSet<Resource> emitted = new HashSet<Resource>();
+
             if (0 < _tripleProvider.Count)
             {
                 // A dictionary mapping URIs to the generated resource objects.
@@ -273,7 +277,7 @@ namespace Semiodesk.Trinity.Store
 
                             // In this case we may have encountered a resource which was 
                             // added to the cache by the object value handler below.
-                            if (!result.Contains(currentResource))
+                            if (emitted.Add(currentResource))
                             {
                                 result.Add(currentResource);
                             }
@@ -289,6 +293,7 @@ namespace Semiodesk.Trinity.Store
 
                                 cache.Add(subjectUri.OriginalString, currentResource);
 
+                                emitted.Add(currentResource);
                                 result.Add(currentResource);
                             }
                             catch

@@ -58,6 +58,7 @@ category with its own baseline, so every `Ratio` is against the right thing.
 | `LayeredMaterializeBenchmarks` | a full `Refresh()` | copying the baseline graph | ADR-0042: 31.5 s at 1M — 5.1 min in memory, where it is 11× a plain copy; on the servers ≈ a copy (ADR-0050) |
 | `WideResourceBenchmarks` | twenty mapped values per resource, both directions | typed literals by hand | ADR-0040 |
 | `LinqShapeBenchmarks` | paging, `Count()`, `Any()`, `Contains` | the SPARQL each should become | ADR-0037 |
+| `LinqSelectivityBenchmarks` | `Any`, `First`, `Count` over a value half the resources hold, at 1k and 100k | the hand-written query, which can stop early | ADR-0051's trade-off: the equality lookup is evaluated in full first |
 | `SerializationBenchmarks` | `IStore.Read`/`Write` in Turtle, N-Triples, JSON-LD | `INSERT DATA` / a bindings fetch | ADR-0034 |
 
 The `Layered*` classes each have a `…LargeBenchmarks` subclass in the `Large` category at 1M.

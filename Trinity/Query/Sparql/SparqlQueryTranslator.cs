@@ -143,6 +143,12 @@ namespace Semiodesk.Trinity.Query.Sparql
 
         private readonly List<SparqlExpression> _filters = new List<SparqlExpression>();
 
+        // Top-level `member == "constant"` conjuncts of the root predicates, as the triple pattern naming the
+        // constant (#64). See RecordEqualityLookups and LookupPattern.
+        private readonly List<TriplePattern> _equalityLookups = new List<TriplePattern>();
+
+        private static readonly Uri XsdString = new Uri("http://www.w3.org/2001/XMLSchema#string");
+
         private readonly List<OrderCondition> _orderings = new List<OrderCondition>();
 
         private int? _limit;
@@ -678,7 +684,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                     {
                         throw new NotSupportedException("Filtering after a value projection is not supported.");
                     }
-                    _filters.Add(TranslatePredicate(_rootScope, GetLambda(call.Arguments[1]).Body, false));
+                    AddRootPredicate(GetLambda(call.Arguments[1]).Body);
                     break;
 
                 case "OfType":
@@ -760,7 +766,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                     _kind = QueryExecutionKind.Ask;
                     if (call.Arguments.Count == 2)
                     {
-                        _filters.Add(TranslatePredicate(_rootScope, GetLambda(call.Arguments[1]).Body, false));
+                        AddRootPredicate(GetLambda(call.Arguments[1]).Body);
                     }
                     break;
 
@@ -775,7 +781,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                     _kind = QueryExecutionKind.Count;
                     if (call.Arguments.Count == 2)
                     {
-                        _filters.Add(TranslatePredicate(_rootScope, GetLambda(call.Arguments[1]).Body, false));
+                        AddRootPredicate(GetLambda(call.Arguments[1]).Body);
                     }
                     break;
 
@@ -783,7 +789,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                 case "FirstOrDefault":
                     if (call.Arguments.Count == 2)
                     {
-                        _filters.Add(TranslatePredicate(_rootScope, GetLambda(call.Arguments[1]).Body, false));
+                        AddRootPredicate(GetLambda(call.Arguments[1]).Body);
                     }
                     _limit = 1;
                     _terminal = call.Method.Name == "First" ? TerminalKind.First : TerminalKind.FirstOrDefault;
@@ -794,7 +800,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                     // Shaped like First over inverted orderings (flipped in Build).
                     if (call.Arguments.Count == 2)
                     {
-                        _filters.Add(TranslatePredicate(_rootScope, GetLambda(call.Arguments[1]).Body, false));
+                        AddRootPredicate(GetLambda(call.Arguments[1]).Body);
                     }
                     _limit = 1;
                     _terminal = call.Method.Name == "Last" ? TerminalKind.Last : TerminalKind.LastOrDefault;
@@ -804,7 +810,7 @@ namespace Semiodesk.Trinity.Query.Sparql
                 case "SingleOrDefault":
                     if (call.Arguments.Count == 2)
                     {
-                        _filters.Add(TranslatePredicate(_rootScope, GetLambda(call.Arguments[1]).Body, false));
+                        AddRootPredicate(GetLambda(call.Arguments[1]).Body);
                     }
                     // Fetch two so the executor can detect a cardinality violation.
                     _limit = 2;
@@ -1249,12 +1255,97 @@ namespace Semiodesk.Trinity.Query.Sparql
             _subjectPatterns.Patterns.Clear();
             _subjectPatterns.Filters.Clear();
             _filters.Clear();
+            _equalityLookups.Clear();
             _rootScope.Bindings.Clear();
         }
 
         #endregion
 
         #region Predicate translation
+
+        /// <summary>
+        /// Adds a predicate that every selected resource must satisfy: the argument of <c>Where</c>, or of
+        /// <c>Any</c>, <c>Count</c>, <c>First</c>, <c>Last</c> and <c>Single</c>.
+        /// </summary>
+        private void AddRootPredicate(Expression predicate)
+        {
+            _filters.Add(TranslatePredicate(_rootScope, predicate, false));
+
+            RecordEqualityLookups(predicate);
+        }
+
+        /// <summary>
+        /// Records each <c>member == "constant"</c> that <paramref name="predicate"/> requires, so that
+        /// <see cref="BuildSubjectSelection"/> can look the resources up by the constant (#64).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The comparison itself stays a filter, <c>LANG(?v) = ""</c> and <c>STR(?v) = "…"</c> (ADR-0048,
+        /// #52), and a filter is something not every engine answers from an index, so the lookup grew
+        /// with the model. The lookup (<see cref="LookupPattern"/>) is added in front of the selection and
+        /// the binding and its filters are left as they are, so it can only narrow the answer, never widen
+        /// it. It trades a cost that grows with the model for one that grows with the number of matches,
+        /// which makes <c>Any</c> or <c>First</c> over a common value slower; ADR-0051 has the figures
+        /// for both sides and why it applies to every predicate anyway.
+        /// </para>
+        /// <para>
+        /// It narrows one thing. The filter alone also matched a literal of any other datatype with the
+        /// same lexical form, <c>"5"^^xsd:int</c> for <c>== "5"</c>, which a mapped <c>string</c> does not
+        /// read. Only conjuncts reached through <c>&amp;&amp;</c> are recorded: under <c>||</c> or <c>!</c>
+        /// a comparison is not required of every row.
+        /// </para>
+        /// </remarks>
+        private void RecordEqualityLookups(Expression predicate)
+        {
+            predicate = Unwrap(predicate);
+
+            if (!(predicate is BinaryExpression binary))
+            {
+                return;
+            }
+
+            if (binary.NodeType == ExpressionType.AndAlso)
+            {
+                RecordEqualityLookups(binary.Left);
+                RecordEqualityLookups(binary.Right);
+
+                return;
+            }
+
+            if (binary.NodeType != ExpressionType.Equal)
+            {
+                return;
+            }
+
+            Expression left = Unwrap(binary.Left);
+            Expression right = Unwrap(binary.Right);
+
+            if (left is ConstantExpression && !(right is ConstantExpression))
+            {
+                Expression swap = left;
+                left = right;
+                right = swap;
+            }
+
+            if (!(right is ConstantExpression constant) || !(constant.Value is string value))
+            {
+                return;
+            }
+
+            ChainInfo chain = TryGetChain(left);
+
+            // A direct member of the selected resource only: the pattern names ?s, which a member of a
+            // member is not attached to.
+            if (chain == null || chain.Kind != ChainKind.Value || chain.MemberType != typeof(string)
+                || !(Unwrap(chain.Chain.Expression) is ParameterExpression)
+                || ResolveScope(_rootScope, chain.RootParameter) != _rootScope
+                || _rootScope.Subject != Subject)
+            {
+                return;
+            }
+
+            _equalityLookups.Add(new TriplePattern(Subject, new IriTerm(GetPredicate(chain.Chain)), new LiteralTerm(value)));
+        }
 
         /// <summary>
         /// Translates a boolean predicate expression, normalizing negation: <c>Not</c> flips
@@ -2788,6 +2879,17 @@ namespace Semiodesk.Trinity.Query.Sparql
         {
             var selection = new GroupGraphPattern();
 
+            // The equality lookups lead (see RecordEqualityLookups): an engine that joins in written order
+            // would otherwise start from every resource of the type. Each projects only ?s, which the type
+            // constraints bind too, so its position does not change the answer.
+            if (_typeConstraints.Count > 0)
+            {
+                foreach (TriplePattern lookup in _equalityLookups)
+                {
+                    selection.Add(LookupPattern(lookup));
+                }
+            }
+
             foreach (Uri type in _typeConstraints)
             {
                 selection.Add(new TriplePattern(Subject, RdfTypeTerm.Instance, new IriTerm(type)));
@@ -2813,6 +2915,49 @@ namespace Semiodesk.Trinity.Query.Sparql
             }
 
             return selection;
+        }
+
+        /// <summary>
+        /// The resources whose member equals the constant of <paramref name="lookup"/>, as
+        /// <c>{ SELECT DISTINCT ?s WHERE { { ?s &lt;p&gt; "…" } UNION { ?s &lt;p&gt; "…"^^xsd:string } } }</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Both spellings, because Virtuoso stores an untagged string either way depending on how it was
+        /// written: <c>Commit()</c>, <c>INSERT DATA</c> and an updating <c>Read</c> store a term only the
+        /// plain constant matches, a replacing <c>Read</c> one only the <c>xsd:string</c> constant matches,
+        /// even for Turtle that wrote it plain. The four RDF 1.1 stores treat the two as one term, so both
+        /// branches match the same triple there, and <c>DISTINCT ?s</c> is what keeps that from returning
+        /// every match twice. Projecting only <c>?s</c> leaves the member's variable alone, so the lookup
+        /// holds however that variable ends up bound, an <c>OPTIONAL</c> included: the conjunct is required
+        /// of every row, so one of these triples is too.
+        /// </para>
+        /// <para>
+        /// Of the shapes ADR-0051 measured on all five backends, this is the only one that was right on
+        /// every backend and fast on all but Oxigraph, which pushes a binding into neither a sub-select
+        /// nor a <c>UNION</c>. The shapes Oxigraph does answer from an index were each wrong or slow
+        /// elsewhere: a single constant missed half of Virtuoso's spellings, a <c>VALUES</c> naming both
+        /// returned duplicates on the RDF 1.1 stores, and guarding that against duplicates made Virtuoso
+        /// slower than the filter alone.
+        /// </para>
+        /// </remarks>
+        private GraphPattern LookupPattern(TriplePattern lookup)
+        {
+            var literal = (LiteralTerm)lookup.Object;
+
+            var plain = new GroupGraphPattern();
+            plain.Add(lookup);
+
+            var typed = new GroupGraphPattern();
+            typed.Add(new TriplePattern(lookup.Subject, lookup.Predicate, new LiteralTerm(literal.Value, XsdString)));
+
+            var where = new GroupGraphPattern();
+            where.Add(new UnionPattern(plain, typed));
+
+            var select = new SelectQuery { IsDistinct = true, Where = where };
+            select.Projections.Add(new Projection((VariableTerm)lookup.Subject));
+
+            return new SubSelectPattern(select);
         }
 
         /// <summary>

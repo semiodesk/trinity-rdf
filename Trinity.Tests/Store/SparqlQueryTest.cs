@@ -132,6 +132,30 @@ namespace Semiodesk.Trinity.Tests.Store
             Assert.AreEqual(false, result.GetAnwser());
         }
 
+        /// <summary>
+        /// An ASK over a sub-select is an ASK, and the model's dataset goes on the ASK.
+        /// </summary>
+        /// <remarks>
+        /// The preprocessor took the form from the last form keyword it read and put the model's <c>FROM</c>
+        /// before the first <c>WHERE</c>. Both are the sub-select's here: the query was taken for a SELECT,
+        /// so its answer could not be read, and the dataset clause landed where SPARQL forbids one. The LINQ
+        /// provider's equality lookup is such a sub-select, which is how <c>Any(…)</c> found it (#64).
+        /// </remarks>
+        [Test]
+        public virtual void TestAskOverASubSelect()
+        {
+            InitializeModels();
+
+            var query = new SparqlQuery("ASK { { SELECT DISTINCT ?s WHERE { ?s nco:fullname 'Hans Wurscht' . } } }");
+
+            Assert.AreEqual(SparqlQueryType.Ask, query.QueryType);
+            Assert.IsTrue(Model1.ExecuteQuery(query).GetAnwser());
+
+            query = new SparqlQuery("ASK { { SELECT DISTINCT ?s WHERE { ?s nco:fullname 'Hans Meier' . } } }");
+
+            Assert.IsFalse(Model1.ExecuteQuery(query).GetAnwser());
+        }
+
         [Test]
         public virtual void TestSelect()
         {

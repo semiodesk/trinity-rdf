@@ -814,14 +814,48 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         }
 
 
+        /// <remarks>
+        /// <para>
+        /// The resource is named in both triple patterns, so the store answers each from an index. The form
+        /// this replaced, <c>?s ?p ?o . FILTER (?s = &lt;r&gt; || ?o = &lt;r&gt;)</c>, scanned the whole graph
+        /// for every delete: 1.3 ms at 1,000 resources, 36 ms at 64,000, where the bound form stays near
+        /// 0.8 ms. ADR-0042 records the same shape costing the same way on the layered model.
+        /// </para>
+        /// <para>
+        /// One operation rather than <c>StoreBase</c>'s two <c>DELETE WHERE</c>s joined by <c>;</c>:
+        /// <see cref="ExecuteDirectQuery"/> sends a bare <c>SPARQL</c> prefix, which takes one operation, and
+        /// a <c>;</c> there is <c>SQ074</c>, which the error handler swallows. Each branch of the
+        /// <c>UNION</c> binds only its own template triple's variables, and a template triple with an
+        /// unbound variable is skipped, so each solution deletes exactly the triple it matched.
+        /// </para>
+        /// <para>
+        /// Both IRIs go through <see cref="SparqlSerializer.SerializeUri"/>, which refuses one that cannot be
+        /// written verbatim (ADR-0046). Interpolated raw, a space in the graph IRI stops the statement
+        /// parsing and a <c>&gt;</c> injects text into it, and either way the error handler swallows the
+        /// refusal (#50), so the call would return having deleted nothing.
+        /// </para>
+        /// <para>
+        /// The resource is interpolated rather than bound, which makes a blank node label dangerous: in the
+        /// <c>WHERE</c> a <c>_:</c> label is an existential variable that matches every triple. This form fails
+        /// safe only because the label also appears in the <c>DELETE</c> template, where Virtuoso refuses it
+        /// ("SP031: Blank nodes are not allowed in DELETE constructor patterns") and the graph is left
+        /// untouched. Do not rewrite it as a <c>DELETE WHERE</c>, or into any other shape in which the label
+        /// appears only as a pattern.
+        /// </para>
+        /// </remarks>
         public override void DeleteResource(Uri modelUri, Uri resourceUri, ITransaction transaction = null)
         {
-            SparqlUpdate delete = new SparqlUpdate(@"WITH @graph DELETE WHERE { ?s ?p ?o. FILTER( ?s = @subject || ?o = @object ) }");
-            delete.Bind("@graph", modelUri);
-            delete.Bind("@subject", resourceUri);
-            delete.Bind("@object", resourceUri);
+            string resource = SparqlSerializer.SerializeUri(resourceUri);
 
-            ExecuteNonQuery(delete, transaction);
+            string delete = string.Format(@"
+                SPARQL
+                WITH {0}
+                DELETE {{ {1} ?p ?o . ?s ?q {1} . }}
+                WHERE {{ {{ {1} ?p ?o . }} UNION {{ ?s ?q {1} . }} }}",
+                SparqlSerializer.SerializeUri(modelUri),
+                resource);
+
+            ExecuteDirectQuery(delete, transaction);
         }
 
         public override void DeleteResource(IResource resource, ITransaction transaction = null)
@@ -829,74 +863,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             DeleteResource(resource.Model.Uri, resource.Uri, transaction);
         }
 
-        public override void DeleteResources(Uri modelUri, IEnumerable<Uri> resources, ITransaction transaction = null)
-        {
-
-            var template = "WITH @graph DELETE WHERE { ?s ?p ?o. FILTER( _filter_ )}";
-
-            List<string> filters = new List<string>();
-
-            int n = 0;
-
-            foreach (var x in resources)
-            {
-                filters.Add($"?s = @subject{n} || ?o = @object{n}");
-                n++;
-            }
-
-            SparqlUpdate c = new SparqlUpdate(template.Replace("_filter_", string.Join(" || ", filters)));
-            c.Bind("@graph", modelUri);
-
-            n = 0;
-
-            foreach (var x in resources)
-            {
-                c.Bind("@subject" + n, x);
-                c.Bind("@object" + n, x);
-                n++;
-            }
-
-            ExecuteNonQuery(c, transaction);
-        }
-
-        public override void DeleteResources(IEnumerable<IResource> resources, ITransaction transaction = null)
-        {
-            IModel model = resources.First().Model;
-
-            // object.Equals rather than !=: it dispatches to UriRef.Equals, so the fragment counts,
-            // and it tolerates the null Uri a ModelGroup reports -- which != also did.
-            if (resources.Any(x => !Equals(x.Model.Uri, model.Uri)))
-            {
-                throw new NotSupportedException();
-            }
-
-            var template = "WITH @graph DELETE WHERE { ?s ?p ?o. FILTER( _filter_ )}";
-
-            List<string> filters = new List<string>();
-
-            int n = 0;
-
-            foreach ( var x in resources)
-            {
-                filters.Add($"?s = @subject{n} || ?o = @object{n}");
-                n++;
-            }
-            
-            SparqlUpdate c = new SparqlUpdate(template.Replace("_filter_", string.Join(" || ", filters)));
-            c.Bind("@graph", model.Uri);
-            
-            n = 0;
-
-            foreach (var x in resources)
-            {
-                c.Bind("@subject" + n, x.Uri);
-                c.Bind("@object" + n, x.Uri);
-                n++;
-            }
-
-            ExecuteNonQuery(c, transaction);
-        }
-        
         #endregion
 
         #region Event Handlers

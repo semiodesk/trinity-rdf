@@ -65,7 +65,7 @@ The **quality gates** and the pre-commit hook need more (ADR-0049):
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 950 passed, 3 skipped (quarantined), 0 failed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 960 passed, 3 skipped (quarantined), 0 failed
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 42 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -83,8 +83,8 @@ TRINITY_BENCH_BACKENDS=InMemory dotnet run -c Release --project benchmarks/Trini
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all four green** — Oxigraph 362/363, Fuseki 361/362,
-  GraphDB 360/361, Virtuoso 344/345 (0 failed each; the 1 skipped is the shared blank-node-removal
+  hiccup cannot redden it. Current: **all four green** — Oxigraph 366/367, Fuseki 365/366,
+  GraphDB 364/365, Virtuoso 350/351 (0 failed each; the 1 skipped is the shared blank-node-removal
   quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
@@ -387,7 +387,10 @@ Invariants that surprise newcomers:
   *everything*). So `Model.DeleteResource` is deliberately unguarded — it binds, the store refuses the
   blank `DELETE` template loudly (ADR-0039) and nothing changes — while `LayeredModel.DeleteResource`
   interpolates and must guard: that shape stages the whole baseline for removal, silently, on both
-  backends. This is **not** the .NET 10 `Uri`
+  backends. **Virtuoso's `DeleteResource` is the exception:** it interpolates, so in its `WHERE` a `_:`
+  label is a match-everything variable. It fails safe only because the label is also in the `DELETE`
+  template, where Virtuoso refuses it (SP031) and #50 swallows the refusal. Never rewrite it into a
+  `DELETE WHERE` or any shape where the label appears only as a pattern. This is **not** the .NET 10 `Uri`
   equality problem (0025): that one is identity, this one is serialization, and it is identical on
   .NET 8/9/10. An audit fixed four sites;
   `Trinity.Tests/ObjectModel/EncodedUriContact.cs` is a mapped class with `%20` in its class and
@@ -523,6 +526,17 @@ Invariants that surprise newcomers:
   form the localized path uses for the opposite reason (a tagged term in a `FILTER` is matched
   tag-blind). It stayed invisible because Virtuoso's **only** LINQ coverage was two layered-model
   tests — a mapped-string `Where` was never queried against it directly.
+- **A required `member == "constant"` on a mapped string is also looked up by value** (0051): that
+  filter is not indexable, so the lookup grew with the model (30 ms per lookup at 100k on Virtuoso).
+  The translator adds `{ SELECT DISTINCT ?s WHERE { { ?s <p> "x" } UNION { ?s <p> "x"^^xsd:string } } }`
+  in front of the selection and keeps the filters. Both spellings and the `DISTINCT` are load-bearing:
+  **Virtuoso stores an untagged string in one of two forms by write path** (`Commit()`/`INSERT DATA` only
+  match the plain constant, a replacing `Read` only the typed one), while the four RDF 1.1 stores treat
+  the two as one term and would return every row twice. Seed a Virtuoso test through Turtle only and
+  you see one form. The lookup is evaluated before it is joined, so it trades O(model) for O(matches):
+  `Any`/`First`/`Count` over a value many resources hold get slower (in memory `Any` ~1000× at 100k),
+  kept on purpose for the point-lookup case (ADR-0051, `LinqSelectivityBenchmarks`). **Oxigraph is not
+  fixed** — it pushes a binding into neither a sub-select nor a `UNION` — so there it is pure cost.
 
 ## Other architecture notes
 
