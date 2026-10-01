@@ -66,11 +66,23 @@ namespace Semiodesk.Trinity.Tests.Store
         /// </summary>
         public string LastQuery => Queries.Count > 0 ? Queries[Queries.Count - 1] : null;
 
+        /// <summary>
+        /// When set, answers a query in place of the store: a non-null result is returned as it is, and
+        /// <c>null</c> passes the query on. For an answer no real store can be relied on to give, such as one
+        /// that lists resources in a particular order.
+        /// </summary>
+        public Func<ISparqlQuery, ISparqlQueryResult> Answer;
+
+        /// <summary>
+        /// The store the decorator delegates to.
+        /// </summary>
+        public IStore Inner => _store;
+
         public ISparqlQueryResult ExecuteQuery(ISparqlQuery query, ITransaction transaction = null)
         {
             Queries.Add(query.ToString());
 
-            return _store.ExecuteQuery(query, transaction);
+            return Answer?.Invoke(query) ?? _store.ExecuteQuery(query, transaction);
         }
 
         #region Pass-through

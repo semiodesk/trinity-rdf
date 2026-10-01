@@ -470,9 +470,29 @@ namespace Semiodesk.Trinity
 
             ISparqlQueryResult result = ExecuteQuery(query, transaction: transaction);
 
-            IEnumerable<T> resources = result.GetResources<T>();
+            List<T> resources = result.GetResources<T>().ToList();
 
-            foreach (T r in resources)
+            // A DESCRIBE answers with the store's choice of triples, so the answer can hold more resources
+            // than the one asked for. GraphDB's includes the incoming triples: the subject's referrers come
+            // back as resources too, and a subject that is only ever an object comes back as its referrers
+            // alone. Returning the first resource returned one of them. Only the subject is the answer.
+            //
+            // An exact OriginalString match wins: that is RDF identity, and the rest of the read path keys on
+            // it. The UriRef fallback (ADR-0025) exists only because the in-memory store and Fuseki hand the
+            // subject back with its host lower-cased, so an exact match alone would turn those reads into a
+            // not-found. It must not decide when an exact match exists, because Uri equality also ignores
+            // default ports, dot-segments and percent-encoding: a referrer <http://ex.org:80/x> is Uri-equal
+            // to the subject <http://ex.org/x>, and would win whenever the store listed it first.
+            T r = resources.FirstOrDefault(c => c.Uri.OriginalString == uri.OriginalString);
+
+            if (r == null)
+            {
+                UriRef subject = uri as UriRef ?? new UriRef(uri);
+
+                r = resources.FirstOrDefault(c => subject.Equals(c.Uri));
+            }
+
+            if (r != null)
             {
                 r.IsNew = false;
                 r.IsSynchronized = true;

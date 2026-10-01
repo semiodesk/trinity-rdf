@@ -27,9 +27,52 @@
 
 using NUnit.Framework;
 using Semiodesk.Trinity.Tests.Store;
+using System;
 
 namespace Semiodesk.Trinity.Tests.DotNetRDF
 {
     [TestFixture]
-    public class DotNetRDFResourceMappingTest : ResourceMappingTest<DotNetRDFTestSetup> { }
+    public class DotNetRDFResourceMappingTest : ResourceMappingTest<DotNetRDFTestSetup>
+    {
+        /// <summary>
+        /// Reading a resource of about 3000 values allocates in proportion to its size.
+        /// </summary>
+        /// <remarks>
+        /// Reading a resource used to be quadratic in its size, for two reasons (#63): the graph result was read
+        /// by position, re-enumerating it on every access, and the in-memory store's <c>DESCRIBE</c> described
+        /// the subject once per triple. Measured at this size by reverting each fix alone: 6.2 GB and 1.25 GB,
+        /// against 12 MB for the fixed read. So a 100 MB bound can be loose and still never flaky, which a
+        /// bound on time could not. It also pins the call site: a <c>Model.GetResource</c> that built its
+        /// own pattern-bound <c>DESCRIBE</c> would fail here.
+        /// <para>
+        /// In memory only, where the store evaluates on the calling thread, so the per-thread counter sees the
+        /// engine's allocations too; the 1.25 GB above is the engine's. On the server backends the figure
+        /// would include HTTP buffers.
+        /// </para>
+        /// </remarks>
+        [Test]
+        public void ReadingAResourceAllocatesInProportionToItsSize()
+        {
+            var uri = SeedResourceWithThousandsOfValues();
+
+            // The first read of a type pays one-time costs that are not the read's own.
+            var warmup = Model1.CreateResource<MappingTestClass>(BaseUri.GetUriRef("warmup"));
+            warmup.uniqueStringTest = "warmup";
+            warmup.Commit();
+
+            Model1.GetResource<MappingTestClass>(warmup.Uri);
+
+            long before = GC.GetAllocatedBytesForCurrentThread();
+
+            var actual = Model1.GetResource<MappingTestClass>(uri);
+
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            // A read that came back short would be cheap for the wrong reason.
+            Assert.AreEqual(ValuesPerKind, actual.intTest.Count);
+
+            Assert.Less(allocated, 100L * 1024 * 1024,
+                $"reading one resource of {2 * ValuesPerKind} values allocated {allocated / (1024 * 1024)} MB");
+        }
+    }
 }

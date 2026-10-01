@@ -801,9 +801,24 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Gets a SPARQL query which is used to retrieve all triples about a subject that is
-        /// either referenced using a URI or blank node.
+        /// Gets a SPARQL query which is used to retrieve all triples about a subject, identified by a URI.
         /// </summary>
+        /// <remarks>
+        /// A blank id never reaches this: <c>Model.GetResource</c> refuses one through <c>QuerySubject.Require</c>.
+        /// The query is a bare <c>DESCRIBE</c> on purpose, and it is the only one: no store overrides it, which
+        /// <c>ResourceMappingTest.DescribesTheSubjectWithoutAPattern</c> enforces. Four stores used to, with
+        /// <c>DESCRIBE ?s ... WHERE { ?s ?p ?o . VALUES ?s { ... } }</c>, copies of a 2021 blank-id workaround
+        /// whose reason is gone. That form has one solution per triple of the subject, and dotNetRDF's
+        /// in-memory engine describes the subject once per solution: 561 MB instead of 4 MB for a resource
+        /// with 2000 values (#63).
+        /// <para>
+        /// On GraphDB the pattern also did a second job, by accident. GraphDB's <c>DESCRIBE</c> includes the
+        /// incoming triples, and a subject with no outgoing ones gave the pattern no solution, so nothing was
+        /// described; the bare form answers with the referrers' triples instead. A store's answer may hold
+        /// more than the subject, so <c>Model.GetResource&lt;T&gt;</c> returns only the resource whose URI is
+        /// the one asked for, on every store.
+        /// </para>
+        /// </remarks>
         /// <param name="modelUri">The graph to be queried.</param>
         /// <param name="subjectUri">The subject to be described.</param>
         /// <returns>An instance of <c>ISparqlQuery</c></returns>

@@ -47,10 +47,10 @@ namespace Semiodesk.Trinity.Benchmarks
     /// big the model is; if a row grows with it, the query shape is scanning rather than using an
     /// index -- the O(baseline) versus O(changes) distinction ADR-0042 measured at 1000x. The two
     /// <c>GetResource</c> overloads issue different shapes, which is why they sit side by side: the
-    /// untyped one binds its subject with <c>FILTER (?s = @subject)</c> in <c>Model</c>, the typed one
-    /// uses the store's <c>GetDescribeQuery</c>, which each backend may override (the in-memory store's
-    /// puts its <c>VALUES</c> after the <c>?s ?p ?o</c> it constrains). Which of them scales is an
-    /// engine question, so it is measured here rather than asserted.
+    /// untyped one is a <c>SELECT</c> that binds its subject with <c>FILTER (?s = @subject)</c> in
+    /// <c>Model</c>, the typed one the bare <c>DESCRIBE &lt;s&gt; FROM &lt;g&gt;</c> that
+    /// <c>StoreBase.GetDescribeQuery</c> builds for every store. Which of them scales is an engine
+    /// question, so it is measured here rather than asserted.
     ///
     /// Each operation is a category with its own raw baseline, so every Ratio is against the query
     /// that operation stands in for.
