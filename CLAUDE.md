@@ -523,6 +523,15 @@ Invariants that surprise newcomers:
   form the localized path uses for the opposite reason (a tagged term in a `FILTER` is matched
   tag-blind). It stayed invisible because Virtuoso's **only** LINQ coverage was two layered-model
   tests — a mapped-string `Where` was never queried against it directly.
+- **A required `member == "constant"` on a mapped string is also looked up by value** (0051): that
+  filter is not indexable, so the lookup grew with the model (30 ms per lookup at 100k on Virtuoso).
+  The translator adds `{ SELECT DISTINCT ?s WHERE { { ?s <p> "x" } UNION { ?s <p> "x"^^xsd:string } } }`
+  in front of the selection and keeps the filters. Both spellings and the `DISTINCT` are load-bearing:
+  **Virtuoso stores an untagged string in one of two forms by write path** (`Commit()`/`INSERT DATA` only
+  match the plain constant, a replacing `Read` only the typed one), while the four RDF 1.1 stores treat
+  the two as one term and would return every row twice. Seed a Virtuoso test through Turtle only and
+  you see one form. **Oxigraph is not fixed** — it pushes a binding into neither a sub-select nor a
+  `UNION` — and stays O(model) per lookup.
 
 ## Other architecture notes
 
