@@ -1033,6 +1033,44 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         /// <summary>
+        /// Reading many resources compares each against the others a bounded number of times, not once per
+        /// resource already read.
+        /// </summary>
+        /// <remarks>
+        /// Both result readers kept the resources they had emitted in a list and asked
+        /// <c>result.Contains</c> before adding one, which is a linear scan per resource. A typed resource is
+        /// always in the reader's cache before its first triple, so every typed read took that branch: about
+        /// n²/2 comparisons, 74 s for 64,000 resources on Virtuoso against 0.46 s for the raw query. Counting
+        /// <see cref="object.Equals(object)"/> rather than timing makes the bound deterministic; before the
+        /// fix this read made about two million calls.
+        /// </remarks>
+        [Test]
+        public virtual void ReadingManyResourcesComparesEachABoundedNumberOfTimes()
+        {
+            const int count = 2000;
+
+            var turtle = new StringBuilder();
+
+            for (int i = 0; i < count; i++)
+            {
+                turtle.Append(SparqlSerializer.SerializeUri(BaseUri.GetUriRef("counted" + i)))
+                    .Append(" a ").Append(SparqlSerializer.SerializeUri(to.EqualityCountingTestClass.Uri))
+                    .Append(" .\n");
+            }
+
+            Assert.IsTrue(Model1.Read(turtle.ToString(), RdfSerializationFormat.Turtle, true));
+
+            EqualityCountingTestClass.EqualsCalls = 0;
+
+            var actual = Model1.GetResources<EqualityCountingTestClass>().ToList();
+
+            int calls = EqualityCountingTestClass.EqualsCalls;
+
+            Assert.AreEqual(count, actual.Count);
+            Assert.Less(calls, count, $"reading {count} resources made {calls} Equals calls");
+        }
+
+        /// <summary>
         /// Every store reads a resource with a bare <c>DESCRIBE</c>, the one form <c>StoreBase</c> builds.
         /// </summary>
         /// <remarks>

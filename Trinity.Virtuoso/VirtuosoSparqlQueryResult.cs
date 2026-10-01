@@ -176,6 +176,10 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         {
             List<Resource> result = new List<Resource>();
 
+            // What result holds, for the membership test. Asking the list scanned it once per resource,
+            // which made reading n resources O(n²).
+            HashSet<Resource> emitted = new HashSet<Resource>();
+
             if (0 < queryResults.Columns.Count)
             {
                 // A list of global scope variables without the ?. Used to access the
@@ -252,7 +256,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
                         // In this case we may have encountered a resource which was 
                         // added to the cache by the object value handler below.
-                        if (!result.Contains(currentResource))
+                        if (emitted.Add(currentResource))
                         {
                             result.Add(currentResource);
                         }
@@ -268,6 +272,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
                             cache.Add(s.OriginalString, currentResource);
 
+                            emitted.Add(currentResource);
                             result.Add(currentResource);
                         }
                         catch

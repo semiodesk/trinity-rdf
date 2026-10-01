@@ -36,6 +36,8 @@ namespace Semiodesk.Trinity.Tests
 
         public static readonly Class LocalizedMappingTestClass = new Class(new Uri("semio:test:LocalizedMappingTestClass"));
 
+        public static readonly Class EqualityCountingTestClass = new Class(new Uri("semio:test:EqualityCountingTestClass"));
+
         public const string genericTestString = "semio:test:genericTest";
         
         public static readonly Property genericTest = new Property(new Uri(genericTestString));
