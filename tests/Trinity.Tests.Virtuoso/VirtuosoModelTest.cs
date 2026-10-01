@@ -80,5 +80,20 @@ namespace Semiodesk.Trinity.Tests.Virtuoso
 
             Assert.IsFalse(Model1.ContainsResource(resource.Uri));
         }
+
+        /// <summary>
+        /// A graph IRI that cannot be written into the statement verbatim is refused, not sent.
+        /// </summary>
+        /// <remarks>
+        /// Interpolated raw, the space below stops the statement parsing, and the adapter swallows the
+        /// server's refusal (#50): the call returned normally having deleted nothing.
+        /// </remarks>
+        [Test]
+        public void DeleteResourceRefusesAGraphIriThatCannotBeWritten()
+        {
+            var graph = new System.Uri("http://localhost/graph with a space");
+
+            Assert.Throws<System.NotSupportedException>(() => Store.DeleteResource(graph, BaseUri.GetUriRef("deleted")));
+        }
     }
 }

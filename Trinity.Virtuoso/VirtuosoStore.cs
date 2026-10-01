@@ -828,6 +828,20 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         /// <c>UNION</c> binds only its own template triple's variables, and a template triple with an
         /// unbound variable is skipped, so each solution deletes exactly the triple it matched.
         /// </para>
+        /// <para>
+        /// Both IRIs go through <see cref="SparqlSerializer.SerializeUri"/>, which refuses one that cannot be
+        /// written verbatim (ADR-0046). Interpolated raw, a space in the graph IRI stops the statement
+        /// parsing and a <c>&gt;</c> injects text into it, and either way the error handler swallows the
+        /// refusal (#50), so the call would return having deleted nothing.
+        /// </para>
+        /// <para>
+        /// The resource is interpolated rather than bound, which makes a blank node label dangerous: in the
+        /// <c>WHERE</c> a <c>_:</c> label is an existential variable that matches every triple. This form fails
+        /// safe only because the label also appears in the <c>DELETE</c> template, where Virtuoso refuses it
+        /// ("SP031: Blank nodes are not allowed in DELETE constructor patterns") and the graph is left
+        /// untouched. Do not rewrite it as a <c>DELETE WHERE</c>, or into any other shape in which the label
+        /// appears only as a pattern.
+        /// </para>
         /// </remarks>
         public override void DeleteResource(Uri modelUri, Uri resourceUri, ITransaction transaction = null)
         {
@@ -835,10 +849,10 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
             string delete = string.Format(@"
                 SPARQL
-                WITH <{0}>
+                WITH {0}
                 DELETE {{ {1} ?p ?o . ?s ?q {1} . }}
                 WHERE {{ {{ {1} ?p ?o . }} UNION {{ ?s ?q {1} . }} }}",
-                modelUri.OriginalString,
+                SparqlSerializer.SerializeUri(modelUri),
                 resource);
 
             ExecuteDirectQuery(delete, transaction);
