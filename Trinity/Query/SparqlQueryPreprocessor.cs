@@ -109,12 +109,13 @@ namespace Semiodesk.Trinity
 
             switch (token.TokenType)
             {
+                // The form is the outermost keyword's. A sub-select used to overwrite it, so an
+                // ASK { { SELECT ... } } was taken for a SELECT and its answer could not be read.
                 case Token.ASK:
                     {
-                        QueryType = SparqlQueryType.Ask;
-
                         if (_nestingLevel == 0)
                         {
+                            QueryType = SparqlQueryType.Ask;
                             _parseVariables = false;
                             QueryProvidesStatements = false;
                         }
@@ -123,10 +124,9 @@ namespace Semiodesk.Trinity
                     }
                 case Token.DESCRIBE:
                     {
-                        QueryType = SparqlQueryType.Describe;
-
                         if (_nestingLevel == 0)
                         {
+                            QueryType = SparqlQueryType.Describe;
                             _parseVariables = false;
                             QueryProvidesStatements = true;
                         }
@@ -135,10 +135,9 @@ namespace Semiodesk.Trinity
                     }
                 case Token.SELECT:
                     {
-                        QueryType = SparqlQueryType.Select;
-
                         if (_nestingLevel == 0)
                         {
+                            QueryType = SparqlQueryType.Select;
                             _parseVariables = true;
                             QueryProvidesStatements = false;
                         }
@@ -147,10 +146,9 @@ namespace Semiodesk.Trinity
                     }
                 case Token.CONSTRUCT:
                     {
-                        QueryType = SparqlQueryType.Construct;
-
                         if (_nestingLevel == 0)
                         {
+                            QueryType = SparqlQueryType.Construct;
                             _parseVariables = false;
                             QueryProvidesStatements = true;
                         }
