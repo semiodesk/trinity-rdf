@@ -55,8 +55,6 @@
 
   <ItemGroup>
 	<Compile Remove="Properties\AssemblyVersion.cs" />
-    <Compile Remove="Stores\Virtuoso\**" />
-    <EmbeddedResource Remove="Stores\Virtuoso\**" />
   </ItemGroup>
 
   <ItemGroup>
