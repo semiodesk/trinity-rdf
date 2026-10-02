@@ -446,6 +446,36 @@ namespace Semiodesk.Trinity.Tests
         }
 
         /// <summary>
+        /// A blank node label is written bare, so it is held to the shape of one: it has no delimiter to
+        /// keep what follows it out of the query (ADR-0052).
+        /// </summary>
+        [TestCase("_:b0")]
+        [TestCase("_:singularChild")]
+        [TestCase("_:a.b")]
+        [TestCase("_:a-b_c")]
+        [TestCase("_:0")]
+        [TestCase("_:é")]
+        [TestCase("_:-1928796361")]
+        public void WritesABlankNodeLabel(string label)
+        {
+            Assert.AreEqual(label, SparqlSerializer.SerializeUri(new UriRef(label, true)));
+        }
+
+        [TestCase("_:")]
+        [TestCase("_:x } ; DROP ALL ; #")]
+        [TestCase("_:a b")]
+        [TestCase("_:a.")]
+        [TestCase("_:.a")]
+        [TestCase("_:a>b")]
+        [TestCase("_:a'b")]
+        public void RefusesABlankNodeLabelThatIsNotOne(string label)
+        {
+            var e = Assert.Throws<NotSupportedException>(() => SparqlSerializer.SerializeUri(new UriRef(label, true)));
+
+            StringAssert.Contains(label, e.Message, "the message must name the offending label");
+        }
+
+        /// <summary>
         /// Argument validation belongs at the call, not at the caller's foreach. An iterator defers
         /// its whole body, so a bad argument would otherwise surface with a stack pointing at the
         /// consumer instead of the mistake.

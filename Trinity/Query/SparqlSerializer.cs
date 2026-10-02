@@ -219,10 +219,21 @@ namespace Semiodesk.Trinity
         /// and an unescaped one is a parse error that takes every other term in the same query down
         /// with it. Failing here names the offending identifier instead.
         /// </remarks>
-        private static void RequireWritableIri(Uri uri)
+        internal static void RequireWritableIri(Uri uri)
         {
-            string value = uri.OriginalString;
+            RequireWritableIri(uri.OriginalString);
+        }
 
+        /// <summary>
+        /// Rejects the text of an identifier that cannot be written between <c>&lt;</c> and <c>&gt;</c>.
+        /// </summary>
+        /// <remarks>
+        /// For IRI text that does not come from a <see cref="Uri"/>: the preprocessor writes back IRI
+        /// tokens dotNetRDF has already decoded, and a <c>&lt;a>b&gt;</c> in the caller's query
+        /// arrives as a raw <c>&gt;</c> (ADR-0052).
+        /// </remarks>
+        internal static void RequireWritableIri(string value)
+        {
             if (value.IndexOfAny(IriRefForbidden) < 0)
             {
                 bool clean = true;
@@ -278,6 +289,8 @@ namespace Semiodesk.Trinity
             // nodeID:// IRIs that must stay bracketed. See UriExtensions.IsBlankNodeLabel.
             if (uri.IsBlankNodeLabel())
             {
+                RequireWritableBlankNodeLabel(uri.OriginalString);
+
                 return uri.OriginalString;
             }
 
@@ -287,16 +300,64 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// Rejects a blank node label that is not one: <c>_:</c> followed by letters, digits, <c>_</c>,
+        /// <c>-</c> and inner dots.
+        /// </summary>
+        /// <remarks>
+        /// A label is written bare, so it is the one identifier with no delimiter to keep it apart from
+        /// what follows. It used to be written as given whenever it started with <c>_:</c>, so
+        /// <c>_:x } ; DROP ALL ; #</c> was written into the query as text (ADR-0052). The rule is the
+        /// characters of <c>BLANK_NODE_LABEL</c>, which none of can end a label: any letter counts where
+        /// the grammar lists ranges of them, and a leading <c>-</c> is accepted although the grammar has
+        /// none, because dotNetRDF mints labels from integers that can be negative
+        /// (<c>SELECT BNODE()</c> returned <c>_:-1928796361</c>) and its parser accepts them. Both can only
+        /// admit a label a store then refuses, never one that lets text through.
+        /// </remarks>
+        private static void RequireWritableBlankNodeLabel(string label)
+        {
+            bool valid = label.Length > 2;
+
+            for (int i = 2; valid && i < label.Length; i++)
+            {
+                char c = label[i];
+
+                bool nameChar = char.IsLetter(c) || c == '_' || c == '-' || (c >= '0' && c <= '9');
+
+                if (i > 2)
+                {
+                    nameChar |= c == '·' || (c >= '̀' && c <= 'ͯ') || c == '‿' || c == '⁀'
+                        || (c == '.' && i < label.Length - 1);
+                }
+
+                valid = nameChar;
+            }
+
+            if (!valid)
+            {
+                throw new NotSupportedException(
+                    $"The blank node identifier '{label}' cannot be written into a SPARQL query: a label is "
+                    + "'_:' followed by letters, digits, '_', '-' and inner '.' only.");
+            }
+        }
+
+        /// <summary>
         /// Serializes a URI in a position where the grammar demands an <c>IRIREF</c> — a
         /// <c>PREFIX</c> declaration, a datatype, a dataset clause.
         /// </summary>
         /// <remarks>
         /// Always bracketed. <see cref="SerializeUri"/> emits a blank node label bare, which is a
         /// syntax error in any of these positions, so this refuses one outright rather than
-        /// producing a query that cannot parse.
+        /// producing a query that cannot parse. A graph name - after <c>GRAPH</c>, <c>WITH</c>,
+        /// <c>FROM</c> or <c>INTO</c> - is such a position too.
+        /// <para>
+        /// Public because a store adapter writes these positions itself, and must write them through
+        /// the same guard (ADR-0052).
+        /// </para>
         /// </remarks>
         /// <param name="uri">A uniform resource identifier.</param>
-        internal static string SerializeIriRef(Uri uri)
+        /// <exception cref="NotSupportedException">The IRI cannot be written verbatim, or is a blank
+        /// node identifier.</exception>
+        public static string SerializeIriRef(Uri uri)
         {
             if (uri == null)
             {
