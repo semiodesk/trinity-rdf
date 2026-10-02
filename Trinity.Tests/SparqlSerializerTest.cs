@@ -15,7 +15,7 @@ namespace Semiodesk.Trinity.Tests
             r.AddProperty(Ontologies.dc.title, "MyResource");
 
             string res = SparqlSerializer.SerializeResource(r);
-            string expected = "<http://example.com/ex> <http://purl.org/dc/elements/1.1/title> 'MyResource'. ";
+            string expected = "<http://example.com/ex> <http://purl.org/dc/elements/1.1/title> \"MyResource\". ";
 
             Assert.AreEqual(expected, res);
         }
@@ -27,7 +27,7 @@ namespace Semiodesk.Trinity.Tests
             contact.NameGiven = "Peter";
 
             var res = SparqlSerializer.SerializeResource(contact);
-            var expected = "<http://example.com/ex> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#nameGiven> 'Peter'; <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact>. ";
+            var expected = "<http://example.com/ex> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#nameGiven> \"Peter\"; <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact>. ";
             
             Assert.AreEqual(expected, res);
         }
@@ -48,7 +48,7 @@ namespace Semiodesk.Trinity.Tests
             PersonContact contact = new PersonContact(new Uri("http://example.com/ex"));
             contact.NameGiven = "Peter";
 
-            StringAssert.Contains("'Peter';", SparqlSerializer.SerializeResource(contact));
+            StringAssert.Contains("\"Peter\";", SparqlSerializer.SerializeResource(contact));
             StringAssert.DoesNotContain("@", SparqlSerializer.SerializeResource(contact));
         }
 
@@ -59,7 +59,20 @@ namespace Semiodesk.Trinity.Tests
         [TestCase]
         public void TestLangStringSerializesWithItsTag()
         {
-            Assert.AreEqual("'Hallo Welt'@de", SparqlSerializer.SerializeValue(new LangString("Hallo Welt", "DE")));
+            Assert.AreEqual("\"Hallo Welt\"@de", SparqlSerializer.SerializeValue(new LangString("Hallo Welt", "DE")));
+        }
+
+        /// <summary>
+        /// A value refused for what it contains is reported with that reason, not only as a type with no
+        /// serializer.
+        /// </summary>
+        [TestCase]
+        public void SerializeValueKeepsTheCauseOfARefusal()
+        {
+            var error = Assert.Throws<ArgumentException>(() => SparqlSerializer.SerializeValue(new UriRef("http://example.org/a b")));
+
+            Assert.IsInstanceOf<NotSupportedException>(error.InnerException);
+            StringAssert.Contains("http://example.org/a b", error.InnerException.Message);
         }
 
         [TestCase]

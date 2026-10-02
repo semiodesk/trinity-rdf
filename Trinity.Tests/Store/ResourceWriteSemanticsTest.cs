@@ -28,6 +28,7 @@
 using System;
 using NUnit.Framework;
 using Semiodesk.Trinity.Tests.Linq;
+using Semiodesk.Trinity.Tests.Query;
 using System.Linq;
 
 namespace Semiodesk.Trinity.Tests.Store
@@ -724,6 +725,60 @@ namespace Semiodesk.Trinity.Tests.Store
             var reloaded = Model1.GetResource<Person>(parentUri);
 
             Assert.AreEqual(0, reloaded.KnownPeople.Count, "A removed link must be deleted from the store.");
+        }
+
+        /// <summary>
+        /// Replacing one value with another, where both are hard to write, leaves exactly the new one -
+        /// through the delta, the wholesale replace and the bulk API (ADR-0052).
+        /// </summary>
+        /// <remarks>
+        /// Each path writes the old value into a <c>DELETE</c> template, so a value that does not come out
+        /// of the serializer exactly as it went in would leave the old triple behind, or delete another.
+        /// </remarks>
+        [Test]
+        public void ReplacingAnyStringValueLeavesOnlyTheNewOne()
+        {
+            string[] values = HostileLiterals.Values(Model2.Uri);
+
+            var delta = BaseUri.GetUriRef("any-string-delta");
+            var wholesale = BaseUri.GetUriRef("any-string-wholesale");
+            var bulk = BaseUri.GetUriRef("any-string-bulk");
+
+            foreach (var uri in new[] { delta, wholesale, bulk })
+            {
+                var contact = Model1.CreateResource<PersonContact>(uri);
+                contact.NameGiven = values[0];
+                contact.Commit();
+            }
+
+            for (int i = 1; i < values.Length; i++)
+            {
+                string value = values[i];
+                string name = SparqlLiteralOracle.Display(value);
+
+                var loaded = Model1.GetResource<PersonContact>(delta);
+                loaded.NameGiven = value;
+                loaded.Commit();
+
+                // Neither new nor synchronized: the only route to the wholesale branch.
+                var replacement = new PersonContact(wholesale);
+                replacement.SetModel(Model1);
+                replacement.NameGiven = value;
+                replacement.IsNew = false;
+                replacement.Commit();
+
+                var batched = Model1.GetResource<PersonContact>(bulk);
+                batched.NameGiven = value;
+                Model1.UpdateResources(new Resource[] { batched });
+
+                foreach (var uri in new[] { delta, wholesale, bulk })
+                {
+                    Assert.AreEqual(1, HostileLiterals.CountValues(Model1, uri, NCO.nameGiven), uri + " " + name);
+                    Assert.AreEqual(value, Model1.GetResource<PersonContact>(uri).NameGiven, uri + " " + name);
+                }
+            }
+
+            HostileLiterals.AssertNothingEscaped(Store, Model1, Model2);
         }
 
         #endregion

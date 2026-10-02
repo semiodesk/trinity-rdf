@@ -30,6 +30,7 @@ using Newtonsoft.Json;
 using Semiodesk.Trinity.Ontologies;
 using Semiodesk.Trinity.Query.Sparql;
 using Semiodesk.Trinity.Serialization;
+using Semiodesk.Trinity.Tests.Query;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -344,8 +345,46 @@ namespace Semiodesk.Trinity.Tests.Store
             r1.Commit();
 
             actual = Model1.GetResource<MappingTestClass>(_r1);
-            
+
             Assert.AreEqual(r1.uniqueStringTest, actual.uniqueStringTest);
+        }
+
+        /// <summary>
+        /// A mapped string or string collection holding any value round-trips exactly through
+        /// <c>Commit()</c>, and writes nothing but itself (ADR-0052).
+        /// </summary>
+        /// <remarks>
+        /// Each value is read back through <c>GetResource</c> and its triples counted in the store. Until
+        /// 2.0 a value containing a newline was written in the long form <c>'''…'''</c>, which escaped no
+        /// quotes: a value containing three apostrophes as well ended the literal early, and the rest of
+        /// it was read as part of the update. A lone carriage return made the commit throw, and a
+        /// several-line value ending in an apostrophe was refused by Fuseki and silently not written by
+        /// Virtuoso.
+        /// </remarks>
+        [Test]
+        public virtual void AnyStringValueRoundTripsThroughCommit()
+        {
+            string[] values = HostileLiterals.Values(Model2.Uri);
+
+            for (int i = 0; i < values.Length; i++)
+            {
+                string value = values[i];
+                string name = SparqlLiteralOracle.Display(value);
+                var uri = BaseUri.GetUriRef("any-string-" + i);
+
+                var contact = Model1.CreateResource<PersonContact>(uri);
+                contact.NameGiven = value;
+                contact.NameAdditional.Add(value);
+                contact.Commit();
+
+                var actual = Model1.GetResource<PersonContact>(uri);
+
+                Assert.AreEqual(value, actual.NameGiven, name);
+                CollectionAssert.AreEqual(new[] { value }, actual.NameAdditional, name);
+                Assert.AreEqual(1, HostileLiterals.CountValues(Model1, uri, NCO.nameGiven), name);
+            }
+
+            HostileLiterals.AssertNothingEscaped(Store, Model1, Model2);
         }
 
         [Test]

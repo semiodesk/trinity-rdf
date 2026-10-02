@@ -42,25 +42,68 @@ namespace Semiodesk.Trinity
         #region Methods
 
         /// <summary>
-        /// Serializes a string and excapes special characters.
+        /// The characters a short double-quoted literal cannot hold raw, plus the tab, which is escaped
+        /// for readability.
         /// </summary>
+        private static readonly char[] LiteralEscaped = { '\\', '"', '\n', '\r', '\t' };
+
+        /// <summary>
+        /// Serializes a string as a SPARQL string literal, escaping what the grammar requires.
+        /// </summary>
+        /// <remarks>
+        /// This is the one place a literal's syntax is decided; every other writer calls it (ADR-0052).
+        /// The form is always the short double-quoted one, <c>STRING_LITERAL2</c>, which can hold any
+        /// character except <c>"</c>, <c>\</c>, LF and CR raw - so those four are escaped, and the tab
+        /// with them. The result is the same N-Triples needs, which is why
+        /// <see cref="LangString.ToNTriples"/> uses it too.
+        /// <para>
+        /// Two escapes are never written. <c>\uXXXX</c>, because SPARQL 1.1 §19.2 decodes it before the
+        /// query is parsed, so <c>"</c> would arrive as a bare quote. And <c>\'</c>, because a
+        /// single quote needs no escape inside double quotes and dotNetRDF's tokenizer refuses one there.
+        /// </para>
+        /// <para>
+        /// The long form <c>'''…'''</c>, used for any value containing a newline until 2.0, is gone. It
+        /// escaped no quotes at all, so a value containing a newline and three apostrophes ended the
+        /// literal early and the rest of the value was read as part of the update.
+        /// </para>
+        /// <para>
+        /// <see cref="SparqlPreprocessor"/> tokenizes every query and update and writes each literal
+        /// back out through this method, so the output must be a fixed point: serializing the decoded
+        /// value of a literal this method wrote must reproduce it exactly.
+        /// </para>
+        /// </remarks>
         /// <param name="str">A string literal.</param>
-        /// <returns></returns>
+        /// <returns>The literal, quoted and escaped.</returns>
         public static string SerializeString(string str)
         {
-            // We need to escape specrial characters: http://www.w3.org/TeamSubmission/turtle/#sec-strings
-            string s = str.Replace(@"\", @"\\");
-
-            if(s.Contains('\n'))
+            if (str == null)
             {
-                return string.Format("'''{0}'''", s);
+                throw new ArgumentNullException(nameof(str));
             }
-            else
-            {
-                s = s.Replace("'", "\\'");
 
-                return string.Format("'{0}'", s);
+            if (str.IndexOfAny(LiteralEscaped) < 0)
+            {
+                return "\"" + str + "\"";
             }
+
+            var result = new StringBuilder(str.Length + 8);
+
+            result.Append('"');
+
+            foreach (char c in str)
+            {
+                switch (c)
+                {
+                    case '\\': result.Append("\\\\"); break;
+                    case '"': result.Append("\\\""); break;
+                    case '\n': result.Append("\\n"); break;
+                    case '\r': result.Append("\\r"); break;
+                    case '\t': result.Append("\\t"); break;
+                    default: result.Append(c); break;
+                }
+            }
+
+            return result.Append('"').ToString();
         }
 
         /// <summary>
@@ -124,10 +167,12 @@ namespace Semiodesk.Trinity
                     return SerializeTypedLiteral(obj, XsdTypeMapper.GetXsdTypeUri(obj.GetType()));
                 }
             }
-            catch
+            catch (Exception e)
             {
+                // The cause is kept: a value refused for what it contains, such as an IRI that cannot
+                // be written verbatim, would otherwise read as a type with no serializer.
                 string msg = string.Format("No serializer availabe for object of type {0}.", obj.GetType());
-                throw new ArgumentException(msg);
+                throw new ArgumentException(msg, e);
             }
         }
 

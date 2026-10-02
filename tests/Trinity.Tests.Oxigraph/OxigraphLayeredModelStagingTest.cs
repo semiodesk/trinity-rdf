@@ -33,5 +33,16 @@ namespace Semiodesk.Trinity.Tests.Oxigraph
     /// Runs the store-independent layered-model staging suite against Oxigraph (ADR-0042).
     /// </summary>
     [TestFixture]
-    public class OxigraphLayeredModelStagingTest : LayeredModelStagingTest<OxigraphTestSetup> { }
+    public class OxigraphLayeredModelStagingTest : LayeredModelStagingTest<OxigraphTestSetup>
+    {
+        /// <summary>
+        /// Inconclusive: a view reads through <c>SELECT</c> bindings, and Oxigraph returns a stored CR in
+        /// them as LF. See <c>OxigraphSparqlQueryTest.BindingsPreserveACarriageReturn</c>.
+        /// </summary>
+        [Test]
+        public override void AnyStringValueIsStagedAndAcceptedExactly()
+        {
+            Assert.Inconclusive("Oxigraph returns a stored CR as LF in SELECT bindings (XML results); the stored value is exact.");
+        }
+    }
 }

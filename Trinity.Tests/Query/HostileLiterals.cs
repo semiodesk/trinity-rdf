@@ -107,6 +107,35 @@ namespace Semiodesk.Trinity.Tests.Query
         }
 
         /// <summary>
+        /// Asserts that no payload took effect: the sentinel is in neither <paramref name="model"/> nor any
+        /// other graph, and the <paramref name="victim"/> graph the payloads aimed at is still empty.
+        /// </summary>
+        public static void AssertNothingEscaped(IStore store, IModel model, IModel victim)
+        {
+            string sentinel = SparqlSerializer.SerializeUri(Sentinel);
+
+            Assert.IsFalse(model.ExecuteQuery(new SparqlQuery("ASK WHERE { " + sentinel + " ?p ?o }")).GetAnwser(),
+                "a value ended its literal early and wrote the sentinel into the model");
+            Assert.IsTrue(victim.IsEmpty,
+                "a value ended its literal early and wrote into another graph");
+            Assert.IsFalse(store.ExecuteQuery(new SparqlQuery("ASK WHERE { GRAPH ?g { " + sentinel + " ?p ?o } }")).GetAnwser(),
+                "a value ended its literal early and wrote the sentinel into some graph");
+        }
+
+        /// <summary>
+        /// How many values <paramref name="model"/> holds for a property, asked of the store rather than of
+        /// a mapped resource: a single-valued mapping shows one value even when two are stored.
+        /// </summary>
+        public static int CountValues(IModel model, Uri subject, string predicate)
+        {
+            var query = new SparqlQuery("SELECT ?o WHERE { @subject @predicate ?o }")
+                .Bind("@subject", subject)
+                .Bind("@predicate", new Uri(predicate));
+
+            return model.GetBindings(query).Count();
+        }
+
+        /// <summary>
         /// The corpus as NUnit cases, named so a failure says which value it was.
         /// </summary>
         public static IEnumerable<TestCaseData> Cases()
