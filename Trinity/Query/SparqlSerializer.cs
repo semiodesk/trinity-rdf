@@ -658,7 +658,7 @@ namespace Semiodesk.Trinity
                 // FROM is right. Otherwise FROM would merge the three layers into the default graph,
                 // which is union - the overlay needs them addressable by name instead.
                 return layered.IsMaterialized
-                    ? "FROM " + SerializeUri(layered.Materialized.Uri) + " "
+                    ? "FROM " + SerializeIriRef(layered.Materialized.Uri) + " "
                     : LayeredModelSparql.NamedDatasetClause(layered);
             }
 
@@ -667,7 +667,7 @@ namespace Semiodesk.Trinity
                 return GenerateDatasetClause(model as IModelGroup);
             }
 
-            return "FROM " + SerializeUri(model.Uri) + " ";
+            return "FROM " + SerializeIriRef(model.Uri) + " ";
         }
 
         /// <summary>
@@ -704,7 +704,7 @@ namespace Semiodesk.Trinity
             foreach (var model in models)
             {
                 resultBuilder.Append("FROM ");
-                resultBuilder.Append(SparqlSerializer.SerializeUri(model.Uri));
+                resultBuilder.Append(SparqlSerializer.SerializeIriRef(model.Uri));
                 resultBuilder.Append(" ");
             }
 

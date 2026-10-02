@@ -26,6 +26,7 @@
 // Copyright (c) Semiodesk GmbH 2023
 
 using System;
+using System.Collections.Generic;
 using NUnit.Framework;
 using Semiodesk.Trinity.Tests.Linq;
 using Semiodesk.Trinity.Tests.Query;
@@ -776,6 +777,57 @@ namespace Semiodesk.Trinity.Tests.Store
                     Assert.AreEqual(1, HostileLiterals.CountValues(Model1, uri, NCO.nameGiven), uri + " " + name);
                     Assert.AreEqual(value, Model1.GetResource<PersonContact>(uri).NameGiven, uri + " " + name);
                 }
+            }
+
+            HostileLiterals.AssertNothingEscaped(Store, Model1, Model2);
+        }
+
+        /// <summary>
+        /// A graph IRI that cannot be written verbatim is refused by every write path, naming it, and
+        /// nothing is written (ADR-0052).
+        /// </summary>
+        /// <remarks>
+        /// Each path wrote the graph's <c>OriginalString</c> between angle brackets, so a <c>&gt;</c> in it
+        /// ended the IRI and the rest was read as part of the update. This one completes the insert
+        /// template into three operations, the second writing the sentinel into <c>Model2</c>.
+        /// </remarks>
+        [Test]
+        public virtual void AGraphIriThatCannotBeWrittenIsRefusedByEveryWritePath()
+        {
+            string s = SparqlSerializer.SerializeUri(HostileLiterals.Sentinel);
+            string triple = s + " " + s + " " + s;
+
+            var graph = new UriRef("http://example.org/g> { " + triple + " } } ; INSERT DATA { GRAPH "
+                + SparqlSerializer.SerializeIriRef(Model2.Uri) + " { " + triple + " } } ; INSERT { GRAPH <http://example.org/x",
+                UriKind.RelativeOrAbsolute);
+
+            var created = new PersonContact(BaseUri.GetUriRef("graph-iri-new"));
+            created.NameGiven = "created";
+
+            var replacement = new PersonContact(BaseUri.GetUriRef("graph-iri-wholesale"));
+            replacement.NameGiven = "replaced";
+            replacement.IsNew = false;
+
+            var committed = Model1.CreateResource<PersonContact>(BaseUri.GetUriRef("graph-iri-delta"));
+            committed.NameGiven = "before";
+            committed.Commit();
+
+            var loaded = Model1.GetResource<PersonContact>(committed.Uri);
+            loaded.NameGiven = "after";
+
+            var refusals = new Dictionary<string, TestDelegate>
+            {
+                { "insert", () => Store.UpdateResource(created, graph) },
+                { "wholesale", () => Store.UpdateResource(replacement, graph) },
+                { "delta", () => Store.UpdateResource(loaded, graph) },
+                { "bulk", () => Store.UpdateResources(new Resource[] { loaded }, graph) },
+            };
+
+            foreach (var refusal in refusals)
+            {
+                var e = Assert.Throws<NotSupportedException>(refusal.Value, refusal.Key);
+
+                StringAssert.Contains("http://example.org/g>", e.Message, refusal.Key);
             }
 
             HostileLiterals.AssertNothingEscaped(Store, Model1, Model2);

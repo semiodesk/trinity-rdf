@@ -177,7 +177,7 @@ namespace Semiodesk.Trinity
             // it takes for the same templates to run natively against the effective triples.
             _effectiveDatasetClause = materialized == null
                 ? LayeredModelSparql.NamedDatasetClause(this)
-                : "FROM " + SparqlSerializer.SerializeUri(materialized.Uri) + " ";
+                : "FROM " + SparqlSerializer.SerializeIriRef(materialized.Uri) + " ";
 
             foreach (MethodInfo methodInfo in GetType().GetMethods())
             {
@@ -846,7 +846,7 @@ namespace Semiodesk.Trinity
 
         private static string Graph(IModel model)
         {
-            return SparqlSerializer.SerializeUri(model.Uri);
+            return SparqlSerializer.SerializeIriRef(model.Uri);
         }
 
         #endregion

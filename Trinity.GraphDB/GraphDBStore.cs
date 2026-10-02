@@ -181,7 +181,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
             {
                 updateString = string.Format(@"
                     INSERT DATA {{ GRAPH {0} {{  {1} }} }} ",
-                    SparqlSerializer.SerializeUri(modelUri),
+                    SparqlSerializer.SerializeIriRef(modelUri),
                     SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
             }
             else if (TryBuildDeltaUpdate(resource, modelUri, ignoreUnmappedProperties, out updateString))
@@ -207,7 +207,7 @@ namespace Semiodesk.Trinity.Store.GraphDB
                 updateString = string.Format(@"
                     DELETE WHERE {{ GRAPH {0} {{ {1} ?p ?o. }} }} ;
                     INSERT DATA {{ GRAPH {0} {{ {2} }} }} ",
-                    SparqlSerializer.SerializeUri(modelUri),
+                    SparqlSerializer.SerializeIriRef(modelUri),
                     SparqlSerializer.SerializeUri(resource.Uri),
                     SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
             }
