@@ -30,7 +30,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Globalization;
-using System.Xml;
 
 namespace Semiodesk.Trinity
 {
@@ -120,14 +119,21 @@ namespace Semiodesk.Trinity
         /// <summary>
         /// Serializes a typed literal.
         /// </summary>
-        /// <param name="obj">A value.</param>
+        /// <remarks>
+        /// The lexical form goes through <see cref="SerializeString"/> like any other literal. It used to
+        /// be placed between quotes unescaped, which was harmless for the lexical forms Trinity's own
+        /// writes produce - numbers, dates, base64 - but not for a string: <c>XsdTypeMapper</c> wrapped
+        /// one in quotes of its own, so <c>"abc"^^xsd:anyURI</c> stored the lexical form with the quotes,
+        /// and an apostrophe ended the literal early (ADR-0052). The datatype goes through
+        /// <see cref="SerializeIriRef"/>, never the raw <see cref="Uri"/>, whose <c>ToString()</c> returns
+        /// the display form and unescapes percent-encoding (ADR-0046).
+        /// </remarks>
+        /// <param name="obj">A value; a string is taken as the lexical form itself.</param>
         /// <param name="typeUri">A type URI.</param>
         /// <returns></returns>
         public static string SerializeTypedLiteral(object obj, Uri typeUri)
         {
-            // SerializeUri, not the raw Uri: interpolating one calls Uri.ToString(), which returns the
-            // display form and unescapes percent-encoding. See SerializeUri and ADR-0046.
-            return string.Format("'{0}'^^{1}", XsdTypeMapper.SerializeObject(obj), SerializeIriRef(typeUri));
+            return SerializeString(XsdTypeMapper.SerializeObject(obj)) + "^^" + SerializeIriRef(typeUri);
         }
 
         /// <summary>
@@ -183,7 +189,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string SerializeDateTime(DateTime date)
         {
-            return string.Format("'{0}'^^<http://www.w3.org/2001/XMLSchema#dateTime>", XmlConvert.ToString((DateTime)date, XmlDateTimeSerializationMode.Utc));
+            return SerializeTypedLiteral(date, XsdTypeMapper.GetXsdTypeUri(typeof(DateTime)));
         }
 
         /// <summary>

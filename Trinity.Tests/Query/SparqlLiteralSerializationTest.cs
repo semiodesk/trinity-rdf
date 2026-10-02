@@ -149,6 +149,44 @@ namespace Semiodesk.Trinity.Tests.Query
             Assert.AreEqual(value, ((ILiteralNode)((NodeMatchPattern)pattern.Object).Node).Value);
         }
 
+        /// <summary>
+        /// A typed literal's lexical form is escaped like any other literal, and holds the value without
+        /// quotes of its own.
+        /// </summary>
+        [TestCaseSource(typeof(HostileLiterals), nameof(HostileLiterals.Cases))]
+        public void ATypedLiteralHoldsTheValueAsItsLexicalForm(string value)
+        {
+            var datatype = new Uri("http://www.w3.org/2001/XMLSchema#anyURI");
+
+            string text = SparqlSerializer.SerializeTypedLiteral(value, datatype);
+            string literal = SparqlLiteralOracle.SplitSuffix(text, out string suffix);
+
+            Assert.IsTrue(SparqlLiteralOracle.IsOneLiteral(literal), SparqlLiteralOracle.Display(text));
+            Assert.AreEqual(value, SparqlLiteralOracle.Decode(literal));
+            Assert.AreEqual("^^<http://www.w3.org/2001/XMLSchema#anyURI>", suffix);
+        }
+
+        /// <summary>
+        /// The reported case: a string passed to <see cref="SparqlSerializer.SerializeTypedLiteral"/> used
+        /// to come out as <c>'"abc"'^^…</c>, a lexical form with the quotes in it.
+        /// </summary>
+        [Test]
+        public void ATypedLiteralFromAStringHasNoQuotesInItsLexicalForm()
+        {
+            Assert.AreEqual("\"abc\"^^<http://www.w3.org/2001/XMLSchema#anyURI>",
+                SparqlSerializer.SerializeTypedLiteral("abc", new Uri("http://www.w3.org/2001/XMLSchema#anyURI")));
+        }
+
+        [Test]
+        public void ADateTimeIsWrittenAsATypedLiteral()
+        {
+            var date = new DateTime(2026, 9, 21, 10, 15, 0, DateTimeKind.Utc);
+
+            Assert.AreEqual("\"2026-09-21T10:15:00Z\"^^<http://www.w3.org/2001/XMLSchema#dateTime>",
+                SparqlSerializer.SerializeDateTime(date));
+            Assert.AreEqual(SparqlSerializer.SerializeValue(date), SparqlSerializer.SerializeDateTime(date));
+        }
+
         [Test]
         public void RefusesNull()
         {

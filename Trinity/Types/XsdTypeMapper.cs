@@ -315,13 +315,19 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Serialize a string
+        /// Serialize a string to its lexical form, which is the string itself.
         /// </summary>
+        /// <remarks>
+        /// Unquoted, like every other serializer here: these produce lexical forms, and the literal's
+        /// syntax is <c>SparqlSerializer.SerializeString</c>'s to decide (ADR-0052). This used to return
+        /// the value between quotes, unescaped, so a typed literal built from a string stored the quotes
+        /// as part of its lexical form.
+        /// </remarks>
         /// <param name="obj"></param>
         /// <returns></returns>
         public static string SerializeString(object obj)
         {
-            return "\"" + obj.ToString() + "\"";
+            return obj.ToString();
         }
 
         /// <summary>

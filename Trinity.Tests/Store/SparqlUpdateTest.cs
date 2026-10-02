@@ -29,6 +29,8 @@ using NUnit.Framework;
 using System;
 using Semiodesk.Trinity.Ontologies;
 using Semiodesk.Trinity.Tests.Linq;
+using Semiodesk.Trinity.Tests.Query;
+using System.Linq;
 
 namespace Semiodesk.Trinity.Tests.Store
 {
@@ -191,8 +193,48 @@ namespace Semiodesk.Trinity.Tests.Store
             ";
             
             var update = new SparqlUpdate(updateString);
-            
+
             Assert.DoesNotThrow(() => update.ToString());
+        }
+
+        /// <summary>
+        /// Any string written as the lexical form of a typed literal is stored exactly, with the datatype,
+        /// and writes nothing else (ADR-0052).
+        /// </summary>
+        /// <remarks>
+        /// The datatype is one no deserializer knows, so every store hands the lexical form back as a
+        /// string. <c>SerializeTypedLiteral</c> used to place a string between quotes of
+        /// <c>XsdTypeMapper</c>'s own, unescaped: <c>abc</c> was stored with the quotes, and an apostrophe
+        /// ended the literal early.
+        /// </remarks>
+        [Test]
+        public void AnyStringIsStoredExactlyAsTheLexicalFormOfATypedLiteral()
+        {
+            var datatype = new Uri("http://example.org/datatype#text");
+            var predicate = new Uri("http://example.org/typed");
+
+            string[] values = HostileLiterals.Values(Model2.Uri);
+
+            for (int i = 0; i < values.Length; i++)
+            {
+                var subject = BaseUri.GetUriRef("typed-" + i);
+
+                Model1.ExecuteUpdate(new SparqlUpdate("INSERT DATA { GRAPH @graph { @subject @predicate " +
+                        SparqlSerializer.SerializeTypedLiteral(values[i], datatype) + " . } }")
+                    .Bind("@graph", Model1)
+                    .Bind("@subject", subject)
+                    .Bind("@predicate", predicate));
+
+                var query = new SparqlQuery("SELECT ?o WHERE { @subject @predicate ?o . FILTER(DATATYPE(?o) = @datatype) }")
+                    .Bind("@subject", subject)
+                    .Bind("@predicate", predicate)
+                    .Bind("@datatype", datatype);
+
+                CollectionAssert.AreEqual(new[] { values[i] }, Model1.GetBindings(query).Select(b => b["o"]),
+                    SparqlLiteralOracle.Display(values[i]));
+            }
+
+            HostileLiterals.AssertNothingEscaped(Store, Model1, Model2);
         }
     }
 }

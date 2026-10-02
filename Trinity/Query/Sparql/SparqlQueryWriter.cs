@@ -345,7 +345,7 @@ namespace Semiodesk.Trinity.Query.Sparql
             }
             else if (literal.Datatype != null)
             {
-                _builder.Append("^^<").Append(literal.Datatype.OriginalString).Append('>');
+                _builder.Append("^^").Append(SparqlSerializer.SerializeIriRef(literal.Datatype));
             }
         }
 
