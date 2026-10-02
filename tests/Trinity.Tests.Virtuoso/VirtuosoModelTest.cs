@@ -95,5 +95,35 @@ namespace Semiodesk.Trinity.Tests.Virtuoso
 
             Assert.Throws<System.NotSupportedException>(() => Store.DeleteResource(graph, BaseUri.GetUriRef("deleted")));
         }
+
+        /// <summary>
+        /// A graph is listed under the name it was written with, percent-encoding included.
+        /// </summary>
+        /// <remarks>
+        /// <c>ListModels</c> built each model from <c>Uri.ToString()</c>, which unescapes: a graph named
+        /// with <c>%3E</c> came back holding a raw <c>&gt;</c>, a name no query could then be written with
+        /// (ADR-0046, ADR-0052).
+        /// </remarks>
+        [Test]
+        public void ListModelsKeepsAPercentEncodedGraphName()
+        {
+            var graph = BaseUri.GetUriRef("graph%3Eencoded");
+            var model = Store.GetModel(graph);
+
+            try
+            {
+                var resource = model.CreateResource(BaseUri.GetUriRef("in-encoded-graph"));
+                resource.AddProperty(new Property(BaseUri.GetUriRef("label")), "x");
+                resource.Commit();
+
+                var listed = System.Linq.Enumerable.Select(Store.ListModels(), m => m.Uri.OriginalString);
+
+                CollectionAssert.Contains(listed, graph.OriginalString);
+            }
+            finally
+            {
+                model.Clear();
+            }
+        }
     }
 }

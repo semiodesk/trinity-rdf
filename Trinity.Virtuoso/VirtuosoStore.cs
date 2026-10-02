@@ -192,8 +192,12 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                     // boolean -- so the Rows.Count > 0 test below answered true for every URI,
                     // including graphs that were never written. A SELECT with LIMIT 1 returns no rows
                     // when the graph is absent or empty, which is what the row count is asking.
+                    //
+                    // The graph keeps its AbsoluteUri spelling, which the manager's Read also names it by
+                    // (#53), but now goes through the guard rather than being interpolated (ADR-0052).
                     string query = string.Format(
-                        "SPARQL SELECT ?s WHERE {{ GRAPH <{0}> {{ ?s ?p ?o . }} }} LIMIT 1", uri.AbsoluteUri);
+                        "SPARQL SELECT ?s WHERE {{ GRAPH {0} {{ ?s ?p ?o . }} }} LIMIT 1",
+                        SparqlSerializer.SerializeIriRef(new UriRef(uri.AbsoluteUri)));
 
                     using (var result = ExecuteQuery(query, transaction))
                     {
@@ -224,7 +228,9 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                 {
                     var x = b["g"];
 
-                    model = new Model(this, new UriRef(x.ToString()));
+                    // OriginalString, not ToString(), which unescapes percent-encoding: a graph named
+                    // with %3E came back with a raw '>' (ADR-0046, ADR-0052).
+                    model = new Model(this, new UriRef(x is Uri graph ? graph.OriginalString : x.ToString()));
                 }
                 catch (Exception)
                 {
@@ -283,7 +289,8 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                     throw new Exception("You tried to query with inferencing but the inference rule is empty or not set.");
                 }
 
-                queryBuilder.Append("DEFINE input:inference '" + _defaultInferenceRule + "' \n");
+                // The rule set's name is a string literal, so it is written like one (ADR-0052).
+                queryBuilder.Append("DEFINE input:inference " + SparqlSerializer.SerializeString(_defaultInferenceRule) + " \n");
             }
 
             queryBuilder.Append(query.ToString());
@@ -738,9 +745,9 @@ namespace Semiodesk.Trinity.Store.Virtuoso
 
                 updateString = string.Format(@"
                     SPARQL
-                    WITH <{0}>
+                    WITH {0}
                     INSERT {{ {1} }} ",
-                    modelUri.OriginalString,
+                    SparqlSerializer.SerializeIriRef(modelUri),
                     SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
             }
             else if (TryBuildDeltaUpdate(resource, modelUri, ignoreUnmappedProperties, out updateString))
@@ -776,11 +783,11 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                 // CommitOfAnUnsynchronizedResourceReplacesItAndLinksABlankNodeOnce guards both.
                 updateString = string.Format(@"
                     SPARQL
-                    WITH <{0}>
+                    WITH {0}
                     DELETE {{ {1} ?p ?o. }}
                     WHERE {{ OPTIONAL {{ {1} ?p ?o. }} }}
                     INSERT {{ {2} }} ",
-                    modelUri.OriginalString,
+                    SparqlSerializer.SerializeIriRef(modelUri),
                     SparqlSerializer.SerializeUri(resource.Uri),
                     SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
             }
@@ -793,9 +800,9 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             if (!string.IsNullOrEmpty(guid))
             {
                 // Retrieve the blank node id from the id property value.
-                string queryString = string.Format(@"SPARQL SELECT ?x FROM <{0}> WHERE {{ ?x <http://trinity-rdf.net/id> '{1}' . }}",
-                    modelUri.OriginalString,
-                    guid);
+                string queryString = string.Format(@"SPARQL SELECT ?x FROM {0} WHERE {{ ?x <http://trinity-rdf.net/id> {1} . }}",
+                    SparqlSerializer.SerializeIriRef(modelUri),
+                    SparqlSerializer.SerializeString(guid));
 
                 var result = ExecuteQuery(queryString, transaction);
 
@@ -804,10 +811,10 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                 // Remove the id property from the resource *and* the model.
                 resource.RemoveProperty(_idProperty, guid);
 
-                updateString = string.Format(@"SPARQL DELETE FROM <{0}> {{ <{1}> <http://trinity-rdf.net/id> '{2}'. }}",
-                    modelUri.OriginalString,
-                    resource.Uri.OriginalString,
-                    guid);
+                updateString = string.Format(@"SPARQL DELETE FROM {0} {{ {1} <http://trinity-rdf.net/id> {2}. }}",
+                    SparqlSerializer.SerializeIriRef(modelUri),
+                    SparqlSerializer.SerializeIriRef(resource.Uri),
+                    SparqlSerializer.SerializeString(guid));
 
                 ExecuteDirectQuery(updateString, transaction);
             }
@@ -852,7 +859,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                 WITH {0}
                 DELETE {{ {1} ?p ?o . ?s ?q {1} . }}
                 WHERE {{ {{ {1} ?p ?o . }} UNION {{ ?s ?q {1} . }} }}",
-                SparqlSerializer.SerializeUri(modelUri),
+                SparqlSerializer.SerializeIriRef(modelUri),
                 resource);
 
             ExecuteDirectQuery(delete, transaction);
