@@ -27,7 +27,6 @@
 using System;
 using System.Diagnostics;
 using System.Globalization;
-using System.Text;
 
 namespace Semiodesk.Trinity
 {
@@ -321,30 +320,13 @@ namespace Semiodesk.Trinity
         /// The lexical form is escaped per N-Triples, so a value containing a quote, a backslash or a
         /// newline still produces something parseable rather than something that merely looks right.
         /// The tag needs no escaping: it is validated at construction and can only be letters, digits
-        /// and hyphens. Note that this is <b>not</b> the path a literal takes into a query --
-        /// <c>SparqlSerializer</c> does its own escaping -- so this is for diagnostics and for callers
-        /// writing N-Triples themselves.
+        /// and hyphens. The literal is written by <see cref="SparqlSerializer.SerializeString"/>, the same
+        /// function every query takes it through: the short double-quoted form N-Triples requires is
+        /// the one SPARQL is given (ADR-0052). This used to be a copy of that escaping, one of three.
         /// </remarks>
         public string ToNTriples()
         {
-            var text = new StringBuilder(Value.Length + Language.Length + 8);
-
-            text.Append('"');
-
-            foreach (char c in Value)
-            {
-                switch (c)
-                {
-                    case '\\': text.Append("\\\\"); break;
-                    case '"': text.Append("\\\""); break;
-                    case '\n': text.Append("\\n"); break;
-                    case '\r': text.Append("\\r"); break;
-                    case '\t': text.Append("\\t"); break;
-                    default: text.Append(c); break;
-                }
-            }
-
-            return text.Append('"').Append('@').Append(Language).ToString();
+            return SparqlSerializer.SerializeString(Value) + "@" + Language;
         }
 
         /// <summary>

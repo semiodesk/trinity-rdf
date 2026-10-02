@@ -326,9 +326,18 @@ namespace Semiodesk.Trinity.Query.Sparql
             _builder.Append('<').Append(value.OriginalString).Append('>');
         }
 
+        /// <summary>
+        /// Writes a literal term.
+        /// </summary>
+        /// <remarks>
+        /// Through <see cref="SparqlSerializer.SerializeString"/>, the one place a literal's syntax is
+        /// decided (ADR-0052). This writer used to carry its own, correct copy of the escaping, which
+        /// made no difference to any store: the preprocessor re-wrote every literal of the query
+        /// through the serializer anyway, and the serializer's copy was the one that was wrong.
+        /// </remarks>
         private void WriteLiteral(LiteralTerm literal)
         {
-            _builder.Append('"').Append(Escape(literal.Value)).Append('"');
+            _builder.Append(SparqlSerializer.SerializeString(literal.Value ?? string.Empty));
 
             if (!string.IsNullOrEmpty(literal.Language))
             {
@@ -460,21 +469,6 @@ namespace Semiodesk.Trinity.Query.Sparql
                 case SparqlAggregateKind.GroupConcat: return "GROUP_CONCAT";
                 default: throw new NotSupportedException($"Unsupported aggregate: {kind}");
             }
-        }
-
-        private static string Escape(string value)
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                return value ?? string.Empty;
-            }
-
-            return value
-                .Replace("\\", "\\\\")
-                .Replace("\"", "\\\"")
-                .Replace("\n", "\\n")
-                .Replace("\r", "\\r")
-                .Replace("\t", "\\t");
         }
     }
 }
