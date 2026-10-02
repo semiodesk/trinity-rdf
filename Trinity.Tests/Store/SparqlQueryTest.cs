@@ -520,9 +520,10 @@ World''' .
         /// A carriage return in a value survives the bindings of a <c>SELECT</c>.
         /// </summary>
         /// <remarks>
-        /// Separate from <see cref="AnyStringValueMatchesExactlyAndOnlyInTheModel"/> because one backend
-        /// loses it on this path only, and what it loses is fidelity, not the value's boundary: the
-        /// stored value is exact, as a server-side comparison and <c>GetResource</c> both show.
+        /// Separate from <see cref="AnyStringValueMatchesExactlyAndOnlyInTheModel"/>, which reads values
+        /// through <c>GetResource</c>, because a backend can lose a CR on this path only. Oxigraph did: it
+        /// was asked for SPARQL XML results first, and an XML parser normalizes a raw CR to LF, while the
+        /// stored value stayed exact. Its connector now asks for JSON results first.
         /// </remarks>
         [Test]
         public virtual void BindingsPreserveACarriageReturn()

@@ -47,26 +47,6 @@ namespace Semiodesk.Trinity.Tests.Oxigraph
         }
 
         /// <summary>
-        /// Inconclusive: a carriage return reaches the store intact but comes back from a <c>SELECT</c> as
-        /// a line feed.
-        /// </summary>
-        /// <remarks>
-        /// Measured, not assumed. The stored value is exact: a server-side <c>FILTER(STR(?o) = …)</c>
-        /// against the value with its CR matches, and <c>GetResource</c>, which reads a graph result,
-        /// returns it unchanged. Only <c>SELECT</c> bindings lose it, and Oxigraph is asked for SPARQL XML
-        /// results first - the order of dotNetRDF's <c>HttpSparqlAcceptHeader</c> - so this is consistent
-        /// with a raw CR in an XML document, which an XML parser must normalize to LF (XML 1.0 §2.11).
-        /// The boundary of the value is never in question, which is why the injection and round-trip
-        /// tests hold here: they read values through <c>GetResource</c> and count bindings rather than
-        /// compare them.
-        /// </remarks>
-        [Test]
-        public override void BindingsPreserveACarriageReturn()
-        {
-            Assert.Inconclusive("Oxigraph returns a stored CR as LF in SELECT bindings (XML results); the stored value is exact.");
-        }
-
-        /// <summary>
         /// A query the server rejects is reported as a query error, not a generic storage failure.
         /// </summary>
         /// <remarks>
