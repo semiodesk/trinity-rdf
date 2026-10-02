@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using Ast = Semiodesk.Trinity.Query.Sparql;
 using VDS.RDF;
 using VDS.RDF.Parsing;
 using VDS.RDF.Query.Patterns;
@@ -185,6 +186,100 @@ namespace Semiodesk.Trinity.Tests.Query
             Assert.AreEqual("\"2026-09-21T10:15:00Z\"^^<http://www.w3.org/2001/XMLSchema#dateTime>",
                 SparqlSerializer.SerializeDateTime(date));
             Assert.AreEqual(SparqlSerializer.SerializeValue(date), SparqlSerializer.SerializeDateTime(date));
+        }
+
+        /// <summary>
+        /// The tag passed to <see cref="SparqlSerializer.SerializeTranslatedString"/> is held to the rule
+        /// every <see cref="LangString"/> tag is; it used to be appended as given.
+        /// </summary>
+        [TestCase("de DE")]
+        [TestCase("de-DE_phonebook")]
+        [TestCase("de'@x")]
+        [TestCase("de . ?s ?p ?o } ; DROP ALL ; #")]
+        [TestCase("")]
+        public void ATaggedLiteralRefusesAMalformedTag(string tag)
+        {
+            var thrown = Assert.Throws<ArgumentException>(() => SparqlSerializer.SerializeTranslatedString("x", tag));
+
+            StringAssert.Contains("tag", thrown.Message);
+        }
+
+        [Test]
+        public void ATaggedLiteralNormalizesItsTag()
+        {
+            Assert.AreEqual("\"x\"@de-de", SparqlSerializer.SerializeTranslatedString("x", "DE-de"));
+        }
+
+        [Test]
+        public void TheLinqWriterRefusesAMalformedTag()
+        {
+            var s = new Ast.VariableTerm("s");
+            var query = new Ast.SelectQuery();
+            query.Projections.Add(new Ast.Projection(s));
+            query.Where.Add(new Ast.TriplePattern(s, new Ast.IriTerm(new Uri("urn:p")), new Ast.LiteralTerm("x", language: "de } ; DROP ALL ; #")));
+
+            Assert.Throws<ArgumentException>(() => Ast.SparqlQueryWriter.Write(query));
+        }
+
+        /// <summary>
+        /// Every public method of <see cref="SparqlSerializer"/> that turns a value into SPARQL text writes
+        /// exactly one literal holding it, for every value of the corpus.
+        /// </summary>
+        /// <remarks>
+        /// The methods are discovered, not listed: one taking a <c>string</c> or <c>object</c> first and
+        /// returning text fails this test until it is given a check here. A hand-maintained list of the
+        /// methods to test cannot notice the one it is missing, which is how three copies of the
+        /// escaping came to exist with only the broken one reaching a store.
+        /// </remarks>
+        [Test]
+        public void EveryPublicSerializerOfAValueWritesOneLiteral()
+        {
+            var datatype = new Uri("http://www.w3.org/2001/XMLSchema#anyURI");
+
+            // Each check returns the literal it wrote, with the suffix it must have stripped off.
+            var checks = new Dictionary<string, Func<string, string>>
+            {
+                { nameof(SparqlSerializer.SerializeString), v => SparqlSerializer.SerializeString(v) },
+                { nameof(SparqlSerializer.SerializeValue), v => SparqlSerializer.SerializeValue(v) },
+                { nameof(SparqlSerializer.SerializeTranslatedString), v => Strip(SparqlSerializer.SerializeTranslatedString(v, "de"), "@de") },
+                { nameof(SparqlSerializer.SerializeTypedLiteral), v => Strip(SparqlSerializer.SerializeTypedLiteral(v, datatype), "^^<" + datatype.OriginalString + ">") },
+            };
+
+            var discovered = typeof(SparqlSerializer)
+                .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                .Where(m => m.ReturnType == typeof(string))
+                .Where(m =>
+                {
+                    var parameters = m.GetParameters();
+
+                    return parameters.Length > 0 && (parameters[0].ParameterType == typeof(string) || parameters[0].ParameterType == typeof(object));
+                })
+                .Select(m => m.Name)
+                .Distinct()
+                .ToList();
+
+            CollectionAssert.IsSubsetOf(discovered, checks.Keys,
+                "a public method that serializes a value has no check here; add one");
+
+            foreach (var check in checks)
+            {
+                foreach (string value in HostileLiterals.Values())
+                {
+                    string literal = check.Value(value);
+
+                    Assert.IsTrue(SparqlLiteralOracle.IsOneLiteral(literal), check.Key + ": " + SparqlLiteralOracle.Display(literal));
+                    Assert.AreEqual(value, SparqlLiteralOracle.Decode(literal), check.Key);
+                }
+            }
+        }
+
+        private static string Strip(string text, string suffix)
+        {
+            string literal = SparqlLiteralOracle.SplitSuffix(text, out string actual);
+
+            Assert.AreEqual(suffix, actual, SparqlLiteralOracle.Display(text));
+
+            return literal;
         }
 
         [Test]

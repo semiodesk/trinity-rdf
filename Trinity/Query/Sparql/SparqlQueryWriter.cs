@@ -341,7 +341,7 @@ namespace Semiodesk.Trinity.Query.Sparql
 
             if (!string.IsNullOrEmpty(literal.Language))
             {
-                _builder.Append('@').Append(literal.Language);
+                _builder.Append('@').Append(LangString.NormalizeLanguage(literal.Language, nameof(literal.Language)));
             }
             else if (literal.Datatype != null)
             {

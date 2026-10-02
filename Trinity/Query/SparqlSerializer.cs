@@ -106,14 +106,22 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
-        /// Serializes a string with a translation
+        /// Serializes a string with a language tag.
         /// </summary>
+        /// <remarks>
+        /// A tag reaches SPARQL as syntax, not as escapable text - the grammar has no place for a quoted
+        /// one - so it is validated, not escaped, by the same <see cref="LangString"/> rule every other
+        /// tag passes, and lower-cased like them (ADR-0048). It used to be appended as given, which was
+        /// safe only because every caller inside Trinity passed a tag a <see cref="LangString"/> had
+        /// already validated (ADR-0052).
+        /// </remarks>
         /// <param name="str">A string literal.</param>
-        /// <param name="lang">A language tag.</param>
-        /// <returns></returns>
+        /// <param name="lang">A language tag, such as <c>de</c> or <c>en-GB</c>.</param>
+        /// <returns>The tagged literal.</returns>
+        /// <exception cref="ArgumentException"><paramref name="lang"/> is not a language tag.</exception>
         public static string SerializeTranslatedString(string str, string lang)
         {
-            return string.Format("{0}@{1}", SerializeString(str), lang);
+            return SerializeString(str) + "@" + LangString.NormalizeLanguage(lang, nameof(lang));
         }
 
         /// <summary>
