@@ -282,6 +282,41 @@ namespace Semiodesk.Trinity.Tests.Query
             return literal;
         }
 
+        /// <summary>
+        /// A parameter after <c>LIMIT</c> or <c>OFFSET</c> is written bare, so it takes a non-negative
+        /// integer and nothing else.
+        /// </summary>
+        [TestCase(5, "5")]
+        [TestCase(5L, "5")]
+        [TestCase((byte)5, "5")]
+        [TestCase(5u, "5")]
+        [TestCase(0, "0")]
+        public void ALimitTakesANonNegativeInteger(object value, string expected)
+        {
+            StringAssert.EndsWith("LIMIT " + expected,
+                new SparqlQuery("SELECT ?s WHERE { ?s ?p ?o . } LIMIT @limit", declarePrefixes: false).Bind("@limit", value).ToString());
+
+            StringAssert.EndsWith("OFFSET " + expected,
+                new SparqlQuery("SELECT ?s WHERE { ?s ?p ?o . } OFFSET @offset", declarePrefixes: false).Bind("@offset", value).ToString());
+        }
+
+        /// <summary>
+        /// Anything else is refused. A string bound here used to be written into the query as text.
+        /// </summary>
+        [TestCase("5")]
+        [TestCase("1 } ; DROP ALL ; #")]
+        [TestCase(-1)]
+        [TestCase(1.5)]
+        [TestCase(true)]
+        [TestCase(DayOfWeek.Monday)]
+        public void ALimitRefusesAnythingElse(object value)
+        {
+            Assert.Throws<ArgumentException>(() =>
+                new SparqlQuery("SELECT ?s WHERE { ?s ?p ?o . } LIMIT @limit").Bind("@limit", value));
+            Assert.Throws<ArgumentException>(() =>
+                new SparqlQuery("SELECT ?s WHERE { ?s ?p ?o . } OFFSET @offset").Bind("@offset", value));
+        }
+
         [Test]
         public void RefusesNull()
         {

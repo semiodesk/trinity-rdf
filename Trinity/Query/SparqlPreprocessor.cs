@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -502,12 +503,52 @@ namespace Semiodesk.Trinity
             }
             else if (ParameterTypes[parameter] == CustomToken.PLAINLITERALPARAMETER)
             {
-                ParameterValues[parameter] = value.ToString();
+                ParameterValues[parameter] = SerializeSolutionModifier(parameter, value);
             }
             else
             {
                 ParameterValues[parameter] = SparqlSerializer.SerializeValue(value);
             }
+        }
+
+        /// <summary>
+        /// Writes the value of a parameter bound after <c>LIMIT</c> or <c>OFFSET</c>.
+        /// </summary>
+        /// <remarks>
+        /// The grammar takes a bare non-negative integer there, not a literal, so the value is written
+        /// without quotes - which is why it is refused unless it is one. It used to be written with
+        /// <c>ToString()</c>, whatever its type, so a string bound there was written into the query as
+        /// text (ADR-0052). A numeric string is refused too: the caller says what it is binding, and a
+        /// string is text.
+        /// </remarks>
+        private static string SerializeSolutionModifier(string parameter, object value)
+        {
+            if (!value.GetType().IsEnum)
+            {
+                switch (Type.GetTypeCode(value.GetType()))
+                {
+                    case TypeCode.Byte:
+                    case TypeCode.SByte:
+                    case TypeCode.Int16:
+                    case TypeCode.UInt16:
+                    case TypeCode.Int32:
+                    case TypeCode.UInt32:
+                    case TypeCode.Int64:
+                    case TypeCode.UInt64:
+                        decimal number = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+
+                        if (number >= 0)
+                        {
+                            return number.ToString(CultureInfo.InvariantCulture);
+                        }
+
+                        break;
+                }
+            }
+
+            throw new ArgumentException(
+                $"The parameter {parameter} follows LIMIT or OFFSET, which take a non-negative integer, but "
+                + $"was bound to the {value.GetType().Name} '{value}'.", nameof(value));
         }
 
         /// <summary>
