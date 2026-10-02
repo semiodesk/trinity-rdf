@@ -105,6 +105,16 @@ namespace Semiodesk.Trinity
         /// </summary>
         public readonly Dictionary<string, int> ParameterTypes = new Dictionary<string, int>();
 
+        /// <summary>
+        /// The graph each graph parameter is bound to, as recorded in <see cref="DefaultGraphs"/>, so that
+        /// re-binding removes the entry it added.
+        /// </summary>
+        /// <remarks>
+        /// Re-binding used to remove the bracketed serialization from <see cref="DefaultGraphs"/>, which
+        /// holds the bare IRI, so the previous graph stayed recorded.
+        /// </remarks>
+        private readonly Dictionary<string, string> ParameterGraphs = new Dictionary<string, string>();
+
         #endregion
 
         #region Constructors
@@ -394,7 +404,9 @@ namespace Semiodesk.Trinity
                 }
             }
 
-            Tokens.Insert(i, new UriToken(string.Format("<{0}>", uri.OriginalString), -1, -1, -1));
+            // SerializeIriRef rather than the raw OriginalString: a '>' in it ended the IRI and the rest
+            // was read as part of the query (ADR-0052). Every model read passes through here.
+            Tokens.Insert(i, new UriToken(SparqlSerializer.SerializeIriRef(uri), -1, -1, -1));
             Tokens.Insert(i, token);
         }
 
@@ -482,24 +494,26 @@ namespace Semiodesk.Trinity
             
             if (ParameterTypes[parameter] == CustomToken.GRAPHPARAMETER)
             {
-                if (ParameterValues.ContainsKey(parameter))
-                {
-                    var g = ParameterValues[parameter];
+                // A graph after FROM is an IRIREF: written through SerializeIriRef, which refuses a blank
+                // node label and an IRI it cannot write verbatim (ADR-0052). Anything that is not a graph
+                // identifier is refused here rather than written as a literal the parser then rejects.
+                var graph = GraphIdentifier(parameter, value);
+                var serialized = SparqlSerializer.SerializeIriRef(graph);
 
-                    DefaultGraphs.Remove(g);
+                if (ParameterGraphs.TryGetValue(parameter, out var previous))
+                {
+                    DefaultGraphs.Remove(previous);
                 }
 
-                var uri = SparqlSerializer.SerializeValue(value);
-                var url = uri.TrimStart('<').TrimEnd('>');
-
-                if (DefaultGraphs.Contains(url))
+                if (DefaultGraphs.Contains(graph.OriginalString))
                 {
-                    throw new ArgumentException("FROM parameter value {0} is already set. Have you previously set the model property of the query?", uri);
+                    throw new ArgumentException("FROM parameter value {0} is already set. Have you previously set the model property of the query?", serialized);
                 }
 
-                DefaultGraphs.Add(url);
+                DefaultGraphs.Add(graph.OriginalString);
 
-                ParameterValues[parameter] = uri;
+                ParameterGraphs[parameter] = graph.OriginalString;
+                ParameterValues[parameter] = serialized;
             }
             else if (ParameterTypes[parameter] == CustomToken.PLAINLITERALPARAMETER)
             {
@@ -508,6 +522,26 @@ namespace Semiodesk.Trinity
             else
             {
                 ParameterValues[parameter] = SparqlSerializer.SerializeValue(value);
+            }
+        }
+
+        /// <summary>
+        /// The graph a value bound after <c>FROM</c> or <c>FROM NAMED</c> identifies.
+        /// </summary>
+        private static Uri GraphIdentifier(string parameter, object value)
+        {
+            switch (value)
+            {
+                case Uri uri:
+                    return uri;
+                case IModel model:
+                    return model.Uri;
+                case IResource resource:
+                    return resource.Uri;
+                default:
+                    throw new ArgumentException(
+                        $"The parameter {parameter} follows FROM, which takes a graph IRI, but was bound to the "
+                        + $"{value.GetType().Name} '{value}'. Bind a Uri or a model.", nameof(value));
             }
         }
 
@@ -595,7 +629,26 @@ namespace Semiodesk.Trinity
                         }
                     case Token.URI:
                         {
+                            // The tokenizer has decoded the IRI's \u escapes, so <a>b> arrives as a
+                            // raw '>' that would end it early: checked before it is written back (ADR-0052).
+                            SparqlSerializer.RequireWritableIri(token.Value);
+
                             outputBuilder.AppendFormat("<{0}> ", token.Value);
+
+                            break;
+                        }
+                    case Token.DATATYPE:
+                        {
+                            // A datatype written as an IRIREF carries its brackets in the token value.
+                            string value = token.Value;
+
+                            if (value.Length >= 2 && value[0] == '<' && value[value.Length - 1] == '>')
+                            {
+                                SparqlSerializer.RequireWritableIri(value.Substring(1, value.Length - 2));
+                            }
+
+                            outputBuilder.Append(value);
+                            outputBuilder.Append(' ');
 
                             break;
                         }
