@@ -97,6 +97,43 @@ namespace Semiodesk.Trinity.Tests.Virtuoso
         }
 
         /// <summary>
+        /// Replacing a graph whose IRI holds an apostrophe replaces that graph and nothing else.
+        /// </summary>
+        /// <remarks>
+        /// The manager deleted the old graph with SQL that placed its IRI between quotes, and an
+        /// apostrophe is legal in an IRI: this name turned the condition into one every quad meets, so
+        /// the replace deleted the whole store (ADR-0052). Run alone against the parent, because there
+        /// it takes the seeded schema with it.
+        /// </remarks>
+        [Test]
+        public void ReplacingAGraphNamedWithAnApostropheReplacesOnlyThatGraph()
+        {
+            var graph = new UriRef("http://localhost/x')OR('1'='1");
+            var model = Store.GetModel(graph);
+
+            var survivor = Model2.CreateResource(BaseUri.GetUriRef("survivor"));
+            survivor.AddProperty(new Property(BaseUri.GetUriRef("label")), "survives");
+            survivor.Commit();
+
+            try
+            {
+                using (var stream = GenerateStreamFromString("<http://localhost/s> <http://localhost/p> \"replaced\" ."))
+                {
+                    model.Read(stream, RdfSerializationFormat.Turtle, false);
+                }
+
+                Assert.IsFalse(model.IsEmpty, "the graph itself is written");
+                Assert.IsTrue(Model2.ContainsResource(survivor.Uri), "another graph must survive the replace");
+            }
+            finally
+            {
+                model.Clear();
+            }
+
+            Assert.IsTrue(Model2.ContainsResource(survivor.Uri), "and must survive clearing it");
+        }
+
+        /// <summary>
         /// A graph is listed under the name it was written with, percent-encoding included.
         /// </summary>
         /// <remarks>

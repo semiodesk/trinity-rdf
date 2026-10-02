@@ -66,6 +66,11 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             //Use the sql:rdf_make_iid_of_qname('nodeID://bnode') function
             // VIRT-399 - Previously we used the bif: prefix but more recent Virtuoso releases don't support that
             // According to Virtuoso support using the sql: prefix is both forwards and backwards compatible
+            //
+            // The id goes between SQL quotes inside a backquoted SQL expression, so it is held to the
+            // characters of a blank node label first, which cannot end either (ADR-0052).
+            SparqlSerializer.SerializeUri(new UriRef("_:" + b.InternalID, true));
+
             return "`sql:rdf_make_iid_of_qname('nodeID://" + b.InternalID + "')`";
         }
     }
@@ -336,7 +341,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             String getTriples;
             if (graphUri != null)
             {
-                getTriples = "SPARQL define output:format '_JAVA_' SELECT * FROM <" + this.UnmarshalUri(graphUri) + "> WHERE {?s ?p ?o}";
+                getTriples = "SPARQL define output:format '_JAVA_' SELECT * FROM " + this.GraphIriRef(graphUri) + " WHERE {?s ?p ?o}";
             }
             else
             {
@@ -530,7 +535,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                 this.Open(false);
 
                 //Delete the existing Graph (if it exists)
-                this.ExecuteNonQuery("DELETE FROM DB.DBA.RDF_QUAD WHERE G = DB.DBA.RDF_MAKE_IID_OF_QNAME('" + this.UnmarshalUri(graphName.Uri) + "')");
+                this.DeleteGraphQuads(this.UnmarshalUri(graphName.Uri));
 
                 //Make a call to the TTLP() Virtuoso function
                 VirtuosoCommand cmd = new VirtuosoCommand();
@@ -612,7 +617,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                         }
                         if (graphUri != null)
                         {
-                            delete.AppendLine(" FROM <" + this.UnmarshalUri(graphUri) + ">");
+                            delete.AppendLine(" FROM " + this.GraphIriRef(graphUri));
                         }
                         else
                         {
@@ -655,7 +660,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
                             insert.AppendLine("SPARQL define output:format '_JAVA_' INSERT DATA");
                             if (graphUri != null)
                             {
-                                insert.AppendLine(" INTO <" + this.UnmarshalUri(graphUri) + ">");
+                                insert.AppendLine(" INTO " + this.GraphIriRef(graphUri));
                             }
                             else
                             {
@@ -1285,7 +1290,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             try
             {
                 this.Open(false);
-                this.ExecuteNonQuery("DELETE FROM DB.DBA.RDF_QUAD WHERE G = DB.DBA.RDF_MAKE_IID_OF_QNAME('" + graphUri + "')");
+                this.DeleteGraphQuads(graphUri);
                 this.Close(false);
             }
             catch
@@ -1495,6 +1500,39 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         /// Executes a Non-Query SQL Command against the database
         /// </summary>
         /// <param name="sqlCmd">SQL Command</param>
+        /// <summary>
+        /// Deletes every quad of a graph.
+        /// </summary>
+        /// <remarks>
+        /// The graph is a command parameter, as TTLP's are. It used to be placed between SQL quotes, and
+        /// an apostrophe is legal in an IRI, so a graph named <c>http://a/x')OR('1'='1</c> deleted every
+        /// quad in the store (ADR-0052).
+        /// </remarks>
+        private void DeleteGraphQuads(string graphUri)
+        {
+            VirtuosoCommand cmd = new VirtuosoCommand("DELETE FROM DB.DBA.RDF_QUAD WHERE G = DB.DBA.RDF_MAKE_IID_OF_QNAME(@graph)", this._db);
+            cmd.CommandTimeout = (this._timeout > 0 ? this._timeout : cmd.CommandTimeout);
+            if (this._dbtrans != null)
+            {
+                //Add to the Transaction if required
+                cmd.Transaction = this._dbtrans;
+            }
+
+            cmd.Parameters.Add("graph", VirtDbType.VarChar);
+            cmd.Parameters["graph"].Value = graphUri;
+
+            cmd.ExecuteNonQuery();
+        }
+
+        /// <summary>
+        /// Writes a graph's name where SPARQL requires an IRI, spelled as <see cref="UnmarshalUri"/>
+        /// spells it, through the same verbatim-or-refuse guard as the rest of Trinity (ADR-0052).
+        /// </summary>
+        private string GraphIriRef(Uri graphUri)
+        {
+            return SparqlSerializer.SerializeIriRef(new Uri(this.UnmarshalUri(graphUri), UriKind.RelativeOrAbsolute));
+        }
+
         private void ExecuteNonQuery(string sqlCmd)
         {
             //Create the SQL Command
