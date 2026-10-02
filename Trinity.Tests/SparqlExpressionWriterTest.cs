@@ -108,6 +108,19 @@ namespace Semiodesk.Trinity.Tests
                 $"'{expression}' was re-serialized as '{written}', which does not mean the same thing");
         }
 
+        /// <summary>
+        /// An extension function's IRI reaches the writer as dotNetRDF parsed it, its <c>\u</c> escapes
+        /// decoded, so one that decodes to a character an IRI cannot hold is refused rather than written
+        /// as <c>&lt;f&gt;g&gt;</c> (ADR-0052).
+        /// </summary>
+        [Test]
+        public void RefusesAFunctionIriThatCannotBeWritten()
+        {
+            ISparqlExpression original = Parse("<http://example.org/f\\u003Eg>(?r)");
+
+            Assert.Throws<NotSupportedException>(() => SparqlExpressionWriter.Write(original));
+        }
+
         [TestCaseSource(nameof(Cases))]
         public void DotNetRdfIsUnfaithfulExactlyWhereExpected(string expression)
         {
