@@ -65,7 +65,7 @@ The **quality gates** and the pre-commit hook need more (ADR-0049):
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 960 passed, 3 skipped (quarantined), 0 failed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 1266 passed, 3 skipped (quarantined), 0 failed
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 42 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -83,8 +83,8 @@ TRINITY_BENCH_BACKENDS=InMemory dotnet run -c Release --project benchmarks/Trini
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all four green** — Oxigraph 366/367, Fuseki 365/366,
-  GraphDB 364/365, Virtuoso 350/351 (0 failed each; the 1 skipped is the shared blank-node-removal
+  hiccup cannot redden it. Current: **all four green** — Oxigraph 373/374, Fuseki 372/373,
+  GraphDB 371/372, Virtuoso 359/360 (0 failed each; the 1 skipped is the shared blank-node-removal
   quarantine).
 
   The eight inferencing failures that stood here until ADR-0044 were **provisioning gaps, not store
@@ -263,6 +263,66 @@ same namespace with the same terms, which is the plainest demonstration that the
 time, so the round-trip test in `tests/Trinity.Vocabulary.Tests` — which compiles generated source and
 asserts discovery registers it — is the guard.
 
+## Injection prevention (ADR-0052)
+
+Trinity builds SPARQL — and, on Virtuoso, SQL — as **text**, so every value placed in that text goes
+through **one serializer for its kind**, and nothing is interpolated by hand. A value or identifier that
+cannot be written is **refused, naming itself, never rewritten** (rewriting changes what the caller asked
+for; a loud refusal at the call beats a silent wrong answer).
+
+- **Literals: only `SparqlSerializer.SerializeString` / `SerializeValue`.** Always the short
+  double-quoted form, escaping `\ " LF CR TAB`. Never `\uXXXX` — SPARQL 1.1 §19.2 decodes it *before*
+  parsing, so `"` would arrive as a bare quote — and never `\'`, which dotNetRDF refuses inside
+  `"…"`. No hand-written `'{0}'`, `"\"" + x + "\""` or `'''…'''`. The LINQ writer and
+  `LangString.ToNTriples` call it; a typed literal is `SerializeTypedLiteral` (lexical form through
+  `SerializeString`, datatype through `SerializeIriRef`). The old `'''…'''` long form escaped no quotes,
+  so a value holding a newline and `'''` ended its literal and the rest was read as part of the update.
+- **Language tags are syntax, validated not escaped** — the grammar has no quoted tag — by
+  `LangString.NormalizeLanguage`. Never append a tag as given.
+- **IRIs: `SerializeIriRef` wherever the grammar needs an `IRIREF`** (`GRAPH`, `WITH`, `FROM`, `INTO`,
+  datatypes, dataset clauses, LINQ terms); `SerializeUri` only where a bare blank label is legal (it now
+  holds a `_:` label to `BLANK_NODE_LABEL`'s characters — a label has no delimiter, so it is the one
+  identifier that could otherwise carry text through). `SerializeIriRef` is **public** because the
+  adapters are separate assemblies. Never interpolate `OriginalString`, `AbsoluteUri` or `ToString()`.
+  **`OriginalString` is the only correct source**: `Uri.ToString()` returns the *display* form and
+  unescapes percent-encoding (`%20`, `%3E` become characters `IRIREF` forbids), and `AbsoluteUri` is
+  *not* a safe alternative — it normalizes host casing, default ports, dot-segments and percent-encoding
+  case, while `Resource.Equals`/`GetHashCode` compare the **ordinal** `OriginalString` and the LINQ
+  provider joins result sets on it, so normalizing breaks mapped-collection dedup, drops LINQ rows, and
+  hands Virtuoso the lower-cased host `XsdTypeMapper` warns about. This is serialization, **not** the
+  .NET 10 `Uri` equality problem (0025), and identical on .NET 8/9/10.
+- **SQL is parameterized, always** (`RDF_MAKE_IID_OF_QNAME(@graph)`, like the TTLP calls). An apostrophe
+  is legal in an IRI, so the IRI guard does not make SQL safe: a graph named `http://a/x')OR('1'='1`,
+  quoted into SQL, deleted every quad in the store.
+- **The preprocessor re-writes every query and update**, tokenizing and writing each literal and IRI
+  token back. So the literal serializer must be a **fixed point** (serializing a decoded literal
+  reproduces it), and IRI and datatype tokens are **re-checked** before they are written back, because
+  dotNetRDF decodes their `\u` escapes — `<a>b>` arrives as a raw `>`. The fixed point is also the
+  evidence that the tokenizer hands back *decoded* values, which the whole second pass relies on.
+- **Bound parameters are typed.** A `LIMIT`/`OFFSET` parameter takes a non-negative integer (a numeric
+  *string* is refused); a `FROM` parameter takes a graph identifier (`Uri`, model or resource).
+- **Data enters a query through `Bind` or the mapping, never string concatenation** — tests and
+  benchmarks included (#69). Caller-written SPARQL is the caller's code; *data* inside it must be bound.
+
+**The guards, and why they are shaped this way:**
+- `SparqlLiteralOracle` decides from the grammar alone whether text is exactly one literal and decodes
+  it — **not dotNetRDF**, which is the tokenizer under test and the in-memory engine, so asking it only
+  shows the two agree. `HostileLiterals` is the corpus (plus a seeded fuzz over token-level pieces such as
+  `'''`, `"`, `\\"`), with payloads naming a sentinel and a victim graph the store test clears.
+- `ThePreprocessorReproducesTheLiteral` pins the fixed point across the templates a literal lands in.
+- Two **reflection sweeps** find their own call sites, so a new one is covered without anyone remembering
+  it: `EveryPublicSerializerOfAValueWritesOneLiteral` (every public `SparqlSerializer` method turning a
+  value into text; one added later fails until given a check) and
+  `EveryQuerySubjectAccessorRefusesAnUnwritableModelGraph` (every `IModel` accessor taking a `Uri`). A
+  hand-maintained list cannot notice the site it omits — which is how three copies of the escaping came
+  to exist with only the broken one reaching a store.
+- The store round-trips in the shared fixtures (`ResourceMappingTest`, `ResourceWriteSemanticsTest`,
+  `SparqlUpdateTest`, `SparqlQueryTest`, `LayeredModelStagingTest`) run on **all five** backends and are
+  what break the circularity: Jena, rdf4j, Oxigraph and Virtuoso each parse the text themselves, and the
+  value returns through JSON, XML or ADO, not the SPARQL tokenizer. **Run the store suites** — in-memory
+  alone is circular. `Trinity.Tests/ObjectModel/EncodedUriContact.cs` (`%20` in its class and property
+  IRIs) exists purely to keep query builders honest.
+
 ## Mental model (grounding decisions — ADR-0016…0035)
 
 Invariants that surprise newcomers:
@@ -354,18 +414,10 @@ Invariants that surprise newcomers:
   two queries of 1000, both under the 1024-term chain limit. `BulkResourceQueryShapeTest` captures the
   SPARQL each model actually emits and is the guard — verified by reverting the shape while keeping
   the batching.
-- **Every IRI reaching SPARQL text goes through `SparqlSerializer.SerializeUri`** (0046). Interpolating
-  a `Uri` calls `Uri.ToString()`, which returns the *display* form and unescapes percent-encoding;
-  where the unescaped character is one SPARQL forbids in an `IRIREF` (`%20`, `%3E`) the whole query
-  becomes `RdfParseException: Illegal white space in URI` — so it fails loudly, and takes unrelated
-  subjects in the same query with it. **`OriginalString` is the only correct source.** `AbsoluteUri` is
-  *not* a safe alternative, as this file previously claimed: it normalizes host casing, default ports,
-  dot-segments and percent-encoding case, while `Resource.Equals`/`GetHashCode` compare the **ordinal**
-  `OriginalString` and the LINQ provider joins two result sets on it — so normalizing silently breaks
-  mapped-collection dedup, drops LINQ rows, and hands Virtuoso the lower-cased host `XsdTypeMapper`
-  warns about. An IRI that cannot be written verbatim is therefore **refused** by `SerializeUri`,
-  naming itself, rather than rewritten. `SerializesVerbatimAndNeverNormalizes` is the guard.
-  Blank nodes split two ways and conflating them is a real defect. `IsBlankId()` asks *is this a blank
+- **Blank nodes and query subjects** (0046). *How* an IRI is written — `OriginalString`, verbatim or
+  refused, `SerializeUri` vs `SerializeIriRef` — is in [Injection prevention](#injection-prevention-adr-0052);
+  `SerializesVerbatimAndNeverNormalizes` is that rule's guard. This bullet is about which identifiers
+  may be *used* where. Blank nodes split two ways and conflating them is a real defect. `IsBlankId()` asks *is this a blank
   node*; `IsBlankNodeLabel()` asks *is it spelled `_:`*. Virtuoso's blank ids are `nodeID://`
   **absolute IRIs**, so they must be **bracketed** — deciding serialization on the flag emits them
   bare and breaks writing them. **Serialization decides on the spelling.** But *using* one as a query
@@ -390,11 +442,7 @@ Invariants that surprise newcomers:
   backends. **Virtuoso's `DeleteResource` is the exception:** it interpolates, so in its `WHERE` a `_:`
   label is a match-everything variable. It fails safe only because the label is also in the `DELETE`
   template, where Virtuoso refuses it (SP031) and #50 swallows the refusal. Never rewrite it into a
-  `DELETE WHERE` or any shape where the label appears only as a pattern. This is **not** the .NET 10 `Uri`
-  equality problem (0025): that one is identity, this one is serialization, and it is identical on
-  .NET 8/9/10. An audit fixed four sites;
-  `Trinity.Tests/ObjectModel/EncodedUriContact.cs` is a mapped class with `%20` in its class and
-  property IRIs that exists purely to keep query builders honest.
+  `DELETE WHERE` or any shape where the label appears only as a pattern.
 - **SPARQL reuses registered ontology prefixes** (0024): `foaf:name` needs no `PREFIX` line.
 - **URI identity is fragment-aware** (0025): use `UriRef`, not raw `Uri` — .NET's `Uri.Equals`
   ignores the fragment, which is wrong for RDF. Blank nodes/URNs have their own identity.
@@ -559,7 +607,10 @@ Invariants that surprise newcomers:
   *Trinity's* refusal (ADR-0042), it cannot conjure a reasoner. Covering a strict backend also found
   three defects the lenient ones hide: dotNetRDF emits **invalid RDF/XML** (unquoted DTD entity
   values) and **BOM-prefixed Turtle**, and its catch-all `Accept` header lets an ASK come back as the
-  plain text `false`. The adapter writes BOM-less Turtle and picks `Accept` by query form.
+  plain text `false`. The adapter writes BOM-less Turtle and picks `Accept` by query form — for
+  `SELECT`/`ASK`, **SPARQL JSON results first**, not dotNetRDF's XML-first order, because Oxigraph writes a
+  carriage return raw into XML results and an XML parser normalizes it to LF (XML 1.0 §2.11), so every
+  read built on bindings returned a stored CR as LF while the stored value stayed exact (ADR-0052).
   `StoreBase.TryParse` is shared for the same reason `GroupByTargetGraph` is — GraphDB's copy had no
   TriG case, so TriG read from a string or stream was handed to the RDF/XML parser.
   **A Graph Store `SaveGraph` is a `PUT`, i.e. a replace**: `Read(update: true)` must add through
