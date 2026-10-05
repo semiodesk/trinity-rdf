@@ -15,7 +15,7 @@ namespace Semiodesk.Trinity.Tests
             r.AddProperty(Ontologies.dc.title, "MyResource");
 
             string res = SparqlSerializer.SerializeResource(r);
-            string expected = "<http://example.com/ex> <http://purl.org/dc/elements/1.1/title> 'MyResource'. ";
+            string expected = "<http://example.com/ex> <http://purl.org/dc/elements/1.1/title> \"MyResource\". ";
 
             Assert.AreEqual(expected, res);
         }
@@ -27,7 +27,7 @@ namespace Semiodesk.Trinity.Tests
             contact.NameGiven = "Peter";
 
             var res = SparqlSerializer.SerializeResource(contact);
-            var expected = "<http://example.com/ex> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#nameGiven> 'Peter'; <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact>. ";
+            var expected = "<http://example.com/ex> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#nameGiven> \"Peter\"; <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.semanticdesktop.org/ontologies/2007/03/22/nco#PersonContact>. ";
             
             Assert.AreEqual(expected, res);
         }
@@ -48,7 +48,7 @@ namespace Semiodesk.Trinity.Tests
             PersonContact contact = new PersonContact(new Uri("http://example.com/ex"));
             contact.NameGiven = "Peter";
 
-            StringAssert.Contains("'Peter';", SparqlSerializer.SerializeResource(contact));
+            StringAssert.Contains("\"Peter\";", SparqlSerializer.SerializeResource(contact));
             StringAssert.DoesNotContain("@", SparqlSerializer.SerializeResource(contact));
         }
 
@@ -59,7 +59,117 @@ namespace Semiodesk.Trinity.Tests
         [TestCase]
         public void TestLangStringSerializesWithItsTag()
         {
-            Assert.AreEqual("'Hallo Welt'@de", SparqlSerializer.SerializeValue(new LangString("Hallo Welt", "DE")));
+            Assert.AreEqual("\"Hallo Welt\"@de", SparqlSerializer.SerializeValue(new LangString("Hallo Welt", "DE")));
+        }
+
+        /// <summary>
+        /// A value refused for what it contains is reported as that refusal, not as a type with no
+        /// serializer: the direct paths throw <see cref="NotSupportedException"/>, and a caller catching it
+        /// must not miss the same refusal when the value comes through <c>SerializeValue</c>.
+        /// </summary>
+        [TestCase]
+        public void SerializeValuePassesARefusalThrough()
+        {
+            var error = Assert.Throws<NotSupportedException>(() => SparqlSerializer.SerializeValue(new UriRef("http://example.org/a b")));
+
+            StringAssert.Contains("http://example.org/a b", error.Message);
+        }
+
+        /// <summary>
+        /// Only a type nothing serializes is reported as having no serializer.
+        /// </summary>
+        [TestCase]
+        public void SerializeValueRefusesATypeWithNoSerializer()
+        {
+            var error = Assert.Throws<ArgumentException>(() => SparqlSerializer.SerializeValue(new object()));
+
+            StringAssert.Contains("No serializer available for object of type System.Object", error.Message);
+        }
+
+        /// <summary>
+        /// On the resource write path too: a mapped value holding an IRI that cannot be written makes
+        /// <c>Commit()</c> throw the refusal naming it.
+        /// </summary>
+        [TestCase]
+        public void CommittingAnUnwritableIriValueThrowsTheRefusal()
+        {
+            var model = StoreFactory.CreateStore("provider=dotnetrdf").GetModel(new Uri("http://example.org/model"));
+            var resource = model.CreateResource(new Uri("http://example.org/r"));
+
+            resource.AddProperty(new Property(new Uri("http://example.org/p")), new UriRef("http://example.org/x>y"));
+
+            var error = Assert.Throws<NotSupportedException>(() => resource.Commit());
+
+            StringAssert.Contains("http://example.org/x>y", error.Message);
+        }
+
+        /// <summary>
+        /// A blank node label is held to <c>BLANK_NODE_LABEL</c> by code point. <c>char.IsLetter</c>
+        /// refused combining marks, digits of other scripts and every character outside the BMP, all of
+        /// which the grammar admits.
+        /// </summary>
+        [TestCase("_:b0")]
+        [TestCase("_:0b")]
+        [TestCase("_:_")]
+        [TestCase("_:-1928796361")]
+        [TestCase("_:a.b")]
+        [TestCase("_:a-b_c\u00B7d")]
+        [TestCase("_:\u0928\u092E\u0938\u094D\u0924\u0947")]
+        [TestCase("_:x\u0660")]
+        [TestCase("_:\u0660")]
+        [TestCase("_:\U0001F600")]
+        [TestCase("_:a\U00010000")]
+        public void AWellFormedBlankNodeLabelIsWritten(string label)
+        {
+            Assert.AreEqual(label, SparqlSerializer.SerializeUri(new UriRef(label, true)));
+        }
+
+        [TestCase("_:")]
+        [TestCase("_:a.")]
+        [TestCase("_:.a")]
+        [TestCase("_:\u00B7a")]
+        [TestCase("_:\u0301a")]
+        [TestCase("_:a b")]
+        [TestCase("_:a}")]
+        [TestCase("_:a'")]
+        [TestCase("_:a`")]
+        [TestCase("_:a\u00D7")]
+        [TestCase("_:x } ; DROP ALL ; #")]
+        public void AMalformedBlankNodeLabelIsRefused(string label)
+        {
+            Assert.Throws<NotSupportedException>(() => SparqlSerializer.RequireWritableBlankNodeLabel(label));
+        }
+
+        /// <summary>
+        /// A node labelled in Devanagari loads from Turtle, so a resource linking to it must commit: every
+        /// value is serialized to compute the commit delta, the link included.
+        /// </summary>
+        [TestCase]
+        public void AResourceLinkingToANonLatinBlankNodeCommits()
+        {
+            var store = StoreFactory.CreateStore("provider=dotnetrdf");
+            var graph = new Uri("http://example.org/g");
+            var label = "_:\u0928\u092E\u0938\u094D\u0924\u0947";
+
+            store.Read($"<http://example.org/r> <http://example.org/p> {label} . {label} <http://example.org/q> \"x\" .",
+                graph, RdfSerializationFormat.Turtle, false);
+
+            var resource = store.GetModel(graph).GetResource(new Uri("http://example.org/r"));
+            resource.AddProperty(new Property(new Uri("http://example.org/n")), "y");
+
+            Assert.DoesNotThrow(() => resource.Commit());
+        }
+
+        /// <summary>
+        /// A lone surrogate is no character. Built in code, because an attribute argument cannot hold one:
+        /// the compiler writes U+FFFD in its place, which the grammar admits.
+        /// </summary>
+        [TestCase]
+        public void ABlankNodeLabelWithALoneSurrogateIsRefused()
+        {
+            Assert.Throws<NotSupportedException>(() => SparqlSerializer.RequireWritableBlankNodeLabel("_:a" + (char)0xD800));
+            Assert.Throws<NotSupportedException>(() => SparqlSerializer.RequireWritableBlankNodeLabel("_:a" + (char)0xDC00 + "b"));
+            Assert.Throws<NotSupportedException>(() => SparqlSerializer.RequireWritableBlankNodeLabel("_:a" + (char)0xDC00 + (char)0xD800));
         }
 
         [TestCase]
@@ -430,6 +540,36 @@ namespace Semiodesk.Trinity.Tests
 
             // SerializeUri, by contrast, emits the bare label - which is why these positions cannot use it.
             Assert.AreEqual("_:b0", SparqlSerializer.SerializeUri(new UriRef("_:b0", true)));
+        }
+
+        /// <summary>
+        /// A blank node label is written bare, so it is held to the shape of one: it has no delimiter to
+        /// keep what follows it out of the query (ADR-0052).
+        /// </summary>
+        [TestCase("_:b0")]
+        [TestCase("_:singularChild")]
+        [TestCase("_:a.b")]
+        [TestCase("_:a-b_c")]
+        [TestCase("_:0")]
+        [TestCase("_:é")]
+        [TestCase("_:-1928796361")]
+        public void WritesABlankNodeLabel(string label)
+        {
+            Assert.AreEqual(label, SparqlSerializer.SerializeUri(new UriRef(label, true)));
+        }
+
+        [TestCase("_:")]
+        [TestCase("_:x } ; DROP ALL ; #")]
+        [TestCase("_:a b")]
+        [TestCase("_:a.")]
+        [TestCase("_:.a")]
+        [TestCase("_:a>b")]
+        [TestCase("_:a'b")]
+        public void RefusesABlankNodeLabelThatIsNotOne(string label)
+        {
+            var e = Assert.Throws<NotSupportedException>(() => SparqlSerializer.SerializeUri(new UriRef(label, true)));
+
+            StringAssert.Contains(label, e.Message, "the message must name the offending label");
         }
 
         /// <summary>

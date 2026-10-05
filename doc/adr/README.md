@@ -89,6 +89,7 @@ mapped/dynamic duality, models & groups, discovery, stores, and querying.
 | [0049](0049-quality-gates-and-pre-commit-check.md) | Quality gates: duplication, changed-line reports, store coverage and a pre-commit check (amends [0044](0044-store-suites-green-and-in-ci.md)) | Accepted |
 | [0050](0050-benchmark-harness.md) | Cross-store benchmark harness: in-process, verified, never a gate | Accepted |
 | [0051](0051-linq-equality-lookup.md) | A LINQ equality on a mapped string looks the resource up by value | Accepted |
+| [0052](0052-one-serializer-for-literals-and-iris.md) | Literals and IRIs reach SPARQL and SQL text through one serializer each (extends [0046](0046-bulk-subject-binding-with-values.md)) | Accepted |
 
 ### Proposed (revival)
 | # | Title | Status |

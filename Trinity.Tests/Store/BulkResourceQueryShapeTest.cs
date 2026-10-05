@@ -265,6 +265,64 @@ namespace Semiodesk.Trinity.Tests.Store
         }
 
         /// <summary>
+        /// A graph IRI that cannot be written into an <c>IRIREF</c>: it holds a <c>&gt;</c> and a space,
+        /// and the text after them would complete the dataset clause into a pattern of its own.
+        /// </summary>
+        private static readonly string UnwritableGraph = "http://example.org/g> . ?s ?p ?o";
+
+        private IEnumerable<Tuple<string, Func<IModel>>> ModelsOverAnUnwritableGraph()
+        {
+            var bad = new UriRef(UnwritableGraph, UriKind.RelativeOrAbsolute);
+
+            yield return Tuple.Create<string, Func<IModel>>("Model", () => new Model(_store, bad));
+            yield return Tuple.Create<string, Func<IModel>>("ModelGroup", () => new ModelGroup(_store, Model(bad), Model(Model2Uri)));
+            yield return Tuple.Create<string, Func<IModel>>("LayeredModel", () => _store.CreateLayeredModel(
+                bad,
+                new Uri("http://example.org/shape/add"),
+                new Uri("http://example.org/shape/rem")));
+        }
+
+        /// <summary>
+        /// No read of a model whose graph IRI cannot be written reaches the store: it is refused, naming
+        /// the graph, before any SPARQL is issued. Reads bind the model graph as a dataset clause, which
+        /// every one of them passes through, so the whole discovered set is swept rather than a chosen few
+        /// (ADR-0052).
+        /// </summary>
+        /// <remarks>
+        /// The model is constructed inside the assertion, because a <see cref="ModelGroup"/> or a layered
+        /// view may refuse the graph as it builds its dataset clause rather than at the read - which is
+        /// equally a refusal before any SPARQL is issued.
+        /// </remarks>
+        [TestCaseSource(nameof(QuerySubjectAccessors))]
+        public void EveryQuerySubjectAccessorRefusesAnUnwritableModelGraph(string label, Func<IModel, Uri, object> call)
+        {
+            var resource = new UriRef("http://example.org/shape/r0");
+
+            foreach (var model in ModelsOverAnUnwritableGraph())
+            {
+                _store.Queries.Clear();
+
+                // Unwrapped to the root, because an accessor that dispatches reflectively inside -
+                // GetResource(Uri, Type) does - wraps the refusal in a further TargetInvocationException
+                // the shared accessor delegate does not peel off.
+                var e = Assert.Catch(() => call(model.Item2(), resource),
+                    $"{model.Item1}.{label} must refuse a graph IRI it cannot write");
+
+                while (e is TargetInvocationException && e.InnerException != null)
+                {
+                    e = e.InnerException;
+                }
+
+                Assert.IsInstanceOf<NotSupportedException>(e,
+                    $"{model.Item1}.{label} must refuse a graph IRI it cannot write, not {e.GetType().Name}");
+                StringAssert.Contains("http://example.org/g>", e.Message,
+                    $"{model.Item1}.{label} must name the offending graph");
+                Assert.IsEmpty(_store.Queries,
+                    $"{model.Item1}.{label} must refuse before issuing SPARQL");
+            }
+        }
+
+        /// <summary>
         /// The <see cref="IModel"/> methods that take a caller-supplied identifier and name it as a
         /// query subject — discovered, so a new one is covered without anyone remembering to add it.
         /// </summary>

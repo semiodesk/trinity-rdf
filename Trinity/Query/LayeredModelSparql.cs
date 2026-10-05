@@ -188,7 +188,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         private static string Graph(IModel model)
         {
-            return SparqlSerializer.SerializeUri(model.Uri);
+            return SparqlSerializer.SerializeIriRef(model.Uri);
         }
 
         /// <summary>

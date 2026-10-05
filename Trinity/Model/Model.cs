@@ -74,7 +74,7 @@ namespace Semiodesk.Trinity
         {
             get
             {
-                SparqlQuery query = new SparqlQuery(string.Format(@"ASK FROM {0} {{ ?s ?p ?o . }}", SparqlSerializer.SerializeUri(Uri)));
+                SparqlQuery query = new SparqlQuery(string.Format(@"ASK FROM {0} {{ ?s ?p ?o . }}", SparqlSerializer.SerializeIriRef(Uri)));
 
                 return !ExecuteQuery(query).GetAnwser();
             }

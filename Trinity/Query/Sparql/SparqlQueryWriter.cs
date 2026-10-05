@@ -323,20 +323,31 @@ namespace Semiodesk.Trinity.Query.Sparql
                     "so the query would silently return the wrong result.");
             }
 
-            _builder.Append('<').Append(value.OriginalString).Append('>');
+            // The write path's serializer, not a copy of it. LINQ constants are caller values, and a '>'
+            // in one ended the IRI early (ADR-0052).
+            _builder.Append(SparqlSerializer.SerializeIriRef(value));
         }
 
+        /// <summary>
+        /// Writes a literal term.
+        /// </summary>
+        /// <remarks>
+        /// Through <see cref="SparqlSerializer.SerializeString"/>, the one place a literal's syntax is
+        /// decided (ADR-0052). This writer used to carry its own, correct copy of the escaping, which
+        /// made no difference to any store: the preprocessor re-wrote every literal of the query
+        /// through the serializer anyway, and the serializer's copy was the one that was wrong.
+        /// </remarks>
         private void WriteLiteral(LiteralTerm literal)
         {
-            _builder.Append('"').Append(Escape(literal.Value)).Append('"');
+            _builder.Append(SparqlSerializer.SerializeString(literal.Value ?? string.Empty));
 
             if (!string.IsNullOrEmpty(literal.Language))
             {
-                _builder.Append('@').Append(literal.Language);
+                _builder.Append('@').Append(LangString.NormalizeLanguage(literal.Language, nameof(literal.Language)));
             }
             else if (literal.Datatype != null)
             {
-                _builder.Append("^^<").Append(literal.Datatype.OriginalString).Append('>');
+                _builder.Append("^^").Append(SparqlSerializer.SerializeIriRef(literal.Datatype));
             }
         }
 
@@ -460,21 +471,6 @@ namespace Semiodesk.Trinity.Query.Sparql
                 case SparqlAggregateKind.GroupConcat: return "GROUP_CONCAT";
                 default: throw new NotSupportedException($"Unsupported aggregate: {kind}");
             }
-        }
-
-        private static string Escape(string value)
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                return value ?? string.Empty;
-            }
-
-            return value
-                .Replace("\\", "\\\\")
-                .Replace("\"", "\\\"")
-                .Replace("\n", "\\n")
-                .Replace("\r", "\\r")
-                .Replace("\t", "\\t");
         }
     }
 }

@@ -193,6 +193,24 @@ namespace Semiodesk.Trinity.Tests.Query.Sparql
         }
 
         /// <summary>
+        /// The counterpart, as on the write path: an IRI that cannot be written verbatim is refused,
+        /// naming it. LINQ constants are caller values, and a '>' in one ended the IRI (ADR-0052).
+        /// </summary>
+        [TestCase("http://example.org/a> . ?s ?p ?o . ?s ?p <http://example.org/b")]
+        [TestCase("http://example.org/a b")]
+        public void RefusesAnIriThatCannotBeWritten(string iri)
+        {
+            var s = new VariableTerm("s");
+            var query = new SelectQuery();
+            query.Projections.Add(new Projection(s));
+            query.Where.Add(new TriplePattern(s, RdfTypeTerm.Instance, new IriTerm(new UriRef(iri, UriKind.RelativeOrAbsolute))));
+
+            var e = Assert.Throws<NotSupportedException>(() => SparqlQueryWriter.Write(query));
+
+            StringAssert.Contains(iri, e.Message);
+        }
+
+        /// <summary>
         /// A blank node identifier cannot be named in a query at all, so the writer refuses one rather
         /// than emitting something that parses. A bare <c>_:b0</c> in a triple pattern is a fresh
         /// non-distinguished variable -- it parses, and matches every value, which is a wrong answer

@@ -60,6 +60,34 @@ namespace Semiodesk.Trinity.Store.Oxigraph
     {
         #region Members
 
+        /// <summary>
+        /// The Accept header for a <c>SELECT</c> or <c>ASK</c>: SPARQL JSON results first.
+        /// </summary>
+        /// <remarks>
+        /// Not dotNetRDF's <c>HttpSparqlAcceptHeader</c>, which lists XML first. Oxigraph writes a carriage
+        /// return raw into an XML result document, and an XML parser must normalize it to a line feed
+        /// (XML 1.0 §2.11), so a stored CR came back from every <c>SELECT</c> as LF - and with it from
+        /// every read built on bindings, LINQ materialization and layered views among them. The stored
+        /// value was exact: a server-side comparison matched and a graph read returned it. JSON escapes
+        /// the CR. XML stays acceptable, ranked lower, for a server that only offers it.
+        /// </remarks>
+        private const string ResultSetAcceptHeader =
+            "application/sparql-results+json, application/sparql-results+xml;q=0.9";
+
+        /// <summary>
+        /// The Accept header for a query whose form is not known: the result set formats in
+        /// <see cref="ResultSetAcceptHeader"/>'s order, then the RDF formats.
+        /// </summary>
+        /// <remarks>
+        /// Not dotNetRDF's <c>HttpRdfOrSparqlAcceptHeader</c>. Offered that, Oxigraph answered a
+        /// <c>SELECT</c> and an <c>ASK</c> in <c>text/csv</c>, although the header ranks it at q=0.1
+        /// (measured): an <c>ASK</c> came back as the bare word <c>true</c>, which no dotNetRDF parser
+        /// reads, and CSV rows carry no term types. Offered this, it answers with JSON results, as for a
+        /// known form, and a <c>CONSTRUCT</c> in N-Triples.
+        /// </remarks>
+        private static readonly string UnknownFormAcceptHeader =
+            ResultSetAcceptHeader + ", " + MimeTypesHelper.HttpAcceptHeader;
+
         private readonly Uri _queryUri;
 
         private readonly Uri _updateUri;
@@ -213,10 +241,10 @@ namespace Semiodesk.Trinity.Store.Oxigraph
                 };
 
                 request.Headers.Add("Accept", expectsResultSet == true
-                    ? MimeTypesHelper.HttpSparqlAcceptHeader
+                    ? ResultSetAcceptHeader
                     : expectsResultSet == false
                         ? MimeTypesHelper.HttpAcceptHeader
-                        : MimeTypesHelper.HttpRdfOrSparqlAcceptHeader);
+                        : UnknownFormAcceptHeader);
 
                 using (var response = HttpClient.SendAsync(request).GetAwaiter().GetResult())
                 {

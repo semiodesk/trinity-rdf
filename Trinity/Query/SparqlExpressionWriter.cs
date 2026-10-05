@@ -148,7 +148,16 @@ namespace Semiodesk.Trinity
                           functor.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
                           functor.StartsWith("urn:", StringComparison.OrdinalIgnoreCase));
 
-            return isIri ? "<" + functor + ">" : functor;
+            if (!isIri)
+            {
+                return functor;
+            }
+
+            // The functor is the IRI as dotNetRDF parsed it, \u escapes decoded, so <f\u003Eg> would be
+            // written as <f>g> - and the preprocessor's token check sees only a harmless <f> (ADR-0052).
+            SparqlSerializer.RequireWritableIri(functor);
+
+            return "<" + functor + ">";
         }
 
         private static ISparqlExpression[] Arguments(ISparqlExpression expression)

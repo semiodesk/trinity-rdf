@@ -95,5 +95,72 @@ namespace Semiodesk.Trinity.Tests.Virtuoso
 
             Assert.Throws<System.NotSupportedException>(() => Store.DeleteResource(graph, BaseUri.GetUriRef("deleted")));
         }
+
+        /// <summary>
+        /// Replacing a graph whose IRI holds an apostrophe replaces that graph and nothing else.
+        /// </summary>
+        /// <remarks>
+        /// The manager deleted the old graph with SQL that placed its IRI between quotes, and an
+        /// apostrophe is legal in an IRI: this name turned the condition into one every quad meets, so
+        /// the replace deleted the whole store (ADR-0052). Run alone against the parent, because there
+        /// it takes the seeded schema with it.
+        /// </remarks>
+        [Test]
+        public void ReplacingAGraphNamedWithAnApostropheReplacesOnlyThatGraph()
+        {
+            var graph = new UriRef("http://localhost/x')OR('1'='1");
+            var model = Store.GetModel(graph);
+
+            var survivor = Model2.CreateResource(BaseUri.GetUriRef("survivor"));
+            survivor.AddProperty(new Property(BaseUri.GetUriRef("label")), "survives");
+            survivor.Commit();
+
+            try
+            {
+                using (var stream = GenerateStreamFromString("<http://localhost/s> <http://localhost/p> \"replaced\" ."))
+                {
+                    model.Read(stream, RdfSerializationFormat.Turtle, false);
+                }
+
+                Assert.IsFalse(model.IsEmpty, "the graph itself is written");
+                Assert.IsTrue(Model2.ContainsResource(survivor.Uri), "another graph must survive the replace");
+            }
+            finally
+            {
+                model.Clear();
+            }
+
+            Assert.IsTrue(Model2.ContainsResource(survivor.Uri), "and must survive clearing it");
+        }
+
+        /// <summary>
+        /// A graph is listed under the name it was written with, percent-encoding included.
+        /// </summary>
+        /// <remarks>
+        /// <c>ListModels</c> built each model from <c>Uri.ToString()</c>, which unescapes: a graph named
+        /// with <c>%3E</c> came back holding a raw <c>&gt;</c>, a name no query could then be written with
+        /// (ADR-0046, ADR-0052).
+        /// </remarks>
+        [Test]
+        public void ListModelsKeepsAPercentEncodedGraphName()
+        {
+            var graph = BaseUri.GetUriRef("graph%3Eencoded");
+            var model = Store.GetModel(graph);
+
+            try
+            {
+                var resource = model.CreateResource(BaseUri.GetUriRef("in-encoded-graph"));
+                resource.AddProperty(new Property(BaseUri.GetUriRef("label")), "x");
+                resource.Commit();
+
+                var listed = System.Linq.Enumerable.Select(Store.ListModels(), m => m.Uri.OriginalString);
+
+                CollectionAssert.Contains(listed, graph.OriginalString);
+            }
+            finally
+            {
+                model.Clear();
+            }
+        }
     }
 }

@@ -265,7 +265,7 @@ namespace Semiodesk.Trinity
                 // whether the placeholder happens to be writable.
                 if (resource.Uri.IsBlankId)
                 {
-                    string queryString = string.Format(@"SELECT BNODE() AS ?x FROM <{0}> WHERE {{}}", modelUri.OriginalString);
+                    string queryString = string.Format(@"SELECT BNODE() AS ?x FROM {0} WHERE {{}}", SparqlSerializer.SerializeIriRef(modelUri));
 
                     var result = ExecuteQuery(new SparqlQuery(queryString), transaction);
                     var id = result.GetBindings().First()["x"] as UriRef;
@@ -274,9 +274,9 @@ namespace Semiodesk.Trinity
                 }
 
                 updateString = string.Format(@"
-                    INSERT {{ GRAPH <{0}> {{ {1} }} }}
+                    INSERT {{ GRAPH {0} {{ {1} }} }}
                     WHERE {{}}",
-                modelUri.OriginalString,
+                SparqlSerializer.SerializeIriRef(modelUri),
                 SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
             }
             else if (TryBuildDeltaUpdate(resource, modelUri, ignoreUnmappedProperties, out updateString))
@@ -300,9 +300,9 @@ namespace Semiodesk.Trinity
                 // node in that template is minted fresh each time, so a blank-node-valued link is
                 // duplicated once per existing triple on the subject.
                 updateString = string.Format(@"
-                    DELETE WHERE {{ GRAPH <{0}> {{ {1} ?p ?o. }} }} ;
-                    INSERT DATA {{ GRAPH <{0}> {{ {2} }} }} ",
-                modelUri.OriginalString,
+                    DELETE WHERE {{ GRAPH {0} {{ {1} ?p ?o. }} }} ;
+                    INSERT DATA {{ GRAPH {0} {{ {2} }} }} ",
+                SparqlSerializer.SerializeIriRef(modelUri),
                 SparqlSerializer.SerializeUri(resource.Uri),
                 SparqlSerializer.SerializeResource(resource, ignoreUnmappedProperties));
             }
@@ -351,7 +351,7 @@ namespace Semiodesk.Trinity
 
             // GRAPH-qualified, not WITH-scoped: a graph-scoped modify against a graph holding no
             // triples silently applies nothing on Jena. See UpdateResources for the measurement.
-            var graph = $"<{modelUri.OriginalString}>";
+            var graph = SparqlSerializer.SerializeIriRef(modelUri);
 
             if (deleted.Count > 0)
             {

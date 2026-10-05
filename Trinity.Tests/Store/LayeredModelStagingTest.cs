@@ -31,6 +31,7 @@ using System.Data;
 using System.Linq;
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
+using Semiodesk.Trinity.Tests.Query;
 
 namespace Semiodesk.Trinity.Tests.Store
 {
@@ -111,6 +112,53 @@ namespace Semiodesk.Trinity.Tests.Store
         #endregion
 
         #region Staging
+
+        /// <summary>
+        /// Any string value staged through a view reads back exactly through the view, and lands exactly
+        /// in the baseline on <c>Accept()</c>, writing nothing else (ADR-0052).
+        /// </summary>
+        /// <remarks>
+        /// Staging writes the value into the additions and removals graphs and into the overlay's
+        /// patterns, and the view reads it back through the overlay rewrite, so the value passes through
+        /// every literal writer the layered model has.
+        /// </remarks>
+        [Test]
+        public virtual void AnyStringValueIsStagedAndAcceptedExactly()
+        {
+            var victim = Store.GetModel(BaseUri.GetUriRef("stage-victim"));
+
+            try
+            {
+                string[] values = HostileLiterals.Values(victim.Uri);
+                var subjects = values.Select((v, i) => BaseUri.GetUriRef("any-string-" + i)).ToArray();
+
+                for (int i = 0; i < values.Length; i++)
+                {
+                    GivenBaselineValue(subjects[i], "original");
+
+                    var seen = View.GetResource<MappingTestClass>(subjects[i]);
+                    seen.uniqueStringTest = values[i];
+                    seen.Commit();
+
+                    Assert.AreEqual(values[i], View.GetResource<MappingTestClass>(subjects[i]).uniqueStringTest,
+                        "through the view: " + SparqlLiteralOracle.Display(values[i]));
+                }
+
+                View.Accept();
+
+                for (int i = 0; i < values.Length; i++)
+                {
+                    Assert.AreEqual(values[i], Baseline.GetResource<MappingTestClass>(subjects[i]).uniqueStringTest,
+                        "accepted: " + SparqlLiteralOracle.Display(values[i]));
+                }
+
+                HostileLiterals.AssertNothingEscaped(Store, Baseline, victim);
+            }
+            finally
+            {
+                victim.Clear();
+            }
+        }
 
         /// <summary>
         /// A resource read through a view is writable, and committing it stages rather than writes.

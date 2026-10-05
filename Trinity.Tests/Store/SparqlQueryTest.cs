@@ -28,6 +28,7 @@
 using NUnit.Framework;
 using Semiodesk.Trinity.Ontologies;
 using Semiodesk.Trinity.Tests.Linq;
+using Semiodesk.Trinity.Tests.Query;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -407,6 +408,15 @@ namespace Semiodesk.Trinity.Tests.Store
             Assert.NotNull(hans);
         }
 
+        /// <summary>
+        /// Every literal a caller writes, in any of SPARQL's four quoting forms, comes out of the
+        /// preprocessor as one short double-quoted literal holding the same value.
+        /// </summary>
+        /// <remarks>
+        /// This used to assert that the output still contained a raw newline and a <c>\'</c>, which
+        /// checked that the long form survived rather than that the values did. It is now decided by
+        /// parsing the output and reading the values back.
+        /// </remarks>
         [Test]
         public virtual void TestEscaping()
         {
@@ -415,16 +425,125 @@ namespace Semiodesk.Trinity.Tests.Store
                 {
                     ?s ?p ""Hello World"" .
                     ?s ?p ""'Hello World'"" .
-                    ?s ?p '''Hello 
-                             World''' .
+                    ?s ?p '''Hello
+World''' .
                     ?s ?p 'C:\\Directory\\file.ext' .
                 }");
 
             var queryString = query.ToString();
 
-            Assert.IsTrue(queryString.Contains('\n'));
-            Assert.IsTrue(queryString.Contains("\\\\"));
-            Assert.IsTrue(queryString.Contains("\\'"));
+            Assert.IsFalse(queryString.Contains('\n'), "a newline in a value is escaped, not written raw");
+
+            var parsed = new VDS.RDF.Parsing.SparqlQueryParser().ParseFromString(queryString);
+            var values = parsed.RootGraphPattern.TriplePatterns
+                .OfType<VDS.RDF.Query.Patterns.TriplePattern>()
+                .Select(t => ((VDS.RDF.ILiteralNode)((VDS.RDF.Query.Patterns.NodeMatchPattern)t.Object).Node).Value)
+                .ToList();
+
+            CollectionAssert.AreEqual(new[]
+            {
+                "Hello World",
+                "'Hello World'",
+                "Hello\nWorld",
+                "C:\\Directory\\file.ext",
+            }, values.Select(v => v.Replace("\r\n", "\n")));
+        }
+
+        /// <summary>
+        /// Any string value, bound into a query or compared in LINQ, matches exactly the resources that
+        /// hold it in the queried model, and nothing in another graph (ADR-0052).
+        /// </summary>
+        /// <remarks>
+        /// The decoys hold the same values in <c>Model2</c>, so a value that ended its literal early and
+        /// widened the query - to another graph, or to every subject - would return one. The LINQ writer
+        /// always escaped correctly; until 2.0 the preprocessor re-wrote its literals in the long form,
+        /// which did not.
+        /// </remarks>
+        [Test]
+        public virtual void AnyStringValueMatchesExactlyAndOnlyInTheModel()
+        {
+            var victim = Store.GetModel(BaseUri.GetUriRef("any-string-victim"));
+
+            try
+            {
+                string[] values = HostileLiterals.Values(victim.Uri);
+                var subjects = new UriRef[values.Length];
+
+                for (int i = 0; i < values.Length; i++)
+                {
+                    subjects[i] = BaseUri.GetUriRef("any-string-" + i);
+
+                    var contact = Model1.CreateResource<PersonContact>(subjects[i]);
+                    contact.NameGiven = values[i];
+                    contact.Commit();
+
+                    var decoy = Model2.CreateResource<PersonContact>(BaseUri.GetUriRef("any-string-decoy-" + i));
+                    decoy.NameGiven = values[i];
+                    decoy.Commit();
+                }
+
+                for (int i = 0; i < values.Length; i++)
+                {
+                    string value = values[i];
+                    string name = SparqlLiteralOracle.Display(value);
+
+                    var bound = new SparqlQuery("SELECT ?s WHERE { ?s @predicate @value . }")
+                        .Bind("@predicate", new Uri(NCO.nameGiven))
+                        .Bind("@value", value);
+
+                    CollectionAssert.AreEqual(new[] { subjects[i].OriginalString },
+                        Model1.GetBindings(bound).Select(b => ((Uri)b["s"]).OriginalString), "bound " + name);
+
+                    CollectionAssert.AreEqual(new[] { subjects[i].OriginalString },
+                        Model1.AsQueryable<PersonContact>().Where(c => c.NameGiven == value).ToList().Select(c => c.Uri.OriginalString),
+                        "LINQ == " + name);
+
+                    if (value.Length > 0)
+                    {
+                        var containing = Model1.AsQueryable<PersonContact>().Where(c => c.NameGiven.Contains(value)).ToList()
+                            .Select(c => c.Uri.OriginalString).ToList();
+
+                        CollectionAssert.Contains(containing, subjects[i].OriginalString, "LINQ Contains " + name);
+                        CollectionAssert.IsSubsetOf(containing, subjects.Select(s => s.OriginalString), "LINQ Contains " + name);
+                    }
+                }
+
+                HostileLiterals.AssertNothingEscaped(Store, Model1, victim);
+            }
+            finally
+            {
+                victim.Clear();
+            }
+        }
+
+        /// <summary>
+        /// A carriage return in a value survives the bindings of a <c>SELECT</c>.
+        /// </summary>
+        /// <remarks>
+        /// Separate from <see cref="AnyStringValueMatchesExactlyAndOnlyInTheModel"/>, which reads values
+        /// through <c>GetResource</c>, because a backend can lose a CR on this path only. Oxigraph did: it
+        /// was asked for SPARQL XML results first, and an XML parser normalizes a raw CR to LF, while the
+        /// stored value stayed exact. Its connector now asks for JSON results first.
+        /// </remarks>
+        [Test]
+        public virtual void BindingsPreserveACarriageReturn()
+        {
+            foreach (string value in new[] { "carriage\rreturn", "windows\r\nline" })
+            {
+                var uri = BaseUri.GetUriRef("carriage-return");
+
+                var contact = Model1.CreateResource<PersonContact>(uri);
+                contact.NameGiven = value;
+                contact.Commit();
+
+                var query = new SparqlQuery("SELECT ?o WHERE { @subject @predicate ?o }")
+                    .Bind("@subject", uri)
+                    .Bind("@predicate", new Uri(NCO.nameGiven));
+
+                Assert.AreEqual(value, Model1.GetBindings(query).Single()["o"], SparqlLiteralOracle.Display(value));
+
+                Model1.Clear();
+            }
         }
 
         [Test]
@@ -452,15 +571,17 @@ namespace Semiodesk.Trinity.Tests.Store
 
             Assert.IsFalse(string.IsNullOrEmpty(queryString));
 
+            // A caller may write either quote; the preprocessor writes every literal back in the one
+            // form SparqlSerializer.SerializeString produces.
             query = new SparqlQuery(@"SELECT ?s WHERE { ?s ?p 'Hallo'@de . }");
             queryString = query.ToString();
 
-            Assert.AreEqual(queryString, @"SELECT ?s WHERE { ?s ?p 'Hallo'@de . }");
+            Assert.AreEqual(@"SELECT ?s WHERE { ?s ?p ""Hallo""@de . }", queryString);
 
             query = new SparqlQuery(@"SELECT ?s WHERE { ?s ?p 'Hallo'@de-de . }");
             queryString = query.ToString();
 
-            Assert.AreEqual(queryString, @"SELECT ?s WHERE { ?s ?p 'Hallo'@de-de . }");
+            Assert.AreEqual(@"SELECT ?s WHERE { ?s ?p ""Hallo""@de-de . }", queryString);
         }
 
         [Test]

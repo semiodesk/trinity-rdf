@@ -30,7 +30,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Globalization;
-using System.Xml;
 
 namespace Semiodesk.Trinity
 {
@@ -42,49 +41,107 @@ namespace Semiodesk.Trinity
         #region Methods
 
         /// <summary>
-        /// Serializes a string and excapes special characters.
+        /// The characters a short double-quoted literal cannot hold raw, plus the tab, which is escaped
+        /// for readability.
         /// </summary>
+        private static readonly char[] LiteralEscaped = { '\\', '"', '\n', '\r', '\t' };
+
+        /// <summary>
+        /// Serializes a string as a SPARQL string literal, escaping what the grammar requires.
+        /// </summary>
+        /// <remarks>
+        /// This is the one place a literal's syntax is decided; every other writer calls it (ADR-0052).
+        /// The form is always the short double-quoted one, <c>STRING_LITERAL2</c>, which can hold any
+        /// character except <c>"</c>, <c>\</c>, LF and CR raw - so those four are escaped, and the tab
+        /// with them. The result is the same N-Triples needs, which is why
+        /// <see cref="LangString.ToNTriples"/> uses it too.
+        /// <para>
+        /// Two escapes are never written. <c>\uXXXX</c>, because SPARQL 1.1 §19.2 decodes it before the
+        /// query is parsed, so <c>\u0022</c> would arrive as a bare quote. And <c>\'</c>, because a
+        /// single quote needs no escape inside double quotes and dotNetRDF's tokenizer refuses one there.
+        /// </para>
+        /// <para>
+        /// The long form <c>'''…'''</c>, used for any value containing a newline until 2.0, is gone. It
+        /// escaped no quotes at all, so a value containing a newline and three apostrophes ended the
+        /// literal early and the rest of the value was read as part of the update.
+        /// </para>
+        /// <para>
+        /// <see cref="SparqlPreprocessor"/> tokenizes every query and update and writes each literal
+        /// back out through this method, so the output must be a fixed point: serializing the decoded
+        /// value of a literal this method wrote must reproduce it exactly.
+        /// </para>
+        /// </remarks>
         /// <param name="str">A string literal.</param>
-        /// <returns></returns>
+        /// <returns>The literal, quoted and escaped.</returns>
         public static string SerializeString(string str)
         {
-            // We need to escape specrial characters: http://www.w3.org/TeamSubmission/turtle/#sec-strings
-            string s = str.Replace(@"\", @"\\");
-
-            if(s.Contains('\n'))
+            if (str == null)
             {
-                return string.Format("'''{0}'''", s);
+                throw new ArgumentNullException(nameof(str));
             }
-            else
-            {
-                s = s.Replace("'", "\\'");
 
-                return string.Format("'{0}'", s);
+            if (str.IndexOfAny(LiteralEscaped) < 0)
+            {
+                return "\"" + str + "\"";
             }
+
+            var result = new StringBuilder(str.Length + 8);
+
+            result.Append('"');
+
+            foreach (char c in str)
+            {
+                switch (c)
+                {
+                    case '\\': result.Append("\\\\"); break;
+                    case '"': result.Append("\\\""); break;
+                    case '\n': result.Append("\\n"); break;
+                    case '\r': result.Append("\\r"); break;
+                    case '\t': result.Append("\\t"); break;
+                    default: result.Append(c); break;
+                }
+            }
+
+            return result.Append('"').ToString();
         }
 
         /// <summary>
-        /// Serializes a string with a translation
+        /// Serializes a string with a language tag.
         /// </summary>
+        /// <remarks>
+        /// A tag reaches SPARQL as syntax, not as escapable text - the grammar has no place for a quoted
+        /// one - so it is validated, not escaped, by the same <see cref="LangString"/> rule every other
+        /// tag passes, and lower-cased like them (ADR-0048). It used to be appended as given, which was
+        /// safe only because every caller inside Trinity passed a tag a <see cref="LangString"/> had
+        /// already validated (ADR-0052).
+        /// </remarks>
         /// <param name="str">A string literal.</param>
-        /// <param name="lang">A language tag.</param>
-        /// <returns></returns>
+        /// <param name="lang">A language tag, such as <c>de</c> or <c>en-GB</c>.</param>
+        /// <returns>The tagged literal.</returns>
+        /// <exception cref="ArgumentException"><paramref name="lang"/> is not a language tag.</exception>
         public static string SerializeTranslatedString(string str, string lang)
         {
-            return string.Format("{0}@{1}", SerializeString(str), lang);
+            return SerializeString(str) + "@" + LangString.NormalizeLanguage(lang, nameof(lang));
         }
 
         /// <summary>
         /// Serializes a typed literal.
         /// </summary>
-        /// <param name="obj">A value.</param>
+        /// <remarks>
+        /// The lexical form goes through <see cref="SerializeString"/> like any other literal. It used to
+        /// be placed between quotes unescaped, which was harmless for the lexical forms Trinity's own
+        /// writes produce - numbers, dates, base64 - but not for a string: <c>XsdTypeMapper</c> wrapped
+        /// one in quotes of its own, so <c>"abc"^^xsd:anyURI</c> stored the lexical form with the quotes,
+        /// and an apostrophe ended the literal early (ADR-0052). The datatype goes through
+        /// <see cref="SerializeIriRef"/>, never the raw <see cref="Uri"/>, whose <c>ToString()</c> returns
+        /// the display form and unescapes percent-encoding (ADR-0046).
+        /// </remarks>
+        /// <param name="obj">A value; a string is taken as the lexical form itself.</param>
         /// <param name="typeUri">A type URI.</param>
         /// <returns></returns>
         public static string SerializeTypedLiteral(object obj, Uri typeUri)
         {
-            // SerializeUri, not the raw Uri: interpolating one calls Uri.ToString(), which returns the
-            // display form and unescapes percent-encoding. See SerializeUri and ADR-0046.
-            return string.Format("'{0}'^^{1}", XsdTypeMapper.SerializeObject(obj), SerializeIriRef(typeUri));
+            return SerializeString(XsdTypeMapper.SerializeObject(obj)) + "^^" + SerializeIriRef(typeUri);
         }
 
         /// <summary>
@@ -92,42 +149,54 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="obj">An object.</param>
         /// <returns></returns>
+        /// <exception cref="ArgumentException">There is no serializer for the value's type.</exception>
+        /// <exception cref="NotSupportedException">The value holds an IRI or blank node label that
+        /// cannot be written verbatim.</exception>
+        /// <remarks>
+        /// Only a type with no serializer is reported as such. A refusal of the value itself passes
+        /// through unchanged: it used to be wrapped, so a mapped property holding an unwritable IRI made
+        /// <c>Commit()</c> report a <c>UriRef</c> as having no serializer, and a caller catching the
+        /// <see cref="NotSupportedException"/> the direct paths throw missed it (ADR-0052).
+        /// </remarks>
         public static string SerializeValue(object obj)
         {
-            try
+            if (obj == null)
             {
-                if (obj is string)
-                {
-                    return SerializeString(obj as string);
-                }
-                else if (obj is LangString langString)
-                {
-                    // One branch, because there is now one representation of a tagged literal (ADR-0048).
-                    // This replaced three - string[], Tuple<string,CultureInfo> and Tuple<string,string> -
-                    // which carried the identical comment and did not agree on the type.
-                    return SerializeTranslatedString(langString.Value, langString.Language);
-                }
-                else if (obj is Uri || typeof(Uri).IsSubclassOf(obj.GetType()))
-                {
-                    return SerializeUri(obj as Uri);
-                }
-                else if (obj.GetType().GetInterface("IResource") != null)
-                {
-                    return SerializeUri((obj as IResource).Uri);
-                }
-                else if (obj.GetType().GetInterface("IModel") != null)
-                {
-                    return SerializeUri((obj as IModel).Uri);
-                }
-                else
-                {
-                    return SerializeTypedLiteral(obj, XsdTypeMapper.GetXsdTypeUri(obj.GetType()));
-                }
+                throw new ArgumentNullException(nameof(obj));
             }
-            catch
+
+            if (obj is string)
             {
-                string msg = string.Format("No serializer availabe for object of type {0}.", obj.GetType());
-                throw new ArgumentException(msg);
+                return SerializeString(obj as string);
+            }
+            else if (obj is LangString langString)
+            {
+                // One branch, because there is now one representation of a tagged literal (ADR-0048).
+                // This replaced three - string[], Tuple<string,CultureInfo> and Tuple<string,string> -
+                // which carried the identical comment and did not agree on the type.
+                return SerializeTranslatedString(langString.Value, langString.Language);
+            }
+            else if (obj is Uri uri)
+            {
+                // Not also typeof(Uri).IsSubclassOf(obj.GetType()), which tested the wrong way round and
+                // was true for a plain object, so one was written as a null Uri.
+                return SerializeUri(uri);
+            }
+            else if (obj.GetType().GetInterface("IResource") != null)
+            {
+                return SerializeUri((obj as IResource).Uri);
+            }
+            else if (obj.GetType().GetInterface("IModel") != null)
+            {
+                return SerializeUri((obj as IModel).Uri);
+            }
+            else if (XsdTypeMapper.HasXsdTypeUri(obj.GetType()))
+            {
+                return SerializeTypedLiteral(obj, XsdTypeMapper.GetXsdTypeUri(obj.GetType()));
+            }
+            else
+            {
+                throw new ArgumentException($"No serializer available for object of type {obj.GetType()}.", nameof(obj));
             }
         }
 
@@ -138,7 +207,7 @@ namespace Semiodesk.Trinity
         /// <returns></returns>
         public static string SerializeDateTime(DateTime date)
         {
-            return string.Format("'{0}'^^<http://www.w3.org/2001/XMLSchema#dateTime>", XmlConvert.ToString((DateTime)date, XmlDateTimeSerializationMode.Utc));
+            return SerializeTypedLiteral(date, XsdTypeMapper.GetXsdTypeUri(typeof(DateTime)));
         }
 
         /// <summary>
@@ -160,10 +229,21 @@ namespace Semiodesk.Trinity
         /// and an unescaped one is a parse error that takes every other term in the same query down
         /// with it. Failing here names the offending identifier instead.
         /// </remarks>
-        private static void RequireWritableIri(Uri uri)
+        internal static void RequireWritableIri(Uri uri)
         {
-            string value = uri.OriginalString;
+            RequireWritableIri(uri.OriginalString);
+        }
 
+        /// <summary>
+        /// Rejects the text of an identifier that cannot be written between <c>&lt;</c> and <c>&gt;</c>.
+        /// </summary>
+        /// <remarks>
+        /// For IRI text that does not come from a <see cref="Uri"/>: the preprocessor writes back IRI
+        /// tokens dotNetRDF has already decoded, and a <c>&lt;a\u003Eb&gt;</c> in the caller's query
+        /// arrives as a raw <c>&gt;</c> (ADR-0052).
+        /// </remarks>
+        internal static void RequireWritableIri(string value)
+        {
             if (value.IndexOfAny(IriRefForbidden) < 0)
             {
                 bool clean = true;
@@ -219,6 +299,8 @@ namespace Semiodesk.Trinity
             // nodeID:// IRIs that must stay bracketed. See UriExtensions.IsBlankNodeLabel.
             if (uri.IsBlankNodeLabel())
             {
+                RequireWritableBlankNodeLabel(uri.OriginalString);
+
                 return uri.OriginalString;
             }
 
@@ -228,16 +310,122 @@ namespace Semiodesk.Trinity
         }
 
         /// <summary>
+        /// Rejects a blank node label that is not one: <c>_:</c> followed by letters, digits, <c>_</c>,
+        /// <c>-</c> and inner dots.
+        /// </summary>
+        /// <remarks>
+        /// A label is written bare, so it is the one identifier with no delimiter to keep it apart from
+        /// what follows. It used to be written as given whenever it started with <c>_:</c>, so
+        /// <c>_:x } ; DROP ALL ; #</c> was written into the query as text (ADR-0052).
+        /// <para>
+        /// The rule is <c>BLANK_NODE_LABEL</c>'s, checked by code point: <c>'_:' (PN_CHARS_U | [0-9])
+        /// ((PN_CHARS | '.')* PN_CHARS)?</c>. None of its characters can end a label. It used to be
+        /// approximated with <c>char.IsLetter</c>, which refused characters the grammar admits - combining
+        /// marks such as U+094D, digits of other scripts such as U+0660, and every character outside the
+        /// BMP - so a Turtle file giving a node a Devanagari label loaded, and committing a resource
+        /// linking to that node threw.
+        /// </para>
+        /// <para>
+        /// One departure: a leading <c>-</c> is accepted although the grammar has none, because dotNetRDF
+        /// mints labels from integers that can be negative (<c>SELECT BNODE()</c> returned
+        /// <c>_:-1928796361</c>) and its parser accepts them. It can only admit a label a store then
+        /// refuses, never one that lets text through.
+        /// </para>
+        /// <para>
+        /// Public because the Virtuoso adapter writes a node's id into SQL text itself, and must hold it
+        /// to the same rule.
+        /// </para>
+        /// </remarks>
+        /// <param name="label">The label, including its <c>_:</c>.</param>
+        /// <exception cref="NotSupportedException">The text is not a blank node label.</exception>
+        public static void RequireWritableBlankNodeLabel(string label)
+        {
+            if (label == null)
+            {
+                throw new ArgumentNullException(nameof(label));
+            }
+
+            bool valid = label.Length > 2 && label.StartsWith("_:", StringComparison.Ordinal);
+            int last = -1;
+
+            for (int i = 2; valid && i < label.Length; i++)
+            {
+                int c;
+
+                if (char.IsHighSurrogate(label[i]) && i + 1 < label.Length && char.IsLowSurrogate(label[i + 1]))
+                {
+                    c = char.ConvertToUtf32(label[i], label[i + 1]);
+                    i++;
+                }
+                else if (char.IsSurrogate(label[i]))
+                {
+                    // A lone surrogate is no character at all.
+                    valid = false;
+                    break;
+                }
+                else
+                {
+                    c = label[i];
+                }
+
+                bool first = last < 0;
+
+                valid = IsBlankNodeLabelStart(c) || (c >= '0' && c <= '9') || c == '-'
+                    || (!first && (IsBlankNodeLabelChar(c) || c == '.'));
+
+                last = c;
+            }
+
+            // A '.' may only stand between two characters of the label.
+            valid &= last != '.';
+
+            if (!valid)
+            {
+                throw new NotSupportedException(
+                    $"The blank node identifier '{label}' cannot be written into a SPARQL query: it is not "
+                    + "'_:' followed by the characters SPARQL's BLANK_NODE_LABEL allows.");
+            }
+        }
+
+        /// <summary>
+        /// <c>PN_CHARS_U</c>: <c>PN_CHARS_BASE</c> or <c>_</c>.
+        /// </summary>
+        private static bool IsBlankNodeLabelStart(int c)
+        {
+            return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_'
+                || (c >= 0x00C0 && c <= 0x00D6) || (c >= 0x00D8 && c <= 0x00F6) || (c >= 0x00F8 && c <= 0x02FF)
+                || (c >= 0x0370 && c <= 0x037D) || (c >= 0x037F && c <= 0x1FFF) || (c >= 0x200C && c <= 0x200D)
+                || (c >= 0x2070 && c <= 0x218F) || (c >= 0x2C00 && c <= 0x2FEF) || (c >= 0x3001 && c <= 0xD7FF)
+                || (c >= 0xF900 && c <= 0xFDCF) || (c >= 0xFDF0 && c <= 0xFFFD) || (c >= 0x10000 && c <= 0xEFFFF);
+        }
+
+        /// <summary>
+        /// The characters <c>PN_CHARS</c> adds to <c>PN_CHARS_U</c>, apart from <c>-</c> and the ASCII
+        /// digits, which a label may also start with here.
+        /// </summary>
+        private static bool IsBlankNodeLabelChar(int c)
+        {
+            return c == 0x00B7 || (c >= 0x0300 && c <= 0x036F) || (c >= 0x203F && c <= 0x2040);
+        }
+
+        /// <summary>
         /// Serializes a URI in a position where the grammar demands an <c>IRIREF</c> — a
         /// <c>PREFIX</c> declaration, a datatype, a dataset clause.
         /// </summary>
         /// <remarks>
         /// Always bracketed. <see cref="SerializeUri"/> emits a blank node label bare, which is a
         /// syntax error in any of these positions, so this refuses one outright rather than
-        /// producing a query that cannot parse.
+        /// producing a query that cannot parse. A graph name - after <c>GRAPH</c>, <c>WITH</c>,
+        /// <c>FROM</c> or <c>INTO</c> - is such a position too.
+        /// <para>
+        /// Public because a store adapter writes these positions itself, and must write them through
+        /// the same guard (ADR-0052).
+        /// </para>
         /// </remarks>
         /// <param name="uri">A uniform resource identifier.</param>
-        internal static string SerializeIriRef(Uri uri)
+        /// <exception cref="NotSupportedException">The IRI cannot be written verbatim, or is a blank
+        /// node identifier.</exception>
+        public static string SerializeIriRef(Uri uri)
         {
             if (uri == null)
             {
@@ -538,7 +726,7 @@ namespace Semiodesk.Trinity
                 // FROM is right. Otherwise FROM would merge the three layers into the default graph,
                 // which is union - the overlay needs them addressable by name instead.
                 return layered.IsMaterialized
-                    ? "FROM " + SerializeUri(layered.Materialized.Uri) + " "
+                    ? "FROM " + SerializeIriRef(layered.Materialized.Uri) + " "
                     : LayeredModelSparql.NamedDatasetClause(layered);
             }
 
@@ -547,7 +735,7 @@ namespace Semiodesk.Trinity
                 return GenerateDatasetClause(model as IModelGroup);
             }
 
-            return "FROM " + SerializeUri(model.Uri) + " ";
+            return "FROM " + SerializeIriRef(model.Uri) + " ";
         }
 
         /// <summary>
@@ -584,7 +772,7 @@ namespace Semiodesk.Trinity
             foreach (var model in models)
             {
                 resultBuilder.Append("FROM ");
-                resultBuilder.Append(SparqlSerializer.SerializeUri(model.Uri));
+                resultBuilder.Append(SparqlSerializer.SerializeIriRef(model.Uri));
                 resultBuilder.Append(" ");
             }
 

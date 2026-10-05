@@ -25,8 +25,12 @@
 // Copyright (c) Semiodesk GmbH 2026
 
 using System;
+using System.Linq;
 using NUnit.Framework;
+using VDS.RDF;
 using VDS.RDF.Query;
+using Semiodesk.Trinity.Ontologies;
+using Semiodesk.Trinity.Store.Oxigraph;
 using Semiodesk.Trinity.Tests.Store;
 
 namespace Semiodesk.Trinity.Tests.Oxigraph
@@ -57,6 +61,41 @@ namespace Semiodesk.Trinity.Tests.Oxigraph
         public void AMalformedQueryIsReportedAsAQueryError()
         {
             Assert.Throws<RdfQueryException>(() => ((StoreBase)Store).ExecuteQuery("SELECT ?s WHERE { ?s ?p }"));
+        }
+
+        /// <summary>
+        /// A query whose form the connector does not know is answered in the formats a known form is, so
+        /// an <c>ASK</c> can be read and a stored carriage return survives a <c>SELECT</c>.
+        /// </summary>
+        /// <remarks>
+        /// The form is unknown for a raw query the strict parser rejects. That branch offered dotNetRDF's
+        /// catch-all header, to which Oxigraph answered a <c>SELECT</c> and an <c>ASK</c> in CSV, and the
+        /// <c>ASK</c> as the bare word <c>true</c>, which failed to parse. The connector is called with no
+        /// form directly, because which raw queries the strict parser rejects is dotNetRDF's business; the
+        /// branch is what is under test.
+        /// </remarks>
+        [Test]
+        public void AQueryOfUnknownFormIsAnsweredAsOneOfKnownForm()
+        {
+            var subject = BaseUri.GetUriRef("carriageReturn");
+            var resource = Model1.CreateResource(subject);
+            resource.AddProperty(nco.fullname, "a\rb");
+            resource.Commit();
+
+            var host = OxigraphContainer.ConnectionString.Split(';').Single(p => p.StartsWith("host=")).Substring(5);
+            var connector = new OxigraphConnector(host);
+
+            string Text(string form) =>
+                new SparqlQuery(form) { Model = Model1 }.Bind("@s", subject).Bind("@p", nco.fullname).ToString();
+
+            var select = (SparqlResultSet)connector.Query(Text("SELECT ?o WHERE { @s @p ?o }"), null);
+            Assert.AreEqual("a\rb", ((ILiteralNode)select.Single()["o"]).Value);
+
+            var ask = (SparqlResultSet)connector.Query(Text("ASK WHERE { @s @p ?o }"), null);
+            Assert.IsTrue(ask.Result);
+
+            var construct = (IGraph)connector.Query(Text("CONSTRUCT { @s @p ?o } WHERE { @s @p ?o }"), null);
+            Assert.AreEqual("a\rb", ((ILiteralNode)construct.Triples.Single().Object).Value);
         }
     }
 }

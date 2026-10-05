@@ -9,6 +9,67 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
 
 ## [Unreleased]
 
+Every value Trinity writes into SPARQL or SQL text now goes through one serializer for its kind, and a
+value that cannot be written is refused, naming itself, rather than written incorrectly.
+([ADR-0052](doc/adr/0052-one-serializer-for-literals-and-iris.md))
+
+### Fixed
+
+- **A string value containing a newline and three apostrophes was not stored as that value.** Any value
+  holding a newline was written in the long form `'''…'''`, which escaped no quotes, so `'''` in the
+  value ended the literal early and the rest was read as part of the update. Every literal is now the
+  short double-quoted form with `\ " LF CR TAB` escaped. It affected every write and every query,
+  because the preprocessor re-writes each literal through the same function — the LINQ writer's own,
+  correct escaping included.
+- **A value with a lone carriage return made `Commit()` throw**, because the CR was written raw into a
+  single-quoted literal. **A several-line value ending in an apostrophe was refused by Fuseki and not
+  written at all by Virtuoso**, which swallowed the error (#50).
+- **`SerializeTypedLiteral` stored a string's quotes as part of its lexical form.** `"abc"^^xsd:anyURI`
+  was stored as `"abc"` with the quotes, and an apostrophe ended the literal. The lexical form is now
+  escaped like any other literal.
+- **A graph IRI holding a `>` was not refused.** Commit's delta (every backend), its insert and replace,
+  every model read's dataset clause, graph parameters, LINQ IRI terms, the layered view's extension
+  functions and Virtuoso's own statements interpolated the IRI raw, so the text after the `>` was read
+  as part of the query. All of them now write it through `SerializeIriRef`. An IRI dotNetRDF decodes
+  from a `\u` escape is also checked before the preprocessor writes it back.
+- **Virtuoso: replacing a graph whose IRI held an apostrophe deleted the data of other graphs.** The
+  manager built `DELETE FROM … RDF_MAKE_IID_OF_QNAME('<iri>')` with the IRI between SQL quotes; it is
+  now a command parameter.
+- **Virtuoso: `ListModels` returned a graph named with `%3E` holding a raw `>`**, because it built each
+  model from `Uri.ToString()`. It keeps the `OriginalString` now.
+- **Oxigraph: a stored carriage return came back from a `SELECT` as a line feed.** It was asked for SPARQL
+  XML results first, and an XML parser normalizes a raw CR to LF; it now asks for JSON results first. The
+  stored value was always exact.
+- **Oxigraph: a raw query whose form the strict parser could not tell was answered in CSV**, so an `ASK`
+  came back as the bare word `true` and failed to parse. It is offered JSON results first too.
+- **Re-binding a `FROM` parameter left the previous graph recorded**, so binding the first graph again
+  was refused as already set. A re-binding refused because the graph was already in the dataset now
+  leaves the previous graph recorded, and the refusal names the graph.
+- **A parameter after `FROM NAMED` was bound as a plain value**: a string as a literal, a blank node as a
+  bare label, and its graph recorded nowhere, so adding the same named graph again wrote a second
+  `FROM NAMED` clause, which Jena refuses. It is a graph parameter now, recorded as a named graph.
+- **A mapped value holding an IRI that cannot be written made `Commit()` report its type as having no
+  serializer.** The refusal naming the IRI (`NotSupportedException`) now passes through `SerializeValue`
+  unchanged, and only a type with no serializer is reported as one.
+
+### Changed
+
+- **Every literal in a query's `ToString()` is now double-quoted** (`"Hallo"@de`, not `'Hallo'@de`).
+  Code that compares generated SPARQL text must expect the new form.
+- **`XsdTypeMapper.SerializeObject` of a string returns the plain value**, not the value between quotes.
+- **`SparqlSerializer.SerializeTranslatedString` validates and lower-cases its tag**, as every other tag
+  path already did, and refuses one that is not a language tag.
+- **`Bind` refuses a `LIMIT` or `OFFSET` value that is not a non-negative integer** — including a numeric
+  string — and a `FROM` or `FROM NAMED` value that is not a graph identifier.
+- **`SparqlSerializer.SerializeIriRef` and `RequireWritableBlankNodeLabel` are public**, so a store
+  adapter can write graph names and blank node ids through the same guard. **A blank node label is held to
+  SPARQL's `BLANK_NODE_LABEL`**, checked by code point; one that is not is refused.
+
+### Removed
+
+- The uncompiled `Trinity/Stores/Virtuoso/VirtuosoSpecific.cs`, left over from when Virtuoso support
+  lived in core.
+
 ## [2.0.0-rc.4] - 2026-10-01
 
 Everything merged since `2.0.0-rc.3` (2026-08-11). That is more than a release candidate usually
