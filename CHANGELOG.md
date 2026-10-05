@@ -72,6 +72,8 @@ The authoring model is unchanged. Three things may need attention when upgrading
   check now follows SPARQL's `BLANK_NODE_LABEL` exactly.
 - **`SparqlSerializer.SerializeValue(new object())` threw `ArgumentNullException`** rather than
   reporting that the type has no serializer.
+- **The Fuseki, GraphDB and Oxigraph packages declared no license.** Every package now declares MIT,
+  as the core, Virtuoso and tool packages already did.
 
 ### Changed
 
