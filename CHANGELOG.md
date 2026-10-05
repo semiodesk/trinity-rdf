@@ -40,8 +40,17 @@ value that cannot be written is refused, naming itself, rather than written inco
 - **Oxigraph: a stored carriage return came back from a `SELECT` as a line feed.** It was asked for SPARQL
   XML results first, and an XML parser normalizes a raw CR to LF; it now asks for JSON results first. The
   stored value was always exact.
+- **Oxigraph: a raw query whose form the strict parser could not tell was answered in CSV**, so an `ASK`
+  came back as the bare word `true` and failed to parse. It is offered JSON results first too.
 - **Re-binding a `FROM` parameter left the previous graph recorded**, so binding the first graph again
-  was refused as already set.
+  was refused as already set. A re-binding refused because the graph was already in the dataset now
+  leaves the previous graph recorded, and the refusal names the graph.
+- **A parameter after `FROM NAMED` was bound as a plain value**: a string as a literal, a blank node as a
+  bare label, and its graph recorded nowhere, so adding the same named graph again wrote a second
+  `FROM NAMED` clause, which Jena refuses. It is a graph parameter now, recorded as a named graph.
+- **A mapped value holding an IRI that cannot be written made `Commit()` report its type as having no
+  serializer.** The refusal naming the IRI (`NotSupportedException`) now passes through `SerializeValue`
+  unchanged, and only a type with no serializer is reported as one.
 
 ### Changed
 
@@ -51,10 +60,10 @@ value that cannot be written is refused, naming itself, rather than written inco
 - **`SparqlSerializer.SerializeTranslatedString` validates and lower-cases its tag**, as every other tag
   path already did, and refuses one that is not a language tag.
 - **`Bind` refuses a `LIMIT` or `OFFSET` value that is not a non-negative integer** — including a numeric
-  string — and a `FROM` value that is not a graph identifier.
-- **`SparqlSerializer.SerializeIriRef` is public**, so a store adapter can write graph names through the
-  same guard. **A blank node label is held to the characters of one** (`_:` plus letters, digits, `_`,
-  `-` and inner dots); one that is not is refused.
+  string — and a `FROM` or `FROM NAMED` value that is not a graph identifier.
+- **`SparqlSerializer.SerializeIriRef` and `RequireWritableBlankNodeLabel` are public**, so a store
+  adapter can write graph names and blank node ids through the same guard. **A blank node label is held to
+  SPARQL's `BLANK_NODE_LABEL`**, checked by code point; one that is not is refused.
 
 ### Removed
 

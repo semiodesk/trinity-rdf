@@ -65,7 +65,7 @@ The **quality gates** and the pre-commit hook need more (ADR-0049):
 
 ```bash
 dotnet build Semiodesk.Trinity.sln -c Release          # whole solution, SDK-only
-dotnet test Trinity.Tests/Trinity.Tests.csproj         # 1266 passed, 3 skipped (quarantined), 0 failed
+dotnet test Trinity.Tests/Trinity.Tests.csproj         # 1295 passed, 3 skipped (quarantined), 0 failed
 dotnet test tests/Trinity.Generator.Tests/Trinity.Generator.Tests.csproj   # 42 passed
 dotnet test tests/Trinity.Vocabulary.Tests/Trinity.Vocabulary.Tests.csproj # 29 passed
 dotnet pack Trinity/Trinity.csproj -c Release          # -> Semiodesk.Trinity.2.0.0.nupkg
@@ -83,7 +83,7 @@ TRINITY_BENCH_BACKENDS=InMemory dotnet run -c Release --project benchmarks/Trini
   with a Docker daemon running. **They run in CI** as the `stores` matrix job (ADR-0044); the ADR-0036
   exclusion no longer applies, because GitHub-hosted runners ship Docker and this repo is public, so
   standard runners are free. The fast `build` job still runs only the in-memory suites, so a Docker
-  hiccup cannot redden it. Current: **all four green** — Oxigraph 373/374, Fuseki 372/373,
+  hiccup cannot redden it. Current: **all four green** — Oxigraph 374/375, Fuseki 372/373,
   GraphDB 371/372, Virtuoso 359/360 (0 failed each; the 1 skipped is the shared blank-node-removal
   quarantine).
 
@@ -268,7 +268,9 @@ asserts discovery registers it — is the guard.
 Trinity builds SPARQL — and, on Virtuoso, SQL — as **text**, so every value placed in that text goes
 through **one serializer for its kind**, and nothing is interpolated by hand. A value or identifier that
 cannot be written is **refused, naming itself, never rewritten** (rewriting changes what the caller asked
-for; a loud refusal at the call beats a silent wrong answer).
+for; a loud refusal at the call beats a silent wrong answer) — and **never re-wrapped** on the way out:
+`SerializeValue` used to report a refused IRI as a type with no serializer, so `Commit()` threw an
+`ArgumentException` where the direct paths throw `NotSupportedException`.
 
 - **Literals: only `SparqlSerializer.SerializeString` / `SerializeValue`.** Always the short
   double-quoted form, escaping `\ " LF CR TAB`. Never `\uXXXX` — SPARQL 1.1 §19.2 decodes it *before*
@@ -281,9 +283,13 @@ for; a loud refusal at the call beats a silent wrong answer).
   `LangString.NormalizeLanguage`. Never append a tag as given.
 - **IRIs: `SerializeIriRef` wherever the grammar needs an `IRIREF`** (`GRAPH`, `WITH`, `FROM`, `INTO`,
   datatypes, dataset clauses, LINQ terms); `SerializeUri` only where a bare blank label is legal (it now
-  holds a `_:` label to `BLANK_NODE_LABEL`'s characters — a label has no delimiter, so it is the one
-  identifier that could otherwise carry text through). `SerializeIriRef` is **public** because the
-  adapters are separate assemblies. Never interpolate `OriginalString`, `AbsoluteUri` or `ToString()`.
+  holds a `_:` label to `BLANK_NODE_LABEL` **by code point** — a label has no delimiter, so it is the one
+  identifier that could otherwise carry text through; `char.IsLetter` approximated it and refused
+  combining marks, other scripts' digits and every non-BMP character, so a Devanagari label loaded from
+  Turtle made `Commit()` throw). `SerializeIriRef` and `RequireWritableBlankNodeLabel` are **public**
+  because the adapters are separate assemblies — Virtuoso's formatter calls the check itself rather than
+  calling `SerializeUri` for its side effect. **Call the shared function, never re-implement it**: the
+  LINQ writer's `WriteIri` checked and then bracketed `OriginalString` itself, a copy that would drift. Never interpolate `OriginalString`, `AbsoluteUri` or `ToString()`.
   **`OriginalString` is the only correct source**: `Uri.ToString()` returns the *display* form and
   unescapes percent-encoding (`%20`, `%3E` become characters `IRIREF` forbids), and `AbsoluteUri` is
   *not* a safe alternative — it normalizes host casing, default ports, dot-segments and percent-encoding
@@ -300,7 +306,10 @@ for; a loud refusal at the call beats a silent wrong answer).
   dotNetRDF decodes their `\u` escapes — `<a\u003Eb>` arrives as a raw `>`. The fixed point is also the
   evidence that the tokenizer hands back *decoded* values, which the whole second pass relies on.
 - **Bound parameters are typed.** A `LIMIT`/`OFFSET` parameter takes a non-negative integer (a numeric
-  *string* is refused); a `FROM` parameter takes a graph identifier (`Uri`, model or resource).
+  *string* is refused); a `FROM` or `FROM NAMED` parameter takes a graph identifier (`Uri`, model or
+  resource) and is recorded under **its own** clause. The tokenizer splits `FROM NAMED` into two tokens,
+  so a check for `FROMNAMED` alone never fires — a `FROM NAMED @g` was bound as a plain value and recorded
+  nowhere, until review.
 - **Data enters a query through `Bind` or the mapping, never string concatenation** — tests and
   benchmarks included (#69). Caller-written SPARQL is the caller's code; *data* inside it must be bound.
 
@@ -610,7 +619,10 @@ Invariants that surprise newcomers:
   plain text `false`. The adapter writes BOM-less Turtle and picks `Accept` by query form — for
   `SELECT`/`ASK`, **SPARQL JSON results first**, not dotNetRDF's XML-first order, because Oxigraph writes a
   carriage return raw into XML results and an XML parser normalizes it to LF (XML 1.0 §2.11), so every
-  read built on bindings returned a stored CR as LF while the stored value stayed exact (ADR-0052).
+  read built on bindings returned a stored CR as LF while the stored value stayed exact (ADR-0052). A
+  query of **unknown form** (a raw string the strict parser rejects) gets JSON results first too: offered
+  dotNetRDF's catch-all header, Oxigraph answered `SELECT` and `ASK` in **CSV** despite its q=0.1, and the
+  `ASK` as a bare `true` nothing could parse.
   `StoreBase.TryParse` is shared for the same reason `GroupByTargetGraph` is — GraphDB's copy had no
   TriG case, so TriG read from a string or stream was handed to the RDF/XML parser.
   **A Graph Store `SaveGraph` is a `PUT`, i.e. a replace**: `Read(update: true)` must add through

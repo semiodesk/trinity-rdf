@@ -83,14 +83,16 @@ type, so a string bound there went into the query as text.
    `INTO`, datatypes, dataset clauses, LINQ terms); `SerializeUri` only where a blank node label is
    legal. It is public now, because the store adapters are separate assemblies. `RequireWritableIri`
    gained a string overload, for IRI text the preprocessor writes back after dotNetRDF has decoded its
-   `\u` escapes. `SerializeUri` now holds a `_:` label to the characters of `BLANK_NODE_LABEL`, none of
-   which can end it.
+   `\u` escapes. `SerializeUri` now holds a `_:` label to `BLANK_NODE_LABEL`, checked by code point,
+   whose characters cannot end it. The check is public, `RequireWritableBlankNodeLabel`, so Virtuoso's
+   formatter holds a node id to it directly.
 
 5. **SQL** — parameterized, as the TTLP calls already were. A validated IRI can still contain `'`, so
    SQL that names one cannot be made safe by the IRI guard alone.
 
 6. **Bound parameters are typed.** A `LIMIT`/`OFFSET` parameter takes a non-negative integer and
-   refuses anything else, including a numeric string. A `FROM` parameter takes a graph identifier.
+   refuses anything else, including a numeric string. A `FROM` or `FROM NAMED` parameter takes a graph
+   identifier and is recorded in that clause's graph set.
 
 **A refusal, not a rewrite.** A value or identifier that cannot be written is refused, naming itself,
 as ADR-0046 decided for IRIs: a rewrite would change what the caller asked for, and silence is worse
@@ -107,8 +109,17 @@ than a loud refusal at the call.
 - **Oxigraph returned a stored carriage return as a line feed** from every `SELECT`. It became reachable
   only once a value could hold a lone CR (this change), and it was Oxigraph being asked for SPARQL XML
   results first — an XML parser normalizes a raw CR to LF (XML 1.0 §2.11), while the stored value was
-  exact. Its connector now asks for JSON results first.
+  exact. Its connector now asks for JSON results first, for a query of unknown form as well: offered
+  dotNetRDF's catch-all header for one, Oxigraph answered `SELECT` and `ASK` in CSV, and the `ASK` as a
+  bare `true` that failed to parse.
 - The duplication share fell: two of the three escape copies are gone.
+- **Review found the rule's own failure mode in the first version of this change** — paths that went
+  around the one serializer rather than through it: a `FROM NAMED` parameter never treated as a graph
+  parameter (the tokenizer splits the keyword, so the check for `FROMNAMED` never fired); Oxigraph's
+  unknown-form branch keeping the old header; `SerializeValue` re-wrapping a refusal as "no serializer";
+  the LINQ writer's `WriteIri` bracketing `OriginalString` itself after the check; Virtuoso's formatter
+  calling `SerializeUri` only for its side effect; the blank-label check approximating the grammar with
+  `char.IsLetter`; and a test helper concatenating its query. Each now goes through the shared function.
 
 ### What the guards actually are
 - **For literals, a spec-derived oracle, not dotNetRDF.** dotNetRDF is the tokenizer whose output the
