@@ -145,7 +145,7 @@ namespace Semiodesk.Trinity.Tests.Query
 
         /// <summary>
         /// Pieces the fuzzer joins. Tokens rather than characters, because the sequences that matter -
-        /// <c>'''</c>, <c>"</c>, <c>\\"</c> - are almost never produced one random character at a time.
+        /// <c>'''</c>, <c>\u0022</c>, <c>\\"</c> - are almost never produced one random character at a time.
         /// </summary>
         private static readonly string[] Alphabet =
         {

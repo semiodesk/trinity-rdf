@@ -49,7 +49,7 @@ namespace Semiodesk.Trinity.Tests.Query
         };
 
         /// <summary>
-        /// dotNetRDF decodes <c>\u</c> escapes inside an IRI token, so <c>&lt;a>b&gt;</c> reaches the
+        /// dotNetRDF decodes <c>\u</c> escapes inside an IRI token, so <c>&lt;a\u003Eb&gt;</c> reaches the
         /// preprocessor as a raw <c>&gt;</c>. Writing it back as it was decoded ended the IRI early.
         /// </summary>
         [TestCase("SELECT * WHERE { <http://example.org/a\\u003Eb> ?p ?o }")]
@@ -73,7 +73,7 @@ namespace Semiodesk.Trinity.Tests.Query
         [Test]
         public void AnIriTokenThatDecodesToAnAllowedCharacterIsWritten()
         {
-            StringAssert.Contains("<http://example.org/é>",
+            StringAssert.Contains("<http://example.org/\u00E9>",
                 new SparqlQuery("SELECT * WHERE { <http://example.org/\\u00E9> ?p ?o }").ToString());
         }
 

@@ -57,7 +57,7 @@ namespace Semiodesk.Trinity
         /// <see cref="LangString.ToNTriples"/> uses it too.
         /// <para>
         /// Two escapes are never written. <c>\uXXXX</c>, because SPARQL 1.1 §19.2 decodes it before the
-        /// query is parsed, so <c>"</c> would arrive as a bare quote. And <c>\'</c>, because a
+        /// query is parsed, so <c>\u0022</c> would arrive as a bare quote. And <c>\'</c>, because a
         /// single quote needs no escape inside double quotes and dotNetRDF's tokenizer refuses one there.
         /// </para>
         /// <para>
@@ -229,7 +229,7 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <remarks>
         /// For IRI text that does not come from a <see cref="Uri"/>: the preprocessor writes back IRI
-        /// tokens dotNetRDF has already decoded, and a <c>&lt;a>b&gt;</c> in the caller's query
+        /// tokens dotNetRDF has already decoded, and a <c>&lt;a\u003Eb&gt;</c> in the caller's query
         /// arrives as a raw <c>&gt;</c> (ADR-0052).
         /// </remarks>
         internal static void RequireWritableIri(string value)
@@ -325,7 +325,7 @@ namespace Semiodesk.Trinity
 
                 if (i > 2)
                 {
-                    nameChar |= c == '·' || (c >= '̀' && c <= 'ͯ') || c == '‿' || c == '⁀'
+                    nameChar |= c == '\u00B7' || (c >= '\u0300' && c <= '\u036F') || c == '\u203F' || c == '\u2040'
                         || (c == '.' && i < label.Length - 1);
                 }
 

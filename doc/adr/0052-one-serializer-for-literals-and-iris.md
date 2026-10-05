@@ -67,7 +67,7 @@ type, so a string bound there went into the query as text.
 1. **String literals** — `SparqlSerializer.SerializeString`. Always the short double-quoted form,
    `STRING_LITERAL2`, escaping `\`, `"`, LF, CR and tab. Double quotes because N-Triples requires them,
    so `LangString.ToNTriples` uses the same function. Two escapes are never written: `\uXXXX`, because
-   SPARQL 1.1 §19.2 decodes it before parsing so `"` would arrive as a bare quote; and `\'`, which
+   SPARQL 1.1 §19.2 decodes it before parsing so `\u0022` would arrive as a bare quote; and `\'`, which
    needs no escape inside double quotes and which dotNetRDF's tokenizer refuses there. The long form is
    gone. `SparqlQueryWriter.WriteLiteral` and `LangString.ToNTriples` call this; `Escape` and the
    `ToNTriples` loop were deleted.

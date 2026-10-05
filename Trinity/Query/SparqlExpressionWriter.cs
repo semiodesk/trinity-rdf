@@ -153,7 +153,7 @@ namespace Semiodesk.Trinity
                 return functor;
             }
 
-            // The functor is the IRI as dotNetRDF parsed it, \u escapes decoded, so <f>g> would be
+            // The functor is the IRI as dotNetRDF parsed it, \u escapes decoded, so <f\u003Eg> would be
             // written as <f>g> - and the preprocessor's token check sees only a harmless <f> (ADR-0052).
             SparqlSerializer.RequireWritableIri(functor);
 

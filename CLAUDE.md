@@ -272,7 +272,7 @@ for; a loud refusal at the call beats a silent wrong answer).
 
 - **Literals: only `SparqlSerializer.SerializeString` / `SerializeValue`.** Always the short
   double-quoted form, escaping `\ " LF CR TAB`. Never `\uXXXX` — SPARQL 1.1 §19.2 decodes it *before*
-  parsing, so `"` would arrive as a bare quote — and never `\'`, which dotNetRDF refuses inside
+  parsing, so `\u0022` would arrive as a bare quote — and never `\'`, which dotNetRDF refuses inside
   `"…"`. No hand-written `'{0}'`, `"\"" + x + "\""` or `'''…'''`. The LINQ writer and
   `LangString.ToNTriples` call it; a typed literal is `SerializeTypedLiteral` (lexical form through
   `SerializeString`, datatype through `SerializeIriRef`). The old `'''…'''` long form escaped no quotes,
@@ -297,7 +297,7 @@ for; a loud refusal at the call beats a silent wrong answer).
 - **The preprocessor re-writes every query and update**, tokenizing and writing each literal and IRI
   token back. So the literal serializer must be a **fixed point** (serializing a decoded literal
   reproduces it), and IRI and datatype tokens are **re-checked** before they are written back, because
-  dotNetRDF decodes their `\u` escapes — `<a>b>` arrives as a raw `>`. The fixed point is also the
+  dotNetRDF decodes their `\u` escapes — `<a\u003Eb>` arrives as a raw `>`. The fixed point is also the
   evidence that the tokenizer hands back *decoded* values, which the whole second pass relies on.
 - **Bound parameters are typed.** A `LIMIT`/`OFFSET` parameter takes a non-negative integer (a numeric
   *string* is refused); a `FROM` parameter takes a graph identifier (`Uri`, model or resource).
@@ -308,7 +308,7 @@ for; a loud refusal at the call beats a silent wrong answer).
 - `SparqlLiteralOracle` decides from the grammar alone whether text is exactly one literal and decodes
   it — **not dotNetRDF**, which is the tokenizer under test and the in-memory engine, so asking it only
   shows the two agree. `HostileLiterals` is the corpus (plus a seeded fuzz over token-level pieces such as
-  `'''`, `"`, `\\"`), with payloads naming a sentinel and a victim graph the store test clears.
+  `'''`, `\u0022`, `\\"`), with payloads naming a sentinel and a victim graph the store test clears.
 - `ThePreprocessorReproducesTheLiteral` pins the fixed point across the templates a literal lands in.
 - Two **reflection sweeps** find their own call sites, so a new one is covered without anyone remembering
   it: `EveryPublicSerializerOfAValueWritesOneLiteral` (every public `SparqlSerializer` method turning a

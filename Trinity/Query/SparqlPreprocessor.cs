@@ -629,7 +629,7 @@ namespace Semiodesk.Trinity
                         }
                     case Token.URI:
                         {
-                            // The tokenizer has decoded the IRI's \u escapes, so <a>b> arrives as a
+                            // The tokenizer has decoded the IRI's \u escapes, so <a\u003Eb> arrives as a
                             // raw '>' that would end it early: checked before it is written back (ADR-0052).
                             SparqlSerializer.RequireWritableIri(token.Value);
 
