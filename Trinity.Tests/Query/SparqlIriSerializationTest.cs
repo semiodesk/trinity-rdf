@@ -25,7 +25,9 @@
 // Copyright (c) Semiodesk GmbH 2026
 
 using System;
+using System.IO;
 using NUnit.Framework;
+using VDS.RDF.Parsing;
 
 namespace Semiodesk.Trinity.Tests.Query
 {
@@ -128,6 +130,87 @@ namespace Semiodesk.Trinity.Tests.Query
                 .Bind("@graph", a);
 
             Assert.AreEqual("SELECT * FROM <http://example.org/a> WHERE { ?s ?p ?o }", query.ToString());
+        }
+
+        /// <summary>
+        /// A parameter after <c>FROM NAMED</c> is a graph parameter too. The tokeniser splits the keyword
+        /// in two, so the token before the parameter is <c>NAMED</c>, and the parameter was bound as a
+        /// plain value: a string as a literal, a blank node as a bare label.
+        /// </summary>
+        [Test]
+        public void AFromNamedParameterTakesOnlyAGraphIdentifier()
+        {
+            const string text = "SELECT * FROM NAMED @graph WHERE { GRAPH ?g { ?s ?p ?o } }";
+
+            Assert.Throws<NotSupportedException>(() => new SparqlQuery(text).Bind("@graph", new UriRef("_:b0", true)));
+            Assert.Throws<ArgumentException>(() => new SparqlQuery(text).Bind("@graph", "http://example.org/g"));
+
+            foreach (string graph in Unwritable)
+            {
+                Assert.Throws<NotSupportedException>(() =>
+                    new SparqlQuery(text).Bind("@graph", new UriRef(graph, UriKind.RelativeOrAbsolute)), graph);
+            }
+        }
+
+        /// <summary>
+        /// A graph bound after <c>FROM NAMED</c> is recorded as a named graph, so adding the same named
+        /// graph again is not a second clause - which Jena refuses (ADR-0043) - and adding it as the
+        /// default graph is not suppressed.
+        /// </summary>
+        [Test]
+        public void AFromNamedParameterIsRecordedAsANamedGraph()
+        {
+            var g = new Uri("http://example.org/g");
+
+            var query = Preprocess("SELECT * FROM NAMED @graph WHERE { GRAPH ?g { ?s ?p ?o } }");
+
+            query.Bind("@graph", g);
+            query.AddNamedGraph(g);
+            query.AddDefaultGraph(g);
+
+            Assert.AreEqual(
+                "SELECT * FROM NAMED <http://example.org/g> FROM <http://example.org/g> WHERE { GRAPH ?g { ?s ?p ?o } }",
+                query.ToString());
+        }
+
+        /// <summary>
+        /// Binding a graph parameter to a graph the dataset already has is refused, and the refusal leaves
+        /// the graph it was bound to before recorded. Forgetting it first left that graph still written but
+        /// no longer recorded, so adding it again wrote a second, identical clause.
+        /// </summary>
+        [Test]
+        public void ARefusedRebindingKeepsThePreviousGraph()
+        {
+            var a = new Uri("http://example.org/a");
+            var b = new Uri("http://example.org/b");
+
+            var query = Preprocess("SELECT * FROM @graph WHERE { ?s ?p ?o }");
+
+            query.Bind("@graph", a);
+            query.AddDefaultGraph(b);
+
+            var e = Assert.Throws<ArgumentException>(() => query.Bind("@graph", b));
+            // The IRI is in the message itself: it used to be passed as paramName, leaving a literal {0}.
+            StringAssert.Contains("http://example.org/b", e.Message);
+            StringAssert.DoesNotContain("{0}", e.Message);
+            Assert.AreEqual("value", e.ParamName);
+
+            query.AddDefaultGraph(a);
+
+            Assert.AreEqual(
+                "SELECT * FROM <http://example.org/a> FROM <http://example.org/b> WHERE { ?s ?p ?o }",
+                query.ToString());
+        }
+
+        /// <summary>
+        /// The preprocessor itself, for adding graphs the way assigning a model does.
+        /// </summary>
+        private static SparqlQueryPreprocessor Preprocess(string text)
+        {
+            var preprocessor = new SparqlQueryPreprocessor(new StringReader(text), SparqlQuerySyntax.Extended);
+            preprocessor.Process(false);
+
+            return preprocessor;
         }
     }
 }

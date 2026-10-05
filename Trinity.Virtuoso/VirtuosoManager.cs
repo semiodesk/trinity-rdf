@@ -69,7 +69,7 @@ namespace Semiodesk.Trinity.Store.Virtuoso
             //
             // The id goes between SQL quotes inside a backquoted SQL expression, so it is held to the
             // characters of a blank node label first, which cannot end either (ADR-0052).
-            SparqlSerializer.SerializeUri(new UriRef("_:" + b.InternalID, true));
+            SparqlSerializer.RequireWritableBlankNodeLabel("_:" + b.InternalID);
 
             return "`sql:rdf_make_iid_of_qname('nodeID://" + b.InternalID + "')`";
         }
@@ -1497,10 +1497,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         }
 
         /// <summary>
-        /// Executes a Non-Query SQL Command against the database
-        /// </summary>
-        /// <param name="sqlCmd">SQL Command</param>
-        /// <summary>
         /// Deletes every quad of a graph.
         /// </summary>
         /// <remarks>
@@ -1531,21 +1527,6 @@ namespace Semiodesk.Trinity.Store.Virtuoso
         private string GraphIriRef(Uri graphUri)
         {
             return SparqlSerializer.SerializeIriRef(new Uri(this.UnmarshalUri(graphUri), UriKind.RelativeOrAbsolute));
-        }
-
-        private void ExecuteNonQuery(string sqlCmd)
-        {
-            //Create the SQL Command
-            VirtuosoCommand cmd = new VirtuosoCommand(sqlCmd, this._db);
-            cmd.CommandTimeout = (this._timeout > 0 ? this._timeout : cmd.CommandTimeout);
-            if (this._dbtrans != null)
-            {
-                //Add to the Transaction if required
-                cmd.Transaction = this._dbtrans;
-            }
-
-            //Execute
-            cmd.ExecuteNonQuery();
         }
 
         /// <summary>

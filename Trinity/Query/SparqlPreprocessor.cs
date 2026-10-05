@@ -106,14 +106,20 @@ namespace Semiodesk.Trinity
         public readonly Dictionary<string, int> ParameterTypes = new Dictionary<string, int>();
 
         /// <summary>
-        /// The graph each graph parameter is bound to, as recorded in <see cref="DefaultGraphs"/>, so that
-        /// re-binding removes the entry it added.
+        /// The graph each graph parameter is bound to, as recorded in its clause's set, so that re-binding
+        /// removes the entry it added.
         /// </summary>
         /// <remarks>
         /// Re-binding used to remove the bracketed serialization from <see cref="DefaultGraphs"/>, which
         /// holds the bare IRI, so the previous graph stayed recorded.
         /// </remarks>
         private readonly Dictionary<string, string> ParameterGraphs = new Dictionary<string, string>();
+
+        /// <summary>
+        /// The set a graph parameter's graph is recorded in: <see cref="NamedGraphs"/> after
+        /// <c>FROM NAMED</c>, <see cref="DefaultGraphs"/> after <c>FROM</c>.
+        /// </summary>
+        private readonly Dictionary<string, HashSet<string>> ParameterGraphClauses = new Dictionary<string, HashSet<string>>();
 
         #endregion
 
@@ -263,9 +269,21 @@ namespace Semiodesk.Trinity
                 switch (LastTokenType)
                 {
                     case Token.FROM:
-                    case Token.FROMNAMED:
                     {
                         parameterType = CustomToken.GRAPHPARAMETER;
+                        ParameterGraphClauses[Value] = DefaultGraphs;
+
+                        break;
+                    }
+                    // NAMED as well as FROMNAMED: the tokeniser splits FROM NAMED into two tokens, so the
+                    // one before the parameter is NAMED (see FollowsDatasetKeyword). Without this case a
+                    // FROM NAMED parameter was bound as a plain value - a string as a literal, a blank
+                    // node as a bare label - and its graph was recorded in no set.
+                    case Token.FROMNAMED:
+                    case Token.NAMED:
+                    {
+                        parameterType = CustomToken.GRAPHPARAMETER;
+                        ParameterGraphClauses[Value] = NamedGraphs;
 
                         break;
                     }
@@ -494,23 +512,32 @@ namespace Semiodesk.Trinity
             
             if (ParameterTypes[parameter] == CustomToken.GRAPHPARAMETER)
             {
-                // A graph after FROM is an IRIREF: written through SerializeIriRef, which refuses a blank
-                // node label and an IRI it cannot write verbatim (ADR-0052). Anything that is not a graph
-                // identifier is refused here rather than written as a literal the parser then rejects.
+                // A graph after FROM or FROM NAMED is an IRIREF: written through SerializeIriRef, which
+                // refuses a blank node label and an IRI it cannot write verbatim (ADR-0052). Anything that
+                // is not a graph identifier is refused here rather than written as a literal the parser
+                // then rejects.
                 var graph = GraphIdentifier(parameter, value);
                 var serialized = SparqlSerializer.SerializeIriRef(graph);
+                var declared = ParameterGraphClauses[parameter];
 
-                if (ParameterGraphs.TryGetValue(parameter, out var previous))
+                ParameterGraphs.TryGetValue(parameter, out var previous);
+
+                // Checked before the previous graph is forgotten, so a refusal leaves every set as it was.
+                // Removing first left the previous graph still bound and emitted but no longer recorded,
+                // and a later AddGraph for it then wrote a second, identical dataset clause.
+                if (graph.OriginalString != previous && declared.Contains(graph.OriginalString))
                 {
-                    DefaultGraphs.Remove(previous);
+                    throw new ArgumentException(
+                        $"The graph {serialized} bound to {parameter} is already in the query's dataset. Has "
+                        + "the query's Model property been set before?", nameof(value));
                 }
 
-                if (DefaultGraphs.Contains(graph.OriginalString))
+                if (previous != null)
                 {
-                    throw new ArgumentException("FROM parameter value {0} is already set. Have you previously set the model property of the query?", serialized);
+                    declared.Remove(previous);
                 }
 
-                DefaultGraphs.Add(graph.OriginalString);
+                declared.Add(graph.OriginalString);
 
                 ParameterGraphs[parameter] = graph.OriginalString;
                 ParameterValues[parameter] = serialized;
@@ -540,7 +567,7 @@ namespace Semiodesk.Trinity
                     return resource.Uri;
                 default:
                     throw new ArgumentException(
-                        $"The parameter {parameter} follows FROM, which takes a graph IRI, but was bound to the "
+                        $"The parameter {parameter} follows FROM or FROM NAMED, which take a graph IRI, but was bound to the "
                         + $"{value.GetType().Name} '{value}'. Bind a Uri or a model.", nameof(value));
             }
         }

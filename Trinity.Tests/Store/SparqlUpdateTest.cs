@@ -219,6 +219,8 @@ namespace Semiodesk.Trinity.Tests.Store
             {
                 var subject = BaseUri.GetUriRef("typed-" + i);
 
+                // Concatenated on purpose: what SerializeTypedLiteral writes into query text is what is
+                // under test, and binding the value would go through SerializeValue instead.
                 Model1.ExecuteUpdate(new SparqlUpdate("INSERT DATA { GRAPH @graph { @subject @predicate " +
                         SparqlSerializer.SerializeTypedLiteral(values[i], datatype) + " . } }")
                     .Bind("@graph", Model1)

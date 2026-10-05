@@ -112,13 +112,11 @@ namespace Semiodesk.Trinity.Tests.Query
         /// </summary>
         public static void AssertNothingEscaped(IStore store, IModel model, IModel victim)
         {
-            string sentinel = SparqlSerializer.SerializeUri(Sentinel);
-
-            Assert.IsFalse(model.ExecuteQuery(new SparqlQuery("ASK WHERE { " + sentinel + " ?p ?o }")).GetAnwser(),
+            Assert.IsFalse(model.ExecuteQuery(new SparqlQuery("ASK WHERE { @s ?p ?o }").Bind("@s", Sentinel)).GetAnwser(),
                 "a value ended its literal early and wrote the sentinel into the model");
             Assert.IsTrue(victim.IsEmpty,
                 "a value ended its literal early and wrote into another graph");
-            Assert.IsFalse(store.ExecuteQuery(new SparqlQuery("ASK WHERE { GRAPH ?g { " + sentinel + " ?p ?o } }")).GetAnwser(),
+            Assert.IsFalse(store.ExecuteQuery(new SparqlQuery("ASK WHERE { GRAPH ?g { @s ?p ?o } }").Bind("@s", Sentinel)).GetAnwser(),
                 "a value ended its literal early and wrote the sentinel into some graph");
         }
 

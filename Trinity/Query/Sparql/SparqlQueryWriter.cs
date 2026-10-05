@@ -323,11 +323,9 @@ namespace Semiodesk.Trinity.Query.Sparql
                     "so the query would silently return the wrong result.");
             }
 
-            // The same verbatim-or-refuse guard as the write path. LINQ constants are caller values, and
-            // a '>' in one ended the IRI early (ADR-0052).
-            SparqlSerializer.RequireWritableIri(value);
-
-            _builder.Append('<').Append(value.OriginalString).Append('>');
+            // The write path's serializer, not a copy of it. LINQ constants are caller values, and a '>'
+            // in one ended the IRI early (ADR-0052).
+            _builder.Append(SparqlSerializer.SerializeIriRef(value));
         }
 
         /// <summary>

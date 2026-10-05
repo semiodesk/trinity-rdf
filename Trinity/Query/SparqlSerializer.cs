@@ -149,44 +149,54 @@ namespace Semiodesk.Trinity
         /// </summary>
         /// <param name="obj">An object.</param>
         /// <returns></returns>
+        /// <exception cref="ArgumentException">There is no serializer for the value's type.</exception>
+        /// <exception cref="NotSupportedException">The value holds an IRI or blank node label that
+        /// cannot be written verbatim.</exception>
+        /// <remarks>
+        /// Only a type with no serializer is reported as such. A refusal of the value itself passes
+        /// through unchanged: it used to be wrapped, so a mapped property holding an unwritable IRI made
+        /// <c>Commit()</c> report a <c>UriRef</c> as having no serializer, and a caller catching the
+        /// <see cref="NotSupportedException"/> the direct paths throw missed it (ADR-0052).
+        /// </remarks>
         public static string SerializeValue(object obj)
         {
-            try
+            if (obj == null)
             {
-                if (obj is string)
-                {
-                    return SerializeString(obj as string);
-                }
-                else if (obj is LangString langString)
-                {
-                    // One branch, because there is now one representation of a tagged literal (ADR-0048).
-                    // This replaced three - string[], Tuple<string,CultureInfo> and Tuple<string,string> -
-                    // which carried the identical comment and did not agree on the type.
-                    return SerializeTranslatedString(langString.Value, langString.Language);
-                }
-                else if (obj is Uri || typeof(Uri).IsSubclassOf(obj.GetType()))
-                {
-                    return SerializeUri(obj as Uri);
-                }
-                else if (obj.GetType().GetInterface("IResource") != null)
-                {
-                    return SerializeUri((obj as IResource).Uri);
-                }
-                else if (obj.GetType().GetInterface("IModel") != null)
-                {
-                    return SerializeUri((obj as IModel).Uri);
-                }
-                else
-                {
-                    return SerializeTypedLiteral(obj, XsdTypeMapper.GetXsdTypeUri(obj.GetType()));
-                }
+                throw new ArgumentNullException(nameof(obj));
             }
-            catch (Exception e)
+
+            if (obj is string)
             {
-                // The cause is kept: a value refused for what it contains, such as an IRI that cannot
-                // be written verbatim, would otherwise read as a type with no serializer.
-                string msg = string.Format("No serializer availabe for object of type {0}.", obj.GetType());
-                throw new ArgumentException(msg, e);
+                return SerializeString(obj as string);
+            }
+            else if (obj is LangString langString)
+            {
+                // One branch, because there is now one representation of a tagged literal (ADR-0048).
+                // This replaced three - string[], Tuple<string,CultureInfo> and Tuple<string,string> -
+                // which carried the identical comment and did not agree on the type.
+                return SerializeTranslatedString(langString.Value, langString.Language);
+            }
+            else if (obj is Uri uri)
+            {
+                // Not also typeof(Uri).IsSubclassOf(obj.GetType()), which tested the wrong way round and
+                // was true for a plain object, so one was written as a null Uri.
+                return SerializeUri(uri);
+            }
+            else if (obj.GetType().GetInterface("IResource") != null)
+            {
+                return SerializeUri((obj as IResource).Uri);
+            }
+            else if (obj.GetType().GetInterface("IModel") != null)
+            {
+                return SerializeUri((obj as IModel).Uri);
+            }
+            else if (XsdTypeMapper.HasXsdTypeUri(obj.GetType()))
+            {
+                return SerializeTypedLiteral(obj, XsdTypeMapper.GetXsdTypeUri(obj.GetType()));
+            }
+            else
+            {
+                throw new ArgumentException($"No serializer available for object of type {obj.GetType()}.", nameof(obj));
             }
         }
 
@@ -306,38 +316,96 @@ namespace Semiodesk.Trinity
         /// <remarks>
         /// A label is written bare, so it is the one identifier with no delimiter to keep it apart from
         /// what follows. It used to be written as given whenever it started with <c>_:</c>, so
-        /// <c>_:x } ; DROP ALL ; #</c> was written into the query as text (ADR-0052). The rule is the
-        /// characters of <c>BLANK_NODE_LABEL</c>, which none of can end a label: any letter counts where
-        /// the grammar lists ranges of them, and a leading <c>-</c> is accepted although the grammar has
-        /// none, because dotNetRDF mints labels from integers that can be negative
-        /// (<c>SELECT BNODE()</c> returned <c>_:-1928796361</c>) and its parser accepts them. Both can only
-        /// admit a label a store then refuses, never one that lets text through.
+        /// <c>_:x } ; DROP ALL ; #</c> was written into the query as text (ADR-0052).
+        /// <para>
+        /// The rule is <c>BLANK_NODE_LABEL</c>'s, checked by code point: <c>'_:' (PN_CHARS_U | [0-9])
+        /// ((PN_CHARS | '.')* PN_CHARS)?</c>. None of its characters can end a label. It used to be
+        /// approximated with <c>char.IsLetter</c>, which refused characters the grammar admits - combining
+        /// marks such as U+094D, digits of other scripts such as U+0660, and every character outside the
+        /// BMP - so a Turtle file giving a node a Devanagari label loaded, and committing a resource
+        /// linking to that node threw.
+        /// </para>
+        /// <para>
+        /// One departure: a leading <c>-</c> is accepted although the grammar has none, because dotNetRDF
+        /// mints labels from integers that can be negative (<c>SELECT BNODE()</c> returned
+        /// <c>_:-1928796361</c>) and its parser accepts them. It can only admit a label a store then
+        /// refuses, never one that lets text through.
+        /// </para>
+        /// <para>
+        /// Public because the Virtuoso adapter writes a node's id into SQL text itself, and must hold it
+        /// to the same rule.
+        /// </para>
         /// </remarks>
-        private static void RequireWritableBlankNodeLabel(string label)
+        /// <param name="label">The label, including its <c>_:</c>.</param>
+        /// <exception cref="NotSupportedException">The text is not a blank node label.</exception>
+        public static void RequireWritableBlankNodeLabel(string label)
         {
-            bool valid = label.Length > 2;
+            if (label == null)
+            {
+                throw new ArgumentNullException(nameof(label));
+            }
+
+            bool valid = label.Length > 2 && label.StartsWith("_:", StringComparison.Ordinal);
+            int last = -1;
 
             for (int i = 2; valid && i < label.Length; i++)
             {
-                char c = label[i];
+                int c;
 
-                bool nameChar = char.IsLetter(c) || c == '_' || c == '-' || (c >= '0' && c <= '9');
-
-                if (i > 2)
+                if (char.IsHighSurrogate(label[i]) && i + 1 < label.Length && char.IsLowSurrogate(label[i + 1]))
                 {
-                    nameChar |= c == '\u00B7' || (c >= '\u0300' && c <= '\u036F') || c == '\u203F' || c == '\u2040'
-                        || (c == '.' && i < label.Length - 1);
+                    c = char.ConvertToUtf32(label[i], label[i + 1]);
+                    i++;
+                }
+                else if (char.IsSurrogate(label[i]))
+                {
+                    // A lone surrogate is no character at all.
+                    valid = false;
+                    break;
+                }
+                else
+                {
+                    c = label[i];
                 }
 
-                valid = nameChar;
+                bool first = last < 0;
+
+                valid = IsBlankNodeLabelStart(c) || (c >= '0' && c <= '9') || c == '-'
+                    || (!first && (IsBlankNodeLabelChar(c) || c == '.'));
+
+                last = c;
             }
+
+            // A '.' may only stand between two characters of the label.
+            valid &= last != '.';
 
             if (!valid)
             {
                 throw new NotSupportedException(
-                    $"The blank node identifier '{label}' cannot be written into a SPARQL query: a label is "
-                    + "'_:' followed by letters, digits, '_', '-' and inner '.' only.");
+                    $"The blank node identifier '{label}' cannot be written into a SPARQL query: it is not "
+                    + "'_:' followed by the characters SPARQL's BLANK_NODE_LABEL allows.");
             }
+        }
+
+        /// <summary>
+        /// <c>PN_CHARS_U</c>: <c>PN_CHARS_BASE</c> or <c>_</c>.
+        /// </summary>
+        private static bool IsBlankNodeLabelStart(int c)
+        {
+            return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_'
+                || (c >= 0x00C0 && c <= 0x00D6) || (c >= 0x00D8 && c <= 0x00F6) || (c >= 0x00F8 && c <= 0x02FF)
+                || (c >= 0x0370 && c <= 0x037D) || (c >= 0x037F && c <= 0x1FFF) || (c >= 0x200C && c <= 0x200D)
+                || (c >= 0x2070 && c <= 0x218F) || (c >= 0x2C00 && c <= 0x2FEF) || (c >= 0x3001 && c <= 0xD7FF)
+                || (c >= 0xF900 && c <= 0xFDCF) || (c >= 0xFDF0 && c <= 0xFFFD) || (c >= 0x10000 && c <= 0xEFFFF);
+        }
+
+        /// <summary>
+        /// The characters <c>PN_CHARS</c> adds to <c>PN_CHARS_U</c>, apart from <c>-</c> and the ASCII
+        /// digits, which a label may also start with here.
+        /// </summary>
+        private static bool IsBlankNodeLabelChar(int c)
+        {
+            return c == 0x00B7 || (c >= 0x0300 && c <= 0x036F) || (c >= 0x203F && c <= 0x2040);
         }
 
         /// <summary>
