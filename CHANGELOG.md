@@ -9,66 +9,81 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
 
 ## [Unreleased]
 
-Every value Trinity writes into SPARQL or SQL text now goes through one serializer for its kind, and a
-value that cannot be written is refused, naming itself, rather than written incorrectly.
+## [2.0.0-rc.5] - 2026-10-05
+
+Corrects how values are written into SPARQL and SQL text. Every literal, language tag and IRI that
+Trinity writes into a query or update now goes through one serializer for its kind, and a value that
+cannot be written is refused with an exception naming it, rather than written incorrectly.
 ([ADR-0052](doc/adr/0052-one-serializer-for-literals-and-iris.md))
+
+The authoring model is unchanged. Three things may need attention when upgrading from rc.4:
+
+- **Generated SPARQL text looks different.** Every literal is now double-quoted (`"Hallo"@de`, not
+  `'Hallo'@de`). The queries mean the same; code or tests that compare query text must expect the new
+  form.
+- **Some values are now refused on every path rather than written.** These are:
+  - an IRI holding a character an IRI may not contain in SPARQL (`<>"{}|^` and backtick, backslash,
+    space, control characters) — percent-encode it;
+  - a blank node label that is not one;
+  - a malformed language tag passed to `SparqlSerializer.SerializeTranslatedString`;
+  - a `LIMIT`/`OFFSET` parameter bound to anything but a non-negative integer;
+  - a `FROM`/`FROM NAMED` parameter bound to anything but a `Uri`, model or resource.
+
+  Identifiers throw `NotSupportedException` and bindings `ArgumentException`. That includes
+  `Commit()`, which used to report such an IRI as a type with no serializer.
+- **`XsdTypeMapper.SerializeObject` of a string returns the plain value**, without quotes.
 
 ### Fixed
 
 - **A string value containing a newline and three apostrophes was not stored as that value.** Any value
-  holding a newline was written in the long form `'''…'''`, which escaped no quotes, so `'''` in the
-  value ended the literal early and the rest was read as part of the update. Every literal is now the
-  short double-quoted form with `\ " LF CR TAB` escaped. It affected every write and every query,
-  because the preprocessor re-writes each literal through the same function — the LINQ writer's own,
-  correct escaping included.
-- **A value with a lone carriage return made `Commit()` throw**, because the CR was written raw into a
-  single-quoted literal. **A several-line value ending in an apostrophe was refused by Fuseki and not
-  written at all by Virtuoso**, which swallowed the error (#50).
-- **`SerializeTypedLiteral` stored a string's quotes as part of its lexical form.** `"abc"^^xsd:anyURI`
-  was stored as `"abc"` with the quotes, and an apostrophe ended the literal. The lexical form is now
-  escaped like any other literal.
-- **A graph IRI holding a `>` was not refused.** Commit's delta (every backend), its insert and replace,
-  every model read's dataset clause, graph parameters, LINQ IRI terms, the layered view's extension
-  functions and Virtuoso's own statements interpolated the IRI raw, so the text after the `>` was read
-  as part of the query. All of them now write it through `SerializeIriRef`. An IRI dotNetRDF decodes
-  from a `\u` escape is also checked before the preprocessor writes it back.
-- **Virtuoso: replacing a graph whose IRI held an apostrophe deleted the data of other graphs.** The
-  manager built `DELETE FROM … RDF_MAKE_IID_OF_QNAME('<iri>')` with the IRI between SQL quotes; it is
-  now a command parameter.
+  holding a newline was written in the long form `'''…'''`, which escapes no quotes, so `'''` inside the
+  value ended the literal early and the rest was read as part of the update. Every literal is now written
+  in the short double-quoted form with `\ " LF CR TAB` escaped. This affected every write and every query.
+- **A value with a lone carriage return made `Commit()` throw.** **A value of several lines ending in an
+  apostrophe was refused by Fuseki, and on Virtuoso was not written while no error was reported** (#50).
+- **`SerializeTypedLiteral` stored a string's quotes as part of its lexical form**, and an apostrophe in
+  the value ended the literal. The lexical form is now escaped like any other literal.
+- **An IRI holding a `>` was not refused on every path.** Several places wrote graph and resource IRIs
+  into query text without the check, so the text after the `>` was read as part of the query:
+  - `Commit()`, `UpdateResource(s)` and every model read's dataset clause;
+  - graph parameters and LINQ IRI terms;
+  - the layered view's extension functions;
+  - Virtuoso's own statements.
+
+  All of them now write the IRI through `SerializeIriRef`. An IRI written with a `\u` escape in a
+  caller's query is checked after it is decoded.
+- **Virtuoso: replacing a graph whose IRI held an apostrophe also deleted the data of other graphs.** The
+  graph IRI was placed between quotes in SQL; it is a command parameter now.
 - **Virtuoso: `ListModels` returned a graph named with `%3E` holding a raw `>`**, because it built each
   model from `Uri.ToString()`. It keeps the `OriginalString` now.
-- **Oxigraph: a stored carriage return came back from a `SELECT` as a line feed.** It was asked for SPARQL
-  XML results first, and an XML parser normalizes a raw CR to LF; it now asks for JSON results first. The
+- **Oxigraph: a stored carriage return came back from a `SELECT` as a line feed.** The store was asked
+  for XML results, whose parser normalizes a raw CR to LF; it is asked for JSON results first now. The
   stored value was always exact.
-- **Oxigraph: a raw query whose form the strict parser could not tell was answered in CSV**, so an `ASK`
-  came back as the bare word `true` and failed to parse. It is offered JSON results first too.
-- **Re-binding a `FROM` parameter left the previous graph recorded**, so binding the first graph again
-  was refused as already set. A re-binding refused because the graph was already in the dataset now
-  leaves the previous graph recorded, and the refusal names the graph.
+- **Oxigraph: `ExecuteQuery(string)` with a query dotNetRDF cannot parse was answered in CSV**, so an
+  `ASK` came back as the bare word `true` and failed to parse. It is asked for JSON results first too.
 - **A parameter after `FROM NAMED` was bound as a plain value**: a string as a literal, a blank node as a
-  bare label, and its graph recorded nowhere, so adding the same named graph again wrote a second
-  `FROM NAMED` clause, which Jena refuses. It is a graph parameter now, recorded as a named graph.
-- **A mapped value holding an IRI that cannot be written made `Commit()` report its type as having no
-  serializer.** The refusal naming the IRI (`NotSupportedException`) now passes through `SerializeValue`
-  unchanged, and only a type with no serializer is reported as one.
+  bare label. Its graph was not recorded either, so adding the same named graph again wrote a second
+  `FROM NAMED` clause, which Fuseki refuses. It is bound as a graph now.
+- **Re-binding a `FROM` parameter left the previous graph recorded**, so binding the first graph again
+  was refused as already set. A re-binding that is refused, because the graph is already in the
+  dataset, now changes nothing, and its message names the graph.
+- **A blank node with a label outside ASCII letters could make `Commit()` throw.** Examples are a
+  Devanagari label, or one using another script's digits or a character outside the BMP. The label
+  check now follows SPARQL's `BLANK_NODE_LABEL` exactly.
+- **`SparqlSerializer.SerializeValue(new object())` threw `ArgumentNullException`** rather than
+  reporting that the type has no serializer.
 
 ### Changed
 
-- **Every literal in a query's `ToString()` is now double-quoted** (`"Hallo"@de`, not `'Hallo'@de`).
-  Code that compares generated SPARQL text must expect the new form.
-- **`XsdTypeMapper.SerializeObject` of a string returns the plain value**, not the value between quotes.
 - **`SparqlSerializer.SerializeTranslatedString` validates and lower-cases its tag**, as every other tag
   path already did, and refuses one that is not a language tag.
-- **`Bind` refuses a `LIMIT` or `OFFSET` value that is not a non-negative integer** — including a numeric
-  string — and a `FROM` or `FROM NAMED` value that is not a graph identifier.
 - **`SparqlSerializer.SerializeIriRef` and `RequireWritableBlankNodeLabel` are public**, so a store
-  adapter can write graph names and blank node ids through the same guard. **A blank node label is held to
-  SPARQL's `BLANK_NODE_LABEL`**, checked by code point; one that is not is refused.
+  adapter can write graph names and blank node ids through the same check.
 
 ### Removed
 
 - The uncompiled `Trinity/Stores/Virtuoso/VirtuosoSpecific.cs`, left over from when Virtuoso support
-  lived in core.
+  lived in core. It was never part of a package.
 
 ## [2.0.0-rc.4] - 2026-10-01
 
@@ -518,5 +533,6 @@ refused write reports success.
   every `HashSet<Uri>`/`Dictionary<Uri,…>` fragment-blind without a recompile.
   ([ADR-0025](doc/adr/0025-resource-identity-uriref-blanknodes.md))
 
-[Unreleased]: https://github.com/semiodesk/trinity-rdf/compare/v2.0.0-rc.4...develop
+[Unreleased]: https://github.com/semiodesk/trinity-rdf/compare/v2.0.0-rc.5...develop
+[2.0.0-rc.5]: https://github.com/semiodesk/trinity-rdf/releases/tag/v2.0.0-rc.5
 [2.0.0-rc.4]: https://github.com/semiodesk/trinity-rdf/releases/tag/v2.0.0-rc.4
