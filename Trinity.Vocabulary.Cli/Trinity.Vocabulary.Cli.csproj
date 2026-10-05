@@ -11,7 +11,6 @@
          otherwise see as an ambiguous project reference. Installed as a tool, invoked as trinity-vocab. -->
     <PackageId>Semiodesk.Trinity.Vocabulary.Tool</PackageId>
     <PackageTags>RDF SPARQL ontology vocabulary code generation dotnet-tool</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IsPackable>true</IsPackable>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>trinity-vocab</ToolCommandName>

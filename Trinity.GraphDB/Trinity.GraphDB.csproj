@@ -12,7 +12,6 @@
   <PropertyGroup>
     <OutputPath>..\Build\$(Configuration)\stores\graphdb</OutputPath>
     <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
-    <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl>https://trinity-rdf.net</PackageProjectUrl>
     <PackageIcon>trinity-logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/semiodesk/trinity-rdf</RepositoryUrl>

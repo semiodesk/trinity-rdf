@@ -24,7 +24,6 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Semiodesk.Trinity</PackageId>
     <PackageTags>RDF SPARQL ORM object mapping linked data semantic web knowledge graph database</PackageTags>
-    <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl>https://trinity-rdf.net</PackageProjectUrl>
     <PackageIcon>trinity-logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/semiodesk/trinity-rdf</RepositoryUrl>
@@ -35,10 +34,6 @@
     <None Include="..\assets\trinity-logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
  
-  <PropertyGroup>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-  </PropertyGroup>
-
   <!-- Ship the Roslyn source generator as an analyzer inside the package (replaces the cilg
        IL weaver). Consumers reference Semiodesk.Trinity and get the mapping generator with no
        build-time tools, no .targets, and no IL weaving. -->

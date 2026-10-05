@@ -26,6 +26,9 @@
     <PackageProjectUrl>https://trinity-rdf.net</PackageProjectUrl>
     <RepositoryUrl>https://github.com/semiodesk/trinity-rdf</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <!-- Here, not per project: Fuseki, GraphDB and Oxigraph each had their own package metadata and no
+         license, and nuget.org refuses a package without one. -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <!-- Package health: Source Link, embedded symbols and a deterministic build. These are what NuGet
