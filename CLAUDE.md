@@ -60,6 +60,8 @@ The **quality gates** and the pre-commit hook need more (ADR-0049):
   blocked, naming the missing one. Stock macOS has no `timeout`: `brew install coreutils` (as `gtimeout`).
 - **Node/`npx`**, with network access on first use to fetch the pinned jscpd — optional locally
   (duplication is reported *not run* without it), enforced in CI.
+- **Network access to nuget.org** for its vulnerability data — optional locally (the vulnerable-package
+  check is reported *not run* offline), enforced in CI.
 - **Docker** with the store suites' pinned images — optional locally (those suites are reported
   *not run*), enforced in CI.
 
@@ -104,8 +106,8 @@ TRINITY_BENCH_BACKENDS=InMemory dotnet run -c Release --project benchmarks/Trini
   type so Trinity converts into it (ADR-0040), whereas the unmapped bag declares nothing. If `ListValues`
   is ever given a CLR-type-fidelity guarantee, they must come back.
 - **CI:** `.github/workflows/ci.yml` (ubuntu, .NET 10) — a fast `build` job (restore → build → test →
-  coverage → pack), a `duplication` job, a `stores` matrix job running the four Dockerized store suites (ADR-0044),
-  and a `coverage` job merging both kinds of report. It runs on **pull requests** and on pushes to
+  coverage → pack), a `duplication` job, a `vulnerabilities` job, a `stores` matrix job running the four
+  Dockerized store suites (ADR-0044), and a `coverage` job merging both kinds of report. It runs on **pull requests** and on pushes to
   `develop`/`master` only — also triggering on `feature/**` pushes ran everything twice per PR push —
   and a newer commit on a PR cancels the superseded run. The `build` job also runs the benchmarks with
   `--smoke` (every case once, smallest sizes, in memory) so a workload that throws cannot rot unnoticed;
@@ -147,8 +149,20 @@ TRINITY_BENCH_BACKENDS=InMemory dotnet run -c Release --project benchmarks/Trini
   a changed file nothing measured is listed **with the reason** (its store suite did not run, failed,
   or nothing loads the file) rather than counted uncovered or dropped. On PRs the `coverage` job makes
   this report, so annotations wait for the slowest store leg; it runs even when a leg failed.
+- **Vulnerable packages** (ADR-0054): `.github/scripts/vulnerabilities.py` runs `dotnet list package
+  --vulnerable --include-transitive` over the **whole solution** and **fails on High or Critical**;
+  Moderate and Low are reported only. The test projects are in scope on purpose: rc.5's adapters handed
+  every net5+ consumer System.Drawing.Common 5.0.0 (critical) through System.Security.Permissions 5.0.0's
+  net5.0 dependency group, which their own netstandard2.0 restore never resolves — only the net8.0 store
+  test projects, which consume the adapters as a user does, showed it. So **every adapter needs a net8+
+  project referencing it**, or the gate cannot see its consumer graph. A report that cannot be produced
+  (`dotnet list` exits 0 whatever it finds, and prints plain text when offline) fails in CI and is *not
+  run* locally — never read as clean. An advisory with no upstream fix goes in the script's `ACCEPTED`
+  map with a reason, rather than the gate being switched off. Its own CI job, so an advisory published
+  overnight reddens only that check. Virtuoso keeps System.Security.Permissions (10.0.x) because the
+  vendored `OpenLink.Data.Virtuoso.dll` binds that assembly; no adapter needs System.Data.Common.
 - **Local check:** `.github/scripts/check.sh [<rev>]` (default `HEAD`, i.e. everything uncommitted,
-  untracked files included) runs the `build` and `duplication` jobs' gates plus both changed-line
+  untracked files included) runs the `build`, `duplication` and `vulnerabilities` jobs' gates plus both changed-line
   reports, and the **store suites the change affects** (`.github/scripts/stores.py`, the one store
   list): an adapter or its test project runs that suite; core, the generator, `Trinity.Tests/` (the
   shared fixtures) or a root build file runs **all four** — about 82% of commits. They start in the
