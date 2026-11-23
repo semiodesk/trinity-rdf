@@ -9,6 +9,41 @@ records the reasoning. Release mechanics are in [`RELEASING.md`](RELEASING.md).
 
 ## [Unreleased]
 
+## [2.0.0-rc.6] - 2026-11-23
+
+A security release: rc.5 with its dependencies fixed. No code changed.
+([ADR-0054](doc/adr/0054-vulnerable-dependency-gate.md))
+
+**If you use any rc.5 store adapter on .NET 5 or later, upgrade.** Through
+System.Security.Permissions 5.0.0, every adapter brought System.Drawing.Common 5.0.0 into your
+application, and that version has a critical remote-code-execution advisory. Your project's restore
+showed it; the adapters' own builds did not.
+
+### Security
+
+- **System.Drawing.Common 5.0.0 is gone** from every adapter's dependencies (GHSA-rxg9-xrhp-64gj,
+  critical). GraphDB, Fuseki and Oxigraph no longer reference System.Security.Permissions at all.
+  Virtuoso needs it for the OpenLink provider it bundles, and now references 10.0.15. From 8.0 on,
+  that package's .NET dependencies no longer include System.Drawing.Common.
+- **System.Text.RegularExpressions 4.3.0 is gone** from every adapter's dependencies
+  (GHSA-cmhx-cq75-c4mj, high). It came from System.Data.Common 4.3.0, which no adapter needs —
+  netstandard2.0 provides those types — and which is no longer referenced.
+- **The `trinity-vocab` tool bundles AngleSharp 1.7.1**, not 1.4.0 (GHSA-pgww-w46g-26qg, moderate). The
+  core package already overrode it; the tool did not.
+- **SSH.NET 2023.0.0 is gone from the test projects** (GHSA-q939-rpr3-3284, GHSA-mggc-4xg6-vcxf, high),
+  by moving them to Testcontainers 4.17.0. Test-only; no package ever shipped it.
+
+### Changed
+
+- CI fails when any project in the solution resolves a package with a High or Critical advisory.
+
+### Upgrading from rc.5
+
+- **A project that pins System.Security.Permissions below 10.0.15 gets NU1605** (package downgrade) when
+  it references the Virtuoso adapter. Raise or remove the pin.
+- Nothing else. An application that used System.Data.Common's types only through an adapter still has
+  them: they are part of .NET itself.
+
 ## [2.0.0-rc.5] - 2026-10-05
 
 Corrects how values are written into SPARQL and SQL text. Every literal, language tag and IRI that
@@ -535,6 +570,7 @@ refused write reports success.
   every `HashSet<Uri>`/`Dictionary<Uri,…>` fragment-blind without a recompile.
   ([ADR-0025](doc/adr/0025-resource-identity-uriref-blanknodes.md))
 
-[Unreleased]: https://github.com/semiodesk/trinity-rdf/compare/v2.0.0-rc.5...develop
+[Unreleased]: https://github.com/semiodesk/trinity-rdf/compare/v2.0.0-rc.6...develop
+[2.0.0-rc.6]: https://github.com/semiodesk/trinity-rdf/releases/tag/v2.0.0-rc.6
 [2.0.0-rc.5]: https://github.com/semiodesk/trinity-rdf/releases/tag/v2.0.0-rc.5
 [2.0.0-rc.4]: https://github.com/semiodesk/trinity-rdf/releases/tag/v2.0.0-rc.4
