@@ -62,10 +62,9 @@ namespace Semiodesk.Trinity.Tests.Oxigraph
         [OneTimeSetUp]
         public async Task StartAsync()
         {
-            _container = new ContainerBuilder()
-                // Pinned, never :latest -- an upstream push should not be able to redden a branch
-                // that changed nothing.
-                .WithImage("ghcr.io/oxigraph/oxigraph:0.5.5")
+            // Pinned, never :latest -- an upstream push should not be able to redden a branch
+            // that changed nothing.
+            _container = new ContainerBuilder("ghcr.io/oxigraph/oxigraph:0.5.5")
                 // --bind 0.0.0.0 is not optional. Oxigraph defaults to binding localhost, which
                 // inside a container means the container's own loopback: the port maps, the
                 // container reports healthy, and every connection from the host is refused.

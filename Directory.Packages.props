@@ -40,8 +40,10 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageVersion Include="NUnit" Version="3.14.0" />
     <PackageVersion Include="NUnit3TestAdapter" Version="4.6.0" />
-    <!-- Store-integration tests self-provision their servers via Docker (ADR-0036). -->
-    <PackageVersion Include="Testcontainers" Version="3.10.0" />
+    <!-- Store-integration tests self-provision their servers via Docker (ADR-0036). 4.17.0 is the
+         first to depend on SSH.NET 2026.0.0; 3.10.0 pulled 2023.0.0, affected by GHSA-q939-rpr3-3284
+         and GHSA-mggc-4xg6-vcxf (high). Test-only, never shipped. -->
+    <PackageVersion Include="Testcontainers" Version="4.17.0" />
     <!-- Benchmarks only (benchmarks/Trinity.Benchmarks), never referenced by shipping code. -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
   </ItemGroup>

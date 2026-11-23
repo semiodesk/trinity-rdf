@@ -63,8 +63,7 @@ namespace Semiodesk.Trinity.Tests.GraphDB
         [OneTimeSetUp]
         public async Task StartAsync()
         {
-            _container = new ContainerBuilder()
-                .WithImage("ontotext/graphdb:10.8.0")
+            _container = new ContainerBuilder("ontotext/graphdb:10.8.0")
                 // assignRandomHostPort: true -> a free ephemeral host port, so we never clash
                 // with a local GraphDB on 7200.
                 .WithPortBinding(7200, true)

@@ -59,11 +59,18 @@ def affected(revision):
     return [s for s in STORES if s in hit]
 
 
+# Testcontainers 4 takes the image in the builder's constructor (the parameterless one is obsolete);
+# WithImage still exists. Both spellings count. A spelling this misses fails silently -- the check would
+# skip its "image not pulled" pre-check and pull gigabytes with the output hidden -- so test_stores.py
+# asserts that every suite pins at least one image.
+IMAGE = re.compile(r'(?:new ContainerBuilder|\.WithImage)\("([^"]+)"\)')
+
+
 def images(store):
     found = []
     for source in sorted(glob.glob(os.path.join(repo_root(), "tests", f"Trinity.Tests.{store}", "*.cs"))):
         with open(source, encoding="utf-8-sig") as handle:
-            found += re.findall(r'WithImage\("([^"]+)"\)', handle.read())
+            found += IMAGE.findall(handle.read())
     return found
 
 
