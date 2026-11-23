@@ -9,7 +9,9 @@
     <!-- dotNetRDF 3.x is split: Core = RDF/SPARQL engine, Client = HTTP storage connectors. -->
     <!-- Pulled in transitively by dotNetRdf.Core, which asks for 1.4.0 — affected by GHSA-pgww-w46g-26qg
          (mXSS, moderate, fixed in 1.5.0). Referenced directly so consumers do not inherit a package
-         with a known advisory. Trinity itself never parses HTML, so this is hygiene, not an exposure. -->
+         with a known advisory. Trinity itself never parses HTML, so this is hygiene, not an exposure.
+         A project that reaches dotNetRdf.Core other than through Trinity must reference it as well:
+         Trinity.Vocabulary does, and the trinity-vocab tool package bundles whatever version resolves there. -->
     <PackageVersion Include="AngleSharp" Version="1.7.1" />
     <PackageVersion Include="dotNetRdf.Core" Version="3.5.2" />
     <PackageVersion Include="dotNetRdf.Client" Version="3.5.2" />
