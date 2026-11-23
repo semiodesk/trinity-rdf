@@ -28,7 +28,8 @@
   <ItemGroup>
     <!-- The vendored VirtuosoManager implements dotNetRDF's IStorageProvider, which lives in Client. -->
     <PackageReference Include="dotNetRdf.Client" />
-    <PackageReference Include="System.Data.Common" />
+    <!-- Required by the vendored OpenLink.Data.Virtuoso.dll, which binds to this assembly. Its ADO.NET
+         types come from netstandard2.0 itself, so no System.Data.Common package is referenced. -->
     <PackageReference Include="System.Security.Permissions" />
   </ItemGroup>
   

@@ -17,8 +17,15 @@
     <PackageVersion Include="dotNetRdf.Inferencing" Version="3.5.2" />
     <!-- 13.0.4 is the floor dotNetRdf.Core 3.5.2 requires. -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageVersion Include="System.Composition" Version="1.1.0" />    <PackageVersion Include="System.Data.Common" Version="4.3.0" />
-    <PackageVersion Include="System.Security.Permissions" Version="5.0.0" />
+    <PackageVersion Include="System.Composition" Version="1.1.0" />
+    <!-- Needed only by Trinity.Virtuoso: the vendored OpenLink.Data.Virtuoso.dll binds to the
+         System.Security.Permissions assembly for CodeAccessPermission, PermissionState and
+         IUnrestrictedPermission, none of which netstandard2.0 provides. 5.0.0 was unsafe for every
+         net5+ consumer, though no netstandard2.0 restore showed it: its net5.0 dependency group pulls
+         System.Windows.Extensions 5.0.0, and with it System.Drawing.Common 5.0.0 — GHSA-rxg9-xrhp-64gj
+         (remote code execution, critical). From 8.0 on, System.Windows.Extensions has no dependencies,
+         so System.Drawing.Common leaves the graph altogether. 10.0 is the supported LTS line. -->
+    <PackageVersion Include="System.Security.Permissions" Version="10.0.15" />
   </ItemGroup>
 
   <!-- Roslyn source generator (Trinity.Generator) -->
