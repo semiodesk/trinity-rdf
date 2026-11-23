@@ -157,6 +157,28 @@ jobs:
       - name: Script tests
         run: python3 -m unittest discover -s .github/scripts -v
 
+  # Packages with a known advisory anywhere in the restored graph, test projects included (ADR-0054).
+  # The net8.0 store test projects consume the netstandard2.0 adapters as a user does, and only from
+  # there was the critical System.Drawing.Common that rc.5's adapters handed to every net5+ consumer
+  # visible. Its own job, as duplication is: an advisory published overnight reddens this check alone
+  # and never hides a test result. The threshold (High and Critical) and the accepted-advisory list
+  # live in the script, so this job and a local .github/scripts/check.sh agree.
+  vulnerabilities:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Semiodesk.Trinity.sln
+
+      - name: Vulnerable packages
+        run: python3 .github/scripts/vulnerabilities.py
+
   # Store-integration suites (ADR-0036). These self-provision Virtuoso, GraphDB and Fuseki in Docker
   # via Testcontainers, so they need a Docker daemon -- which ubuntu-latest has preinstalled.
   #

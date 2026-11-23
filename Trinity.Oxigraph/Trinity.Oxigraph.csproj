@@ -27,8 +27,6 @@
 
   <ItemGroup>
     <PackageReference Include="dotNetRdf.Client" />
-    <PackageReference Include="System.Data.Common" />
-    <PackageReference Include="System.Security.Permissions" />
   </ItemGroup>
   
   <ItemGroup>

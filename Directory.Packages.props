@@ -9,7 +9,9 @@
     <!-- dotNetRDF 3.x is split: Core = RDF/SPARQL engine, Client = HTTP storage connectors. -->
     <!-- Pulled in transitively by dotNetRdf.Core, which asks for 1.4.0 — affected by GHSA-pgww-w46g-26qg
          (mXSS, moderate, fixed in 1.5.0). Referenced directly so consumers do not inherit a package
-         with a known advisory. Trinity itself never parses HTML, so this is hygiene, not an exposure. -->
+         with a known advisory. Trinity itself never parses HTML, so this is hygiene, not an exposure.
+         A project that reaches dotNetRdf.Core other than through Trinity must reference it as well:
+         Trinity.Vocabulary does, and the trinity-vocab tool package bundles whatever version resolves there. -->
     <PackageVersion Include="AngleSharp" Version="1.7.1" />
     <PackageVersion Include="dotNetRdf.Core" Version="3.5.2" />
     <PackageVersion Include="dotNetRdf.Client" Version="3.5.2" />
@@ -17,8 +19,15 @@
     <PackageVersion Include="dotNetRdf.Inferencing" Version="3.5.2" />
     <!-- 13.0.4 is the floor dotNetRdf.Core 3.5.2 requires. -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageVersion Include="System.Composition" Version="1.1.0" />    <PackageVersion Include="System.Data.Common" Version="4.3.0" />
-    <PackageVersion Include="System.Security.Permissions" Version="5.0.0" />
+    <PackageVersion Include="System.Composition" Version="1.1.0" />
+    <!-- Needed only by Trinity.Virtuoso: the vendored OpenLink.Data.Virtuoso.dll binds to the
+         System.Security.Permissions assembly for CodeAccessPermission, PermissionState and
+         IUnrestrictedPermission, none of which netstandard2.0 provides. 5.0.0 was unsafe for every
+         net5+ consumer, though no netstandard2.0 restore showed it: its net5.0 dependency group pulls
+         System.Windows.Extensions 5.0.0, and with it System.Drawing.Common 5.0.0 — GHSA-rxg9-xrhp-64gj
+         (remote code execution, critical). From 8.0 on, System.Windows.Extensions has no dependencies,
+         so System.Drawing.Common leaves the graph altogether. 10.0 is the supported LTS line. -->
+    <PackageVersion Include="System.Security.Permissions" Version="10.0.15" />
   </ItemGroup>
 
   <!-- Roslyn source generator (Trinity.Generator) -->
@@ -31,8 +40,10 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageVersion Include="NUnit" Version="3.14.0" />
     <PackageVersion Include="NUnit3TestAdapter" Version="4.6.0" />
-    <!-- Store-integration tests self-provision their servers via Docker (ADR-0036). -->
-    <PackageVersion Include="Testcontainers" Version="3.10.0" />
+    <!-- Store-integration tests self-provision their servers via Docker (ADR-0036). 4.17.0 is the
+         first to depend on SSH.NET 2026.0.0; 3.10.0 pulled 2023.0.0, affected by GHSA-q939-rpr3-3284
+         and GHSA-mggc-4xg6-vcxf (high). Test-only, never shipped. -->
+    <PackageVersion Include="Testcontainers" Version="4.17.0" />
     <!-- Benchmarks only (benchmarks/Trinity.Benchmarks), never referenced by shipping code. -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
   </ItemGroup>

@@ -4,9 +4,10 @@
 #
 # Usage: .github/scripts/check.sh [<revision>]     (default HEAD: everything not yet committed)
 #
-# Fails when a gate CI enforces would fail: duplication ceiling, build, vocabulary check, a test --
-# in-memory or store -- or the coverage floor. The changed-line findings are reported, never gated.
-# It mirrors the `build`, `duplication` and `scripts` jobs in .github/workflows/ci.yml -- the suite list below
+# Fails when a gate CI enforces would fail: duplication ceiling, build, vocabulary check, a package with
+# a High or Critical advisory, a test -- in-memory or store -- or the coverage floor. The changed-line
+# findings are reported, never gated.
+# It mirrors the `build`, `duplication`, `scripts` and `vulnerabilities` jobs in .github/workflows/ci.yml -- the suite list below
 # must stay in step with the Test step there -- and runs the `stores` job's suites that the change
 # affects (.github/scripts/stores.py decides which: any change to core or the shared fixtures affects
 # all four).
@@ -160,6 +161,12 @@ if [ ${#affected[@]} -gt 0 ]; then
         echo "$!" >> "$lock/stores"
     done
 fi
+
+# After the build, which restored the assets files it reads; while the store suites run, since it needs
+# nothing from them. Offline, it reports itself not run -- CI enforces it regardless.
+echo
+echo "## Vulnerable packages"
+python3 "$scripts/vulnerabilities.py" || status=1
 
 echo
 echo "## Tests"

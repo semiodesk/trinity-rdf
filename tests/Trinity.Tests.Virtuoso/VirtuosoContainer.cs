@@ -83,10 +83,9 @@ namespace Semiodesk.Trinity.Tests.Virtuoso
         [OneTimeSetUp]
         public async Task StartAsync()
         {
-            _container = new ContainerBuilder()
-                // Pinned, like the GraphDB and Fuseki images. This job runs on every pull request
-                // now, so an upstream push to :latest could redden a branch that changed nothing.
-                .WithImage("openlink/virtuoso-opensource-7:7.2.14")
+            // Pinned, like the GraphDB and Fuseki images. This job runs on every pull request
+            // now, so an upstream push to :latest could redden a branch that changed nothing.
+            _container = new ContainerBuilder("openlink/virtuoso-opensource-7:7.2.14")
                 .WithEnvironment("DBA_PASSWORD", "dba")
                 // assignRandomHostPort: true -> a free ephemeral host port, so we never clash
                 // with a local Virtuoso on 1111.

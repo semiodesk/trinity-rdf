@@ -16,6 +16,9 @@
     <!-- Deliberately dotNetRDF only, not Trinity: parsing through Trinity's own store would drag in
          MappingDiscovery/OntologyDiscovery global state, which a build tool must not depend on. -->
     <PackageReference Include="dotNetRdf.Core" />
+    <!-- Overrides the vulnerable 1.4.0 that dotNetRdf.Core pulls in (see Directory.Packages.props).
+         This project is not referenced as a package, but trinity-vocab bundles it, AngleSharp included. -->
+    <PackageReference Include="AngleSharp" />
   </ItemGroup>
 
 </Project>
